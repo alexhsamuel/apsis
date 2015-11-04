@@ -1,0 +1,24 @@
+{
+  "type": "ProcessProgram",
+  "args": ["this", "is", "a", "test"],
+  "executable": "/home/samuel/dev/sched/test/test_program2.py",
+  "stdin": {
+    "type": "file",
+    "filename": "test_program4.json",
+    "mode": "r"
+  },
+  "stdout": "capture",
+  "stderr": {
+    "type": "file",
+    "filename": "stderr",
+    "mode": "w"
+  },
+  "env": {
+    "keep": ["HOME", "SHELL"],
+    "unset": ["LS_COLORS", "SHELL", "FOO"],
+    "set": {
+      "PATH": "/bin:/usr/bin",
+      "TERM": "xterm"
+    }
+  }
+}

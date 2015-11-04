@@ -1,0 +1,13 @@
+{
+  "type": "ProcessProgram",
+  "args": [
+    "/home/samuel"
+  ],
+  "executable": "/home/samuel/dev/sched/test/test_program1.sh",
+  "stdin": "null",
+  "stdout": "capture",
+  "stderr": {
+    "type": "dup",
+    "from_fd": 1
+  }
+}

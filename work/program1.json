@@ -1,0 +1,13 @@
+{
+  "type": "ProcessProgram",
+  "args": [
+    "/home/samuel"
+  ],
+  "executable": "/bin/ls",
+  "stdin": "null",
+  "stdout": "capture",
+  "stderr": {
+    "type": "dup",
+    "from_fd": 1
+  }
+}

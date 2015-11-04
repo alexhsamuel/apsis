@@ -1,0 +1,14 @@
+{
+  "type": "process",
+  "executable": "/bin/ls",
+  "args": [
+    "/home/samuel"
+  ],
+
+  "stdout": {"type": "leave"},
+  "stdout": "leave",
+  "stdout": {"type": "capture"},
+  "stdout", "capture",
+  "stdout": {"type": "file", "filename": "/path/to/stdout"},
+  "stdout": "file:/path/to/stdout",
+}

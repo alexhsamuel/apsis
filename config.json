@@ -1,0 +1,55 @@
+// Jobs
+
+{
+  'action': {
+    'type': 'shell',
+    'command': 
+  },
+
+  'time_out': '1 day',
+
+  'notification': {
+  }
+}
+
+{
+  'action': 'RotateLogs',
+  'params': ['dir'],
+  'args': {
+    'age': '7 days'
+  }
+}
+
+//------------------------------------------------------------------------------
+// Actions
+
+{
+  'name': 'RotateLogs',
+  'type': 'process',
+  'params': ['AGE', 'DIR'],
+  'executable': '/usr/bin/logrotate',
+  'arguments': ['--remove', '--age', '{{AGE}}', '{{DIR}}']
+}
+
+// Default (exemplar).
+{
+  'type': 'shell',
+  'params': [],
+
+  'shell': '/bin/bash',
+
+  'env': {},
+  'inherit_env_vars': ['SHELL', 'HOME'],
+  'inherit_env': false,
+  
+  'cwd': '$HOME',
+}
+
+{
+  'name': 'RotateLogs',
+  'type': 'shell',
+  'params': ['AGE', 'DIR'],
+  'shell': '/bin/bash',
+  'command': 'logrotate --remove --age $AGE $DIR'
+}
+

@@ -1,0 +1,29 @@
+from  __future__ import division
+
+from   datetime import (
+  date as Date, time as Time, datetime as Datetime, timedelta as Timedelta)
+import math
+import pytz
+
+#-------------------------------------------------------------------------------
+
+DAY             = Timedelta(1, 0)
+SEC             = Timedelta(0, 1)
+
+UNIX_EPOCH      = Date(1970, 1, 1)
+DATENUM_EPOCH   = Date(1200, 3, 1)
+
+#-------------------------------------------------------------------------------
+
+def log2(x):
+    return math.log(x, 2)
+
+
+def get_datenum(y, m, d):
+    return date(y, m, d).toordinal() - DATENUM_EPOCH.toordinal()
+
+
+def unix64_to_time_offset(o):
+    return long((o + 281177 * 86400) * (1 << 26))
+
+
