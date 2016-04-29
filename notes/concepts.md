@@ -20,30 +20,26 @@ State transitions proceed forward only.
 
 A job instance, once created, can exist in one of these collections:
 
-- the program: jobs whose programmed time hasn't arrived yet
-- the blocked set: jobs which are blocked by some condition other than schedule
-- the ready set: jobs that are ready to run
-- the running set: jobs that are running
-- the done set: jobs that have run
+- the program queue: jobs whose programmed time hasn't arrived yet
+- the blocked queue: jobs which are blocked by some condition other than schedule
+- the ready queue: jobs that are ready to run
+- the running queue: jobs that are running
 
 # actors
 
 ## programmer
 
-The programmer monitors the program and wakes an instance when its start time arrives.  Woken instances are forwaded to the blocked set.
+The programmer monitors the program queue and wakes an instance when its start time arrives.  Woken instances are forwaded to the blocked queue.
 
 ## coordinator
 
-The coordinator monitors the blocked set and wakes an instance when all of its conditions are satified.  Woken instances are forwarded to the ready set.
+The coordinator monitors the blocked queue and wakes an instance when all of its conditions are satified.  Woken instances are forwarded to the queue set.
 
 ## scheduler
 
-The scheduler scheduls instances in the running set.  Scheduled instances are run.
+The scheduler runs instances in the running queue.  In addition it,
 
-## runner
-
-The runner runs a job.  In addition it,
-
+- Maintains the ready and running queues.
 - Collects and records results.
 - Transitions instance state.
 - Applies retry logic by creating additional instances if necessary.
