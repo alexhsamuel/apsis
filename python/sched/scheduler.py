@@ -8,6 +8,9 @@ import time
 #-------------------------------------------------------------------------------
 
 def _start(job):
+    """
+    FIXME: This is a stub for much larger functionality, in another component.
+    """
     proc = subprocess.Popen(job.command, shell=True)
     return proc
 
