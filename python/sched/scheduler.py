@@ -1,7 +1,6 @@
 import errno
 import logging
 import os
-import random
 import subprocess
 import sys
 import time
@@ -93,7 +92,9 @@ class Scheduler:
 
 #-------------------------------------------------------------------------------
 
+# FIXME: Schedule instance instead.
 def schedule_job(ready_queue, job):
+    import random
     instance = Instance(job, random.randint(0, sys.maxsize))
     ready_queue.append(instance)
 
