@@ -5,6 +5,9 @@ import pickle
 #-------------------------------------------------------------------------------
 
 class InstanceDB:
+    """
+    Tracks results of completed job instances.
+    """
 
     def __init__(self, path):
         self.__path = Path(path)
@@ -13,17 +16,8 @@ class InstanceDB:
                 self.__instances = pickle.load(file)
         else:
             logging.warning(
-                "db {} doesn't exist; creating new".format(self.__path))
+                "db doesn't exist; creating new: {}".format(self.__path))
             self.__instances = {}
-
-
-    def create_instance(self, instance):
-        if instance.id in self.__instances:
-            raise ValueError(
-                "instance {} already exists".format(instance.id))
-
-        self.__instances[instance.id] = None
-        self.__write()
 
 
     def log(self, instance, msg):
@@ -32,8 +26,8 @@ class InstanceDB:
 
 
     def set_result(self, instance, result):
-        if instance.id not in self.__instances:
-            raise LookupError("instance {} does not exist".format(instance.id))
+        if instance.id in self.__instances:
+            raise LookupError("instance already exists: {}".format(instance.id))
 
         self.__instances[instance.id] = result
         self.__write()
@@ -46,7 +40,7 @@ class InstanceDB:
         try:
             return self.__instances[instance.id]
         except KeyError:
-            raise LookupError("instance {} does not exist".format(instance.id))
+            raise LookupError("instance does not exist: {}".format(instance.id))
 
 
     def __write(self):

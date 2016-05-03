@@ -1,11 +1,13 @@
 import errno
 import logging
 import os
+import random
 import subprocess
 import sys
 import time
 
 from   . import run
+from   .instance import Instance
 
 #-------------------------------------------------------------------------------
 
@@ -87,5 +89,12 @@ class Scheduler:
             time.sleep(interval)
         logging.debug("no ready or running jobs")
 
+
+
+#-------------------------------------------------------------------------------
+
+def schedule_job(ready_queue, job):
+    instance = Instance(job, random.randint(0, sys.maxsize))
+    ready_queue.append(instance)
 
 
