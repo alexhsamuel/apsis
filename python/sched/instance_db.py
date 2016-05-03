@@ -39,7 +39,6 @@ class InstanceDB:
         self.__write()
 
 
-
     def get_result(self, instance):
         """
         Returns `None` if the instance has not run.
