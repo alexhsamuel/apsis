@@ -1,9 +1,13 @@
+import random
+import sys
+
+#-------------------------------------------------------------------------------
 
 class Instance:
 
-    def __init__(self, job, id):
+    def __init__(self, job):
         self.__job = job
-        self.__id = id
+        self.__id = random.randint(0, sys.maxsize)
 
 
     @property
@@ -14,6 +18,7 @@ class Instance:
     @property
     def id(self):
         return self.__id
+
 
 
 

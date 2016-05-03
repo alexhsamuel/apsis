@@ -1,3 +1,4 @@
+from   functools import partial
 import logging
 import sys
 import time
@@ -5,31 +6,40 @@ import time
 from   .instance import Instance
 from   .instance_db import InstanceDB
 from   .job import Job
-from   .scheduler import Scheduler, schedule_job
+from   .programmer import Programmer, program_instance_in
+from   .scheduler import Scheduler, schedule_instance
+
+#-------------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        style="{", 
+        format="{asctime} [{levelname:8s}] {message}",
+        datefmt="%Y-%m-%d %H:%M:%S")
     logging.getLogger(None).setLevel(logging.DEBUG)
 
     job1 = Job(1, "/bin/sleep 1")
     job2 = Job(2, "echo 'job starting' pid=$$; /bin/sleep 2; echo 'job done' pid=$$")
 
+    program_queue = []
     ready_queue = []
+    schedule = partial(schedule_instance, ready_queue)
     db = InstanceDB("instance-db.pickle")
 
-    sched = Scheduler(ready_queue, db)
-    schedule = lambda job: schedule_job(ready_queue, job)
+    programmer = Programmer(program_queue, schedule)
+    scheduler = Scheduler(ready_queue, db)
 
-    schedule(job2)
-    schedule(job1)
-    schedule(job2)
+    def program(job, interval):
+        program_instance_in(program_queue, Instance(job), interval)
 
-    for _ in range(15):
-        sched.run1()
+    program(job1,  1.0)
+    program(job2,  0.5)
+    program(job2, 10.0)
+    
+    for _ in range(300):
+        programmer.run1()
+        scheduler.run1()
         time.sleep(0.1)
-
-    schedule(job1)
-    schedule(job2)
-
-    sched.run_all()
+    scheduler.run_all()
 
 

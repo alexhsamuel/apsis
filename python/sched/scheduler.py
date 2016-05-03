@@ -66,7 +66,7 @@ class Scheduler:
         """
         while len(self.__ready_queue) > 0:
             instance = self.__ready_queue.pop()
-            logging.debug("starting instance {}".format(instance.id))
+            logging.debug("scheduler starting instance {}".format(instance.id))
             proc = run.start(instance.job)
             logging.debug(
                 "child {} started for instance {}"
@@ -92,10 +92,7 @@ class Scheduler:
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Schedule instance instead.
-def schedule_job(ready_queue, job):
-    import random
-    instance = Instance(job, random.randint(0, sys.maxsize))
+def schedule_instance(ready_queue, instance):
     ready_queue.append(instance)
 
 
