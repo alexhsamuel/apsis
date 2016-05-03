@@ -5,15 +5,9 @@ import subprocess
 import sys
 import time
 
+from   . import run
+
 #-------------------------------------------------------------------------------
-
-def _start(job):
-    """
-    FIXME: This is a stub for much larger functionality, in another component.
-    """
-    proc = subprocess.Popen(job.command, shell=True)
-    return proc
-
 
 class Scheduler:
 
@@ -72,7 +66,7 @@ class Scheduler:
         while len(self.__ready_queue) > 0:
             instance = self.__ready_queue.pop()
             logging.debug("starting instance {}".format(instance.id))
-            proc = _start(instance.job)
+            proc = run.start(instance.job)
             logging.debug(
                 "child {} started for instance {}"
                 .format(proc.pid, instance.id))
