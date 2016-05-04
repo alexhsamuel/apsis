@@ -6,8 +6,8 @@ import time
 from   .instance import Instance
 from   .instance_db import InstanceDB
 from   .job import Job
-from   .programmer import Programmer, program_instance_in
-from   .scheduler import Scheduler, schedule_instance
+from   .scheduler import Scheduler, schedule_instance_in
+from   .executor import Executor, execute_instance
 
 #-------------------------------------------------------------------------------
 
@@ -21,25 +21,25 @@ if __name__ == "__main__":
     job1 = Job(1, "/bin/sleep 1")
     job2 = Job(2, "echo 'job starting' pid=$$; /bin/sleep 2; echo 'job done' pid=$$")
 
-    program_queue = []
     schedule_queue = []
-    schedule = partial(schedule_instance, schedule_queue)
+    execute_queue = []
+    execute = partial(execute_instance, execute_queue)
     db = InstanceDB("instance-db.pickle")
 
-    programmer = Programmer(program_queue, schedule)
-    scheduler = Scheduler(schedule_queue, db)
+    scheduler = Scheduler(schedule_queue, execute)
+    executor = Executor(execute_queue, db)
 
-    def program(job, interval):
-        program_instance_in(program_queue, Instance(job), interval)
+    def schedule_in(job, interval):
+        schedule_instance_in(schedule_queue, Instance(job), interval)
 
-    program(job1,  1.0)
-    program(job2,  0.5)
-    program(job2, 10.0)
+    schedule_in(job1,  1.0)
+    schedule_in(job2,  0.5)
+    schedule_in(job2, 10.0)
     
     for _ in range(300):
-        programmer.run1()
         scheduler.run1()
+        executor.run1()
         time.sleep(0.1)
-    scheduler.run_all()
+    executor.run_all()
 
 
