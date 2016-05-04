@@ -12,8 +12,8 @@ from   .instance import Instance
 
 class Scheduler:
 
-    def __init__(self, ready_queue, instance_db):
-        self.__ready_queue = ready_queue
+    def __init__(self, schedule_queue, instance_db):
+        self.__schedule_queue = schedule_queue
         self.__instance_db = instance_db
 
         # Map from pid to subprocess.Popen for running processes.
@@ -64,8 +64,8 @@ class Scheduler:
         """
         Starts processes for instances in the ready queue.
         """
-        while len(self.__ready_queue) > 0:
-            instance = self.__ready_queue.pop()
+        while len(self.__schedule_queue) > 0:
+            instance = self.__schedule_queue.pop()
             logging.debug("scheduler starting instance {}".format(instance.id))
             proc = run.start(instance.job)
             logging.debug(
@@ -82,7 +82,7 @@ class Scheduler:
 
 
     def run_all(self, interval=0.1):
-        while len(self.__ready_queue) > 0 or len(self.__procs) > 0:
+        while len(self.__schedule_queue) > 0 or len(self.__procs) > 0:
             self.run1()
             # FIXME: Hacky.
             time.sleep(interval)
@@ -92,7 +92,7 @@ class Scheduler:
 
 #-------------------------------------------------------------------------------
 
-def schedule_instance(ready_queue, instance):
-    ready_queue.append(instance)
+def schedule_instance(schedule_queue, instance):
+    schedule_queue.append(instance)
 
 

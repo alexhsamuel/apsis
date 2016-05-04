@@ -22,12 +22,12 @@ if __name__ == "__main__":
     job2 = Job(2, "echo 'job starting' pid=$$; /bin/sleep 2; echo 'job done' pid=$$")
 
     program_queue = []
-    ready_queue = []
-    schedule = partial(schedule_instance, ready_queue)
+    schedule_queue = []
+    schedule = partial(schedule_instance, schedule_queue)
     db = InstanceDB("instance-db.pickle")
 
     programmer = Programmer(program_queue, schedule)
-    scheduler = Scheduler(ready_queue, db)
+    scheduler = Scheduler(schedule_queue, db)
 
     def program(job, interval):
         program_instance_in(program_queue, Instance(job), interval)
