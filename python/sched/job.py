@@ -16,4 +16,17 @@ class Job:
         return self.__command
 
 
+    def to_jso(self):
+        return {
+            "id": self.__id,
+            "command": self.__command,
+        }
+
+
+    @staticmethod
+    def from_jso(class_, jso):
+        return class_(jso["id"], jso["command"])
+
+
+
 
