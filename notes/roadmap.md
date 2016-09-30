@@ -21,3 +21,5 @@ These are the features roughly in the order I envision them.
 - A simplified `cron` replacement.
 - A `at` replacement.
 - Two-way support for crontab files.
+- Command line UI.
+- Web UI.
