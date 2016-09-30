@@ -4,10 +4,17 @@ These are the features roughly in the order I envision them.
   - Basic recurrence.
   - One-off jobs.
 - A temporal queue that supports infinite recurrence streams.
-- A job description schema and format.
-- Basic execution of local commands, in a separate component.
-- Recording state of executions.
-- Notification framework for executions.
+- Job schema.
+- Pluggable job repo.
+  - Bunch of json files.
+  - Some database.
+- Extensible execution of local commands.
+  - Local command.
+  - Remote by `ssh`.
+- Extensible persistance of execution state.
+  - Log file.
+  - Some database.
+- Extensible notification framework for executions.
   - Console.
   - Email.
 - One-way support for crontab files.
