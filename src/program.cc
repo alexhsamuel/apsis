@@ -287,9 +287,11 @@ ProgramSpec::from_json(
     unique_ptr<ProcessProgramSpec> spec = ProcessProgramSpec::from_json(json);
     return unique_ptr<ProgramSpec>((ProgramSpec*) spec.release());
   }
-  else
+  else {
     // FIXME
     assert(false);
+    return nullptr;
+  }
 }
 
 

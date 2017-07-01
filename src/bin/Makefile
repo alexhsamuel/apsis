@@ -1,4 +1,4 @@
-CXX	       := $(CXX) -std=c++0x
+CXX	       := $(CXX) -std=c++11
 CXXFLAGS    	= -Wall -g
 CPPFLAGS	= -I..
 
