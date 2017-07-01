@@ -10,6 +10,11 @@
 
 #include "xsys.hh"
 
+// FIXME: Do this properly.
+#ifdef __APPLE__
+using sighandler_t = sig_t;
+#endif
+
 //------------------------------------------------------------------------------
 
 namespace alxs {

@@ -20,24 +20,24 @@ State transitions proceed forward only.
 
 A job instance, once created, can exist in one of these collections:
 
-- the program queue: jobs whose programmed time hasn't arrived yet
+- the schedule queue: jobs whose programmed time hasn't arrived yet
 - the blocked queue: jobs which are blocked by some condition other than schedule
-- the ready queue: jobs that are ready to run
+- the execute queue: jobs that are ready to run
 - the running queue: jobs that are running
 
 # actors
 
-## programmer
+## scheduler
 
-The programmer monitors the program queue and wakes an instance when its start time arrives.  Woken instances are forwaded to the blocked queue.
+The scheduler monitors the schedule queue and wakes an instance when its start time arrives.  Woken instances are forwaded to the blocked queue.
 
 ## coordinator
 
 The coordinator monitors the blocked queue and wakes an instance when all of its conditions are satified.  Woken instances are forwarded to the queue set.
 
-## scheduler
+## executor
 
-The scheduler runs instances in the running queue.  In addition it,
+The executor runs instances in the running queue.  In addition it,
 
 - Maintains the ready and running queues.
 - Collects and records results.

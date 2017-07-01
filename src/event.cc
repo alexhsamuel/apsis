@@ -15,8 +15,13 @@ namespace evt {
 
 //------------------------------------------------------------------------------
 
-int const SIG_MAX
-  = SIGRTMIN;
+int const SIG_MAX =
+#if __linux__
+  SIGRTMIN
+#else
+  NSIG
+#endif
+;
 
 
 SignalHandler::SignalHandler()
