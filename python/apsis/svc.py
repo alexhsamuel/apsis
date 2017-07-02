@@ -2,8 +2,8 @@ import asyncio
 from   cron import *
 import logging
 
-from   tempist import scheduler
-from   tempist.job import TEST_JOBS
+from   apsis import scheduler
+from   apsis.job import TEST_JOBS
 
 #-------------------------------------------------------------------------------
 
