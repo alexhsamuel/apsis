@@ -3,7 +3,7 @@ from   cron import *
 import logging
 
 from   apsis import scheduler
-from   apsis.job import TEST_JOBS
+import apsis.testing
 
 #-------------------------------------------------------------------------------
 
@@ -12,7 +12,7 @@ def main():
 
     time = now()
     docket = scheduler.Docket(time)
-    scheduler.schedule_insts(docket, TEST_JOBS, time + 1 * 86400)
+    scheduler.schedule_insts(docket, apsis.testing.JOBS, time + 1 * 86400)
 
     event_loop = asyncio.get_event_loop()
 
