@@ -1,3 +1,4 @@
+import asyncio
 from   cron import *
 import heapq
 from   itertools import takewhile
@@ -47,7 +48,7 @@ class Docket:
         assert start == self.__stop
         for inst in insts:
             assert inst.time in interval
-            log.info("pushing: {} {}".format(inst.time, inst.id))
+            log.info("pushing: ({}) {}".format(inst.time, inst.id))
             heapq.heappush(self.__insts, (inst.time, inst))
         self.__stop = stop
 
@@ -60,7 +61,7 @@ class Docket:
         insts = []
         while len(self.__insts) > 0 and self.__insts[0][0] < stop:
             inst_time, inst = heapq.heappop(self.__insts)
-            log.info("popping: {} {}".format(inst_time, inst.id))
+            log.info("popping: ({}) {}".format(inst_time, inst.id))
             insts.append(inst)
         self.__start = stop
         return insts
@@ -101,5 +102,40 @@ def extract_current_insts(docket, time: Time):
     interval = Interval(docket.interval.start, time)
 
     return docket.pop(interval)
+
+
+def run_current(docket, time):
+    """
+    Runs jobs in `docket` that are current at `time`.
+    """
+    # FIXME: Check if the docket is behind.
+    insts = extract_current_insts(docket, time)
+    for inst in insts:
+        log.info("running: {}".format(inst))
+        # FIXME: Actually run jobs.
+
+
+def docket_handler(docket):
+    """
+    Runs jobs in `docket` currently handled, and rescheduled the handler.
+    """
+    # Assume (without proof?) that we're handling this handle.
+    docket.handle = None
+
+    time = now()
+
+    # Run currently-scheduled jobs.
+    run_current(docket, time)
+
+    if len(docket) > 0:
+        # Schedule the next call to this function.
+        event_loop = asyncio.get_event_loop()
+
+        next_time = docket.next_sched_time
+        delay = next_time - time
+        log.info("docket_handler scheduled in: {:.2f} s".format(delay))
+        # Store the callback handle and the time at which it is scheduled.
+        docket.handle = event_loop.call_later(delay, docket_handler, docket)
+        docket.handle_time = next_time
 
 
