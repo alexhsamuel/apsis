@@ -57,11 +57,11 @@ class ProcessProgram:
         log.info("running: {}".format(run))
 
         start_time = now()
-        fields = {
-            "hostname"      : socket.gethostname(),
-            "username"      : getpass.getuser(),
-            "start_time"    : str(start_time),
-        }
+        fields = dict(
+            hostname    =socket.gethostname(),
+            username    =getpass.getuser(),
+            start_time  =str(start_time),
+        )
 
         try:
             with open("/dev/null") as stdin:
@@ -86,13 +86,13 @@ class ProcessProgram:
             assert stderr is None
             assert return_code is not None
 
-            fields.update({
-                "start_time"    : str(start_time),
-                "pid"           : proc.pid,
-                "output"        : stdout.decode(),  # FIXME: Might not be UTF-8.
-                "return_code"   : return_code,
-                "end_time"      : str(end_time),
-            })
+            fields.update(
+                start_time  =str(start_time),
+                pid         =proc.pid,
+                output      =stdout.decode(),  # FIXME: Might not be UTF-8.
+                return_code =return_code,
+                end_time    =str(end_time),
+            )
             outcome = Result.SUCCESS if return_code == 0 else Result.FAILURE
 
         return Result(run, outcome, fields)
