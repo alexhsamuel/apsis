@@ -4,7 +4,7 @@ import heapq
 from   itertools import takewhile
 import logging
 
-from   .job import Instance
+from   .job import Instance, Run
 from   .lib import *
 
 log = logging.getLogger("scheduler")
@@ -113,8 +113,9 @@ def run_current(docket, time):
     # FIXME: Check if the docket is behind.
     insts = extract_current_insts(docket, time)
     for inst in insts:
-        # FIXME: Actually run jobs.
-        inst.job.program(inst)
+        # FIXME: Abstract this all out.
+        run = Run(None, inst)
+        inst.job.program(run)
 
 
 def docket_handler(docket):

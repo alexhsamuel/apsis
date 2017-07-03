@@ -54,3 +54,21 @@ class Instance:
 
 
 
+class Run:
+
+    def __init__(self, id, inst):
+        self.__id   = id
+        self.__inst = inst
+
+
+    @property
+    def id(self):
+        return self.__id
+
+
+    @property
+    def inst(self):
+        return self.__instance
+
+
+
