@@ -76,7 +76,7 @@ def get_schedule_insts(jobs, times: Interval):
     for job in jobs:
         for sched_time in takewhile(lambda t: t < stop, job.schedule(start)):
             inst_id = job.id + "-" + str(sched_time)
-            yield Instance(inst_id, job.id, sched_time)
+            yield Instance(inst_id, job, sched_time)
 
 
 def schedule_insts(docket, jobs, time: Time):
@@ -104,6 +104,8 @@ def extract_current_insts(docket, time: Time):
     return docket.pop(interval)
 
 
+#-------------------------------------------------------------------------------
+
 def run_current(docket, time):
     """
     Runs jobs in `docket` that are current at `time`.
@@ -111,8 +113,8 @@ def run_current(docket, time):
     # FIXME: Check if the docket is behind.
     insts = extract_current_insts(docket, time)
     for inst in insts:
-        log.info("running: {}".format(inst))
         # FIXME: Actually run jobs.
+        inst.job.program(inst)
 
 
 def docket_handler(docket):

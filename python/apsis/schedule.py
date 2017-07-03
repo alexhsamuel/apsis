@@ -47,10 +47,10 @@ class Schedule:
 
 
 
-class ListSchedule:
+class ExplicitSchedule:
 
     def __init__(self, times):
-        self.__times = tuple(sorted( Daytime(t) for t in times ))
+        self.__times = tuple(sorted( Time(t) for t in times ))
 
 
     def __call__(self, start):
