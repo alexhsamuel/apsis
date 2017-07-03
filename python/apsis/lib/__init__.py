@@ -1,5 +1,6 @@
 # FIXME: Elsewhere!
 
+from   aslib import py
 import collections
 
 __all__ = (
@@ -15,6 +16,14 @@ class Interval:
         assert start <= stop
         self.__start = start
         self.__stop = stop
+
+
+    def __repr__(self):
+        return py.ctor(self, self.__start, self.__stop)
+
+
+    def __str__(self):
+        return "[{}, {})".format(self.__start, self.__stop)
 
 
     def __iter__(self):

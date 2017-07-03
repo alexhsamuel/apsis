@@ -68,7 +68,7 @@ class Run:
 
     @property
     def inst(self):
-        return self.__instance
+        return self.__inst
 
 
 

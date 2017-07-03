@@ -1,3 +1,4 @@
+from   aslib import json
 import asyncio
 from   cron import *
 import heapq
@@ -115,7 +116,9 @@ def run_current(docket, time):
     for inst in insts:
         # FIXME: Abstract this all out.
         run = Run(None, inst)
-        inst.job.program(run)
+        fut_result = asyncio.ensure_future(inst.job.program(run))
+        log.info("fut_result: {}".format(fut_result))
+        fut_result.add_done_callback(lambda t: json.pprint(t.result().to_jso()))
 
 
 def docket_handler(docket):

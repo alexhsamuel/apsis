@@ -16,7 +16,7 @@ from   .schedule import *
 JOBS = [ 
     Job(
         "test-job-0",
-        Schedule(
+        DailySchedule(
             "US/Eastern",
             WeekdayCalendar([Mon, Tue, Wed, Thu, Fri]),
             [Daytime(9, 30)]
@@ -25,7 +25,7 @@ JOBS = [
     ),
     Job(
         "test-job-1",
-        Schedule(
+        DailySchedule(
             "US/Eastern",
             WeekdayCalendar([Mon, Tue, Wed, Thu, Fri]),
             [Daytime(16, 0)]
@@ -40,7 +40,7 @@ JOBS = [
     Job(
         "test-job-2",
         ExplicitSchedule([ now() + 1 + i * 10 for i in range(10) ]),
-        ProcessProgram(["/bin/sleep", "5"]),
+        ProcessProgram(["/bin/sleep", "2"]),
     ),        
 ]
 

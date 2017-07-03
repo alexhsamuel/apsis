@@ -5,8 +5,7 @@ from   .lib import *
 
 #-------------------------------------------------------------------------------
 
-# FIXME: For demonstration only.
-class Schedule:
+class DailySchedule:
 
     def __init__(self, tz, calendar, daytimes):
         self.__tz       = TimeZone(tz)
@@ -25,7 +24,7 @@ class Schedule:
             date = local.date
             # Find the next daytime.
             for i, daytime in enumerate(self.__daytimes):
-                if daytime <= local.daytime:
+                if local.daytime <= daytime:
                     break
             else:
                 # All daytimes have passed for this date.
