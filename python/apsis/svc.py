@@ -4,10 +4,19 @@ from   functools import partial
 import logging
 import sanic
 import sanic.response
+import time
 import websockets
 
 from   apsis import scheduler
 import apsis.testing
+
+#-------------------------------------------------------------------------------
+
+LOG_FORMATTER = logging.Formatter(
+    fmt="%(asctime)s %(name)-16s [%(levelname)-7s] %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%SZ"
+)
+LOG_FORMATTER.converter = time.gmtime  # FIXME: Use cron.Time?
 
 #-------------------------------------------------------------------------------
 
@@ -65,7 +74,7 @@ class QueueHandler(logging.Handler):
                 pass
 
 
-WS_HANDLER = QueueHandler()
+WS_HANDLER = QueueHandler(LOG_FORMATTER)
 
 @api.websocket("/log")
 async def websocket_log(request, ws):
@@ -97,7 +106,9 @@ app.blueprint(api, url_prefix="/api/v1")
 
 def main():
     logging.basicConfig(level=logging.INFO)
+    logging.getLogger().handlers[0].formatter = LOG_FORMATTER
     logging.getLogger().handlers.append(WS_HANDLER)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
 
     time = now()
     docket = scheduler.Docket(time)
