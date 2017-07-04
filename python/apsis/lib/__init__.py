@@ -77,3 +77,30 @@ def to_interval(obj):
     raise TypeError("not an interval: {!r}".format(obj))
 
 
+#-------------------------------------------------------------------------------
+
+TYPE_FIELD = "$type"
+
+def to_jso(obj, types):
+    assert type(obj) in types
+    # We do it like this to get the type field first.
+    jso = {TYPE_FIELD: type(obj).__name__}
+    jso.update(obj.to_jso())
+    return jso
+
+
+def from_jso(jso, types):
+    types_by_name = { t.__name__: t for t in types }
+
+    try:
+        type_name = jso[TYPE_FIELD]
+    except KeyError:
+        raise LookupError("no type in JSO: {!r}".format(jso))
+    try:
+        type = types_by_name[type_name]
+    except KeyError:
+        raise LookupError("unknown type in JSO: {}".format(type_name))
+
+    return type.from_jso(jso)
+
+

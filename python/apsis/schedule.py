@@ -1,7 +1,9 @@
 import bisect
 from   cron import *
+from   functools import partial
 
-from   .lib import *
+from   . import lib
+from   .lib import Interval, to_interval
 
 #-------------------------------------------------------------------------------
 
@@ -47,7 +49,6 @@ class DailySchedule:
 
     def to_jso(self):
         return {
-            "$type"     : self.__class__.__name__,
             "tz"        : str(self.__tz),
             "calendar"  : repr(self.__calendar),  # FIXME
             "daytimes"  : [ str(y) for y in self.__daytimes ],
@@ -69,7 +70,6 @@ class ExplicitSchedule:
 
     def to_jso(self):
         return {
-            "$type" : self.__class__.__name__,
             "times" : [ str(t) for t in self.__times ],
         }
 
@@ -142,4 +142,15 @@ class CrontabSchedule:
             time += 60
 
 
+
+#-------------------------------------------------------------------------------
+
+TYPES = (
+    CrontabSchedule,
+    DailySchedule,
+    ExplicitSchedule,
+)
+
+to_jso      = partial(lib.to_jso, types=TYPES)
+from_jso    = partial(lib.from_jso, types=TYPES)
 

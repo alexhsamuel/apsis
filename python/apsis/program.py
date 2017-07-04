@@ -7,6 +7,7 @@ from   pathlib import Path
 import socket
 import subprocess
 
+from   . import lib
 from   .job import *
 from   .state import state
 
@@ -116,4 +117,14 @@ class ProcessProgram:
 
         return Result(run, outcome, fields)
 
+
+
+#-------------------------------------------------------------------------------
+
+TYPES = (
+    ProcessProgram,
+)
+
+to_jso      = partial(lib.to_jso, types=TYPES)
+from_jso    = partial(lib.from_jso, types=TYPES)
 

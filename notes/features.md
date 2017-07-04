@@ -11,7 +11,20 @@
 - durable results
 
 
+### API
+
+- jobs
+- scheduled
+- executing
+- results
+
+
 ### CLUI
+
+- view jobs
+- view scheduled instances
+- view runs
+- view results
 
 
 ### Web UI

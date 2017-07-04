@@ -1,5 +1,7 @@
 from    aslib.py import format_ctor
 
+from    . import program, schedule
+
 #-------------------------------------------------------------------------------
 
 class Job:
@@ -28,9 +30,18 @@ class Job:
     def to_jso(self):
         return {
             "$id"       : self.__id,
-            "schedule"  : self.__schedule.to_jso(),
-            "program"   : self.__program.to_jso(),
+            "schedule"  : schedule.to_jso(self.__schedule),
+            "program"   : program.to_jso(self.__program),
         }
+
+
+    @classmethod
+    def from_jso(class_, jso):
+        return class_(
+            jso["id"],
+            schedule.from_jso(jso["schedule"]),
+            program.from_jso(jso["program"]),
+        )
 
 
 
