@@ -55,6 +55,15 @@ class DailySchedule:
         }
 
 
+    @classmethod
+    def from_jso(class_, jso):
+        return class_(
+            jso["tz"], 
+            jso["calendar"],  # FIXME
+            jso["daytimes"]
+        )
+
+
 
 class ExplicitSchedule:
 

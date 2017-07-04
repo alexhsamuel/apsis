@@ -66,10 +66,15 @@ class ProcessProgram:
 
     def to_jso(self):
         return {
-            "$type"     : self.__class__.__name__,
             "argv"      : list(self.__argv),
-            "executable": str(self.__executable),
         }
+
+
+    @classmethod
+    def from_jso(class_, jso):
+        return class_(
+            jso["argv"],
+        )
 
 
     async def __call__(self, run) -> Result:

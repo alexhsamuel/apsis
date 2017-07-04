@@ -1,6 +1,9 @@
-from    aslib.py import format_ctor
+from   aslib.py import format_ctor
+import json
+from   pathlib import Path
+from   typing import *
 
-from    . import program, schedule
+from   . import program, schedule
 
 #-------------------------------------------------------------------------------
 
@@ -38,7 +41,7 @@ class Job:
     @classmethod
     def from_jso(class_, jso):
         return class_(
-            jso["id"],
+            jso["$id"],
             schedule.from_jso(jso["schedule"]),
             program.from_jso(jso["program"]),
         )
@@ -104,5 +107,29 @@ class Run:
             "inst"      : self.__inst.to_jso(),
         }
 
+
+
+#-------------------------------------------------------------------------------
+
+def load_job_file_json(path: Path) -> Job:
+    with open(path) as file:
+        jso = json.load(file)
+    jso.setdefault("$id", path.with_suffix("").name)
+    return Job.from_jso(jso)
+
+
+def load_job_dir(path: Path) -> Iterable[Job]:
+    """
+    Loads job files in `path`.
+
+    Skips files that do not have a supported extension.
+    """
+    path = Path(path)
+    for entry in path.iterdir():
+        if entry.suffix == ".json":
+            yield load_job_file_json(entry)
+        else:
+            # Skip it.
+            pass
 
 

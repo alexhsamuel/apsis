@@ -1,0 +1,20 @@
+{
+  "schedule": {
+    "$type": "DailySchedule",
+    "tz": "US/Eastern",
+    "calendar": {
+      "$type": "WeekdayCalendar",
+      "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri"]
+    },
+    "daytimes": [
+      "09:30:00"
+    ]
+  },
+  "program": {
+    "$type": "ProcessProgram",
+    "argv": [
+      "/bin/echo",
+      "test-job-1"
+    ]
+  }
+}
