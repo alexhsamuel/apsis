@@ -1,0 +1,29 @@
+<!doctype HTML>
+<html>
+<head>
+<script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous">
+</script>
+<script>
+$(function () {
+  var socket = new WebSocket("ws://localhost:5000/api/v1/log")
+  socket.onopen = function () {
+    console.log('onopen')
+  }
+  socket.onmessage = function (msg) {
+    console.log('onmessage:', msg)
+    $('#log').append(msg.data + '\n')
+  }
+  socket.onclose = function (msg) {
+    console.log('onclose')
+  }
+})
+</script>
+</head>
+<body>
+<pre id="log">
+</pre>  
+</body>
+</html>

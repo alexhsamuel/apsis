@@ -122,7 +122,6 @@ def docket_handler(docket):
     """
     Runs jobs in `docket` currently handled, and rescheduled the handler.
     """
-    print("docket_handler")
     # Assume (without proof?) that we're handling this handle.
     docket.handle = None
 
