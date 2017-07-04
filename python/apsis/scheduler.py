@@ -5,6 +5,7 @@ import heapq
 from   itertools import takewhile
 import logging
 
+from   . import program
 from   .job import Instance, Run
 from   .lib import *
 
@@ -114,11 +115,7 @@ def run_current(docket, time):
     # FIXME: Check if the docket is behind.
     insts = extract_current_insts(docket, time)
     for inst in insts:
-        # FIXME: Abstract this all out.
-        run = Run(None, inst)
-        fut_result = asyncio.ensure_future(inst.job.program(run))
-        log.info("fut_result: {}".format(fut_result))
-        fut_result.add_done_callback(lambda t: json.pprint(t.result().to_jso()))
+        program.run(inst)
 
 
 def docket_handler(docket):

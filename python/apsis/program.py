@@ -7,9 +7,26 @@ from   pathlib import Path
 import socket
 import subprocess
 
+from   . import database
+from   .job import *
+
 log = logging.getLogger("program")
 
 #-------------------------------------------------------------------------------
+
+def done(fut_result):
+    result = fut_result.result()
+    log.info("done: {}".format(result.run))
+    database.to_result(result)
+
+
+def run(inst):
+    # FIXME: Abstract this all out.
+    run = Run(None, inst)
+    database.to_running(run)
+    fut_result = asyncio.ensure_future(inst.job.program(run))
+    fut_result.add_done_callback(done)
+
 
 class Result:
 
