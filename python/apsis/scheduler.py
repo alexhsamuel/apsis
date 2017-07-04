@@ -132,13 +132,13 @@ def docket_handler(docket):
 
     if len(docket) > 0:
         # Schedule the next call to this function.
-        event_loop = asyncio.get_event_loop()
-
+        loop = asyncio.get_event_loop()
         next_time = docket.next_sched_time
         delay = next_time - time
         log.info("docket_handler scheduled in: {:.2f} s".format(delay))
+        handle = loop.call_later(delay, docket_handler, docket)
         # Store the callback handle and the time at which it is scheduled.
-        docket.handle = event_loop.call_later(delay, docket_handler, docket)
+        docket.handle = handle
         docket.handle_time = next_time
 
 

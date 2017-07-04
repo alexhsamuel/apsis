@@ -103,10 +103,10 @@ def main():
     docket = scheduler.Docket(time)
     scheduler.schedule_insts(docket, apsis.testing.JOBS, time + 1 * 86400)
 
-    event_loop = asyncio.get_event_loop()
+    loop = asyncio.get_event_loop()
 
-    # Set off the handler.
-    event_loop.call_soon(scheduler.docket_handler, docket)
+    # Set off the recurring handler.
+    loop.call_soon(scheduler.docket_handler, docket)
 
     server = app.create_server(
         host="127.0.0.1",
@@ -115,12 +115,12 @@ def main():
         log_config=None,
     )
     app.running = True
-    asyncio.ensure_future(server, loop=event_loop)
+    asyncio.ensure_future(server, loop=loop)
 
     try:
-        event_loop.run_forever()
+        loop.run_forever()
     finally:
-        event_loop.close()
+        loop.close()
 
 
 if __name__ == "__main__":
