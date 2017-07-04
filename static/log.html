@@ -8,16 +8,13 @@
 </script>
 <script>
 $(function () {
-  var socket = new WebSocket("ws://localhost:5000/api/v1/log")
+  var socket = new WebSocket("ws://localhost:5000/log")
   socket.onopen = function () {
-    console.log('onopen')
   }
   socket.onmessage = function (msg) {
-    console.log('onmessage:', msg)
     $('#log').append(msg.data + '\n')
   }
   socket.onclose = function (msg) {
-    console.log('onclose')
   }
 })
 </script>

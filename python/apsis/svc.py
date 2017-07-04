@@ -7,7 +7,7 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import scheduler, state
+from   apsis import api, scheduler, state
 import apsis.testing
 
 #-------------------------------------------------------------------------------
@@ -17,17 +17,6 @@ LOG_FORMATTER = logging.Formatter(
     datefmt="%Y-%m-%dT%H:%M:%SZ"
 )
 LOG_FORMATTER.converter = time.gmtime  # FIXME: Use cron.Time?
-
-#-------------------------------------------------------------------------------
-
-api = sanic.Blueprint("api_v1")
-
-@api.route("/result")
-async def result(request):
-    results = (
-        r for j in state._results.values() for i in j.values() for r in i )
-    return sanic.response.json([ r.to_jso() for r in results ])
-
 
 #-------------------------------------------------------------------------------
 
@@ -72,7 +61,15 @@ class QueueHandler(logging.Handler):
 
 WS_HANDLER = QueueHandler(LOG_FORMATTER)
 
-@api.websocket("/log")
+#-------------------------------------------------------------------------------
+
+app = sanic.Sanic(__name__, log_config=None)
+app.config.LOGO = None
+
+app.static("/static", "./static")
+app.blueprint(api.API, url_prefix="/api/v1")
+
+@app.websocket("/log")
 async def websocket_log(request, ws):
     queue = WS_HANDLER.register()
     try:
@@ -87,28 +84,17 @@ async def websocket_log(request, ws):
 
 #-------------------------------------------------------------------------------
 
-@api.websocket("/update")
-async def update(request, ws):
-    while True:
-        await ws.send("update!\n")
-        await asyncio.sleep(1)
-
-
-app = sanic.Sanic(__name__, log_config=None)
-app.config.LOGO = None
-
-app.static("/static", "./static")
-app.blueprint(api, url_prefix="/api/v1")
-
 def main():
     logging.basicConfig(level=logging.INFO)
     logging.getLogger().handlers[0].formatter = LOG_FORMATTER
     logging.getLogger().handlers.append(WS_HANDLER)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 
+    state._jobs.extend(apsis.testing.JOBS)
+
     time = now()
     docket = scheduler.Docket(time)
-    scheduler.schedule_insts(docket, apsis.testing.JOBS, time + 1 * 86400)
+    scheduler.schedule_insts(docket, time + 1 * 86400)
 
     loop = asyncio.get_event_loop()
 

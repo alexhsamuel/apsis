@@ -5,7 +5,7 @@ import heapq
 from   itertools import takewhile
 import logging
 
-from   . import program
+from   . import program, state
 from   .job import Instance, Run
 from   .lib import *
 
@@ -70,18 +70,21 @@ class Docket:
 
 
 
-def get_schedule_insts(jobs, times: Interval):
+def get_schedule_insts(times: Interval, jobs=None):
     """
     Generates instances scheduled in interval `times`.
     """
     start, stop = times
+    if jobs is None:
+        jobs = state._jobs
+
     for job in jobs:
         for sched_time in takewhile(lambda t: t < stop, job.schedule(start)):
             inst_id = job.id + "-" + str(sched_time)
             yield Instance(inst_id, job, sched_time)
 
 
-def schedule_insts(docket, jobs, time: Time):
+def schedule_insts(docket, time: Time, jobs=None):
     """
     Schedules instances of `jobs` until `time`.
     """
@@ -91,7 +94,7 @@ def schedule_insts(docket, jobs, time: Time):
         return
 
     interval = Interval(docket.interval.stop, time)
-    insts = get_schedule_insts(jobs, interval)
+    insts = get_schedule_insts(interval, jobs=jobs)
     docket.push(insts, interval)
 
 
