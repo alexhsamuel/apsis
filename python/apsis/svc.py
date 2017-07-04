@@ -7,7 +7,7 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import scheduler
+from   apsis import scheduler, state
 import apsis.testing
 
 #-------------------------------------------------------------------------------
@@ -24,13 +24,9 @@ api = sanic.Blueprint("api_v1")
 
 @api.route("/result")
 async def result(request):
-    from . import database
-    jso = { j: 
-            { i: [ r.to_jso() for r in rr ] for i, rr in ii.items() }
-            for j, ii in database._results.items()
-    }
-
-    return sanic.response.json(jso)
+    results = (
+        r for j in state._results.values() for i in j.values() for r in i )
+    return sanic.response.json([ r.to_jso() for r in results ])
 
 
 #-------------------------------------------------------------------------------

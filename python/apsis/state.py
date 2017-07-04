@@ -1,14 +1,5 @@
 from   contextlib import contextmanager
 from   pathlib import Path
-import sqlite3
-
-#-------------------------------------------------------------------------------
-
-PATH = Path("apsis.sqlite")
-
-def get_connection():
-    return sqlite3.connect(PATH)
-
 
 #-------------------------------------------------------------------------------
 
