@@ -5,9 +5,10 @@ import heapq
 from   itertools import takewhile
 import logging
 
-from   . import program, state
+from   . import program
 from   .job import Instance, Run
 from   .lib import *
+from   .state import state
 
 log = logging.getLogger("scheduler")
 
@@ -76,7 +77,7 @@ def get_schedule_insts(times: Interval, jobs=None):
     """
     start, stop = times
     if jobs is None:
-        jobs = state._jobs
+        jobs = state.get_jobs()
 
     for job in jobs:
         for sched_time in takewhile(lambda t: t < stop, job.schedule(start)):

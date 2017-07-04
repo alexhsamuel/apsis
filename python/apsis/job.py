@@ -25,6 +25,14 @@ class Job:
         return self.__program
 
 
+    def to_jso(self):
+        return {
+            "$id"       : self.__id,
+            "schedule"  : self.__schedule.to_jso(),
+            "program"   : self.__program.to_jso(),
+        }
+
+
 
 class Instance:
 
@@ -53,6 +61,14 @@ class Instance:
         return self.__time
 
 
+    def to_jso(self):
+        return {
+            "$id"       : self.__id,
+            "job"       : self.__job.to_jso(),
+            "time"      : str(self.__time),
+        }
+
+
 
 class Run:
 
@@ -69,6 +85,13 @@ class Run:
     @property
     def inst(self):
         return self.__inst
+
+
+    def to_jso(self):
+        return {
+            "$id"       : self.__id,
+            "inst"      : self.__inst.to_jso(),
+        }
 
 
 

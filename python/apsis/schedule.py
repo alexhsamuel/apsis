@@ -45,6 +45,15 @@ class DailySchedule:
                 i = 0
 
 
+    def to_jso(self):
+        return {
+            "$type"     : self.__class__.__name__,
+            "tz"        : str(self.__tz),
+            "calendar"  : repr(self.__calendar),  # FIXME
+            "daytimes"  : [ str(y) for y in self.__daytimes ],
+        }
+
+
 
 class ExplicitSchedule:
 
@@ -58,6 +67,13 @@ class ExplicitSchedule:
         return iter(self.__times[i :])
 
 
+    def to_jso(self):
+        return {
+            "$type" : self.__class__.__name__,
+            "times" : [ str(t) for t in self.__times ],
+        }
+
+
 
 class CrontabSchedule:
     # FIXME: This could be made much more efficient.
@@ -65,14 +81,16 @@ class CrontabSchedule:
 
     def __init__(
             self, tz, 
-            minute  =[Interval(0, 60)],
-            hour    =[Interval(0, 24)], 
-            day     =[Interval(0, 32)], 
-            month   =[Interval(1, 13)],
-            weekday =[Interval(0,  7)]
+            minute  =None,
+            hour    =None, 
+            day     =None,
+            month   =None,
+            weekday =None,
     ):
         normalize = lambda ss: tuple(
-            s if isinstance(s, Interval) else Interval(s, s + 1) 
+            None if s is None 
+            else s if isinstance(s, Interval) 
+            else Interval(s, s + 1) 
             for s in ss
         )
 
@@ -87,7 +105,8 @@ class CrontabSchedule:
     def __str__(self):
         return " ".join(
             ",".join(
-                     str(i.start) if i.start == i.stop - 1
+                     "*" if i is None
+                else str(i.start) if i.start == i.stop - 1
                 else "{}-{}".format(i.start, i.stop - 1)
                 for i in ss
             )
@@ -105,7 +124,7 @@ class CrontabSchedule:
         off = (Time.MIN + 60).offset - Time.MIN.offset
         time = Time.from_offset((Time(start).offset + off - 1) // off * off)
 
-        check = lambda v, ss: any( v in s for s in ss )
+        check = lambda v, ss: ss is None or any( v in s for s in ss )
 
         while True:
             date, daytime = time @ self.__tz
@@ -114,6 +133,7 @@ class CrontabSchedule:
                 and check(daytime.hour, self.__hour)
                 and check(date.month, self.__month)
                 and (
+                    # FIXME: THis is wrong.
                        check(date.day, self.__day)
                     or check((date.weekday - Sun + 7) % 7, self.__weekday)
                 )

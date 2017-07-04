@@ -7,7 +7,8 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import api, scheduler, state
+from   apsis import api, scheduler
+from   apsis.state import state
 import apsis.testing
 
 #-------------------------------------------------------------------------------
@@ -90,7 +91,8 @@ def main():
     logging.getLogger().handlers.append(WS_HANDLER)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 
-    state._jobs.extend(apsis.testing.JOBS)
+    for job in apsis.testing.JOBS:
+        state.add_job(job)
 
     time = now()
     docket = scheduler.Docket(time)

@@ -7,8 +7,8 @@ from   pathlib import Path
 import socket
 import subprocess
 
-from   . import state
 from   .job import *
+from   .state import state
 
 log = logging.getLogger("program")
 
@@ -17,13 +17,13 @@ log = logging.getLogger("program")
 def done(fut_result):
     result = fut_result.result()
     log.info("done: {}".format(result.run))
-    state.to_result(result)
+    state.executing_to_result(result)
 
 
 def run(inst):
     # FIXME: Abstract this all out.
     run = Run(None, inst)
-    state.to_running(run)
+    state.executing(run)
     fut_result = asyncio.ensure_future(inst.job.program(run))
     fut_result.add_done_callback(done)
 
@@ -65,6 +65,7 @@ class ProcessProgram:
 
     def to_jso(self):
         return {
+            "$type"     : self.__class__.__name__,
             "argv"      : list(self.__argv),
             "executable": str(self.__executable),
         }
@@ -96,6 +97,7 @@ class ProcessProgram:
             outcome = Result.ERROR
 
         else:
+            # FIXME: Stream output, rather than gulping it.
             stdout, stderr = await proc.communicate()
             end_time = str(now())
             return_code = proc.returncode
