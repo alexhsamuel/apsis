@@ -9,13 +9,11 @@
 <script>
 $(function () {
   var socket = new WebSocket("ws://localhost:5000/log")
-  socket.onopen = function () {
-  }
+  socket.onopen = function () {}
   socket.onmessage = function (msg) {
     $('#log').append(msg.data + '\n')
   }
-  socket.onclose = function (msg) {
-  }
+  socket.onclose = function () {}
 })
 </script>
 </head>
