@@ -3,7 +3,7 @@ import json
 from   pathlib import Path
 from   typing import *
 
-from   . import program, schedule
+from   . import schedule
 
 #-------------------------------------------------------------------------------
 
@@ -31,6 +31,7 @@ class Job:
 
 
     def to_jso(self):
+        from . import program
         return {
             "$id"       : self.__id,
             "schedule"  : schedule.to_jso(self.__schedule),

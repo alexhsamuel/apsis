@@ -124,10 +124,19 @@ class ProcessProgram:
 
 
 
+class ShellCommandProgram(ProcessProgram):
+
+    def __init__(self, command):
+        # FIXME: Which shell?
+        return super().__init__(["/bin/bash", "-c", command])
+
+
+
 #-------------------------------------------------------------------------------
 
 TYPES = (
     ProcessProgram,
+    ShellCommandProgram,
 )
 
 to_jso      = partial(lib.to_jso, types=TYPES)

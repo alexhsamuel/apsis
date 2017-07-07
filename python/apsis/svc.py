@@ -1,4 +1,5 @@
 import asyncio
+import argparse
 from   cron import *
 from   functools import partial
 import logging
@@ -7,7 +8,7 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import api, scheduler
+from   apsis import api, crontab, job, scheduler
 from   apsis.state import state
 import apsis.testing
 
@@ -91,7 +92,30 @@ def main():
     logging.getLogger().handlers.append(WS_HANDLER)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 
-    for job in apsis.testing.JOBS:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--debug", action="store_true", default=False,
+        help="run in debug mode")
+    parser.add_argument(
+        "--host", metavar="HOST", default="localhost",
+        help="server host address")
+    parser.add_argument(
+        "--port", metavar="PORT", type=int, default=5000,
+        help="server port")
+    # parser.add_argument(
+    #     "job_dir", metavar="JOBDIR", 
+    #     help="job directory")
+    parser.add_argument(
+        "crontab", metavar="CRONTAB",
+        help="crontab file")
+    args = parser.parse_args()
+
+    # for j in job.load_job_dir(args.job_dir):
+    #     state.add_job(j)
+    environment, jobs = crontab.read_crontab_file(args.crontab)
+    for name, val in environment.items():
+        print("{} = {}".format(name, val))
+    for job in jobs:
         state.add_job(job)
 
     time = now()
@@ -104,10 +128,10 @@ def main():
     loop.call_soon(scheduler.docket_handler, docket)
 
     server = app.create_server(
-        host="127.0.0.1",
-        port=5000,
-        debug=True,
-        log_config=None,
+        host        =args.host,
+        port        =args.port,
+        debug       =args.debug,
+        log_config  =None,
     )
     app.running = True
     asyncio.ensure_future(server, loop=loop)

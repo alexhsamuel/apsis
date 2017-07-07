@@ -18,7 +18,7 @@ class State:
     def executing_to_result(self, result):
         run = self.__executing.pop(result.run.id)
         assert run is result.run
-        self.__results.append(run)
+        self.__results.append(result)
 
 
     def add_job(self, job):

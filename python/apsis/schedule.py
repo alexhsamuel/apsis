@@ -6,6 +6,17 @@ from   . import lib
 from   .lib import Interval, to_interval
 
 #-------------------------------------------------------------------------------
+# FIXME: Elsewhere
+
+# FIXME: This is horrendous.
+def calendar_from_jso(jso):
+    import cron.calendar
+    type_name = jso.pop("$type")
+    class_ = getattr(cron.calendar, type_name)
+    return class_(**jso)
+
+
+#-------------------------------------------------------------------------------
 
 class DailySchedule:
 
@@ -59,7 +70,7 @@ class DailySchedule:
     def from_jso(class_, jso):
         return class_(
             jso["tz"], 
-            jso["calendar"],  # FIXME
+            calendar_from_jso(jso["calendar"]),
             jso["daytimes"]
         )
 
@@ -96,13 +107,7 @@ class CrontabSchedule:
             month   =None,
             weekday =None,
     ):
-        normalize = lambda ss: tuple(
-            None if s is None 
-            else s if isinstance(s, Interval) 
-            else Interval(s, s + 1) 
-            for s in ss
-        )
-
+        normalize = lambda s: None if s is None else list(s)
         self.__tz       = TimeZone(tz)
         self.__minute   = normalize(minute)
         self.__hour     = normalize(hour)
@@ -126,6 +131,18 @@ class CrontabSchedule:
         )
 
 
+    def to_jso(self):
+        # FIXME: All wrong.
+        return {
+            "tz"        : str(self.__tz),
+            "minute"    : self.__minute,
+            "hour"      : self.__hour,
+            "day"       : self.__day,
+            "month"     : self.__month,
+            "weekday"   : self.__weekday,
+        }
+
+
     def __call__(self, start):
         time = Time(start)
         # Advance to the next round minute.
@@ -133,7 +150,7 @@ class CrontabSchedule:
         off = (Time.MIN + 60).offset - Time.MIN.offset
         time = Time.from_offset((Time(start).offset + off - 1) // off * off)
 
-        check = lambda v, ss: ss is None or any( v in s for s in ss )
+        check = lambda v, s: s is None or v in s
 
         while True:
             date, daytime = time @ self.__tz
