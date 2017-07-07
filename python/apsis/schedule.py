@@ -3,7 +3,6 @@ from   cron import *
 from   functools import partial
 
 from   . import lib
-from   .lib import Interval, to_interval
 
 #-------------------------------------------------------------------------------
 # FIXME: Elsewhere
@@ -117,6 +116,7 @@ class CrontabSchedule:
 
 
     def __str__(self):
+        # FIXME: This is bogus.
         return " ".join(
             ",".join(
                      "*" if i is None
