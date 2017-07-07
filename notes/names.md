@@ -3,3 +3,14 @@
 - apsis
 - docket
 - agenda
+- elliptic
+- jet
+- apogee
+- slingshot
+- Aufgabe
+- incessant
+- againda
+- diario
+- horario
+- cronic
+- cronical
