@@ -61,6 +61,13 @@ class Instance:
         return format_ctor(self, self.__id, self.__job, self.__time)
 
 
+    def __lt__(self, other):
+        return (
+            self.__id < other.__id if isinstance(other, Instance)
+            else NotSupported
+        )
+
+
     @property
     def id(self):
         return self.__id
