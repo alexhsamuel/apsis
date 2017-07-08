@@ -90,12 +90,9 @@ class ProcessProgram:
                 "return_code"   : return_code,
                 "end_time"      : str(end_time),
             })
-            output = {
-                "std"           : stdout.decode(),  # FIXME: Might not be UTF-8.
-            }
             outcome = Result.SUCCESS if return_code == 0 else Result.FAILURE
 
-        return Result(run, outcome, meta, output)
+        return Result(run, outcome, meta, stdout)
 
 
 

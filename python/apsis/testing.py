@@ -39,7 +39,7 @@ JOBS = [
     # ),
     Job(
         "test-job-2",
-        ExplicitSchedule([ now() + 1 + i * 4 for i in range(10) ]),
+        ExplicitSchedule([ now() + 1 + i * 10 for i in range(4) ]),
         ProcessProgram(["/bin/sleep", "2"]),
     ),        
 ]

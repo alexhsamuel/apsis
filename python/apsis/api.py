@@ -41,13 +41,14 @@ async def jobs(request):
 # Results
 
 def result_to_jso(app, result):
-    jso = result.to_jso(full=False)
+    jso = result.to_jso()
     jso.update({
         "url"       : app.url_for("v1.result", run_id=result.run.run_id),
         # FIXME: "run_url"
         # FIXME: "inst_url"
         "job_url"   : app.url_for("v1.job", job_id=result.run.inst.job.job_id),
         "output_url": app.url_for("v1.result_output", run_id=result.run.run_id),
+        "output_len": 0 if result.output is None else len(result.output),
     })
     return jso
 
@@ -60,8 +61,8 @@ async def result(request, run_id):
 
 @API.route("/results/<run_id>/output")
 async def result_output(request, run_id):
-    jso = state.get_result(run_id).output  # FIXME: to_jso
-    return json(jso)
+    output = state.get_result(run_id).output
+    return sanic.response.raw(output)
 
 
 @API.route("/results")
