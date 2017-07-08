@@ -112,6 +112,11 @@ def main():
 
     # for j in job.load_job_dir(args.job_dir):
     #     state.add_job(j)
+
+    import apsis.testing
+    for job in apsis.testing.JOBS:
+        state.add_job(job)
+
     environment, jobs = crontab.read_crontab_file(args.crontab)
     for name, val in environment.items():
         print("{} = {}".format(name, val))

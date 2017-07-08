@@ -24,7 +24,7 @@ def done(fut_result):
 
 def run(inst):
     # FIXME: Abstract this all out.
-    run = Run(None, inst)
+    run = Run(next(state.run_ids), inst)
     state.executing(run)
     fut_result = asyncio.ensure_future(inst.job.program(run))
     fut_result.add_done_callback(done)
@@ -54,11 +54,11 @@ class ProcessProgram:
         log.info("running: {}".format(run))
 
         start_time = now()
-        fields = dict(
-            hostname    =socket.gethostname(),
-            username    =getpass.getuser(),
-            start_time  =str(start_time),
-        )
+        meta = {
+            "hostname"  : socket.gethostname(),
+            "username"  : getpass.getuser(),
+            "start_time": str(start_time),
+        }
 
         try:
             with open("/dev/null") as stdin:
@@ -72,7 +72,7 @@ class ProcessProgram:
                 )
 
         except OSError as exc:
-            fields["error"] = str(exc)
+            meta["error"] = str(exc)
             outcome = Result.ERROR
 
         else:
@@ -84,16 +84,18 @@ class ProcessProgram:
             assert stderr is None
             assert return_code is not None
 
-            fields.update(
-                start_time  =str(start_time),
-                pid         =proc.pid,
-                output      =stdout.decode(),  # FIXME: Might not be UTF-8.
-                return_code =return_code,
-                end_time    =str(end_time),
-            )
+            meta.update({
+                "start_time"    : str(start_time),
+                "pid"           : proc.pid,
+                "return_code"   : return_code,
+                "end_time"      : str(end_time),
+            })
+            output = {
+                "std"           : stdout.decode(),  # FIXME: Might not be UTF-8.
+            }
             outcome = Result.SUCCESS if return_code == 0 else Result.FAILURE
 
-        return Result(run, outcome, fields)
+        return Result(run, outcome, meta, output)
 
 
 

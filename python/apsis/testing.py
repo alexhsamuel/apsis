@@ -14,24 +14,24 @@ from   .schedule import *
 #-------------------------------------------------------------------------------
 
 JOBS = [ 
-    Job(
-        "test-job-0",
-        DailySchedule(
-            "US/Eastern",
-            WeekdayCalendar([Mon, Tue, Wed, Thu, Fri]),
-            [Daytime(9, 30)]
-        ),
-        ProcessProgram(["/bin/echo", "test-job-0"]),
-    ),
-    Job(
-        "test-job-1",
-        DailySchedule(
-            "US/Eastern",
-            WeekdayCalendar([Mon, Tue, Wed, Thu, Fri]),
-            [Daytime(16, 0)]
-        ),
-        ProcessProgram(["/bin/echo", "test-job-1"]),
-    ),
+    # Job(
+    #     "test-job-0",
+    #     DailySchedule(
+    #         "US/Eastern",
+    #         WeekdayCalendar([Mon, Tue, Wed, Thu, Fri]),
+    #         [Daytime(9, 30)]
+    #     ),
+    #     ProcessProgram(["/bin/echo", "test-job-0"]),
+    # ),
+    # Job(
+    #     "test-job-1",
+    #     DailySchedule(
+    #         "US/Eastern",
+    #         WeekdayCalendar([Mon, Tue, Wed, Thu, Fri]),
+    #         [Daytime(16, 0)]
+    #     ),
+    #     ProcessProgram(["/bin/echo", "test-job-1"]),
+    # ),
     # Job(
     #     "minutely",
     #     CrontabSchedule("US/Eastern"),
@@ -39,7 +39,7 @@ JOBS = [
     # ),
     Job(
         "test-job-2",
-        ExplicitSchedule([ now() + 1 + i * 10 for i in range(10) ]),
+        ExplicitSchedule([ now() + 1 + i * 4 for i in range(10) ]),
         ProcessProgram(["/bin/sleep", "2"]),
     ),        
 ]

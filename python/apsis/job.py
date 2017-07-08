@@ -3,44 +3,28 @@ import json
 from   pathlib import Path
 from   typing import *
 
-from   . import schedule
-
 #-------------------------------------------------------------------------------
 
 class Job:
 
-    def __init__(self, id, schedule, program):
-        self.__id       = str(id)
-        self.__schedule = schedule
-        self.__program  = program
-
-
-    @property
-    def id(self):
-        return self.__id
-
-
-    @property
-    def schedule(self):
-        return self.__schedule
-
-
-    @property
-    def program(self):
-        return self.__program
+    def __init__(self, job_id, schedule, program):
+        self.job_id     = job_id
+        self.schedule   = schedule
+        self.program    = program
 
 
     def to_jso(self):
-        from . import program
+        from . import program, schedule
         return {
-            "$id"       : self.__id,
-            "schedule"  : schedule.to_jso(self.__schedule),
-            "program"   : program.to_jso(self.__program),
+            "job_id"    : self.job_id,
+            "schedule"  : schedule.to_jso(self.schedule),
+            "program"   : program.to_jso(self.program),
         }
 
 
     @classmethod
     def from_jso(class_, jso):
+        from . import program, schedule
         return class_(
             jso["$id"],
             schedule.from_jso(jso["schedule"]),
@@ -94,25 +78,23 @@ class Instance:
 
 class Run:
 
-    def __init__(self, id, inst):
-        self.__id   = id
-        self.__inst = inst
+    def __init__(self, run_id, inst):
+        self.run_id = run_id
+        self.inst   = inst
 
 
-    @property
-    def id(self):
-        return self.__id
+    def __repr__(self):
+        return format_ctor(self, self.run_id)
 
 
-    @property
-    def inst(self):
-        return self.__inst
+    def __str__(self):
+        return "run {} of {}".format(self.run_id, self.inst)
 
 
     def to_jso(self):
         return {
-            "$id"       : self.__id,
-            "inst"      : self.__inst.to_jso(),
+            "run_id"    : self.run_id,
+            "inst"      : self.inst.to_jso(),
         }
 
 

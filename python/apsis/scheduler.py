@@ -81,7 +81,7 @@ def get_schedule_insts(times: Interval, jobs=None):
 
     for job in jobs:
         for sched_time in takewhile(lambda t: t < stop, job.schedule(start)):
-            inst_id = job.id + "-" + str(sched_time)
+            inst_id = job.job_id + "-" + str(sched_time)
             yield Instance(inst_id, job, sched_time)
 
 

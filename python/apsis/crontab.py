@@ -82,7 +82,7 @@ def parse_crontab(id, lines):
         else:
             schedule, command = parse_command(line)
             jobs.append(Job(
-                id      ="{}-{}".format(id, len(jobs)),
+                job_id  ="{}-{}".format(id, len(jobs)),
                 schedule=schedule,
                 program =ShellCommandProgram(command)
             ))
