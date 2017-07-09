@@ -18,11 +18,29 @@
 </head>
 <body onload="onload()">
   <div class="container" id="app">
-    <h1>Hello App!</h1>
-    <p>
-      <router-link to="/foo">Go to Foo</router-link>
-      <router-link to="/bar">Go to Bar</router-link>
-    </p>
+
+    <nav class="navbar">
+      <div class="container">
+        <ul class="navbar-list">
+          <li class="navbar-item">
+            <svg width="5rem" height="6.5rem" version="1.1" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="2.75rem" cy="3.25rem" r="25%" stroke="black" fill="transparent" stroke-width="3"/>
+              <circle cx="2.75rem" cy="2.4rem" r="5%" fill="#40c060"/>
+            </svg>
+          </li>
+          <li class="navbar-item">
+            <span class="navbar-title">APSİS</span>
+          </li>
+          <li class="navbar-item">
+            <router-link to="/jobs" class="navbar-link">Jobs</router-link>
+          </li>
+          <li class="navbar-item">
+            <router-link to="/instances" class="navbar-link">Instances</router-link>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
     <router-view></router-view>
   </div>
 </body>
