@@ -5,6 +5,6 @@
 LOGNAME=alex
 MAILTO=alex@alexsamuel.net
 
-* * * * * /bin/echo 'Hello, world!'
+# * * * * * /bin/echo 'Hello, world!'
 0 * * * * /bin/echo 'Hourly.'
 
