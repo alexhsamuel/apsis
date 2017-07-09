@@ -3,6 +3,7 @@ import argparse
 from   cron import *
 from   functools import partial
 import logging
+from   pathlib import Path
 import sanic
 import sanic.response
 import time
@@ -68,8 +69,10 @@ WS_HANDLER = QueueHandler(LOG_FORMATTER)
 app = sanic.Sanic(__name__, log_config=None)
 app.config.LOGO = None
 
-app.static("/static", "./static")
+top_dir = Path(__file__).parent.parent.parent
+
 app.blueprint(api.API, url_prefix="/api/v1")
+app.static("/static", str(top_dir / "web"))
 
 @app.websocket("/log")
 async def websocket_log(request, ws):
@@ -83,6 +86,7 @@ async def websocket_log(request, ws):
     finally:
         WS_HANDLER.unregister(queue)
 
+app.static("/.*", str(top_dir / "web" / "index.html"))
 
 #-------------------------------------------------------------------------------
 
