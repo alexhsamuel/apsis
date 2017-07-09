@@ -1,6 +1,7 @@
-- tempist
-- orbit, orbital (already used?)
 - apsis
+- recur
+- orbit, orbital (already used?)
+- tempist
 - docket
 - agenda
 - elliptic
