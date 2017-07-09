@@ -19,6 +19,20 @@
 - results
 
 
+### Web UI
+
+- view jobs
+- view scheduled instances (live update)
+- view runs (live update)
+- view results (live update)
+
+
+# Later
+
+### Parameterization
+
+### Dependencies
+
 ### CLUI
 
 - view jobs
@@ -29,8 +43,5 @@
 
 ### Web UI
 
-- view jobs
-- view scheduled instances
-- view runs
-- view results
+- live stream executing job output
 
