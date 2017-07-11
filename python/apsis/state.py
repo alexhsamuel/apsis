@@ -1,3 +1,4 @@
+import asyncio
 from   contextlib import contextmanager
 from   cron import *
 import itertools
@@ -12,28 +13,40 @@ class Results:
 
     def __init__(self):
         self.__results = []
+        self.__queues = set()
 
 
     def add(self, result):
         self.__results.append(result)
+        for queue in self.__queues:
+            queue.put_nowait([result])  # FIXME: Nowait?
         return str(len(self.__results))
 
 
-    async def query(self, *, until=None, since=None, job_ids=None):
+    async def query(self, *, since=None, until=None):
         """
         @return
           When, and iterable of results.
         """
-        start = None if since is None else int(since)
-        stop  = None if until is None else int()
+        start   = None if since is None else int(since)
+        stop    = len(self.__results) if until is None else int(until)
         results = iter(self.__results[start : stop])
+        return str(stop), results
 
-        if job_ids is not None:
-            results = ( 
-                r for r in results 
-                if any( r.run.inst.job.job_id == i for i in job_ids )
-            )
-        return str(len(self.__results)), results
+
+    @contextmanager
+    def query_live(self, *, since=None):
+        queue = asyncio.Queue()
+        self.__queues.add(queue)
+
+        start   = None if since is None else int(since)
+        results = self.__results[start :]
+        queue.put_nowait(results)
+
+        try:
+            yield queue
+        finally:
+            self.__queues.remove(queue)
 
 
 
