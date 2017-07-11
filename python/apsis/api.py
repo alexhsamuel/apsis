@@ -67,10 +67,17 @@ async def result_output(request, run_id):
 
 @API.route("/results")
 async def results(request):
-    jso = [ 
-        result_to_jso(request.app, r) 
-        for r in state.get_results() 
-    ]
+    since,  = request.args.pop("since", (None, ))
+    until,  = request.args.pop("until", (None, ))
+    job_ids = request.args.pop("job_id", None)
+    when, results = await state.results.query(
+        since=since, until=until,
+        job_ids=job_ids,
+    )
+    jso = {
+        "when": when,
+        "results": [ result_to_jso(request.app, r) for r in results ]
+    }
     return json(jso)
 
 
