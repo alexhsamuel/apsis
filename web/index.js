@@ -12,25 +12,35 @@ const jobs_template = `
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>test-job-2</td>
-        <td><code>/bin/sleep 2</code></td>
-        <td>2017-07-11T15:24:44Z</td>
-      </tr>
-      <tr>
-        <td>test-job-5</td>
-        <td><code>/bin/sleep 5</code></td>
-        <td>2017-07-11T15:24:44Z</td>
-      </tr>
-      <tr>
-        <td>test-job-8</td>
-        <td><code>/bin/echo 'Hello, world!'</code></td>
-        <td>2017-07-11T15:24:44Z</td>
+      <tr v-for="job in jobs">
+        <td>{{ job.job_id }}</td>
+        <td>{{ job.program }}</td>
+        <td>{{ job.schedule }}</td>
       </tr>
     </tbody>
   </table>
 </div>
 `
+
+const Jobs = { 
+  template: jobs_template,
+  data() {
+    return {
+      jobs: [],
+    }
+  },
+
+  created() {
+    const v = this
+    const url = "/api/v1/jobs"
+    fetch(url)
+      .then((response) => response.json())
+      .then((response) => response.forEach((j) => v.jobs.push(j)))
+  },
+}
+
+/*------------------------------------------------------------------------------
+------------------------------------------------------------------------------*/
 
 const results_template = `
 <div>
@@ -52,7 +62,6 @@ const results_template = `
 </div>
 `
 
-const Jobs = { template: jobs_template }
 const Insts = { template: '<div>Insts</div>' }
 
 const Results = { 
