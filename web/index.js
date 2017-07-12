@@ -8,14 +8,14 @@ const jobs_template = `
       <tr>
         <th>Job ID</th>
         <th>Program</th>
-        <th>Next Instance</th>
+        <th>Schedule</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="job in jobs">
         <td>{{ job.job_id }}</td>
-        <td>{{ job.program }}</td>
-        <td>{{ job.schedule }}</td>
+        <td>{{ job.program_str || "" }}</td>
+        <td>{{ job.schedule_str || "" }}</td>
       </tr>
     </tbody>
   </table>

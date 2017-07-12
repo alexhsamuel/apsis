@@ -66,3 +66,7 @@ c-----------------------------------------------------------------------------*/
 .joblist tbody tr:hover {
   background: #f0fff8;
 }
+
+.joblist tbody td {
+  max-width: 64rem;
+}

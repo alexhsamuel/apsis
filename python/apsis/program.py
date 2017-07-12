@@ -4,6 +4,7 @@ from   functools import partial
 import getpass
 import logging
 from   pathlib import Path
+import shlex
 import socket
 import subprocess
 
@@ -35,6 +36,10 @@ class ProcessProgram:
     def __init__(self, argv):
         self.__argv = tuple( str(a) for a in argv )
         self.__executable = Path(argv[0])
+
+
+    def __str__(self):
+        return " ".join( shlex.quote(a) for a in self.__argv )
 
 
     def to_jso(self):
@@ -100,7 +105,13 @@ class ShellCommandProgram(ProcessProgram):
 
     def __init__(self, command):
         # FIXME: Which shell?
-        return super().__init__(["/bin/bash", "-c", command])
+        command = str(command)
+        super().__init__(["/bin/bash", "-c", command])
+        self.__command = command
+
+
+    def __str__(self):
+        return self.__command
 
 
 

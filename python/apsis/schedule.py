@@ -81,6 +81,10 @@ class ExplicitSchedule:
         self.__times = tuple(sorted( Time(t) for t in times ))
 
 
+    def __str__(self):
+        return ",".join( str(t) for t in self.__times )
+
+
     def __call__(self, start):
         start = Time(start)
         i = bisect.bisect_left(self.__times, start)
@@ -117,18 +121,7 @@ class CrontabSchedule:
 
     def __str__(self):
         # FIXME: This is bogus.
-        return " ".join(
-            ",".join(
-                     "*" if i is None
-                else str(i.start) if i.start == i.stop - 1
-                else "{}-{}".format(i.start, i.stop - 1)
-                for i in ss
-            )
-            for ss in (
-                self.__minute, self.__hour, self.__day, self.__month, 
-                self.__weekday
-            )
-        )
+        return "crontab: " + " FIXME"
 
 
     def to_jso(self):

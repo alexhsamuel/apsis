@@ -20,7 +20,11 @@ def response_json(jso):
 
 def job_to_jso(app, job):
     jso = job.to_jso()
-    jso["url"] = app.url_for("v1.job", job_id=job.job_id)
+    jso.update({
+        "url"           : app.url_for("v1.job", job_id=job.job_id),
+        "program_str"   : str(job.program),
+        "schedule_str"  : str(job.schedule),
+    })
     return jso
 
 
