@@ -61,12 +61,25 @@ body {
 
 /*------------------------------------------------------------------------------
   Job list
-c-----------------------------------------------------------------------------*/
+------------------------------------------------------------------------------*/
+
+table.joblist {
+  width: 100%;
+}
 
 .joblist tbody tr:hover {
   background: #f0fff8;
 }
 
-.joblist tbody td {
-  max-width: 64rem;
+.joblist th,
+.joblist td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0.5rem;
 }
+
+.joblist tbody td {
+  min-width: 12rem;
+  max-width: 48rem;
+}
+
