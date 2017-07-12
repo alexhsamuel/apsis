@@ -12,7 +12,7 @@ const jobs_template = `
       </tr>
     </thead>
     <tbody>
-      <tr v-for="job in jobs">
+      <tr v-for="job in jobs" v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })">
         <td>{{ job.job_id }}</td>
         <td>{{ job.program_str || "" }}</td>
         <td>{{ job.schedule_str || "" }}</td>
@@ -36,6 +36,40 @@ const Jobs = {
     fetch(url)
       .then((response) => response.json())
       .then((response) => response.forEach((j) => v.jobs.push(j)))
+  },
+}
+
+/*------------------------------------------------------------------------------
+------------------------------------------------------------------------------*/
+
+const job_template = `
+<div>
+  <br>
+  <h4>{{job_id}}</h4>
+  <dl v-if="job">
+    <template v-for="(value, key) in job">
+      <dt>{{key}}</dt>
+      <dd>{{value}}</dd>
+    </template>
+  </dl>
+</div>
+`
+
+const Job = {
+  template: job_template,
+  props: ['job_id'],
+  data() {
+    return {
+      job: null,
+    }
+  },
+
+  created() {
+    const v = this
+    const url = "/api/v1/jobs/" + this.job_id
+    fetch(url)
+      .then((response) => response.json())
+      .then((response) => { v.job = response })
   },
 }
 
@@ -100,6 +134,7 @@ const Results = {
 // actual component constructor created via `Vue.extend()`, or just a component
 // options object.
 const routes = [
+  { name: 'job', path: '/job/:job_id', component: Job, props: true },
   { path: '/jobs', component: Jobs },
   { path: '/instances', component: Insts },
   { path: '/results', component: Results },
