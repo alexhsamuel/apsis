@@ -1,2 +1,10 @@
+- API for listing running instances.
+- API for submitting ad-hoc jobs.
+- Add parameters to result search.
 - Figure out what to do about the sanic wildcard route hack.  Submit?
 - Better test jobs.
+- Grunt/webpack setup for web GUI.
+- Block out web GUI.
+- Rename Inst -> Task, or something else.
+- Add "last" and "next" instance columns to job display.
+- Incremental search on job / instance tables.
