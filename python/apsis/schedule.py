@@ -3,6 +3,7 @@ from   cron import *
 from   functools import partial
 
 from   . import lib
+from   .crontab import CrontabSchedule
 
 #-------------------------------------------------------------------------------
 # FIXME: Elsewhere
@@ -95,70 +96,6 @@ class ExplicitSchedule:
         return {
             "times" : [ str(t) for t in self.__times ],
         }
-
-
-
-class CrontabSchedule:
-    # FIXME: This could be made much more efficient.
-    # FIXME: Crontab accepts 0 = 7 = Sunday, but we only accept 0.
-
-    def __init__(
-            self, tz, 
-            minute  =None,
-            hour    =None, 
-            day     =None,
-            month   =None,
-            weekday =None,
-    ):
-        normalize = lambda s: None if s is None else list(s)
-        self.__tz       = TimeZone(tz)
-        self.__minute   = normalize(minute)
-        self.__hour     = normalize(hour)
-        self.__day      = normalize(day)
-        self.__month    = normalize(month)
-        self.__weekday  = normalize(weekday)
-
-
-    def __str__(self):
-        # FIXME: This is bogus.
-        return "crontab: " + " FIXME"
-
-
-    def to_jso(self):
-        # FIXME: All wrong.
-        return {
-            "tz"        : str(self.__tz),
-            "minute"    : self.__minute,
-            "hour"      : self.__hour,
-            "day"       : self.__day,
-            "month"     : self.__month,
-            "weekday"   : self.__weekday,
-        }
-
-
-    def __call__(self, start):
-        time = Time(start)
-        # Advance to the next round minute.
-        # FIXME: Add this to cron.
-        off = (Time.MIN + 60).offset - Time.MIN.offset
-        time = Time.from_offset((Time(start).offset + off - 1) // off * off)
-
-        check = lambda v, s: s is None or v in s
-
-        while True:
-            date, daytime = time @ self.__tz
-            if (
-                    check(daytime.minute, self.__minute)
-                and check(daytime.hour, self.__hour)
-                and check(date.month, self.__month)
-                and (
-                    # FIXME: THis is wrong.
-                       check(date.day, self.__day)
-                    or check((date.weekday - Sun + 7) % 7, self.__weekday)
-                )
-            ):
-                yield time
-            time += 60
 
 
 
