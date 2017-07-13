@@ -76,46 +76,44 @@ const Job = {
 /*------------------------------------------------------------------------------
 ------------------------------------------------------------------------------*/
 
-const results_template = `
+const runs_template = `
 <div>
  <br>
   <table>
     <thead>
       <tr>
         <th>ID</th>
-        <th>Outcome</th>
+        <th>State</th>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="result in results">
-        <td>{{ result.inst_id }}</td>
-        <td>{{ result.outcome }}</td>
+      <tr v-for="(run, run_id) in runs">
+        <td>{{ run_id }}</td>
+        <td>{{ run.state }}</td>
       </tr>
     </tbody>
   </table>
 </div>
 `
 
-const Insts = { template: '<div>Insts</div>' }
-
-const Results = { 
-  template: results_template,
+const Runs = { 
+  template: runs_template,
 
   data() { 
     return { 
       websocket: null, 
-      results: [],
+      runs: {foo: {state: "bogus"}},
     } 
   },
 
   created() {
-    const url = "ws://localhost:5000/api/v1/results-live"  // FIXME!
+    const url = "ws://localhost:5000/api/v1/runs-live"  // FIXME!
     const v = this
 
     websocket = new WebSocket(url)
     websocket.onmessage = (msg) => {
       msg = JSON.parse(msg.data)
-      msg.results.forEach((e) => { v.results.push(e) })
+      v.runs = Object.assign({}, v.runs, msg.runs)
     }
     websocket.onclose = () => {
       console.log("web socket closed: " + url)
@@ -130,6 +128,8 @@ const Results = {
   }
 }
 
+const Insts = { template: '<div>Insts</div>' }
+
 // Each route should map to a component. The "component" can either be an
 // actual component constructor created via `Vue.extend()`, or just a component
 // options object.
@@ -137,7 +137,7 @@ const routes = [
   { name: 'job', path: '/job/:job_id', component: Job, props: true },
   { path: '/jobs', component: Jobs },
   { path: '/instances', component: Insts },
-  { path: '/results', component: Results },
+  { path: '/runs', component: Runs },
 ]
 
 const router = new VueRouter({

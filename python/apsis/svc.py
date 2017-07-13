@@ -10,7 +10,7 @@ import time
 import websockets
 
 from   apsis import api, crontab, job, scheduler
-from   apsis.state import state
+from   apsis.state import STATE
 import apsis.testing
 
 #-------------------------------------------------------------------------------
@@ -115,17 +115,17 @@ def main():
     args = parser.parse_args()
 
     # for j in job.load_job_dir(args.job_dir):
-    #     state.add_job(j)
+    #     STATE.add_job(j)
 
     import apsis.testing
     for job in apsis.testing.JOBS:
-        state.add_job(job)
+        STATE.add_job(job)
 
     environment, jobs = crontab.read_crontab_file(args.crontab)
     for name, val in environment.items():
         print("{} = {}".format(name, val))
     for job in jobs:
-        state.add_job(job)
+        STATE.add_job(job)
 
     time = now()
     docket = scheduler.Docket(time)

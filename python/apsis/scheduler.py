@@ -5,10 +5,10 @@ import heapq
 from   itertools import takewhile
 import logging
 
-from   . import program
-from   .job import Instance, Run
+from   . import execute
+from   .job import Instance
 from   .lib import *
-from   .state import state
+from   .state import STATE
 
 log = logging.getLogger("scheduler")
 
@@ -77,7 +77,7 @@ def get_schedule_insts(times: Interval, jobs=None):
     """
     start, stop = times
     if jobs is None:
-        jobs = state.get_jobs()
+        jobs = STATE.get_jobs()
 
     for job in jobs:
         for sched_time in takewhile(lambda t: t < stop, job.schedule(start)):
@@ -119,7 +119,7 @@ def run_current(docket, time):
     # FIXME: Check if the docket is behind.
     insts = extract_current_insts(docket, time)
     for inst in insts:
-        program.run(inst)
+        asyncio.ensure_future(execute.execute(inst))
 
 
 def docket_handler(docket):

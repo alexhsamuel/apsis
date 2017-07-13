@@ -1,3 +1,4 @@
+from   aslib.itr import take_last
 import asyncio
 from   contextlib import contextmanager
 from   cron import *
@@ -9,29 +10,48 @@ log = logging.getLogger("state")
 
 #-------------------------------------------------------------------------------
 
-class Results:
+class Runs:
+    # FIXME: Very inefficient.
 
     def __init__(self):
-        self.__results = []
-        self.__queues = set()
+        self.__runs     = []
+        self.__queues   = set()
+        self.run_ids    = ( "run" + str(i) for i in itertools.count() )
 
 
-    def add(self, result):
-        self.__results.append(result)
-        for queue in self.__queues:
-            queue.put_nowait([result])  # FIXME: Nowait?
-        return str(len(self.__results))
+    def __add(self, run):
+        self.__runs.append(run)
+        when = str(len(self.__runs))
+        self.__send(when, run)
+        return when
+
+
+    async def add(self, run):
+        assert not any( r.run_id == run.run_id for r in self.__runs )
+        return self.__add(run)
+
+
+    # FIXME: Sloppy API.  Are we mutating the run, or replacing it?
+    async def update(self, run):
+        assert any( r.run_id == run.run_id for r in self.__runs )
+        return self.__add(run)
+
+
+    async def get(self, run_id):
+        when = str(len(self.__runs))
+        run = take_last( r for r in self.__runs if r.run_id == run_id )
+        return when, run
 
 
     async def query(self, *, since=None, until=None):
         """
         @return
-          When, and iterable of results.
+          When, and iterable of runs.
         """
         start   = None if since is None else int(since)
-        stop    = len(self.__results) if until is None else int(until)
-        results = iter(self.__results[start : stop])
-        return str(stop), results
+        stop    = len(self.__runs) if until is None else int(until)
+        runs    = iter(self.__runs[start : stop])
+        return str(stop), runs
 
 
     @contextmanager
@@ -39,9 +59,10 @@ class Results:
         queue = asyncio.Queue()
         self.__queues.add(queue)
 
+        when    = str(len(self.__runs))
         start   = None if since is None else int(since)
-        results = self.__results[start :]
-        queue.put_nowait(results)
+        runs    = self.__runs[start :]
+        queue.put_nowait((when, runs))
 
         try:
             yield queue
@@ -49,24 +70,19 @@ class Results:
             self.__queues.remove(queue)
 
 
+    def __send(self, when, run):
+        for queue in self.__queues:
+            queue.put_nowait((when, [run]))  # FIXME: Nowait?
+
+
+
+#-------------------------------------------------------------------------------
 
 class State:
 
     def __init__(self):
-        self.run_ids = ( str(i) for i in itertools.count() )
         self.__jobs = []
-        self.__executing = {}
-        self.results = Results()
-
-
-    def executing(self, run):
-        self.__executing[run.run_id] = run
-
-
-    def executing_to_result(self, result):
-        run = self.__executing.pop(result.run.run_id)
-        assert run is result.run
-        self.results.add(result)
+        self.runs = Runs()
 
 
     def add_job(self, job):
@@ -84,5 +100,5 @@ class State:
 
 
 
-state = State()
+STATE = State()
 

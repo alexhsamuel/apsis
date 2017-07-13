@@ -76,29 +76,6 @@ class Instance:
 
 
 
-class Run:
-
-    def __init__(self, run_id, inst):
-        self.run_id = run_id
-        self.inst   = inst
-
-
-    def __repr__(self):
-        return format_ctor(self, self.run_id)
-
-
-    def __str__(self):
-        return "run {} of {}".format(self.run_id, self.inst)
-
-
-    def to_jso(self):
-        return {
-            "run_id"    : self.run_id,
-            "inst"      : self.inst.to_jso(),
-        }
-
-
-
 #-------------------------------------------------------------------------------
 
 def load_job_file_json(path: Path) -> Job:
