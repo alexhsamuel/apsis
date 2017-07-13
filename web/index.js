@@ -84,12 +84,16 @@ const runs_template = `
       <tr>
         <th>ID</th>
         <th>State</th>
+        <th>Start</th>
+        <th>End</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="(run, run_id) in runs">
         <td>{{ run_id }}</td>
         <td>{{ run.state }}</td>
+        <td>{{ run.meta.start_time || "" }}</td>
+        <td>{{ run.meta.end_time || "" }}</td>
       </tr>
     </tbody>
   </table>
@@ -102,7 +106,7 @@ const Runs = {
   data() { 
     return { 
       websocket: null, 
-      runs: {foo: {state: "bogus"}},
+      runs: {},
     } 
   },
 
