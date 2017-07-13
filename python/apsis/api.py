@@ -71,8 +71,8 @@ def runs_to_jso(request, when, runs):
 
 @API.route("/runs/<run_id>")
 async def run(request, run_id):
-    when, run = STATE.runs.get(run_id)
-    jso = run_to_jso(request.app, {"when": when, "runs": {run_id: run}})
+    when, run = await STATE.runs.get(run_id)
+    jso = runs_to_jso(request, when, [run])
     return response_json(jso)
 
 
