@@ -16,6 +16,8 @@ log = logging.getLogger("program")
 
 #-------------------------------------------------------------------------------
 
+TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%kZ"
+
 class ProcessProgram:
 
     def __init__(self, argv):
@@ -47,7 +49,7 @@ class ProcessProgram:
         run.meta.update({
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
-            "start_time": str(start_time),
+            "start_time": format(start_time, TIME_FORMAT),
         })
 
         try:
@@ -68,7 +70,7 @@ class ProcessProgram:
 
     async def wait(self, run, proc):
         stdout, stderr = await proc.communicate()
-        end_time = str(now())
+        end_time = format(now(), TIME_FORMAT)
         return_code = proc.returncode
 
         assert stderr is None
