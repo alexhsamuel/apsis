@@ -1,4 +1,3 @@
-- Show output in UI.
 - API for submitting ad-hoc jobs.
 - Add parameters to result search.
 - Figure out what to do about the sanic wildcard route hack.  Submit?

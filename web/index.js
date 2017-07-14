@@ -17,7 +17,7 @@ const jobs_template = `
     </thead>
     <tbody>
       <tr v-for="job in jobs" v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })">
-        <td class="jobid">{{ job.job_id }}</td>
+        <td class="job-link">{{ job.job_id }}</td>
         <td>{{ job.program_str || "" }}</td>
         <td>{{ job.schedule_str || "" }}</td>
       </tr>
@@ -98,8 +98,8 @@ const runs_template = `
     </thead>
     <tbody>
       <tr v-for="run in sorted" :key="run.run_id">
-        <td class="runid" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
-        <td class="jobid" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
+        <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
+        <td class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
         <td>{{ run.state }}</td>
         <td>{{ run.meta.schedule_time || "" }}</td>
         <td>{{ run.meta.start_time || "" }}</td>
@@ -158,14 +158,14 @@ const run_template = `
   <h4>{{run_id}}</h4>
   <dl v-if="run">
     <dt>job</dt>
-    <dd class="jobid" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</dd>
+    <dd class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</dd>
 
     <dt>state</dt>
     <dd>{{ run.state }}</dd>
 
     <template v-if="run.output_len !== undefined">
       <dt>output</dt>
-      <dd>{{ run.output_len }} bytes</dd>
+      <dd class="output-link" v-on:click="$router.push({ name: 'output', params: { run_id: run_id } })">{{ run.output_len }} bytes</dd>
     </template>
 
     <template v-for="(value, key) in run.meta">
@@ -195,7 +195,38 @@ const Run = {
 }
 
 /*------------------------------------------------------------------------------
+  output
 ------------------------------------------------------------------------------*/
+
+const output_template = `
+<div class="output">
+  <br>
+  <h4>{{ run_id }} output</h4>
+  <pre>{{ output || "" }}</pre>
+</div>
+`
+
+const Output = {
+  template: output_template,
+  props: ['run_id'],
+  data() {
+    return {
+      output: null,
+    }
+  },
+
+  created() {
+    const v = this
+    const url = "/api/v1/runs/" + this.run_id + "/output"  // FIXME
+    fetch(url)
+      .then((response) => response.text())  // FIXME: Might not be text!
+      .then((response) => { v.output = response })
+  }
+}
+
+/*------------------------------------------------------------------------------
+------------------------------------------------------------------------------*/
+
 const Insts = { template: '<div>Insts</div>' }
 
 // Each route should map to a component. The "component" can either be an
@@ -207,6 +238,7 @@ const routes = [
   { path: '/instances', component: Insts },
   { path: '/runs', component: Runs },
   { path: '/runs/:run_id', name: 'run', component: Run, props: true },
+  { path: '/runs/:run_id/output', name: 'output', component: Output, props: true },
 ]
 
 const router = new VueRouter({

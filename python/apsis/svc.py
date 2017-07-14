@@ -114,12 +114,12 @@ def main():
         help="crontab file")
     args = parser.parse_args()
 
-    # for j in job.load_job_dir(args.job_dir):
-    #     STATE.add_job(j)
-
     import apsis.testing
     for job in apsis.testing.JOBS:
         STATE.add_job(job)
+
+    # for j in job.load_job_dir(args.job_dir):
+    #     STATE.add_job(j)
 
     environment, jobs = crontab.read_crontab_file(args.crontab)
     for name, val in environment.items():

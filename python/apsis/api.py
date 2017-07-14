@@ -78,8 +78,8 @@ async def run(request, run_id):
 
 @API.route("/runs/<run_id>/output")
 async def run_output(request, run_id):
-    output = STATE.runs.get(run_id).output
-    return sanic.response.raw(output)
+    when, run = await STATE.runs.get(run_id)
+    return sanic.response.raw(run.output)
 
 
 def _runs_filter(args):
