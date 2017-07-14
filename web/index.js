@@ -83,15 +83,19 @@ const runs_template = `
     <thead>
       <tr>
         <th>ID</th>
+        <th>Job</th>
         <th>State</th>
+        <th>Schedule</th>
         <th>Start</th>
         <th>End</th>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(run, run_id) in runs">
-        <td>{{ run_id }}</td>
+      <tr v-for="run in sorted" :key="run.run_id">
+        <td>{{ run.run_id }}</td>
+        <td>{{ run.job_id }}</td>
         <td>{{ run.state }}</td>
+        <td>{{ run.meta.schedule_time || "" }}</td>
         <td>{{ run.meta.start_time || "" }}</td>
         <td>{{ run.meta.end_time || "" }}</td>
       </tr>
@@ -108,6 +112,12 @@ const Runs = {
       websocket: null, 
       runs: {},
     } 
+  },
+
+  computed: {
+    sorted() {
+      return _.flow(_.values, _.sortBy(r => r.meta.schedule_time))(this.runs)
+    },
   },
 
   created() {
