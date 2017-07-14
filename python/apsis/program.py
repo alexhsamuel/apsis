@@ -45,6 +45,7 @@ class ProcessProgram:
     async def start(self, run):
         log.info("running: {}".format(run))
 
+        # FIXME: Start / end time one level up.
         start_time = now()
         run.meta.update({
             "hostname"  : socket.gethostname(),
