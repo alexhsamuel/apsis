@@ -1,5 +1,9 @@
 function onload() {
 
+/*------------------------------------------------------------------------------
+  jobs
+------------------------------------------------------------------------------*/
+
 const jobs_template = `
 <div>
   <br>
@@ -40,6 +44,7 @@ const Jobs = {
 }
 
 /*------------------------------------------------------------------------------
+  job
 ------------------------------------------------------------------------------*/
 
 const job_template = `
@@ -66,7 +71,7 @@ const Job = {
 
   created() {
     const v = this
-    const url = "/api/v1/jobs/" + this.job_id
+    const url = "/api/v1/jobs/" + this.job_id  // FIXME
     fetch(url)
       .then((response) => response.json())
       .then((response) => { v.job = response })
@@ -74,6 +79,7 @@ const Job = {
 }
 
 /*------------------------------------------------------------------------------
+  run
 ------------------------------------------------------------------------------*/
 
 const runs_template = `
@@ -92,7 +98,7 @@ const runs_template = `
     </thead>
     <tbody>
       <tr v-for="run in sorted" :key="run.run_id">
-        <td>{{ run.run_id }}</td>
+        <td class="runid" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
         <td class="jobid" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
         <td>{{ run.state }}</td>
         <td>{{ run.meta.schedule_time || "" }}</td>
@@ -142,16 +148,54 @@ const Runs = {
   }
 }
 
+/*------------------------------------------------------------------------------
+  run
+------------------------------------------------------------------------------*/
+
+const run_template = `
+<div>
+  <br>
+  <h4>{{run_id}}</h4>
+  <dl v-if="run">
+    <template v-for="(value, key) in run">
+      <dt>{{key}}</dt>
+      <dd>{{value}}</dd>
+    </template>
+  </dl>
+</div>
+`
+
+const Run = {
+  template: run_template,
+  props: ['run_id'],
+  data() {
+    return {
+      run: null,
+    }
+  },
+
+  created() {
+    const v = this
+    const url = "/api/v1/runs/" + this.run_id  // FIXME
+    fetch(url)
+      .then((response) => response.json())
+      .then((response) => { v.run = _.first(_.values(response.runs)) })
+  }
+}
+
+/*------------------------------------------------------------------------------
+------------------------------------------------------------------------------*/
 const Insts = { template: '<div>Insts</div>' }
 
 // Each route should map to a component. The "component" can either be an
 // actual component constructor created via `Vue.extend()`, or just a component
 // options object.
 const routes = [
-  { name: 'job', path: '/job/:job_id', component: Job, props: true },
+  { path: '/jobs/:job_id', name: 'job', component: Job, props: true },
   { path: '/jobs', component: Jobs },
   { path: '/instances', component: Insts },
   { path: '/runs', component: Runs },
+  { path: '/runs/:run_id', name: 'run', component: Run, props: true },
 ]
 
 const router = new VueRouter({
