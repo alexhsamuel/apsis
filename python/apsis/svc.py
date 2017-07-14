@@ -9,8 +9,8 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import api, crontab, job, scheduler
-from   apsis.state import STATE
+from   apsis import api, crontab, job
+from   apsis.state import STATE, schedule_runs, docket_handler
 import apsis.testing
 
 #-------------------------------------------------------------------------------
@@ -127,14 +127,16 @@ def main():
     for job in jobs:
         STATE.add_job(job)
 
-    time = now()
-    docket = scheduler.Docket(time)
-    scheduler.schedule_insts(docket, time + 1 * 86400)
-
     loop = asyncio.get_event_loop()
 
+    async def f():
+        await schedule_runs(
+            STATE.docket, STATE.docket.interval.stop + 1 * 86400, STATE.jobs)
+        docket_handler(STATE.docket)
+    asyncio.ensure_future(f())
+
     # Set off the recurring handler.
-    loop.call_soon(scheduler.docket_handler, docket)
+    # loop.call_soon(docket_handler, STATE.docket)
 
     server = app.create_server(
         host        =args.host,

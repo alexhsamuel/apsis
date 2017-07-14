@@ -1,7 +1,5 @@
 from   aslib import py
 
-from   .state import STATE
-
 #-------------------------------------------------------------------------------
 
 class ProgramError(RuntimeError):
@@ -21,12 +19,13 @@ class ProgramFailure(RuntimeError):
 class Run:
 
     NEW     = "new"
+    SCHEDULED = "scheduled"
     RUNNING = "running"
     SUCCESS = "success"
     FAILURE = "failure"
     ERROR   = "error"
 
-    STATES = frozenset((NEW, RUNNING, SUCCESS, FAILURE, ERROR))
+    STATES = frozenset((NEW, SCHEDULED, RUNNING, SUCCESS, FAILURE, ERROR))
 
     def __init__(self, run_id, inst, *, state=NEW, meta={}):
         assert state in self.STATES
@@ -49,36 +48,6 @@ class Run:
             "state"     : self.state,
             "meta"      : self.meta,
         }
-
-
-
-#-------------------------------------------------------------------------------
-
-async def execute(inst):
-    # Create the run.
-    run = Run(next(STATE.runs.run_ids), inst)
-    await STATE.runs.add(run)
-
-    # Start it.
-    try:
-        proc = await inst.job.program.start(run)
-    except ProgramError as exc:
-        run.meta["error"] = str(exc)
-        run.state = Run.ERROR
-        await STATE.runs.update(run)
-    else:
-        # Started successfully.
-        run.state = Run.RUNNING
-        await STATE.runs.update(run)
-        # Wait for it to complete.
-        try:
-            await inst.job.program.wait(run, proc)
-        except ProgramFailure as exc:
-            run.meta["failure"] = str(exc)
-            run.state = Run.FAILURE
-        else:
-            run.state = Run.SUCCESS
-        await STATE.runs.update(run)
 
 
 
