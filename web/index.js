@@ -1,6 +1,27 @@
 function onload() {
 
 /*------------------------------------------------------------------------------
+  lib
+------------------------------------------------------------------------------*/
+
+function format_elapsed(elapsed) {
+  return (
+      elapsed < 1e-6 ? (elapsed * 1e6).toPrecision(1) + " µs"
+    : elapsed < 1e-5 ? (elapsed * 1e6).toPrecision(2) + " µs"
+    : elapsed < 1e-3 ? (elapsed * 1e3).toPrecision(1) + " ms"
+    : elapsed < 1e-2 ? (elapsed * 1e3).toPrecision(2) + " ms"
+    : elapsed < 1e+0 ? (elapsed      ).toPrecision(1) + " s"
+    : elapsed < 60   ? (elapsed      ).toPrecision(2) + " s"
+    : elapsed < 3600 ? 
+          Math.trunc(elapsed / 60) 
+        + ":" + Math.trunc(elapsed % 60).padStart(2, "0")
+    :     Math.trunc(elapsed / 3660) 
+        + ":" + Math.trunc(elapsed / 60 % 60).padStart(2, "0")
+        + ":" + Math.trunc(elapsed % 60).padStart(2, "0")
+  )
+}
+
+/*------------------------------------------------------------------------------
   jobs
 ------------------------------------------------------------------------------*/
 
@@ -103,7 +124,7 @@ const runs_template = `
         <td>{{ run.state }}</td>
         <td>{{ run.meta.schedule_time || "" }}</td>
         <td>{{ run.meta.start_time || "" }}</td>
-        <td>{{ run.meta.elapsed === undefined ? "" : run.meta.elapsed.toPrecision(2) + " s" }}</td>
+        <td>{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
       </tr>
     </tbody>
   </table>
@@ -124,6 +145,10 @@ const Runs = {
     sorted() {
       return _.flow(_.values, _.sortBy(r => r.meta.schedule_time))(this.runs)
     },
+  },
+
+  methods: {
+    format_elapsed,  // FIXME: Why do we need this?
   },
 
   created() {
@@ -170,7 +195,7 @@ const run_template = `
 
     <template v-for="(value, key) in run.meta">
       <dt>{{ key }}</dt>
-      <dd>{{ value }}</dd>
+      <dd>{{ key == "elapsed" ? format_elapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
     </template>
   </dl>
 </div>
@@ -183,6 +208,10 @@ const Run = {
     return {
       run: null,
     }
+  },
+
+  methods: {
+    format_elapsed,  // FIXME: Why do we need this?
   },
 
   created() {
