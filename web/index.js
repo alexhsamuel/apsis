@@ -157,9 +157,20 @@ const run_template = `
   <br>
   <h4>{{run_id}}</h4>
   <dl v-if="run">
-    <template v-for="(value, key) in run">
-      <dt>{{key}}</dt>
-      <dd>{{value}}</dd>
+    <dt>job</dt>
+    <dd class="jobid" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</dd>
+
+    <dt>state</dt>
+    <dd>{{ run.state }}</dd>
+
+    <template v-if="run.output_len !== undefined">
+      <dt>output</dt>
+      <dd>{{ run.output_len }} bytes</dd>
+    </template>
+
+    <template v-for="(value, key) in run.meta">
+      <dt>{{ key }}</dt>
+      <dd>{{ value }}</dd>
     </template>
   </dl>
 </div>
