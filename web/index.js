@@ -13,7 +13,7 @@ const jobs_template = `
     </thead>
     <tbody>
       <tr v-for="job in jobs" v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })">
-        <td>{{ job.job_id }}</td>
+        <td class="jobid">{{ job.job_id }}</td>
         <td>{{ job.program_str || "" }}</td>
         <td>{{ job.schedule_str || "" }}</td>
       </tr>
@@ -79,7 +79,7 @@ const Job = {
 const runs_template = `
 <div>
  <br>
-  <table>
+  <table class="runlist">
     <thead>
       <tr>
         <th>ID</th>
@@ -93,7 +93,7 @@ const runs_template = `
     <tbody>
       <tr v-for="run in sorted" :key="run.run_id">
         <td>{{ run.run_id }}</td>
-        <td>{{ run.job_id }}</td>
+        <td class="jobid" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
         <td>{{ run.state }}</td>
         <td>{{ run.meta.schedule_time || "" }}</td>
         <td>{{ run.meta.start_time || "" }}</td>

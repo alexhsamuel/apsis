@@ -60,6 +60,19 @@ body {
 }
 
 /*------------------------------------------------------------------------------
+  Job ID
+------------------------------------------------------------------------------*/
+
+.jobid {
+  color: #00a050;
+  cursor: default;
+}
+
+.jobid:hover {
+  text-decoration: underline;
+}
+
+/*------------------------------------------------------------------------------
   Job list
 ------------------------------------------------------------------------------*/
 
@@ -79,6 +92,30 @@ table.joblist {
 }
 
 .joblist tbody td {
+  min-width: 12rem;
+  max-width: 48rem;
+}
+
+/*------------------------------------------------------------------------------
+  Run list
+------------------------------------------------------------------------------*/
+
+table.runlist {
+  width: 100%;
+}
+
+.runlist tbody tr:hover {
+  background: #f0fff8;
+}
+
+.runlist th,
+.runlist td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.runlist tbody td {
   min-width: 12rem;
   max-width: 48rem;
 }
