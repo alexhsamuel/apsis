@@ -65,21 +65,25 @@ class ProcessProgram:
         except OSError as exc:
             raise ProgramError(str(exc))
         else:
+            proc.start_time = start_time
             return proc
 
 
     async def wait(self, run, proc):
         stdout, stderr = await proc.communicate()
-        end_time = format(now(), TIME_FORMAT)
-        return_code = proc.returncode
+
+        end_time        = now()
+        elapsed         = end_time - proc.start_time
+        return_code     = proc.returncode
 
         assert stderr is None
         assert return_code is not None
 
         run.meta.update({
+            "elapsed"       : elapsed,
+            "end_time"      : format(end_time, TIME_FORMAT),
             "pid"           : proc.pid,
             "return_code"   : return_code,
-            "end_time"      : str(end_time),
         })
         run.output = stdout
         if return_code == 0:

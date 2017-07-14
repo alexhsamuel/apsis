@@ -87,7 +87,7 @@ const runs_template = `
         <th>State</th>
         <th>Schedule</th>
         <th>Start</th>
-        <th>End</th>
+        <th>Elapsed</th>
       </tr>
     </thead>
     <tbody>
@@ -97,7 +97,7 @@ const runs_template = `
         <td>{{ run.state }}</td>
         <td>{{ run.meta.schedule_time || "" }}</td>
         <td>{{ run.meta.start_time || "" }}</td>
-        <td>{{ run.meta.end_time || "" }}</td>
+        <td>{{ run.meta.elapsed === undefined ? "" : run.meta.elapsed.toPrecision(2) + " s" }}</td>
       </tr>
     </tbody>
   </table>
