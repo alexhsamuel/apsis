@@ -277,7 +277,8 @@ const output_template = `
 <div class="output">
   <br>
   <h4>{{ run_id }} output</h4>
-  <pre>{{ output || "" }}</pre>
+  <pre v-if="output !== null">{{ output }}</pre>
+  <div v-if="error != null" class="error">{{ error }}</div>
 </div>
 `
 
@@ -286,6 +287,7 @@ const Output = {
   props: ['run_id'],
   data() {
     return {
+      error: null,
       output: null,
     }
   },
@@ -294,6 +296,7 @@ const Output = {
     const v = this
     const url = "/api/v1/runs/" + this.run_id + "/output"  // FIXME
     fetch(url)
+      // FIXME: Handle failure, set error.
       .then((response) => response.text())  // FIXME: Might not be text!
       .then((response) => { v.output = response })
   }

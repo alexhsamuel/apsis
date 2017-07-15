@@ -55,8 +55,9 @@ def run_to_jso(app, run):
         # FIXME: "inst_url"
         "job_url"   : app.url_for("v1.job", job_id=run.inst.job.job_id),
         "output_url": app.url_for("v1.run_output", run_id=run.run_id),
-        "output_len": 0 if run.output is None else len(run.output),
     })
+    if run.output is not None:
+        jso["output_len"] = len(run.output)
     return jso
 
 
@@ -80,7 +81,10 @@ async def run(request, run_id):
 @API.route("/runs/<run_id>/output")
 async def run_output(request, run_id):
     when, run = await STATE.runs.get(run_id)
-    return sanic.response.raw(run.output)
+    if run.output is None:
+        raise sanic.exceptions.NotFound("no output")
+    else:
+        return sanic.response.raw(run.output)
 
 
 def _runs_filter(args):
