@@ -214,7 +214,8 @@ const Runs = {
 const run_template = `
 <div>
   <br>
-  <h4>{{ run_id }} ({{ arg_str }})</h4>
+  <div class="title">{{ run_id }}</div>
+  <div>{{ arg_str }}</div>
   <dl v-if="run">
     <dt>job</dt>
     <dd class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</dd>
