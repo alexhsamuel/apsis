@@ -50,6 +50,7 @@ def run_to_jso(app, run):
     jso = run.to_jso()
     jso.update({
         "url"       : app.url_for("v1.run", run_id=run.run_id),
+        "args"      : run.inst.args,
         # FIXME: "run_url"
         # FIXME: "inst_url"
         "job_url"   : app.url_for("v1.job", job_id=run.inst.job.job_id),

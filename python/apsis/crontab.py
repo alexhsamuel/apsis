@@ -169,12 +169,11 @@ def parse_command(line):
     )
                     
 
-
 def choose_params(fields):
     is_single = lambda val: (
             val != "*" 
         and len(val) == 1
-        and val[0][1] == val[0][0]
+        and val[0][1] == val[0][0] + 1
         and val[0][2] == 1
     )
     m, h, *_ = fields._Fields__parsed

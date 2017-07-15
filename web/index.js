@@ -214,7 +214,7 @@ const Runs = {
 const run_template = `
 <div>
   <br>
-  <h4>{{run_id}}</h4>
+  <h4>{{ run_id }} ({{ arg_str }})</h4>
   <dl v-if="run">
     <dt>job</dt>
     <dd class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</dd>
@@ -241,6 +241,18 @@ const Run = {
   data() {
     return {
       run: null,
+    }
+  },
+
+  computed: {
+    arg_str() {
+      return this.run 
+        ? _.flow([
+            _.toPairs,
+            _.map(([k, v]) => k + "=" + v),
+            _.join(" ")
+          ])(this.run.args)
+        : ""
     }
   },
 

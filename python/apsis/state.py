@@ -8,7 +8,7 @@ import logging
 from   pathlib import Path
 
 from   .execute import Run
-from   .job import Instance
+from   .job import Instance, format_time
 from   .lib import *
 
 log = logging.getLogger("state")
@@ -149,7 +149,15 @@ def get_schedule_runs(times: Interval, jobs):
         for sched_time in itertools.takewhile(
                 lambda t: t < stop, job.schedule(start)):
             inst_id = job.job_id + "-" + str(sched_time)
-            inst = Instance(inst_id, job, sched_time)
+            
+            args = {}  # FIXME: From schedule.
+            if "time" in job.params:
+                # FIXME: Localize to schedule TZ.
+                args["time"] = format_time(sched_time)
+            if "date" in job.params:
+                args["date"] = str((sched_time @ job.schedule.tz).date)
+
+            inst = Instance(inst_id, job, args, sched_time)
             run = Run(next(STATE.runs.run_ids), inst)
             yield run
 
