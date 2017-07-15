@@ -1,5 +1,5 @@
+- Figure out how to handle errors in fetch(), or use something better.
 - Better test jobs.
-- Add parameters to result search.
 - API for submitting ad-hoc jobs.
 - Figure out what to do about the sanic wildcard route hack.  Submit?
 - Webpack setup for web GUI.
