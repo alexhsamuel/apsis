@@ -1,10 +1,14 @@
-- API for submitting ad-hoc jobs.
-- Add parameters to result search.
-- Figure out what to do about the sanic wildcard route hack.  Submit?
 - Better test jobs.
-- Grunt/webpack setup for web GUI.
+- Add parameters to result search.
+- API for submitting ad-hoc jobs.
+- Figure out what to do about the sanic wildcard route hack.  Submit?
+- Webpack setup for web GUI.
 - Block out web GUI.
 - Rename Inst -> Task, or something else.
 - Add "last" and "next" instance columns to job display.
 - Incremental search on job / instance tables.
 - Show when websocket disconnects, and try to reconnect.
+- Handle exceptions in API.
+- Handle API errors in UI.
+- Multiple schedules on one job.
+- Move run timing (start/end/elapsed) to execute().

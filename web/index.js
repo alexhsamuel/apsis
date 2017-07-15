@@ -68,16 +68,50 @@ const Jobs = {
   job
 ------------------------------------------------------------------------------*/
 
+Vue.component('js-el', {
+  props: ['val'],
+  template: `
+    <div class="js-el" style="clear: both;">
+      <array-ol v-if="Array.isArray(val)" v-bind:arr="val"></array-ol>
+      <object-dl v-else-if="!Array.isArray(val) && typeof val == 'object'" v-bind:obj="val"></object-dl>
+      <template v-else>{{ val }}</template>
+    </div>
+  `,
+})
+
+Vue.component('object-dl', {
+  props: ['obj'],
+  template: `
+    <dl>
+      <template v-if="obj['$type'] !== undefined">
+        <dt>{{ obj['$type'] }}</dt>
+        <dd>&nbsp;</dd>
+      </template>
+      <template v-for="(val, key) in obj" v-if="key != '$type'">
+        <dt>{{ key }}</dt>
+        <dd><js-el v-bind:val="val"></js-el></dd>
+      </template>
+    </dl>
+  `,
+})
+
+Vue.component('array-ol', {
+  props: ['arr'],
+  template: `
+    <ol start="0">
+      <li v-for="val in arr">
+        <js-el v-bind:val="val"></js-el>
+      </li>
+    </ol>
+  `,
+})
+
+
 const job_template = `
 <div>
   <br>
   <h4>{{job_id}}</h4>
-  <dl v-if="job">
-    <template v-for="(value, key) in job">
-      <dt>{{key}}</dt>
-      <dd>{{value}}</dd>
-    </template>
-  </dl>
+  <js-el v-if="job" v-bind:val="job"></js-el>
 </div>
 `
 

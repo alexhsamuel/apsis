@@ -63,19 +63,15 @@ body {
   <dl>
 ------------------------------------------------------------------------------*/
 
-dl {
-}
-
 dt {
+  padding: 0 1em 0 0;
+  margin: 0;
   float: left;
-  clear: left;
-  width: 12rem;
   font-weight: 700;
 }
 
 dd {
-  margin: 0 0 0 110px;
-  padding: 0 0 0.5em 0;
+  margin: 0 0 0 8rem;
 }
 
 /*------------------------------------------------------------------------------
@@ -177,3 +173,28 @@ table.runlist {
   padding: 0.5rem;
 }
 
+/*------------------------------------------------------------------------------
+  js-el
+------------------------------------------------------------------------------*/
+
+.js-el {
+}
+
+.js-el div {
+  display: inline-block;
+}
+
+.js-el dd ol,
+.js-el dd dl {
+  margin: 0;
+  padding-left: 0.8ex;
+  border-left: 1px solid #e0e0e0;
+}
+
+.js-el li {
+  margin: 0;
+}
+
+.js-el dd {
+  margin-bottom: 1rem;
+}
