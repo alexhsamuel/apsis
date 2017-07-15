@@ -109,7 +109,7 @@ class CrontabSchedule:
     # FIXME: Crontab accepts 0 = 7 = Sunday, but we only accept 0.
 
     def __init__(self, tz, fields):
-        self.tz = TimeZone(tz)
+        self.tz     = TimeZone(tz)
         self.fields = fields
 
 
@@ -170,6 +170,18 @@ def parse_command(line):
                     
 
 
+def choose_params(fields):
+    is_single = lambda val: (
+            val != "*" 
+        and len(val) == 1
+        and val[0][1] == val[0][0]
+        and val[0][2] == 1
+    )
+    m, h, *_ = fields._Fields__parsed
+    # FIXME: Return "hour" or "minute" or "month"?
+    return "date" if is_single(m) and is_single(h) else "time"
+
+
 def parse_crontab(id, lines):
     lines = ( l.strip() for l in lines )
     lines = ( l for l in lines if len(l) > 0 and l[0] != "#" )
@@ -183,9 +195,10 @@ def parse_crontab(id, lines):
         else:
             schedule, command = parse_command(line)
             jobs.append(Job(
-                job_id  ="{}-{}".format(id, len(jobs)),
-                schedule=schedule,
-                program =ShellCommandProgram(command)
+                job_id      ="{}-{}".format(id, len(jobs)),
+                params      =choose_params(schedule.fields),
+                schedule    =schedule,
+                program     =ShellCommandProgram(command),
             ))
 
     return environment, jobs

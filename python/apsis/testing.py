@@ -39,6 +39,7 @@ JOBS = [
     # ),
     Job(
         "test-job-2",
+        "time",
         ExplicitSchedule([ now() + 1 + i * 10 for i in range(12) ]),
         ShellCommandProgram("echo starting; sleep 2; echo done"),
     ),        
