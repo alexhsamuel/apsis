@@ -20,10 +20,20 @@ def calendar_from_jso(jso):
 
 class DailySchedule:
 
-    def __init__(self, tz, calendar, daytimes):
-        self.__tz       = TimeZone(tz)
-        self.__calendar = calendar
-        self.__daytimes = tuple(sorted( Daytime(t) for t in daytimes ))
+    def __init__(self, tz, calendar, daytimes, args):
+        self.tz         = TimeZone(tz)
+        self.calendar   = calendar
+        self.daytimes   = tuple(sorted( Daytime(t) for t in daytimes ))
+        self.args       = { str(k): str(v) for k, v in args.items() }
+
+
+    def __str__(self):
+        return "at {} on {} in {} for {}".format(
+            " ".join( format(y, "%H:%M:%S") for y in self.daytimes ),
+            self.calendar,
+            self.tz,
+            " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
+        )
 
 
     def __call__(self, start):
@@ -32,37 +42,51 @@ class DailySchedule:
         """
         start = Time(start)
 
-        local = to_local(start, self.__tz)
-        if local.date in self.__calendar:
+        local = to_local(start, self.tz)
+        if local.date in self.calendar:
             date = local.date
             # Find the next daytime.
-            for i, daytime in enumerate(self.__daytimes):
+            for i, daytime in enumerate(self.daytimes):
                 if local.daytime <= daytime:
                     break
             else:
                 # All daytimes have passed for this date.
-                date = self.__calendar.shift(date, 1)
+                date = self.calendar.shift(date, 1)
                 i = 0
         else:
             # Start at the beginning of the next date.
-            date = self.__calendar.next(local.date)
+            date = self.calendar.next(local.date)
             i = 0
 
         # Now generate.
         while True:
-            yield from_local((date, self.__daytimes[i]), self.__tz)
+            yield from_local((date, self.daytimes[i]), self.tz)
             i += 1
-            if i == len(self.__daytimes):
+            if i == len(self.daytimes):
                 # On to the next day.
-                date = self.__calendar.shift(date, 1)
+                date = self.calendar.shift(date, 1)
                 i = 0
+
+
+    def bind_args(self, params, sched_time):
+        args = dict(self.args)
+
+        # Bind temporal params from the schedule time.
+        if "time" in params:
+            # FIXME: Localize to TZ?  Or not?
+            args["time"] = lib.format_time(sched_time)
+        if "date" in params:
+            args["date"] = str((sched_time @ self.tz).date)
+
+        return args
 
 
     def to_jso(self):
         return {
-            "tz"        : str(self.__tz),
-            "calendar"  : repr(self.__calendar),  # FIXME
-            "daytimes"  : [ str(y) for y in self.__daytimes ],
+            "tz"        : str(self.tz),
+            "calendar"  : repr(self.calendar),  # FIXME
+            "daytimes"  : [ str(y) for y in self.daytimes ],
+            "args"      : self.args,
         }
 
 
@@ -71,7 +95,8 @@ class DailySchedule:
         return class_(
             jso["tz"], 
             calendar_from_jso(jso["calendar"]),
-            jso["daytimes"]
+            jso["daytimes"],
+            jso["args"],
         )
 
 
@@ -90,6 +115,13 @@ class ExplicitSchedule:
         start = Time(start)
         i = bisect.bisect_left(self.__times, start)
         return iter(self.__times[i :])
+
+
+    def bind_args(self, params, sched_time):
+        args = {}
+        if "time" in params:
+            args["time"] = lib.format_time(sched_time)
+        return args
 
 
     def to_jso(self):

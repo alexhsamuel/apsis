@@ -40,7 +40,12 @@ const jobs_template = `
       <tr v-for="job in jobs" v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })">
         <td class="job-link">{{ job.job_id }}</td>
         <td>{{ job.program_str || "" }}</td>
-        <td>{{ job.schedule_str || "" }}</td>
+        <td>
+          <template v-for="s in job.schedules">
+            {{ s.str }}
+            <br>
+          </template>
+        </td>
       </tr>
     </tbody>
   </table>

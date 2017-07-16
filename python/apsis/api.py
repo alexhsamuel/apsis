@@ -23,14 +23,15 @@ def job_to_jso(app, job):
     jso.update({
         "url"           : app.url_for("v1.job", job_id=job.job_id),
         "program_str"   : str(job.program),
-        "schedule_str"  : str(job.schedule),
     })
+    for schedule, schedule_jso in zip(job.schedules, jso["schedules"]):
+        schedule_jso["str"] = str(schedule)
     return jso
 
 
 @API.route("/jobs/<job_id>")
 async def job(request, job_id):
-    jso = STATE.get_job(job_id).to_jso()
+    jso = job_to_jso(request.app, STATE.get_job(job_id))
     return response_json(jso)
 
 

@@ -4,19 +4,21 @@ import json
 from   pathlib import Path
 from   typing import *
 
+from   .lib import format_time
+
 #-------------------------------------------------------------------------------
-
-def format_time(time):
-    # FIXME: For now, assume 1 s resolution.
-    return format(time, "%Y-%m-%d %H:%M:%S")
-
 
 class Job:
 
-    def __init__(self, job_id, params, schedule, program):
+    def __init__(self, job_id, params, schedules, program):
+        """
+        @param schedules
+          A sequence of `Schedule, args` pairs, where `args` is an arguments
+          dict.
+        """
         self.job_id     = str(job_id)
         self.params     = frozenset( str(p) for p in tupleize(params) )
-        self.schedule   = schedule
+        self.schedules  = tupleize(schedules)
         self.program    = program
 
 
@@ -25,7 +27,7 @@ class Job:
         return {
             "job_id"    : self.job_id,
             "params"    : list(sorted(self.params)),
-            "schedule"  : schedule.to_jso(self.schedule),
+            "schedules" : [ schedule.to_jso(s) for s in self.schedules ],
             "program"   : program.to_jso(self.program),
         }
 
@@ -36,7 +38,7 @@ class Job:
         return class_(
             jso["job_id"],
             jso["params"],
-            schedule.from_jso(jso["schedule"]),
+            [ schedule.from_jso(s) for s in jso["schedules"] ],
             program.from_jso(jso["program"]),
         )
 
@@ -80,7 +82,7 @@ class Instance:
 def load_job_file_json(path: Path) -> Job:
     with open(path) as file:
         jso = json.load(file)
-    jso.setdefault("$id", path.with_suffix("").name)
+    jso.setdefault("job_id", path.with_suffix("").name)
     return Job.from_jso(jso)
 
 

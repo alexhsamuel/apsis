@@ -8,7 +8,7 @@ import logging
 from   pathlib import Path
 
 from   .execute import Run
-from   .job import Instance, format_time
+from   .job import Instance
 from   .lib import *
 
 log = logging.getLogger("state")
@@ -48,7 +48,7 @@ class Runs:
         return when, run
 
 
-    async def query(self, *, since=None, until=None):
+    def query(self, *, since=None, until=None):
         """
         @return
           When, and iterable of runs.
@@ -146,20 +146,14 @@ def get_schedule_runs(times: Interval, jobs):
     """
     start, stop = times
     for job in jobs:
-        for sched_time in itertools.takewhile(
-                lambda t: t < stop, job.schedule(start)):
-            inst_id = job.job_id + "-" + str(sched_time)
-            
-            args = {}  # FIXME: From schedule.
-            if "time" in job.params:
-                # FIXME: Localize to schedule TZ.
-                args["time"] = format_time(sched_time)
-            if "date" in job.params:
-                args["date"] = str((sched_time @ job.schedule.tz).date)
-
-            inst = Instance(inst_id, job, args, sched_time)
-            run = Run(next(STATE.runs.run_ids), inst)
-            yield run
+        for schedule in job.schedules:
+            times = itertools.takewhile(lambda t: t < stop, schedule(start))
+            for sched_time in times:
+                inst_id = job.job_id + "-" + str(sched_time)
+                args = schedule.bind_args(job.params, sched_time)
+                inst = Instance(inst_id, job, args, sched_time)
+                run = Run(next(STATE.runs.run_ids), inst)
+                yield run
 
 
 async def schedule_runs(docket, time: Time, jobs):

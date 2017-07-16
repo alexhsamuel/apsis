@@ -4,6 +4,7 @@ from   pathlib import Path
 import re
 
 from   .job import Job
+from   .lib import format_time
 from   .program import ShellCommandProgram
 
 #-------------------------------------------------------------------------------
@@ -118,7 +119,21 @@ class CrontabSchedule:
 
 
     def __str__(self):
-        return "crontab: {} @ {}".format(self.fields, self.tz)
+        return "crontab: {} TZ={}".format(self.fields, self.tz)
+
+
+    def bind_args(self, params, sched_time):
+        # FIXME: Duplicate.
+        args = {}
+
+        # Bind temporal params from the schedule time.
+        if "time" in params:
+            # FIXME: Localize to TZ?  Or not?
+            args["time"] = format_time(sched_time)
+        if "date" in params:
+            args["date"] = str((sched_time @ self.tz).date)
+
+        return args
 
 
     def to_jso(self):
@@ -196,7 +211,7 @@ def parse_crontab(id, lines):
             jobs.append(Job(
                 job_id      ="{}-{}".format(id, len(jobs)),
                 params      =choose_params(schedule.fields),
-                schedule    =schedule,
+                schedules   =schedule,
                 program     =ShellCommandProgram(command),
             ))
 

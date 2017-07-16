@@ -1,21 +1,36 @@
 {
-  "params": "date",
-  "schedule": {
-    "$type": "DailySchedule",
-    "tz": "US/Eastern",
-    "calendar": {
-      "$type": "WeekdayCalendar",
-      "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri"]
+  "params": ["date", "message"],
+  "schedules": [
+    {
+      "$type": "DailySchedule",
+      "args": {"message": "Hello, world!"},
+      "tz": "US/Eastern",
+      "calendar": {
+        "$type": "WeekdayCalendar",
+        "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri"]
+      },
+      "daytimes": [
+        "09:30:00"
+      ]
     },
-    "daytimes": [
-      "09:30:00"
-    ]
-  },
+      {
+      "$type": "DailySchedule",
+      "args": {"message": "Good bye!"},
+      "tz": "US/Eastern",
+      "calendar": {
+        "$type": "WeekdayCalendar",
+        "weekdays": ["Mon", "Tue", "Wed", "Thu"]
+      },
+      "daytimes": [
+        "16:00:00"
+      ]
+    }
+  ],
   "program": {
     "$type": "ProcessProgram",
     "argv": [
       "/bin/echo",
-      "test-job-1"
+      "'{{ message }}'"
     ]
   }
 }
