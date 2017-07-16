@@ -1,5 +1,8 @@
 - Show a job's instances on the job page.
 - Round all schedule times to some sane precision?
+- Don't run a job when an inst has succeeded.
+- Rerun an inst.
+- Show multiple runs for an inst.
 - Figure out how to handle errors in fetch(), or use something better.
 - Better test jobs.
 - API for submitting ad-hoc jobs.
@@ -14,6 +17,8 @@
 - Handle API errors in UI.
 - Multiple schedules on one job.
 - Move run timing (start/end/elapsed) to execute().
+- Clean shutdown.
+- Validation of schedule, results.
 
 
 cron
