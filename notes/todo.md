@@ -1,3 +1,5 @@
+- Show a job's instances on the job page.
+- Round all schedule times to some sane precision?
 - Figure out how to handle errors in fetch(), or use something better.
 - Better test jobs.
 - API for submitting ad-hoc jobs.
@@ -12,3 +14,8 @@
 - Handle API errors in UI.
 - Multiple schedules on one job.
 - Move run timing (start/end/elapsed) to execute().
+
+
+cron
+- format time with tz
+- control precision in time, daytime formats
