@@ -205,13 +205,18 @@ def parse_crontab(id, lines):
     for line in lines:
         match = re.match(ENVIRONMENT_REGEX, line)
         if match is not None:
-            environment[match.group(1)] = match.group(2)
+            # An environment variable assignment line.
+            key = match.group(1)
+            val = match.group(2)
+            log.debug("environment: {} = {}".format(key, val))
+            environment[key] = val
         else:
             schedule, command = parse_command(line)
             jobs.append(Job(
                 job_id      ="{}-{}".format(id, len(jobs)),
                 params      =choose_params(schedule.fields),
                 schedules   =schedule,
+                # FIXME: Set environment variables when running the job!
                 program     =ShellCommandProgram(command),
             ))
 

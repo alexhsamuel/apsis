@@ -9,7 +9,8 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import api, crontab, job
+from   apsis import api, crontab
+from   apsis.job import load_job_dir
 from   apsis.state import STATE, schedule_runs, docket_handler
 import apsis.testing
 
@@ -106,25 +107,23 @@ def main():
     parser.add_argument(
         "--port", metavar="PORT", type=int, default=5000,
         help="server port")
-    # parser.add_argument(
-    #     "job_dir", metavar="JOBDIR", 
-    #     help="job directory")
     parser.add_argument(
-        "crontab", metavar="CRONTAB",
-        help="crontab file")
+        "--crontab", action="store_true", default=False,
+        help="JOBS in a crontab file")
+    parser.add_argument(
+        "jobs", metavar="JOBS", 
+        help="job directory")
     args = parser.parse_args()
+
+    if args.crontab:
+        _, jobs = crontab.read_crontab_file(args.crontab)
+    else:
+        jobs = load_job_dir(args.job_dir)
+    for j in jobs:
+        STATE.add_job(j)
 
     import apsis.testing
     for job in apsis.testing.JOBS:
-        STATE.add_job(job)
-
-    # for j in job.load_job_dir(args.job_dir):
-    #     STATE.add_job(j)
-
-    environment, jobs = crontab.read_crontab_file(args.crontab)
-    for name, val in environment.items():
-        print("{} = {}".format(name, val))
-    for job in jobs:
         STATE.add_job(job)
 
     loop = asyncio.get_event_loop()
