@@ -333,3 +333,27 @@ const router = new VueRouter({
 const app = new Vue({ router }).$mount('#app')
 
 }
+
+/*------------------------------------------------------------------------------
+------------------------------------------------------------------------------*/
+
+Vue.component('clock', {
+  template: `
+    <span>{{ time.toISOString().substr(0, 19) + 'Z' }}</span>
+  `,
+
+  data() {
+    return {
+      time: new Date(),
+    }
+  },
+
+  mounted() {
+    tick = () => {
+      this.time = new Date()
+      window.setTimeout(tick, 1000 - this.time % 1000)
+    }
+    tick()
+  },
+})
+
