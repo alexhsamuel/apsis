@@ -1,4 +1,6 @@
-- Show a job's instances on the job page.
+- Customize run view for overall, job screen.
+- Customize job screen fields.
+- Customize run screen fields.
 - Round all schedule times to some sane precision?
 - Don't run a job when an inst has succeeded.
 - Rerun an inst.
