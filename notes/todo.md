@@ -21,6 +21,7 @@
 - Move run timing (start/end/elapsed) to execute().
 - Clean shutdown.
 - Validation of schedule, results.
+- Clean up old files in repo.
 
 
 cron
