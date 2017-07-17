@@ -115,8 +115,9 @@ Vue.component('array-ol', {
 const job_template = `
 <div>
   <br>
-  <h4>{{job_id}}</h4>
+  <h4>{{ job_id }}</h4>
   <js-el v-if="job" v-bind:val="job"></js-el>
+  <runs v-bind:job_id="job_id"></runs>
 </div>
 `
 
@@ -170,7 +171,8 @@ const runs_template = `
 </div>
 `
 
-const Runs = { 
+const Runs = Vue.component('runs', { 
+  props: ['job_id'],
   template: runs_template,
 
   data() { 
@@ -191,7 +193,9 @@ const Runs = {
   },
 
   created() {
-    const url = "ws://localhost:5000/api/v1/runs-live"  // FIXME!
+    var url = "ws://localhost:5000/api/v1/runs-live"  // FIXME!
+    if (this.job_id !== undefined)
+      url += '?job_id=' + this.job_id  // FIXME: Do this properly.
     const v = this
 
     websocket = new WebSocket(url)
@@ -210,7 +214,7 @@ const Runs = {
       websocket.close()
     }
   }
-}
+})
 
 /*------------------------------------------------------------------------------
   run

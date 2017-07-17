@@ -118,7 +118,7 @@ def main():
     if args.crontab:
         _, jobs = crontab.read_crontab_file(args.crontab)
     else:
-        jobs = load_job_dir(args.job_dir)
+        jobs = load_job_dir(args.jobs)
     for j in jobs:
         STATE.add_job(j)
 

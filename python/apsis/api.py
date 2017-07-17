@@ -92,14 +92,11 @@ def _runs_filter(args):
     """
     Constructs a filter for runs from request arguments.
     """
-    job_ids = args.pop("job_id", None)
+    job_id = args.get("job_id", None)
 
     def filter(runs):
-        if job_ids is not None:
-            runs = ( 
-                r for r in runs 
-                if any( r.run.inst.job.job_id == i for i in job_ids )
-            )
+        if job_id is not None:
+            runs = ( r for r in runs if r.inst.job.job_id == job_id )
         return runs
 
     return filter
