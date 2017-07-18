@@ -116,7 +116,20 @@ const job_template = `
 <div>
   <br>
   <h4>{{ job_id }}</h4>
-  <js-el v-if="job" v-bind:val="job"></js-el>
+
+  <dl v-if="job">
+    <dt>Parameters</dt>
+    <dd>{{ _.join(", ")(job.params) }}</dd>
+
+    <dt>Program</dt>
+    <dd>{{ job.program_str }}</dd>
+
+    <template v-for="schedule in job.schedules">
+      <dt>Schedule</dt>
+      <dd>{{ schedule.str }}</dd>
+    </template>
+  </dl>
+
   <runs v-bind:job_id="job_id"></runs>
 </div>
 `
