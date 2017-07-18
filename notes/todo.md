@@ -1,9 +1,13 @@
-- Customize run view for overall, job screen.
 - Customize job screen fields.
+- Split up to_jso() stuff.
+  - API
+  - Serializaion for file formats.
+- Customize run view for overall, job screen.
 - Customize run screen fields.
 - Round all schedule times to some sane precision?
 - Don't run a job when an inst has succeeded.
 - Rerun an inst.
+- "Run now" button for scheduled run.
 - Show multiple runs for an inst.
 - Figure out how to handle errors in fetch(), or use something better.
 - Better test jobs.
