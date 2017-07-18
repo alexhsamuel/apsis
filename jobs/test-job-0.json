@@ -30,7 +30,7 @@
     "$type": "ProcessProgram",
     "argv": [
       "/bin/echo",
-      "'{{ message }}'"
+      "{{ message }}"
     ]
   }
 }
