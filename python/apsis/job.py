@@ -22,16 +22,6 @@ class Job:
         self.program    = program
 
 
-    def to_jso(self):
-        from . import program, schedule
-        return {
-            "job_id"    : self.job_id,
-            "params"    : list(sorted(self.params)),
-            "schedules" : [ schedule.to_jso(s) for s in self.schedules ],
-            "program"   : program.to_jso(self.program),
-        }
-
-
     @classmethod
     def from_jso(class_, jso):
         from . import program, schedule
