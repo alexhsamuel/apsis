@@ -16,18 +16,21 @@ def response_json(jso):
 
 
 #-------------------------------------------------------------------------------
-# Jobs
 
 def program_to_jso(app, program):
-    from .program import to_jso
-    return to_jso(program)  # FIXME
+    return {
+        "$type" : type(program).__qualname__,
+        "str"   : str(program),
+        **program.to_jso()
+    }
 
 
 def schedule_to_jso(app, schedule):
-    from .schedule import to_jso
-    jso = to_jso(schedule)  # FIXME
-    jso["str"] = str(schedule)
-    return jso
+    return { 
+        "$type" : type(schedule).__qualname__,
+        "str"   : str(schedule),
+        **schedule.to_jso()
+    }
 
 
 def job_to_jso(app, job):
@@ -36,10 +39,12 @@ def job_to_jso(app, job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
-        "program_str"   : str(job.program),  # FIXME: Into program.
         "url"           : app.url_for("v1.job", job_id=job.job_id),
     }
 
+
+#-------------------------------------------------------------------------------
+# Jobs
 
 @API.route("/jobs/<job_id>")
 async def job(request, job_id):

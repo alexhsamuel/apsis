@@ -39,7 +39,7 @@ const jobs_template = `
     <tbody>
       <tr v-for="job in jobs" v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })">
         <td class="job-link">{{ job.job_id }}</td>
-        <td>{{ job.program_str || "" }}</td>
+        <td>{{ job.program.str || "" }}</td>
         <td>
           <template v-for="s in job.schedules">
             {{ s.str }}
@@ -122,7 +122,7 @@ const job_template = `
     <dd>{{ _.join(", ")(job.params) }}</dd>
 
     <dt>Program</dt>
-    <dd>{{ job.program_str }}</dd>
+    <dd>{{ job.program.str }}</dd>
 
     <template v-for="schedule in job.schedules">
       <dt>Schedule</dt>

@@ -115,6 +115,5 @@ TYPES = (
     ShellCommandProgram,
 )
 
-to_jso      = partial(lib.to_jso, types=TYPES)
 from_jso    = partial(lib.from_jso, types=TYPES)
 
