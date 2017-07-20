@@ -40,14 +40,4 @@ class Run:
         return py.format_ctor(self, self.run_id, self.inst, state=self.state)
 
 
-    def to_jso(self, *, full=True):
-        return {
-            "job_id"    : self.inst.job.job_id,
-            "inst_id"   : self.inst.inst_id,
-            "run_id"    : self.run_id,
-            "state"     : self.state,
-            "meta"      : self.meta,
-        }
-
-
 

@@ -57,15 +57,6 @@ class Instance:
         )
 
 
-    def to_jso(self):
-        return {
-            "inst_id"   : self.inst_id,
-            "job"       : self.job.to_jso(),
-            "args"      : self.args,
-            "time"      : format_time(self.time),
-        }
-
-
 
 #-------------------------------------------------------------------------------
 

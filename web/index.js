@@ -245,7 +245,7 @@ const run_template = `
     <dt>state</dt>
     <dd>{{ run.state }}</dd>
 
-    <template v-if="run.output_len !== undefined">
+    <template v-if="run.output_len !== null">
       <dt>output</dt>
       <dd class="output-link" v-on:click="$router.push({ name: 'output', params: { run_id: run_id } })">{{ run.output_len }} bytes</dd>
     </template>

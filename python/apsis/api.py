@@ -19,7 +19,7 @@ def response_json(jso):
 
 def program_to_jso(app, program):
     return {
-        "$type" : type(program).__qualname__,
+        "type"  : type(program).__qualname__,
         "str"   : str(program),
         **program.to_jso()
     }
@@ -27,7 +27,7 @@ def program_to_jso(app, program):
 
 def schedule_to_jso(app, schedule):
     return { 
-        "$type" : type(schedule).__qualname__,
+        "type"  : type(schedule).__qualname__,
         "str"   : str(schedule),
         **schedule.to_jso()
     }
@@ -40,6 +40,22 @@ def job_to_jso(app, job):
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
         "url"           : app.url_for("v1.job", job_id=job.job_id),
+    }
+
+
+def run_to_jso(app, run):
+    return {
+        "url"           : app.url_for("v1.run", run_id=run.run_id),
+        "job_id"        : run.inst.job.job_id,
+        "job_url"       : app.url_for("v1.job", job_id=run.inst.job.job_id),
+        "inst_id"       : run.inst.inst_id,
+        "args"          : run.inst.args,
+        "run_id"        : run.run_id,
+        "state"         : run.state,
+        "meta"          : run.meta,
+        # FIXME         : "inst_url"
+        "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
+        "output_len"    :  None if run.output is None else len(run.output),
     }
 
 
@@ -63,21 +79,6 @@ async def jobs(request):
 
 #-------------------------------------------------------------------------------
 # Runs
-
-def run_to_jso(app, run):
-    jso = run.to_jso()
-    jso.update({
-        "url"       : app.url_for("v1.run", run_id=run.run_id),
-        "args"      : run.inst.args,
-        # FIXME: "run_url"
-        # FIXME: "inst_url"
-        "job_url"   : app.url_for("v1.job", job_id=run.inst.job.job_id),
-        "output_url": app.url_for("v1.run_output", run_id=run.run_id),
-    })
-    if run.output is not None:
-        jso["output_len"] = len(run.output)
-    return jso
-
 
 def runs_to_jso(request, when, runs):
     filter  = _runs_filter(request.args)
