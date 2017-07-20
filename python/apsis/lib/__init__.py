@@ -81,14 +81,6 @@ def to_interval(obj):
 
 TYPE_FIELD = "$type"
 
-def to_jso(obj, types):
-    assert type(obj) in types
-    # We do it like this to get the type field first.
-    jso = {TYPE_FIELD: type(obj).__name__}
-    jso.update(obj.to_jso())
-    return jso
-
-
 def from_jso(jso, types):
     types_by_name = { t.__name__: t for t in types }
 
