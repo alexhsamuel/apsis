@@ -59,6 +59,13 @@ def run_to_jso(app, run):
     }
 
 
+def runs_to_jso(app, when, runs):
+    return {
+        "when": when,
+        "runs": { r.run_id: run_to_jso(app, r) for r in runs },
+    }
+
+
 #-------------------------------------------------------------------------------
 # Jobs
 
@@ -80,20 +87,10 @@ async def jobs(request):
 #-------------------------------------------------------------------------------
 # Runs
 
-def runs_to_jso(request, when, runs):
-    filter  = _runs_filter(request.args)
-    runs = filter(runs)
-    runs = { r.run_id: r for r in runs }
-    return {
-        "when": when,
-        "runs": { i: run_to_jso(request.app, r) for i, r in runs.items() },
-    }
-
-
 @API.route("/runs/<run_id>")
 async def run(request, run_id):
     when, run = await STATE.runs.get(run_id)
-    jso = runs_to_jso(request, when, [run])
+    jso = runs_to_jso(request.app, when, [run])
     return response_json(jso)
 
 
@@ -106,31 +103,40 @@ async def run_output(request, run_id):
         return sanic.response.raw(run.output)
 
 
-def _runs_filter(args):
+def _run_filter_for_query(args):
     """
-    Constructs a filter for runs from request arguments.
+    Constructs a filter for runs from query args.
     """
+    run_id = args.get("run_id", None)
     job_id = args.get("job_id", None)
 
-    def filter(runs):
-        if job_id is not None:
-            runs = ( r for r in runs if r.inst.job.job_id == job_id )
-        return runs
+    def filter(run):
+        return (
+                (run_id is None or run.run_id == run_id)
+            and (job_id is None or run.inst.job.job_id == job_id)
+        )
 
     return filter
 
 
 @API.route("/runs")
 async def runs(request):
+    # Get runs from the selected interval.
     since,  = request.args.pop("since", (None, ))
     until,  = request.args.pop("until", (None, ))
-    when, runs = await STATE.runs.query(since=since, until=until)
-    return response_json(runs_to_jso(request, when, runs))
+    when, runs = STATE.runs.query(since=since, until=until)
+
+    # Select runs based on query args.
+    filter = _run_filter_for_query(request.args)
+    runs = ( r for r in runs if filter(r) )
+
+    return response_json(runs_to_jso(request.app, when, runs))
 
 
 @API.websocket("/runs-live")  # FIXME: Do we really need this?
 async def websocket_runs(request, ws):
     since,  = request.args.pop("since", (None, ))
+    filter  = _run_filter_for_query(request.args)
 
     log.info("live runs connect")
     with STATE.runs.query_live(since=since) as queue:
@@ -138,7 +144,8 @@ async def websocket_runs(request, ws):
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.
             when, runs = await queue.get()
-            jso = runs_to_jso(request, when, runs)
+            runs = ( r for r in runs if filter(r) )
+            jso = runs_to_jso(request.app, when, runs)
             try:
                 await ws.send(json.dumps(jso))
             except websockets.ConnectionClosed:
