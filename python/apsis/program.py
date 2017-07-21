@@ -46,11 +46,9 @@ class ProcessProgram:
         log.info("running: {}".format(run))
 
         # FIXME: Start / end time one level up.
-        start_time = now()
         run.meta.update({
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
-            "start_time": format(start_time, TIME_FORMAT),
         })
 
         try:
@@ -66,23 +64,17 @@ class ProcessProgram:
         except OSError as exc:
             raise ProgramError(str(exc))
         else:
-            proc.start_time = start_time
             return proc
 
 
     async def wait(self, run, proc):
-        stdout, stderr = await proc.communicate()
-
-        end_time        = now()
-        elapsed         = end_time - proc.start_time
+        stdout, stderr  = await proc.communicate()
         return_code     = proc.returncode
 
         assert stderr is None
         assert return_code is not None
 
         run.meta.update({
-            "elapsed"       : elapsed,
-            "end_time"      : format(end_time, TIME_FORMAT),
             "pid"           : proc.pid,
             "return_code"   : return_code,
         })

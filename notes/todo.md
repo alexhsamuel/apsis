@@ -2,8 +2,6 @@
   - API
   - Serializaion for file formats.
 - Customize run view for overall, job screen.
-- Customize run screen fields.
-- Live update run screen.
 - Round all schedule times to some sane precision?
 - Don't run a job when an inst has succeeded.
 - Rerun an inst.

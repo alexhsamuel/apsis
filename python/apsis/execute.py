@@ -18,21 +18,21 @@ class ProgramFailure(RuntimeError):
 
 class Run:
 
-    NEW     = "new"
-    SCHEDULED = "scheduled"
-    RUNNING = "running"
-    SUCCESS = "success"
-    FAILURE = "failure"
-    ERROR   = "error"
+    NEW         = "new"
+    SCHEDULED   = "scheduled"
+    RUNNING     = "running"
+    SUCCESS     = "success"
+    FAILURE     = "failure"
+    ERROR       = "error"
 
     STATES = frozenset((NEW, SCHEDULED, RUNNING, SUCCESS, FAILURE, ERROR))
 
-    def __init__(self, run_id, inst, *, state=NEW, meta={}):
-        assert state in self.STATES
+    def __init__(self, run_id, inst):
         self.run_id = str(run_id)
         self.inst   = inst
         self.state  = self.NEW
-        self.meta   = dict(meta)
+        self.times  = {}
+        self.meta   = {}
         self.output = None
 
 

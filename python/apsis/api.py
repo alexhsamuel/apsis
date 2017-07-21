@@ -52,6 +52,7 @@ def run_to_jso(app, run):
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state,
+        "times"         : run.times,
         "meta"          : run.meta,
         # FIXME         : "inst_url"
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
@@ -144,7 +145,9 @@ async def websocket_runs(request, ws):
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.
             when, runs = await queue.get()
-            runs = ( r for r in runs if filter(r) )
+            runs = [ r for r in runs if filter(r) ]
+            if len(runs) == 0:
+                continue
             jso = runs_to_jso(request.app, when, runs)
             try:
                 await ws.send(json.dumps(jso))

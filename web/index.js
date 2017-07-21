@@ -175,8 +175,8 @@ const runs_template = `
         <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
         <td class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
         <td>{{ run.state }}</td>
-        <td>{{ run.meta.schedule_time || "" }}</td>
-        <td>{{ run.meta.start_time || "" }}</td>
+        <td>{{ run.times.schedule || "" }}</td>
+        <td>{{ run.times.execute || "" }}</td>
         <td>{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
       </tr>
     </tbody>
@@ -233,7 +233,7 @@ const Runs = Vue.component('runs', {
 
   computed: {
     sorted() {
-      return _.flow(_.values, _.sortBy(r => r.meta.schedule_time))(this.runs)
+      return _.flow(_.values, _.sortBy(r => r.times.schedule))(this.runs)
     },
   },
 
@@ -274,6 +274,16 @@ const run_template = `
       <dd class="output-link" v-on:click="$router.push({ name: 'output', params: { run_id: run_id } })">{{ run.output_len }} bytes</dd>
     </template>
 
+    <dt>times</dt>
+    <dd>
+      <dl>
+        <template v-for="[key, value] in run_times">
+          <dt>{{ key }}</dt>
+          <dd>{{ value }}</dd>
+        </template>
+      </dl>
+    </dd>
+
     <template v-for="(value, key) in run.meta">
       <dt>{{ key }}</dt>
       <dd>{{ key == "elapsed" ? format_elapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
@@ -301,7 +311,11 @@ const Run = {
             _.join(" ")
           ])(this.run.args)
         : ""
-    }
+    },
+
+    run_times() {
+      return _.flow(_.toPairs, _.sortBy(([k, v]) => v))(this.run.times)
+    },
   },
 
   methods: {

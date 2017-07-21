@@ -153,6 +153,7 @@ def get_schedule_runs(times: Interval, jobs):
                 args = schedule.bind_args(job.params, sched_time)
                 inst = Instance(inst_id, job, args, sched_time)
                 run = Run(next(STATE.runs.run_ids), inst)
+                run.times["schedule"] = str(sched_time)
                 yield run
 
 
@@ -171,7 +172,6 @@ async def schedule_runs(docket, time: Time, jobs):
 
     # FIXME: Is this the right place to do this?
     async def add_run(run):
-        run.meta["schedule_time"] = str(run.inst.time)
         run.state = Run.SCHEDULED
         log.info("add_run: {}".format(run))
         await STATE.runs.add(run)
@@ -238,15 +238,16 @@ async def execute(run):
 
     # Start it.
     program = run.inst.job.program
+    run.times["execute"] = str(now())
     try:
         proc = await program.start(run)
     except ProgramError as exc:
         run.meta["error"] = str(exc)
         run.state = Run.ERROR
-        await STATE.runs.update(run)
     else:
         # Started successfully.
         run.state = Run.RUNNING
+        run.times["running"] = str(now())
         await STATE.runs.update(run)
         # Wait for it to complete.
         try:
@@ -256,7 +257,8 @@ async def execute(run):
             run.state = Run.FAILURE
         else:
             run.state = Run.SUCCESS
-        await STATE.runs.update(run)
+    run.times["done"] = str(now())
+    await STATE.runs.update(run)
 
 
 
