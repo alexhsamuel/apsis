@@ -184,13 +184,49 @@ const runs_template = `
 </div>
 `
 
+class RunsSocket {
+  constructor(run_id, job_id) {
+    this.url = RunsSocket.get_url(run_id, job_id)
+    this.websocket = null
+  }
+
+  open(callback) {
+    this.websocket = new WebSocket(this.url)
+    this.websocket.onmessage = (msg) => {
+      const jso = JSON.parse(msg.data)
+      callback(jso)
+    }
+    this.websocket.onclose = () => {
+      console.log("web socket closed: " + url)
+      this.websocket = null
+    }
+  }
+
+  close() {
+    if (this.websocket !== null)
+      this.websocket.close
+  }
+
+  static get_url(run_id, job_id) {
+    const url = new URL(location)
+    url.protocol = 'ws'
+    url.pathname = '/api/v1/runs-live'
+    if (run_id !== undefined)
+      url.searchParams.set('run_id', run_id)
+    if (job_id !== undefined)
+      url.searchParams.set('job_id', job_id)
+    return url
+  }
+}
+
+
 const Runs = Vue.component('runs', { 
   props: ['job_id'],
   template: runs_template,
 
   data() { 
     return { 
-      websocket: null, 
+      runs_socket: null,
       runs: {},
     } 
   },
@@ -206,27 +242,15 @@ const Runs = Vue.component('runs', {
   },
 
   created() {
-    var url = "ws://localhost:5000/api/v1/runs-live"  // FIXME!
-    if (this.job_id !== undefined)
-      url += '?job_id=' + this.job_id  // FIXME: Do this properly.
     const v = this
-
-    websocket = new WebSocket(url)
-    websocket.onmessage = (msg) => {
-      msg = JSON.parse(msg.data)
-      v.runs = Object.assign({}, v.runs, msg.runs)
-    }
-    websocket.onclose = () => {
-      console.log("web socket closed: " + url)
-      websocket = null
-    }
+    this.runs_socket = new RunsSocket(undefined, this.job_id)
+    this.runs_socket.open(
+      (msg) => { v.runs = Object.assign({}, v.runs, msg.runs) })
   },
 
   destroyed() {
-    if (websocket) {
-      websocket.close()
-    }
-  }
+    this.runs_socket.close()
+  },
 })
 
 /*------------------------------------------------------------------------------
@@ -263,6 +287,7 @@ const Run = {
   props: ['run_id'],
   data() {
     return {
+      runs_socket: null,
       run: null,
     }
   },
@@ -285,11 +310,14 @@ const Run = {
 
   created() {
     const v = this
-    const url = "/api/v1/runs/" + this.run_id  // FIXME
-    fetch(url)
-      .then((response) => response.json())
-      .then((response) => { v.run = _.first(_.values(response.runs)) })
-  }
+    this.runs_socket = new RunsSocket(this.run_id, undefined)
+    this.runs_socket.open(
+      (msg) => { v.run = msg.runs[v.run_id] })
+  },
+
+  destroyed() {
+    this.runs_socket.close()
+  },
 }
 
 /*------------------------------------------------------------------------------
