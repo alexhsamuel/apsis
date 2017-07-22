@@ -1,7 +1,6 @@
 - Split up to_jso() stuff.
   - API
   - Serialization for file formats.
-- jinja2 expand job.
 - Add randomly failing test job.
 - Show multiple runs for an inst.
 - Rerun an inst.

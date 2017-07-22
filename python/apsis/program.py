@@ -2,6 +2,7 @@ import asyncio
 from   cron import *
 from   functools import partial
 import getpass
+import jinja2
 import logging
 from   pathlib import Path
 import shlex
@@ -13,6 +14,20 @@ from   .execute import ProgramError, ProgramFailure
 from   .job import *
 
 log = logging.getLogger("program")
+
+#-------------------------------------------------------------------------------
+
+# FIXME: Elsewhere.
+
+def expand(string, run):
+    template = jinja2.Template(string)
+    ns = {
+        "run_id": run.run_id,
+        "job_id": run.inst.job.job_id,
+        **run.inst.args, 
+    }
+    return template.render(ns)
+
 
 #-------------------------------------------------------------------------------
 
@@ -51,10 +66,13 @@ class ProcessProgram:
             "username"  : getpass.getuser(),
         })
 
+        argv = [ expand(a, run) for a in self.__argv ]
+        log.info("argv: {}".format(argv))
+
         try:
             with open("/dev/null") as stdin:
                 proc = await asyncio.create_subprocess_exec(
-                    *self.__argv, 
+                    *argv, 
                     executable  =self.__executable,
                     stdin       =stdin,
                     # Merge stderr with stdin.  FIXME: Do better.
