@@ -1,9 +1,12 @@
-- Add randomly failing test job.
-- Show multiple runs for an inst.
-- Rerun an inst.
+- Show multiple runs for an inst together.
+- Rerun button.
+- Run now button for scheduled run.
+- Cancel button for scheduled run.
+- Kill button for executing run.
 - Don't run a job when an inst has succeeded.
-- "Run now" button for scheduled run.
 - Customize run view for overall, job screen.
+
+- Action log for each run.
 
 - API for submitting ad-hoc jobs.
 - Command line UI.
@@ -18,6 +21,7 @@
   - Store job_id instead of job, until that time.
 
 - Round all schedule times to some sane precision?
+- Move output to runs screen.
 - Figure out how to handle errors in fetch(), or use something better.
 - Better test jobs.
 - Figure out what to do about the sanic wildcard route hack.  Submit?
@@ -31,6 +35,8 @@
 - Handle API errors in UI.
 - Validate jobs after loading.
 - Validation of schedule, results.
+- Show API JSON in UI?
+
 - Clean up old files in repo.
 
 - Think about what happens to running jobs when sched is bounced.
@@ -39,6 +45,8 @@
 - Add env, cwd, and other stuff to ProcessProgram.
 - Capture rusage and other usage from ProcessProgram.
 - SSH wrapper.
+
+- Auto rerun rules.
 
 
 cron
