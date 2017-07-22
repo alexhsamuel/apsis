@@ -24,6 +24,8 @@
 - Multiple schedules on one job.
 - Move run timing (start/end/elapsed) to execute().
 - Clean shutdown.
+- Hot reload jobs via API.
+- Validate jobs after loading.
 - Validation of schedule, results.
 - Clean up old files in repo.
 
