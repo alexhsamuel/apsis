@@ -50,13 +50,6 @@ class ProcessProgram:
         }
 
 
-    @classmethod
-    def from_jso(class_, jso):
-        return class_(
-            jso["argv"],
-        )
-
-
     async def start(self, run):
         log.info("running: {}".format(run))
 
@@ -117,13 +110,4 @@ class ShellCommandProgram(ProcessProgram):
         return self.__command
 
 
-
-#-------------------------------------------------------------------------------
-
-TYPES = (
-    ProcessProgram,
-    ShellCommandProgram,
-)
-
-from_jso    = partial(lib.from_jso, types=TYPES)
 

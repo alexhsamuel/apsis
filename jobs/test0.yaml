@@ -4,7 +4,10 @@ schedule:
 - args: {message: "Hello, world!"}
   tz: US/Mountain
   # calendar: Mon-Fri
-  daytime: "22:45:00"
+  daytime: 
+  - "07:36:00"
+  - "09:30:00"
+  - "12:00:00"
 - args: {message: "Good bye!"}
   tz: US/Eastern
   calendar: Mon-Thu

@@ -6,17 +6,6 @@ from   . import lib
 from   .crontab import CrontabSchedule
 
 #-------------------------------------------------------------------------------
-# FIXME: Elsewhere
-
-# FIXME: This is horrendous.
-def calendar_from_jso(jso):
-    import cron.calendar
-    type_name = jso.pop("$type")
-    class_ = getattr(cron.calendar, type_name)
-    return class_(**jso)
-
-
-#-------------------------------------------------------------------------------
 
 class DailySchedule:
 
@@ -28,9 +17,9 @@ class DailySchedule:
 
 
     def __str__(self):
-        return "at {} on {} in {} for {}".format(
-            " ".join( format(y, "%H:%M:%S") for y in self.daytimes ),
+        return "on {} at {} in {} for {}".format(
             self.calendar,
+            " ".join( format(y, "%H:%M:%S") for y in self.daytimes ),
             self.tz,
             " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
         )
@@ -90,16 +79,6 @@ class DailySchedule:
         }
 
 
-    @classmethod
-    def from_jso(class_, jso):
-        return class_(
-            jso["tz"], 
-            calendar_from_jso(jso["calendar"]),
-            jso["daytimes"],
-            jso["args"],
-        )
-
-
 
 class ExplicitSchedule:
 
@@ -131,13 +110,5 @@ class ExplicitSchedule:
 
 
 
-#-------------------------------------------------------------------------------
 
-TYPES = (
-    CrontabSchedule,
-    DailySchedule,
-    ExplicitSchedule,
-)
-
-from_jso    = partial(lib.from_jso, types=TYPES)
 

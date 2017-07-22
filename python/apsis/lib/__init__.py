@@ -79,25 +79,6 @@ def to_interval(obj):
 
 #-------------------------------------------------------------------------------
 
-TYPE_FIELD = "$type"
-
-def from_jso(jso, types):
-    types_by_name = { t.__name__: t for t in types }
-
-    try:
-        type_name = jso[TYPE_FIELD]
-    except KeyError:
-        raise LookupError("no type in JSO: {!r}".format(jso))
-    try:
-        type = types_by_name[type_name]
-    except KeyError:
-        raise LookupError("unknown type in JSO: {}".format(type_name))
-
-    return type.from_jso(jso)
-
-
-#-------------------------------------------------------------------------------
-
 def format_time(time):
     # FIXME: For now, assume 1 s resolution.
     return format(time, "%Y-%m-%d %H:%M:%S")
