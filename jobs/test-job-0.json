@@ -4,13 +4,13 @@
     {
       "$type": "DailySchedule",
       "args": {"message": "Hello, world!"},
-      "tz": "US/Eastern",
+      "tz": "US/Mountain",
       "calendar": {
         "$type": "WeekdayCalendar",
         "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri"]
       },
       "daytimes": [
-        "09:30:00"
+        "20:47:00"
       ]
     },
       {

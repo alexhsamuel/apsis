@@ -177,7 +177,7 @@ const runs_template = `
         <td>{{ run.state }}</td>
         <td>{{ run.times.schedule || "" }}</td>
         <td>{{ run.times.execute || "" }}</td>
-        <td>{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
+        <td>{{ run.times.elapsed === undefined ? "" : format_elapsed(run.times.elapsed) }}</td>
       </tr>
     </tbody>
   </table>
@@ -341,7 +341,7 @@ const Run = {
 const output_template = `
 <div class="output">
   <br>
-  <h4>{{ run_id }} output</h4>
+  <div class="title">{{ run_id }}</div>
   <pre v-if="output !== null">{{ output }}</pre>
   <div v-if="error != null" class="error">{{ error }}</div>
 </div>

@@ -238,7 +238,8 @@ async def execute(run):
 
     # Start it.
     program = run.inst.job.program
-    run.times["execute"] = str(now())
+    execute_time = now()
+    run.times["execute"] = str(execute_time)
     try:
         proc = await program.start(run)
     except ProgramError as exc:
@@ -257,7 +258,9 @@ async def execute(run):
             run.state = Run.FAILURE
         else:
             run.state = Run.SUCCESS
-    run.times["done"] = str(now())
+    done_time = now()
+    run.times["done"] = str(done_time)
+    run.times["elapsed"] = done_time - execute_time
     await STATE.runs.update(run)
 
 
