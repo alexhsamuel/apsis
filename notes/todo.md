@@ -25,6 +25,10 @@
 - Validate jobs after loading.
 - Validation of schedule, results.
 - Clean up old files in repo.
+- New session / pgroup / ?? for ProcessProgram.
+- Login shell for ShellProgram.
+- Add env, cwd, and other stuff to ProcessProgram.
+- Capture rusage and other usage from ProcessProgram.
 
 
 cron
