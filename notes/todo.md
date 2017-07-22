@@ -7,6 +7,11 @@
 
 - API for submitting ad-hoc jobs.
 - Command line UI.
+- Hot reload jobs via API.
+- Clean shutdown.
+
+- Write runs to Mongo.
+- Look for missed jobs by comparing schedule to runs.
 
 - When jobs changed, reschedule the docket job.
 - When is the job fixed for an inst/run?  At start time?
@@ -24,8 +29,6 @@
 - Show when websocket disconnects, and try to reconnect.
 - Handle exceptions in API.
 - Handle API errors in UI.
-- Clean shutdown.
-- Hot reload jobs via API.
 - Validate jobs after loading.
 - Validation of schedule, results.
 - Clean up old files in repo.
