@@ -20,8 +20,6 @@
 - Show when websocket disconnects, and try to reconnect.
 - Handle exceptions in API.
 - Handle API errors in UI.
-- Multiple schedules on one job.
-- Move run timing (start/end/elapsed) to execute().
 - Clean shutdown.
 - Hot reload jobs via API.
 - Validate jobs after loading.
