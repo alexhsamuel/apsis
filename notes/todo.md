@@ -29,6 +29,7 @@
 - Login shell for ShellProgram.
 - Add env, cwd, and other stuff to ProcessProgram.
 - Capture rusage and other usage from ProcessProgram.
+- SSH wrapper.g
 
 
 cron
