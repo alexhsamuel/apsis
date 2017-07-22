@@ -16,7 +16,6 @@
 - Webpack setup for web GUI.
 - Block out web GUI.
 - Rename Inst -> Task, or something else.
-- Add "last" and "next" instance columns to job display.
 - Incremental search on job / instance tables.
 - Show when websocket disconnects, and try to reconnect.
 - Handle exceptions in API.
