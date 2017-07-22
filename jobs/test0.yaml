@@ -5,7 +5,7 @@ schedule:
   tz: US/Mountain
   # calendar: Mon-Fri
   daytime: 
-  - "07:36:00"
+  - "09:50:00"
   - "09:30:00"
   - "12:00:00"
 - args: {message: "Good bye!"}
@@ -13,5 +13,5 @@ schedule:
   calendar: Mon-Thu
   daytime: "16:00:00"
 
-program: echo {{ message }}
+program: /Users/alex/dev/sched/jobs/test0 '{{ message }}'
 
