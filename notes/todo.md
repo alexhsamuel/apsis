@@ -31,3 +31,6 @@
 cron
 - format time with tz
 - control precision in time, daytime formats
+- parse weekdays (see repo.py)
+- load named calendars from files
+

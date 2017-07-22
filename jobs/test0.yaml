@@ -1,0 +1,14 @@
+params: [date, message]
+
+schedule:
+- args: {message: "Hello, world!"}
+  tz: US/Mountain
+  # calendar: Mon-Fri
+  daytime: "22:45:00"
+- args: {message: "Good bye!"}
+  tz: US/Eastern
+  calendar: Mon-Thu
+  daytime: "16:00:00"
+
+program: echo {{ message }}
+

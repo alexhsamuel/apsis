@@ -9,7 +9,7 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import api, crontab
+from   apsis import api, crontab, repo
 from   apsis.job import load_job_dir
 from   apsis.state import STATE, schedule_runs, docket_handler
 import apsis.testing
@@ -118,7 +118,8 @@ def main():
     if args.crontab:
         _, jobs = crontab.read_crontab_file(args.crontab)
     else:
-        jobs = load_job_dir(args.jobs)
+        # jobs = load_job_dir(args.jobs)
+        jobs = repo.load_yaml_files(args.jobs)
     for j in jobs:
         STATE.add_job(j)
 
