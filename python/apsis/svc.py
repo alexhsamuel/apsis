@@ -9,8 +9,8 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import api, crontab, repo
-from   apsis.state import STATE, schedule_runs, docket_handler
+from   apsis import api, crontab, repo, state
+from   apsis.state import STATE
 import apsis.testing
 
 #-------------------------------------------------------------------------------
@@ -125,16 +125,8 @@ def main():
     for job in apsis.testing.JOBS:
         STATE.add_job(job)
 
-    loop = asyncio.get_event_loop()
-
-    async def f():
-        await schedule_runs(
-            STATE.docket, STATE.docket.interval.stop + 1 * 86400, STATE.jobs)
-        docket_handler(STATE.docket)
-    asyncio.ensure_future(f())
-
-    # Set off the recurring handler.
-    # loop.call_soon(docket_handler, STATE.docket)
+    # Kick off the docket.
+    state.start_docket(STATE.docket)
 
     server = app.create_server(
         host        =args.host,
@@ -143,10 +135,13 @@ def main():
         log_config  =None,
     )
     app.running = True
-    asyncio.ensure_future(server, loop=loop)
+    asyncio.ensure_future(server)
 
+    loop = asyncio.get_event_loop()
     try:
         loop.run_forever()
+    except KeyboardInterrupt:
+        print()
     finally:
         loop.close()
 

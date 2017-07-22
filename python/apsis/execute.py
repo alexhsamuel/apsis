@@ -27,9 +27,10 @@ class Run:
 
     STATES = frozenset((NEW, SCHEDULED, RUNNING, SUCCESS, FAILURE, ERROR))
 
-    def __init__(self, run_id, inst):
+    def __init__(self, run_id, inst, number=0):
         self.run_id = str(run_id)
         self.inst   = inst
+        self.number = number
         self.state  = self.NEW
         self.times  = {}
         self.meta   = {}

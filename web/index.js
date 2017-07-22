@@ -197,7 +197,7 @@ class RunsSocket {
       callback(jso)
     }
     this.websocket.onclose = () => {
-      console.log("web socket closed: " + url)
+      console.log("web socket closed: " + this.url)
       this.websocket = null
     }
   }
@@ -261,34 +261,37 @@ const run_template = `
 <div>
   <br>
   <div class="title">{{ run_id }}</div>
-  <div>{{ arg_str }}</div>
-  <dl v-if="run">
-    <dt>job</dt>
-    <dd class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</dd>
+  <div v-if="run">
+    <div>
+      <a class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</a>
+      {{ arg_str }}
+      #{{ run.number }}
+    </div>
+    <dl>
+      <dt>state</dt>
+      <dd>{{ run.state }}</dd>
 
-    <dt>state</dt>
-    <dd>{{ run.state }}</dd>
+      <template v-if="run.output_len !== null">
+        <dt>output</dt>
+        <dd class="output-link" v-on:click="$router.push({ name: 'output', params: { run_id: run_id } })">{{ run.output_len }} bytes</dd>
+      </template>
 
-    <template v-if="run.output_len !== null">
-      <dt>output</dt>
-      <dd class="output-link" v-on:click="$router.push({ name: 'output', params: { run_id: run_id } })">{{ run.output_len }} bytes</dd>
-    </template>
+      <dt>times</dt>
+      <dd>
+        <dl>
+          <template v-for="[key, value] in run_times">
+            <dt>{{ key }}</dt>
+            <dd>{{ value }}</dd>
+          </template>
+        </dl>
+      </dd>
 
-    <dt>times</dt>
-    <dd>
-      <dl>
-        <template v-for="[key, value] in run_times">
-          <dt>{{ key }}</dt>
-          <dd>{{ value }}</dd>
-        </template>
-      </dl>
-    </dd>
-
-    <template v-for="(value, key) in run.meta">
-      <dt>{{ key }}</dt>
-      <dd>{{ key == "elapsed" ? format_elapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
-    </template>
-  </dl>
+      <template v-for="(value, key) in run.meta">
+        <dt>{{ key }}</dt>
+        <dd>{{ key == "elapsed" ? format_elapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
+      </template>
+    </dl>
+  </div>
 </div>
 `
 
@@ -304,13 +307,11 @@ const Run = {
 
   computed: {
     arg_str() {
-      return this.run 
-        ? _.flow([
-            _.toPairs,
-            _.map(([k, v]) => k + "=" + v),
-            _.join(" ")
-          ])(this.run.args)
-        : ""
+      return _.flow([
+        _.toPairs,
+        _.map(([k, v]) => k + "=" + v),
+        _.join(" ")
+      ])(this.run.args)
     },
 
     run_times() {

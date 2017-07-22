@@ -93,6 +93,7 @@ class Docket:
         self.__start    = time
         self.__stop     = time
         self.__runs     = []
+        self.handle     = None
 
 
     def __len__(self):
@@ -123,6 +124,12 @@ class Docket:
             log.info("pushing: ({}) {}".format(run.inst.time, run.run_id))
             heapq.heappush(self.__runs, (run.inst.time, run))
         self.__stop = stop
+
+
+    def push_now(self, runs):
+        for run in runs:
+            log.info("pushing: {}".format(run.run_id))
+            heapq.heappush(self.__runs, (self.__start, run))
 
 
     def pop(self, interval):
@@ -162,6 +169,7 @@ async def schedule_runs(docket, time: Time, jobs):
     Schedules instances of `jobs` until `time`.
     """
     log.info("schedule_runs")
+
     time = Time(time)
     if time <= docket.interval.stop:
         # Nothing to do.
@@ -179,7 +187,73 @@ async def schedule_runs(docket, time: Time, jobs):
     # Create the run.
     await asyncio.gather(*( add_run(r) for r in runs ))
     docket.push(runs, interval)
+
     log.info("schedule_runs done")
+
+
+async def docket_handler(docket):
+    """
+    Runs jobs in `docket` currently handled, and rescheduled the handler.
+    """
+    docket.handle = None
+
+    log.info("docket_handler")
+
+    time = now()
+    # Schdule additional runs.
+    await schedule_runs(docket, time + 1 * 86400, STATE.jobs)
+    # Run currently-scheduled jobs.
+    run_current(docket, time)
+    # Reschedule this handler.
+    schedule_docket_handler(docket, time)
+
+    log.info("docket_handler done")
+
+
+MAX_DELAY = 60
+
+def schedule_docket_handler(docket, time):
+    # When is the next run?
+    next_time = time + MAX_DELAY
+    if len(docket) > 0:
+        next_time = min(docket.next_sched_time, next_time)
+
+    if docket.handle is not None:
+        if docket.handle[0] == next_time:
+            # The handler is already scheduled.
+            log.info("handler already scheduled")
+            return
+        else:
+            log.info("cancelling handler for {}".format(docket.handle[0]))
+            docket.handle[1].cancel()
+            docket.handle = None
+
+    # Schedule the handler.
+    delay = next_time - time
+    log.info(
+        "docket_handler scheduled for {}, delay {}".format(next_time, delay))
+    loop = asyncio.get_event_loop()
+    # FIXME: Is this really how to schedule a coroutine in the future?
+    handle = loop.call_later(
+        delay, asyncio.ensure_future, docket_handler(docket))
+
+    # Store the callback handle and the time at which it is scheduled.
+    docket.handle = next_time, handle
+
+
+def start_docket(docket):
+    asyncio.ensure_future(docket_handler(docket))
+
+
+#-------------------------------------------------------------------------------
+
+async def rerun(run):
+    new_run = Run(next(STATE.runs.run_ids), run.inst, run.number + 1)
+    new_run.state = Run.SCHEDULED
+    when = await STATE.runs.add(new_run)
+    STATE.docket.push_now([new_run])
+    schedule_docket_handler(STATE.docket, now())
+    return when, new_run
 
 
 def extract_current_runs(docket, time: Time):
@@ -200,35 +274,6 @@ def run_current(docket, time):
     runs = extract_current_runs(docket, time)
     for run in runs:
         asyncio.ensure_future(execute(run))
-
-
-def docket_handler(docket):
-    """
-    Runs jobs in `docket` currently handled, and rescheduled the handler.
-    """
-    log.info("docket_handler")
-
-    # Assume (without proof?) that we're handling this handle.
-    docket.handle = None
-
-    time = now()
-
-    # Run currently-scheduled jobs.
-    run_current(docket, time)
-
-    log.info("len(docket) = {}".format(len(docket)))
-    if len(docket) > 0:
-        # Schedule the next call to this function.
-        loop = asyncio.get_event_loop()
-        next_time = docket.next_sched_time
-        delay = next_time - time
-        log.info("docket_handler scheduled in: {:.2f} s".format(delay))
-        handle = loop.call_later(delay, docket_handler, docket)
-        # Store the callback handle and the time at which it is scheduled.
-        docket.handle = handle
-        docket.handle_time = next_time
-
-    log.info("docket_handler done")
 
 
 #-------------------------------------------------------------------------------

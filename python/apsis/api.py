@@ -3,6 +3,7 @@ import logging
 import sanic
 import websockets
 
+from   . import state
 from   .state import STATE
 
 log = logging.getLogger("api/v1")
@@ -50,6 +51,7 @@ def run_to_jso(app, run):
         "job_url"       : app.url_for("v1.job", job_id=run.inst.job.job_id),
         "inst_id"       : run.inst.inst_id,
         "args"          : run.inst.args,
+        "number"        : run.number,
         "run_id"        : run.run_id,
         "state"         : run.state,
         "times"         : run.times,
@@ -102,6 +104,20 @@ async def run_output(request, run_id):
         raise sanic.exceptions.NotFound("no output")
     else:
         return sanic.response.raw(run.output)
+
+
+@API.route("/runs/<run_id>/state", methods={"GET"})
+async def run_state_get(request, run_id):
+    _, run = await STATE.runs.get(run_id)
+    return response_json({"state": run.state})
+
+
+@API.route("/runs/<run_id>/rerun", methods={"POST"})
+async def run_rerun_post(request, run_id):
+    _, run = await STATE.runs.get(run_id)
+    when, new_run = await state.rerun(run)
+    jso = runs_to_jso(request.app, when, [new_run])
+    return response_json(jso)
 
 
 def _run_filter_for_query(args):
