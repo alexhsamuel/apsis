@@ -168,6 +168,7 @@ const runs_template = `
         <th>Schedule</th>
         <th>Start</th>
         <th>Elapsed</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -178,6 +179,11 @@ const runs_template = `
         <td>{{ run.times.schedule || "" }}</td>
         <td>{{ run.times.execute || "" }}</td>
         <td>{{ run.times.elapsed === undefined ? "" : format_elapsed(run.times.elapsed) }}</td>
+        <td>
+          <span class="action" v-for="(url, action) in run.actions" v-on:click="do_action(url)">
+            {{ action }}
+          </span>
+        </td>
       </tr>
     </tbody>
   </table>
@@ -239,6 +245,11 @@ const Runs = Vue.component('runs', {
 
   methods: {
     format_elapsed,  // FIXME: Why do we need this?
+
+    do_action(url) {
+      console.log("action:", url)
+      fetch(url, { method: "POST" })
+    },
   },
 
   created() {

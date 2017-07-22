@@ -45,6 +45,10 @@ def job_to_jso(app, job):
 
 
 def run_to_jso(app, run):
+    actions = {}
+    if run.state in {run.FAILURE, run.ERROR}:
+        actions["retry"] = app.url_for("v1.run_rerun", run_id=run.run_id)
+
     return {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job.job_id,
@@ -56,6 +60,7 @@ def run_to_jso(app, run):
         "state"         : run.state,
         "times"         : run.times,
         "meta"          : run.meta,
+        "actions"       : actions,
         # FIXME         : "inst_url"
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
         "output_len"    :  None if run.output is None else len(run.output),
@@ -113,7 +118,7 @@ async def run_state_get(request, run_id):
 
 
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
-async def run_rerun_post(request, run_id):
+async def run_rerun(request, run_id):
     _, run = await STATE.runs.get(run_id)
     when, new_run = await state.rerun(run)
     jso = runs_to_jso(request.app, when, [new_run])

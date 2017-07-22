@@ -150,7 +150,7 @@ table.joblist {
 }
 
 .joblist tbody td {
-  min-width: 12rem;
+  min-width: 8rem;
   max-width: 48rem;
 }
 
@@ -174,7 +174,7 @@ table.runlist {
 }
 
 .runlist tbody td {
-  min-width: 12rem;
+  min-width: 8rem;
   max-width: 48rem;
 }
 
@@ -212,3 +212,21 @@ table.runlist {
 .js-el dd {
   margin-bottom: 1rem;
 }
+
+/*------------------------------------------------------------------------------
+  action buttons
+------------------------------------------------------------------------------*/
+
+.action {
+  background: #d0e0d0;
+  padding: 2px 8px 2px 8px;
+  border-radius: 4px;
+  font-size: 85%;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.action:hover {
+  background: #a0e0a0;
+}
+
