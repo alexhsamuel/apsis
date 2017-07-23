@@ -22,6 +22,26 @@ function format_elapsed(elapsed) {
 }
 
 /*------------------------------------------------------------------------------
+  Components
+------------------------------------------------------------------------------*/
+
+Vue.component('action-url', {
+  props: ['action', 'url'],
+  template: `
+    <span class="action" v-on:click="do_action(url)">
+      {{ action }}
+    </span>
+  `,
+
+  methods: {
+    do_action(url) {
+      fetch(url, { method: "POST" })
+    },
+  },
+
+})
+
+/*------------------------------------------------------------------------------
   jobs
 ------------------------------------------------------------------------------*/
 
@@ -166,7 +186,7 @@ const insts_template = `
       <tr>
         <th>Job</th>
         <th>Args</th>
-        <th># Runs</th>
+        <th>Runs</th>
         <th>State</th>
         <th>Actions</th>
       </tr>
@@ -196,22 +216,29 @@ const insts_template = `
           <template v-if="! expanded[inst_id]">
             <td>{{ inst.run.state }}</td>
             <td>
-              <span class="action" v-for="(url, action) in inst.run.actions" v-on:click="do_action(url)">
-                {{ action }}
-              </span>
+              <action-url 
+                  v-for="(url, action) in inst.run.actions"
+                  :action="action" :url="url">
+              </action-url>
             </td>
           </template>
         </tr>
 
         <!-- A row for each run.  -->
-        <tr v-if="expanded[inst_id]" v-for="run in inst.runs">
+        <tr v-if="expanded[inst_id]" 
+            v-for="run in inst.runs"
+            class="run">
           <td colspan="2"></td>
-          <td>{{ run.run_id }}</td>
+          <td class="run-link" 
+              v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">
+            {{ run.run_id }}
+          </td>
           <td>{{ run.state }}</td>
           <td>
-            <span class="action" v-for="(url, action) in run.actions" v-on:click="do_action(url)">
-              {{ action }}
-            </span>
+            <action-url 
+                v-for="(url, action) in run.actions"
+                :action="action" :url="url">
+            </action-url>
           </td>
         </tr>
 
@@ -271,10 +298,6 @@ const Insts = {
       Vue.set(this.expanded, inst_id, state)
     },
 
-    do_action(url) {
-      fetch(url, { method: "POST" })
-    },
-
   },
 
   created() {
@@ -314,9 +337,9 @@ const runs_template = `
         <td>{{ run.times.execute || "" }}</td>
         <td class="rt">{{ run.times.elapsed === undefined ? "" : format_elapsed(run.times.elapsed) }}</td>
         <td>
-          <span class="action" v-for="(url, action) in run.actions" v-on:click="do_action(url)">
-            {{ action }}
-          </span>
+          <action-url
+            v-for="(url, action) in run.actions" :url="url" :action="action">
+          </action-url>
         </td>
       </tr>
     </tbody>
@@ -380,9 +403,6 @@ const Runs = Vue.component('runs', {
   methods: {
     format_elapsed,  // FIXME: Why do we need this?
 
-    do_action(url) {
-      fetch(url, { method: "POST" })
-    },
   },
 
   created() {

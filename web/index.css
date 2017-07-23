@@ -196,6 +196,15 @@ table.inst-list {
   max-width: 48rem;
 }
 
+.inst-list tbody tr td {
+  border-top: 1px solid #e1e1e1;
+}
+
+.inst-list tr.run td {
+  border-top: none;
+  border-bottom: none;
+}
+
 /*------------------------------------------------------------------------------
   output
 ------------------------------------------------------------------------------*/
