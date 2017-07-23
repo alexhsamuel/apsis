@@ -192,7 +192,7 @@ const insts_template = `
       </tr>
     </thead>
     <tbody>
-      <template v-for="(inst, inst_id) in insts">
+      <template v-for="inst in insts">
 
         <!-- A row for the inst.  -->
         <tr>
@@ -203,17 +203,17 @@ const insts_template = `
           <td>
             {{ inst.runs.length }}
             <span 
-                v-if="expanded[inst_id]" 
-                v-on:click="expand(inst_id, false)">
+                v-if="expanded[inst.inst_id]" 
+                v-on:click="expand(inst.inst_id, false)">
               V
             </span>
             <span 
                 v-else
-                v-on:click="expand(inst_id, true)">
+                v-on:click="expand(inst.inst_id, true)">
               &gt;
             </span>
           </td>
-          <template v-if="! expanded[inst_id]">
+          <template v-if="! expanded[inst.inst_id]">
             <td>{{ inst.run.state }}</td>
             <td>
               <action-url 
@@ -225,7 +225,7 @@ const insts_template = `
         </tr>
 
         <!-- A row for each run.  -->
-        <tr v-if="expanded[inst_id]" 
+        <tr v-if="expanded[inst.inst_id]" 
             v-for="run in inst.runs"
             class="run">
           <td colspan="2"></td>
@@ -267,17 +267,17 @@ const Insts = {
       for (run_id in this.runs) {
         const run = this.runs[run_id]
         var inst = insts[run.inst_id]
-        if (inst === undefined) {
+        if (inst === undefined)
           inst = insts[run.inst_id] = {
-            job_id: run.job_id,
-            args: _.flow([
+            inst_id : run.inst_id,
+            job_id  : run.job_id,
+            args    : _.flow([
                 _.toPairs,
                 _.map(([k, v]) => k + "=" + v),
                 _.join(" ")
               ])(run.args),
-            runs: [run],
+            runs    : [run],
           }
-        }
         // Arrange runs by run number.  Assume these are dense.
         inst.runs[run.number] = run
       }
@@ -288,7 +288,8 @@ const Insts = {
         // Show runs-specific information for the last run.
         inst.run = _.last(inst.runs)
       }
-      return insts
+      // Sort by time.
+      return _.sortBy(i => i.inst_id)(_.values(insts))
     }
   },
 

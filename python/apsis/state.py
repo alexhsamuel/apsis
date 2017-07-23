@@ -241,6 +241,7 @@ def start_docket(docket):
 #-------------------------------------------------------------------------------
 
 async def rerun(run):
+    # FIXME: Get the next available run number.
     new_run = Run(next(STATE.runs.run_ids), run.inst, run.number + 1)
     new_run.state = Run.SCHEDULED
     when = await STATE.runs.add(new_run)
