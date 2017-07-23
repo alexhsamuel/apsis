@@ -161,7 +161,7 @@ const Job = {
 const insts_template = `
 <div>
   <br>
-  <table class="instlist">
+  <table class="inst-list">
     <thead>
       <tr>
         <th>Job</th>
@@ -172,15 +172,50 @@ const insts_template = `
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(inst, inst_id) in insts">
-        <td class="job-link" 
-            v-on:click="$router.push({ name: 'job', params: { job_id: inst.job_id } })"
-        >{{ inst.job_id }}</td>
-        <td>{{ inst.args }}</td>
-        <td>{{ inst.runs.length }}</td>
-        <td>{{ inst.run.state }}</td>
-        <td>FIXME</td>
-      </tr>
+      <template v-for="(inst, inst_id) in insts">
+
+        <!-- A row for the inst.  -->
+        <tr>
+          <td class="job-link" 
+              v-on:click="$router.push({ name: 'job', params: { job_id: inst.job_id } })"
+          >{{ inst.job_id }}</td>
+          <td>{{ inst.args }}</td>
+          <td>
+            {{ inst.runs.length }}
+            <span 
+                v-if="expanded[inst_id]" 
+                v-on:click="expand(inst_id, false)">
+              V
+            </span>
+            <span 
+                v-else
+                v-on:click="expand(inst_id, true)">
+              &gt;
+            </span>
+          </td>
+          <template v-if="! expanded[inst_id]">
+            <td>{{ inst.run.state }}</td>
+            <td>
+              <span class="action" v-for="(url, action) in inst.run.actions" v-on:click="do_action(url)">
+                {{ action }}
+              </span>
+            </td>
+          </template>
+        </tr>
+
+        <!-- A row for each run.  -->
+        <tr v-if="expanded[inst_id]" v-for="run in inst.runs">
+          <td colspan="2"></td>
+          <td>{{ run.run_id }}</td>
+          <td>{{ run.state }}</td>
+          <td>
+            <span class="action" v-for="(url, action) in run.actions" v-on:click="do_action(url)">
+              {{ action }}
+            </span>
+          </td>
+        </tr>
+
+      </template>
     </tbody>
   </table>
 </div>
@@ -192,6 +227,7 @@ const Insts = {
   data() {
     return {
       runs: null,
+      expanded: {},
     }
   },
 
@@ -227,6 +263,18 @@ const Insts = {
       }
       return insts
     }
+  },
+
+  methods: {
+    expand(inst_id, state) {
+      console.log('expand', inst_id, state)
+      Vue.set(this.expanded, inst_id, state)
+    },
+
+    do_action(url) {
+      fetch(url, { method: "POST" })
+    },
+
   },
 
   created() {
