@@ -73,6 +73,8 @@ const Jobs = {
   job
 ------------------------------------------------------------------------------*/
 
+/* FIXME: Not used; remove these, and accompanying CSS.  */
+
 Vue.component('js-el', {
   props: ['val'],
   template: `
