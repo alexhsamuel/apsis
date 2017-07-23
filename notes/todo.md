@@ -1,3 +1,4 @@
+- Compute the rerun run number correctly.
 - Show multiple runs for an inst together.
 - Run now button for scheduled run.
 - Cancel button for scheduled run.
