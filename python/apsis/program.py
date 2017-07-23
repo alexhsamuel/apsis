@@ -60,7 +60,6 @@ class ProcessProgram:
         })
 
         argv = [ expand(a, run) for a in self.__argv ]
-        log.info("argv: {}".format(argv))
 
         try:
             with open("/dev/null") as stdin:

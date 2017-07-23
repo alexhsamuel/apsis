@@ -41,4 +41,5 @@ class Run:
         return py.format_ctor(self, self.run_id, self.inst, state=self.state)
 
 
-
+    def __str__(self):
+        return "{} #{} of {}".format(self.run_id, self.number, self.inst)

@@ -247,7 +247,6 @@ const Runs = Vue.component('runs', {
     format_elapsed,  // FIXME: Why do we need this?
 
     do_action(url) {
-      console.log("action:", url)
       fetch(url, { method: "POST" })
     },
   },

@@ -39,6 +39,13 @@ class Instance:
         return format_ctor(self, self.inst_id, self.job, self.args, self.time)
 
 
+    def __str__(self):
+        return "{}({})".format(
+            self.job.job_id, 
+            " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
+        )
+
+
     def __lt__(self, other):
         return (
             self.inst_id < other.inst_id if isinstance(other, Instance)

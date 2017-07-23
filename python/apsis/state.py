@@ -32,6 +32,7 @@ class Runs:
 
 
     async def add(self, run):
+        log.info("add run: {}".format(run))
         assert not any( r.run_id == run.run_id for r in self.__runs )
         return self.__add(run)
 
@@ -121,14 +122,14 @@ class Docket:
         assert start == self.__stop
         for run in runs:
             assert run.inst.time in interval
-            log.info("pushing: ({}) {}".format(run.inst.time, run.run_id))
+            log.info("schedule: {} for {}".format(run, run.inst.time))
             heapq.heappush(self.__runs, (run.inst.time, run))
         self.__stop = stop
 
 
     def push_now(self, runs):
         for run in runs:
-            log.info("pushing: {}".format(run.run_id))
+            log.info("schedule: {} now".format(run))
             heapq.heappush(self.__runs, (self.__start, run))
 
 
@@ -140,7 +141,6 @@ class Docket:
         runs = []
         while len(self.__runs) > 0 and self.__runs[0][0] < stop:
             time, run = heapq.heappop(self.__runs)
-            log.info("popping: ({}) {}".format(time, run.run_id))
             runs.append(run)
         self.__start = stop
         return runs
@@ -168,8 +168,6 @@ async def schedule_runs(docket, time: Time, jobs):
     """
     Schedules instances of `jobs` until `time`.
     """
-    log.info("schedule_runs")
-
     time = Time(time)
     if time <= docket.interval.stop:
         # Nothing to do.
@@ -181,14 +179,11 @@ async def schedule_runs(docket, time: Time, jobs):
     # FIXME: Is this the right place to do this?
     async def add_run(run):
         run.state = Run.SCHEDULED
-        log.info("add_run: {}".format(run))
         await STATE.runs.add(run)
 
     # Create the run.
     await asyncio.gather(*( add_run(r) for r in runs ))
     docket.push(runs, interval)
-
-    log.info("schedule_runs done")
 
 
 async def docket_handler(docket):
@@ -197,7 +192,7 @@ async def docket_handler(docket):
     """
     docket.handle = None
 
-    log.info("docket_handler")
+    log.info("docket_handler running")
 
     time = now()
     # Schdule additional runs.
@@ -206,8 +201,6 @@ async def docket_handler(docket):
     run_current(docket, time)
     # Reschedule this handler.
     schedule_docket_handler(docket, time)
-
-    log.info("docket_handler done")
 
 
 MAX_DELAY = 60
@@ -221,10 +214,10 @@ def schedule_docket_handler(docket, time):
     if docket.handle is not None:
         if docket.handle[0] == next_time:
             # The handler is already scheduled.
-            log.info("handler already scheduled")
+            log.debug("handler already scheduled")
             return
         else:
-            log.info("cancelling handler for {}".format(docket.handle[0]))
+            log.debug("cancelling handler for {}".format(docket.handle[0]))
             docket.handle[1].cancel()
             docket.handle = None
 
@@ -279,8 +272,6 @@ def run_current(docket, time):
 #-------------------------------------------------------------------------------
 
 async def execute(run):
-    # FIXME: STARTING state?
-
     # Start it.
     program = run.inst.job.program
     execute_time = now()

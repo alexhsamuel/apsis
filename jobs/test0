@@ -5,7 +5,7 @@ import sys
 import time
 
 print("test0 starting")
-time.sleep(random.random() * 5)
+time.sleep(random.random() * 30)
 print("test0 message:", sys.argv[1])
 print("test0 done")
 if random.random() < 0.5:
