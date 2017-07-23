@@ -3,6 +3,7 @@
 - Cancel button for scheduled run.
 - Kill button for executing run.
 - Don't run a job when an inst has succeeded.
+- Don't run a job if another inst is running.
 - Customize run view for overall, job screen.
 
 - Action log for each run.
@@ -20,7 +21,6 @@
   - Store job_id instead of job, until that time.
 
 - Round all schedule times to some sane precision?
-- Move output to runs screen.
 - Figure out how to handle errors in fetch(), or use something better.
 - Better test jobs.
 - Figure out what to do about the sanic wildcard route hack.  Submit?

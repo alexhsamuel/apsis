@@ -281,11 +281,6 @@ const run_template = `
       <dt>state</dt>
       <dd>{{ run.state }}</dd>
 
-      <template v-if="run.output_len !== null">
-        <dt>output</dt>
-        <dd class="output-link" v-on:click="$router.push({ name: 'output', params: { run_id: run_id } })">{{ run.output_len }} bytes</dd>
-      </template>
-
       <dt>times</dt>
       <dd>
         <dl>
@@ -301,6 +296,11 @@ const run_template = `
         <dd>{{ key == "elapsed" ? format_elapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
       </template>
     </dl>
+    <h5>output</h5>
+    <a v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()">
+      (load {{ run.output_len }} bytes)
+    </a>
+    <pre class="output" v-if="output !== null">{{ output }}</pre>
   </div>
 </div>
 `
@@ -312,6 +312,7 @@ const Run = {
     return {
       runs_socket: null,
       run: null,
+      output: null,
     }
   },
 
@@ -331,51 +332,31 @@ const Run = {
 
   methods: {
     format_elapsed,  // FIXME: Why do we need this?
+
+    load_output() {
+      const v = this
+      const url = "/api/v1/runs/" + this.run.run_id + "/output"  // FIXME
+      fetch(url)
+        // FIXME: Handle failure, set error.
+        .then((response) => response.text())  // FIXME: Might not be text!
+        .then((response) => { v.output = response })
+    },
   },
 
   created() {
     const v = this
     this.runs_socket = new RunsSocket(this.run_id, undefined)
-    this.runs_socket.open(
-      (msg) => { v.run = msg.runs[v.run_id] })
+    this.runs_socket.open((msg) => { 
+      v.run = msg.runs[v.run_id] 
+      // Immediately load the output too, unless it's quite large.
+      if (v.run.output_len !== null && v.run.output_len < 32768)
+        v.load_output()
+    })
   },
 
   destroyed() {
     this.runs_socket.close()
   },
-}
-
-/*------------------------------------------------------------------------------
-  output
-------------------------------------------------------------------------------*/
-
-const output_template = `
-<div class="output">
-  <br>
-  <div class="title">{{ run_id }}</div>
-  <pre v-if="output !== null">{{ output }}</pre>
-  <div v-if="error != null" class="error">{{ error }}</div>
-</div>
-`
-
-const Output = {
-  template: output_template,
-  props: ['run_id'],
-  data() {
-    return {
-      error: null,
-      output: null,
-    }
-  },
-
-  created() {
-    const v = this
-    const url = "/api/v1/runs/" + this.run_id + "/output"  // FIXME
-    fetch(url)
-      // FIXME: Handle failure, set error.
-      .then((response) => response.text())  // FIXME: Might not be text!
-      .then((response) => { v.output = response })
-  }
 }
 
 /*------------------------------------------------------------------------------
@@ -392,7 +373,6 @@ const routes = [
   { path: '/instances', component: Insts },
   { path: '/runs', component: Runs },
   { path: '/runs/:run_id', name: 'run', component: Run, props: true },
-  { path: '/runs/:run_id/output', name: 'output', component: Output, props: true },
 ]
 
 const router = new VueRouter({
