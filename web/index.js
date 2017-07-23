@@ -155,6 +155,90 @@ const Job = {
 }
 
 /*------------------------------------------------------------------------------
+  instances
+------------------------------------------------------------------------------*/
+
+const insts_template = `
+<div>
+  <br>
+  <table class="instlist">
+    <thead>
+      <tr>
+        <th>Job</th>
+        <th>Args</th>
+        <th># Runs</th>
+        <th>State</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="(inst, inst_id) in insts">
+        <td class="job-link" 
+            v-on:click="$router.push({ name: 'job', params: { job_id: inst.job_id } })"
+        >{{ inst.job_id }}</td>
+        <td>{{ inst.args }}</td>
+        <td>{{ inst.runs.length }}</td>
+        <td>{{ inst.run.state }}</td>
+        <td>FIXME</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`
+
+const Insts = {
+  template: insts_template,
+  props: [],
+  data() {
+    return {
+      runs: null,
+    }
+  },
+
+  computed: {
+    insts() {
+      if (this.runs === null)
+        return null
+      const insts = {}
+      // Group runs by inst.
+      for (run_id in this.runs) {
+        const run = this.runs[run_id]
+        var inst = insts[run.inst_id]
+        if (inst === undefined) {
+          inst = insts[run.inst_id] = {
+            job_id: run.job_id,
+            args: _.flow([
+                _.toPairs,
+                _.map(([k, v]) => k + "=" + v),
+                _.join(" ")
+              ])(run.args),
+            runs: [run],
+          }
+        }
+        // Arrange runs by run number.  Assume these are dense.
+        inst.runs[run.number] = run
+      }
+      for (inst_id in insts) {
+        const inst = insts[inst_id]
+        // Sort runs by run number.
+        inst.runs = _.sortBy(r => r.number)(inst.runs)
+        // Show runs-specific information for the last run.
+        inst.run = _.last(inst.runs)
+      }
+      return insts
+    }
+  },
+
+  created() {
+    const v = this
+    this.runs_socket = new RunsSocket(undefined, undefined)
+    this.runs_socket.open(
+      (msg) => { v.runs = Object.assign({}, v.runs, msg.runs) })
+  },
+
+}
+
+/*------------------------------------------------------------------------------
   run
 ------------------------------------------------------------------------------*/
 
@@ -363,8 +447,6 @@ const Run = {
 
 /*------------------------------------------------------------------------------
 ------------------------------------------------------------------------------*/
-
-const Insts = { template: '<div>Insts</div>' }
 
 // Each route should map to a component. The "component" can either be an
 // actual component constructor created via `Vue.extend()`, or just a component

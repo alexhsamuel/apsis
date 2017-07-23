@@ -6,6 +6,9 @@
 - Don't run a job if another inst is running.
 - Customize run view for overall, job screen.
 
+- Make RunsSocket replace runs, not stack them.
+- Replace RunsSocket with a single ws pubsub protocol.
+
 - Action log for each run.
 
 - API for submitting ad-hoc jobs.
