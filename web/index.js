@@ -180,7 +180,7 @@ const runs_template = `
         <td>{{ run.state }}</td>
         <td>{{ run.times.schedule || "" }}</td>
         <td>{{ run.times.execute || "" }}</td>
-        <td>{{ run.times.elapsed === undefined ? "" : format_elapsed(run.times.elapsed) }}</td>
+        <td class="rt">{{ run.times.elapsed === undefined ? "" : format_elapsed(run.times.elapsed) }}</td>
         <td>
           <span class="action" v-for="(url, action) in run.actions" v-on:click="do_action(url)">
             {{ action }}
