@@ -46,7 +46,13 @@ def job_to_jso(app, job):
 
 def run_to_jso(app, run):
     actions = {}
-    if run.state in {run.FAILURE, run.ERROR}:
+
+    # FIXME: Retry should be on the inst, not the run.
+    # Retry is available if the run didn't succeed, and if it's the highest reun
+    # number of the inst.
+    if (    run.state in {run.FAILURE, run.ERROR}
+        and state.max_run_number(run.inst.inst_id) == run.number
+    ):
         actions["retry"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
     return {

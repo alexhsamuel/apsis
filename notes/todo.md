@@ -1,5 +1,4 @@
-- Compute the rerun run number correctly.
-- Don't add retry action except for last run in inst.
+- Make "retry" an action of an inst, not a run.
 
 - Run now button for scheduled run.
 - Cancel button for scheduled run.

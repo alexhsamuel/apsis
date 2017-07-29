@@ -48,7 +48,7 @@ class Runs:
         return when, run
 
 
-    def query(self, *, since=None, until=None):
+    def query(self, *, job_id=None, inst_id=None, since=None, until=None):
         """
         @return
           When, and iterable of runs.
@@ -56,6 +56,10 @@ class Runs:
         start   = None if since is None else int(since)
         stop    = len(self.__runs) if until is None else int(until)
         runs    = iter(self.__runs[start : stop])
+        if job_id is not None:
+            runs = ( r for r in runs if r.inst.job.job_id == job_id )
+        if inst_id is not None:
+            runs = ( r for r in runs if r.inst.inst_id == inst_id )
         return str(stop), runs
 
 
@@ -79,6 +83,14 @@ class Runs:
         for queue in self.__queues:
             queue.put_nowait((when, [run]))  # FIXME: Nowait?
 
+
+
+def max_run_number(inst_id):
+    """
+    Returns the largest run number of runs for an inst.
+    """
+    _, runs = STATE.runs.query(inst_id=inst_id)
+    return max( r.number for r in runs )
 
 
 #-------------------------------------------------------------------------------
@@ -240,12 +252,18 @@ def start_docket(docket):
 #-------------------------------------------------------------------------------
 
 async def rerun(run):
-    # FIXME: Get the next available run number.
-    new_run = Run(next(STATE.runs.run_ids), run.inst, run.number + 1)
+    # Determine the next run number.
+    number = max_run_number(run.inst.inst_id) + 1
+
+    # Create the new run.
+    new_run = Run(next(STATE.runs.run_ids), run.inst, number)
     new_run.state = Run.SCHEDULED
     when = await STATE.runs.add(new_run)
+
+    # Schedule it for immediate execution.
     STATE.docket.push_now([new_run])
     schedule_docket_handler(STATE.docket, now())
+
     return when, new_run
 
 
