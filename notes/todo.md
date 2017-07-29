@@ -26,6 +26,9 @@
   - Store job_id instead of job, until that time.
 
 - Round all schedule times to some sane precision?
+- Compute elapsed time in UI.
+- Time zones in UI.
+
 - Figure out how to handle errors in fetch(), or use something better.
 - Better test jobs.
 - Figure out what to do about the sanic wildcard route hack.  Submit?
