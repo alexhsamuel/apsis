@@ -10,7 +10,6 @@ import socket
 import subprocess
 
 from   . import lib
-from   .execute import ProgramError, ProgramFailure
 from   .types import *
 
 log = logging.getLogger("program")

@@ -7,9 +7,8 @@ import itertools
 import logging
 from   pathlib import Path
 
-from   .execute import Run, ProgramError, ProgramFailure
 from   .lib import *
-from   .types import Instance
+from   .types import *
 
 log = logging.getLogger("state")
 
