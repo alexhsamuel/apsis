@@ -6,6 +6,11 @@ from   typing import *
 
 from   .lib import format_time
 
+__all__ = (
+    "Job",
+    "Instance",
+)
+
 #-------------------------------------------------------------------------------
 
 class Job:

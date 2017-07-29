@@ -8,8 +8,8 @@ import logging
 from   pathlib import Path
 
 from   .execute import Run, ProgramError, ProgramFailure
-from   .job import Instance
 from   .lib import *
+from   .types import Instance
 
 log = logging.getLogger("state")
 

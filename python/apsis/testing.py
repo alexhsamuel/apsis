@@ -7,9 +7,9 @@ For development/testing purposes.
 from   cron import *
 from   cron.calendar import WeekdayCalendar
 
-from   .job import *
 from   .program import *
 from   .schedule import *
+from   .types import *
 
 #-------------------------------------------------------------------------------
 

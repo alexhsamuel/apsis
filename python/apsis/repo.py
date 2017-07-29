@@ -11,8 +11,8 @@ from   pathlib import Path
 import ruamel_yaml as yaml
 
 from   . import program
-from   .job import Job
 from   .schedule import DailySchedule
+from   .types import *
 
 #-------------------------------------------------------------------------------
 

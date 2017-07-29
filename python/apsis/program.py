@@ -11,7 +11,7 @@ import subprocess
 
 from   . import lib
 from   .execute import ProgramError, ProgramFailure
-from   .job import *
+from   .types import *
 
 log = logging.getLogger("program")
 

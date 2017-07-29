@@ -3,9 +3,9 @@ from   cron import *
 from   pathlib import Path
 import re
 
-from   .job import Job
 from   .lib import format_time
 from   .program import ShellCommandProgram
+from   .types import Job
 
 #-------------------------------------------------------------------------------
 
