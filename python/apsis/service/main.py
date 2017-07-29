@@ -9,9 +9,8 @@ import sanic.response
 import time
 import websockets
 
-from   apsis import api, crontab, repo, state
-from   apsis.state import STATE
-import apsis.testing
+from   . import api
+from   .. import crontab, repo, state, testing
 
 #-------------------------------------------------------------------------------
 
@@ -69,7 +68,7 @@ WS_HANDLER = QueueHandler(LOG_FORMATTER)
 app = sanic.Sanic(__name__, log_config=None)
 app.config.LOGO = None
 
-top_dir = Path(__file__).parent.parent.parent
+top_dir = Path(__file__).parents[3]
 
 app.blueprint(api.API, url_prefix="/api/v1")
 app.static("/static", str(top_dir / "web"))
@@ -119,14 +118,13 @@ def main():
     else:
         jobs = repo.load_yaml_files(args.jobs)
     for j in jobs:
-        STATE.add_job(j)
+        state.STATE.add_job(j)
 
-    import apsis.testing
-    for job in apsis.testing.JOBS:
-        STATE.add_job(job)
+    for job in testing.JOBS:
+        state.STATE.add_job(job)
 
     # Kick off the docket.
-    state.start_docket(STATE.docket)
+    state.start_docket(state.STATE.docket)
 
     server = app.create_server(
         host        =args.host,

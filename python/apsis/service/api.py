@@ -3,8 +3,8 @@ import logging
 import sanic
 import websockets
 
-from   . import state
-from   .state import STATE
+from   .. import state
+from   ..state import STATE
 
 log = logging.getLogger("api/v1")
 
