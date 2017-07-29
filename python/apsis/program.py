@@ -74,6 +74,7 @@ class ProcessProgram:
         except OSError as exc:
             raise ProgramError(str(exc))
         else:
+            run.meta["pid"] = proc.pid
             return proc
 
 
@@ -84,10 +85,7 @@ class ProcessProgram:
         assert stderr is None
         assert return_code is not None
 
-        run.meta.update({
-            "pid"           : proc.pid,
-            "return_code"   : return_code,
-        })
+        run.meta["return_code"] = return_code
         run.output = stdout
         if return_code == 0:
             return
