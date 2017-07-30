@@ -1,5 +1,3 @@
-- Make "retry" an action of an inst, not a run.  (or use the last run only)
-
 - Run now button for scheduled run.
 - Cancel button for scheduled run.
 - Kill button for executing run.
