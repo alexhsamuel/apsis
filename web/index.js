@@ -297,7 +297,6 @@ const Insts = {
 
   methods: {
     expand(inst_id, state) {
-      console.log('expand', inst_id, state)
       Vue.set(this.expanded, inst_id, state)
     },
 
