@@ -186,7 +186,8 @@ const insts_template = `
       <tr>
         <th>Job</th>
         <th>Args</th>
-        <th>Runs</th>
+        <th>Run #</th>
+        <th>Run ID</th>
         <th>State</th>
         <th>Actions</th>
       </tr>
@@ -200,46 +201,49 @@ const insts_template = `
               v-on:click="$router.push({ name: 'job', params: { job_id: inst.job_id } })"
           >{{ inst.job_id }}</td>
           <td>{{ inst.args }}</td>
+
           <td>
-            {{ inst.runs.length }}
-            <span 
-                v-if="expanded[inst.inst_id]" 
-                v-on:click="expand(inst.inst_id, false)">
-              V
-            </span>
-            <span 
-                v-else
-                v-on:click="expand(inst.inst_id, true)">
-              &gt;
+            {{ inst.runs[0].number }}
+            <span v-if="inst.runs.length > 1">
+              <span v-if="expanded[inst.inst_id]"
+                  v-on:click="expand(inst.inst_id, false)">
+                ▼
+              </span>
+              <span 
+                  v-else
+                  v-on:click="expand(inst.inst_id, true)">
+                ▶
+              </span>
             </span>
           </td>
-          <template v-if="! expanded[inst.inst_id]">
-            <td>{{ inst.run.state }}</td>
-            <td>
-              <action-url 
-                  v-for="(url, action) in inst.run.actions"
-                  :action="action" :url="url">
-              </action-url>
-            </td>
-          </template>
+
+          <td class="run-link" 
+              v-on:click="$router.push({ name: 'run', params: { run_id: inst.runs[0].run_id } })">
+            {{ inst.runs[0].run_id }}
+          </td>
+
+          <td>{{ inst.runs[0].state }}</td>
+          <td>
+            <action-url 
+                v-for="(url, action) in inst.runs[0].actions"
+                :action="action" :url="url">
+            </action-url>
+          </td>
+
         </tr>
 
         <!-- A row for each run.  -->
         <tr v-if="expanded[inst.inst_id]" 
-            v-for="run in inst.runs"
+            v-for="run in inst.runs.slice(1)"
             class="run">
           <td colspan="2"></td>
+          <td>{{ run.number }}</td>
           <td class="run-link" 
               v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">
             {{ run.run_id }}
           </td>
           <td>{{ run.state }}</td>
-          <td>
-            <action-url 
-                v-for="(url, action) in run.actions"
-                :action="action" :url="url">
-            </action-url>
-          </td>
+          <td></td>
         </tr>
 
       </template>
@@ -283,10 +287,8 @@ const Insts = {
       }
       for (inst_id in insts) {
         const inst = insts[inst_id]
-        // Sort runs by run number.
-        inst.runs = _.sortBy(r => r.number)(inst.runs)
-        // Show runs-specific information for the last run.
-        inst.run = _.last(inst.runs)
+        // Sort runs by run number, descending.
+        inst.runs = _.sortBy(r => -r.number)(inst.runs)
       }
       // Sort by time.
       return _.sortBy(i => i.inst_id)(_.values(insts))

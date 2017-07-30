@@ -203,6 +203,7 @@ table.inst-list {
 .inst-list tr.run td {
   border-top: none;
   border-bottom: none;
+  opacity: 0.6;
 }
 
 /*------------------------------------------------------------------------------
