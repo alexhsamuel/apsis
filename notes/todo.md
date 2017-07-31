@@ -1,4 +1,3 @@
-- Run now button for scheduled run.
 - Cancel button for scheduled run.
 - Kill button for executing run.
 - Don't run a job when an inst has succeeded.

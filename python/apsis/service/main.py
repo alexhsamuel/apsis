@@ -15,7 +15,7 @@ from   .. import crontab, repo, state, testing
 #-------------------------------------------------------------------------------
 
 LOG_FORMATTER = logging.Formatter(
-    fmt="%(asctime)s %(name)-16s [%(levelname)-7s] %(message)s",
+    fmt="%(asctime)s %(name)-12s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%SZ"
 )
 LOG_FORMATTER.converter = time.gmtime  # FIXME: Use cron.Time?

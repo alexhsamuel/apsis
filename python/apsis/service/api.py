@@ -12,8 +12,8 @@ log = logging.getLogger("api/v1")
 
 API = sanic.Blueprint("v1")
 
-def response_json(jso):
-    return sanic.response.json(jso, indent=1, sort_keys=True)
+def response_json(jso, status=200):
+    return sanic.response.json(jso, status=status, indent=1, sort_keys=True)
 
 
 #-------------------------------------------------------------------------------
@@ -47,9 +47,12 @@ def job_to_jso(app, job):
 def run_to_jso(app, run):
     actions = {}
 
-    # FIXME: Retry should be on the inst, not the run.
-    # Retry is available if the run didn't succeed, and if it's the highest reun
-    # number of the inst.
+    # Start a scheduled job now.
+    if run.state == run.SCHEDULED:
+        actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
+
+    # Retry is available if the run didn't succeed, and if it's the highest
+    # run number of the inst.
     if (    run.state in {run.FAILURE, run.ERROR}
         and state.max_run_number(run.inst.inst_id) == run.number
     ):
@@ -123,12 +126,31 @@ async def run_state_get(request, run_id):
     return response_json({"state": run.state})
 
 
+@API.route("/runs/<run_id>/start", methods={"POST"})
+async def run_start(request, run_id):
+    _, run = await STATE.runs.get(run_id)
+    if run.state == run.SCHEDULED:
+        await state.start(run)
+        return response_json({})
+    else:
+        return response_json(dict(
+            error="invalid run state for start",
+            state=run.state
+        ), status=409)
+
+
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
 async def run_rerun(request, run_id):
     _, run = await STATE.runs.get(run_id)
-    when, new_run = await state.rerun(run)
-    jso = runs_to_jso(request.app, when, [new_run])
-    return response_json(jso)
+    if run.state in {run.FAILURE, run.ERROR, run.SUCCESS}:
+        when, new_run = await state.rerun(run)
+        jso = runs_to_jso(request.app, when, [new_run])
+        return response_json(jso)
+    else:
+        return response_json(dict(
+            error="invalid run state for rerun",
+            state=run.state
+        ), status=409)
 
 
 def _run_filter_for_query(args):

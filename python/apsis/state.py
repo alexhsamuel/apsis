@@ -144,6 +144,15 @@ class Docket:
             heapq.heappush(self.__runs, (self.__start, run))
 
 
+    def reschedule_now(self, *runs):
+        # FIXME: This is not particularly efficient, and doesn't check that the
+        # runs are currently scheduled.
+        for i, (_, run) in enumerate(self.__runs):
+            if run in runs:
+                self.__runs[i] = self.__start, run
+        heapq.heapify(self.__runs)
+
+
     def pop(self, interval):
         start, stop = interval
         assert start == self.__start
@@ -250,6 +259,12 @@ def start_docket(docket):
 
 
 #-------------------------------------------------------------------------------
+
+async def start(run):
+    assert run.state == run.SCHEDULED
+    STATE.docket.reschedule_now(run)
+    schedule_docket_handler(STATE.docket, now())
+
 
 async def rerun(run):
     # Determine the next run number.
