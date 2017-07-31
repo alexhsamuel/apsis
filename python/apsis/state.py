@@ -144,6 +144,12 @@ class Docket:
             heapq.heappush(self.__runs, (self.__start, run))
 
 
+    def cancel(self, *runs):
+        # FIXME: Not particularly efficient.
+        self.__runs = [ r for r in self.__runs if r[1] not in runs ]
+        heapq.heapify(self.__runs)
+
+
     def reschedule_now(self, *runs):
         # FIXME: This is not particularly efficient, and doesn't check that the
         # runs are currently scheduled.
@@ -259,6 +265,13 @@ def start_docket(docket):
 
 
 #-------------------------------------------------------------------------------
+
+async def cancel(run):
+    assert run.state == run.SCHEDULED
+    STATE.docket.cancel(run)
+    run.state = run.ERROR
+    await STATE.runs.update(run)
+
 
 async def start(run):
     assert run.state == run.SCHEDULED

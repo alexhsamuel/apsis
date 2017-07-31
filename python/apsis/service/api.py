@@ -49,6 +49,7 @@ def run_to_jso(app, run):
 
     # Start a scheduled job now.
     if run.state == run.SCHEDULED:
+        actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
         actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
 
     # Retry is available if the run didn't succeed, and if it's the highest
@@ -124,6 +125,20 @@ async def run_output(request, run_id):
 async def run_state_get(request, run_id):
     _, run = await STATE.runs.get(run_id)
     return response_json({"state": run.state})
+
+
+@API.route("/runs/<run_id>/cancel", methods={"POST"})
+async def run_cancel(request, run_id):
+    _, run = await STATE.runs.get(run_id)
+    if run.state == run.SCHEDULED:
+        await state.cancel(run)
+        return response_json({})
+    else:
+        return response_json(dict(
+            error="invalid run state for cancel",
+            state=run.state
+        ), status=409)
+    
 
 
 @API.route("/runs/<run_id>/start", methods={"POST"})
