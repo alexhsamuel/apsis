@@ -10,6 +10,7 @@ import time
 import websockets
 
 from   . import api
+from   . import DEFAULT_PORT
 from   .. import crontab, repo, state, testing
 
 #-------------------------------------------------------------------------------
@@ -103,7 +104,7 @@ def main():
         "--host", metavar="HOST", default="localhost",
         help="server host address")
     parser.add_argument(
-        "--port", metavar="PORT", type=int, default=5000,
+        "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
         help="server port")
     parser.add_argument(
         "--crontab", action="store_true", default=False,
