@@ -1,6 +1,6 @@
 import bisect
-from   cron import *
 from   functools import partial
+from   ora import *
 
 from   . import lib
 from   .crontab import CrontabSchedule
