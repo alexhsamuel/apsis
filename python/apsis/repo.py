@@ -4,8 +4,8 @@ Job repository.
 
 #-------------------------------------------------------------------------------
 
-import cron
-import cron.calendar
+import ora
+import ora.calendar
 import os
 from   pathlib import Path
 import ruamel_yaml as yaml
@@ -16,11 +16,11 @@ from   .types import *
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Move to cron.
+# FIXME: Move to ora.
 
 def weekday_range(start, end):
     return [ 
-        cron.Weekday(w) 
+        ora.Weekday(w) 
         for w in range(int(start), int(end) + (7 if end < start else 0) + 1)
     ]
 
@@ -29,14 +29,14 @@ def get_calendar(name):
     # FIXME: Support named calendars, loaded from somewhere.
     # FIXME: Handle errors sensibly.
     if name == "all":
-        return cron.calendar.AllCalendar()
+        return ora.calendar.AllCalendar()
     elif "-" in name:
         start, end = name.split("-")
-        start = cron.Weekday[start]
-        end = cron.Weekday[end]
-        return cron.calendar.WeekdayCalendar(weekday_range(start, end))
+        start = ora.Weekday[start]
+        end = ora.Weekday[end]
+        return ora.calendar.WeekdayCalendar(weekday_range(start, end))
     else:
-        return sorted(set( cron.Weekday[w.strip()] for w in name.split(",") ))
+        return sorted(set( ora.Weekday[w.strip()] for w in name.split(",") ))
 
 
 #-------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ def jso_to_schedule(jso):
         tz = jso["tz"]
     except KeyError:
         raise JobSpecificationError("missing time zone")
-    tz = cron.TimeZone(tz)
+    tz = ora.TimeZone(tz)
 
     calendar = get_calendar(jso.get("calendar", "all"))
 
@@ -63,7 +63,7 @@ def jso_to_schedule(jso):
     except KeyError:
         raise JobSpecificationError("missing daytime")
     daytimes = [daytimes] if isinstance(daytimes, str) else daytimes
-    daytimes = [ cron.Daytime(d) for d in daytimes ]
+    daytimes = [ ora.Daytime(d) for d in daytimes ]
 
     return DailySchedule(tz, calendar, daytimes, args)
 

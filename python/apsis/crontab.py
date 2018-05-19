@@ -1,5 +1,5 @@
 from   aslib import py
-from   cron import *
+from   ora import *
 from   pathlib import Path
 import re
 
@@ -93,7 +93,7 @@ class Fields:
     def __contains__(self, time):
         time = Time(time)
         # Advance to the next round minute.
-        # FIXME: Add this to cron.
+        # FIXME: Add this to ora.
         off = (Time.MIN + 60).offset - Time.MIN.offset
         time = Time.from_offset((time.offset + off - 1) // off * off)
 
@@ -147,7 +147,7 @@ class CrontabSchedule:
     def __call__(self, start):
         time = Time(start)
         # Advance to the next round minute.
-        # FIXME: Add this to cron.
+        # FIXME: Add this to ora.
         off = (Time.MIN + 60).offset - Time.MIN.offset
         time = Time.from_offset((Time(start).offset + off - 1) // off * off)
 

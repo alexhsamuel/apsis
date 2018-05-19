@@ -4,8 +4,8 @@ For development/testing purposes.
 
 #-------------------------------------------------------------------------------
 
-from   cron import *
-from   cron.calendar import WeekdayCalendar
+from   ora import *
+from   ora.calendar import WeekdayCalendar
 
 from   .program import *
 from   .schedule import *
