@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import ruamel_yaml as yaml
 
 import apsis.service.client
 
@@ -18,8 +19,10 @@ def prefix(prefix, lines):
 
 
 def format_jso(jso, indent=0):
+    ind = " " * indent
+    wid = 12 - indent
     for key, value in jso.items():
-        yield f"{'':{indent}s}{key:{12-indent}s}: {value}"
+        yield f"{ind}{key:{wid}s}: {value}"
 
 
 def format_program(program, indent=0):
@@ -42,12 +45,23 @@ def format_job(job):
         yield from format_schedule(schedule, indent=2)
 
 
+def format_run(run, indent=0):
+    # yield from format_jso(run, indent=indent)
+    yield from yaml.dump(run, default_flow_style=False).splitlines()
+
+
 #-------------------------------------------------------------------------------
 
 def cmd_jobs(client, args):
-    jobs = client.get_jobs()
-    for job in jobs:
+    for job in client.get_jobs():
         print_lines(format_job(job))
+        print()
+
+
+def cmd_runs(client, arg):
+    runs = client.get_runs()
+    for run in runs.values():
+        print_lines(format_run(run))
         print()
 
 
@@ -66,6 +80,9 @@ commands = parser.add_subparsers(title="commands")
 
 cmd = commands.add_parser("jobs")
 cmd.set_defaults(cmd=cmd_jobs)
+
+cmd = commands.add_parser("runs")
+cmd.set_defaults(cmd=cmd_runs)
 
 
 args = parser.parse_args()

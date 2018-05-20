@@ -38,4 +38,8 @@ class Client:
         return self.__get("jobs")
 
 
+    def get_runs(self):
+        return self.__get("runs")["runs"]
+
+
 
