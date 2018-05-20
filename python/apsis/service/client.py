@@ -7,31 +7,6 @@ import apsis.types
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Elsewhere.
-
-def program_from_jso(jso):
-    # FIXME
-    return {}
-
-
-def schedule_from_jso(jso):
-    # FIXME
-    return {}
-
-
-def job_from_jso(jso):
-    job = apsis.types.Job(
-        jso["job_id"],
-        jso["params"],
-        ( schedule_from_jso(s) for s in jso["schedules"] ),
-        program_from_jso(jso["program"])
-    )
-    job.url = jso["url"]
-    return job
-
-
-#-------------------------------------------------------------------------------
-
 class Client:
 
     def __init__(self, host, port=apsis.service.DEFAULT_PORT):
@@ -60,7 +35,7 @@ class Client:
 
 
     def get_jobs(self):
-        return ( job_from_jso(j) for j in self.__get("jobs") )
+        return self.__get("jobs")
 
 
 
