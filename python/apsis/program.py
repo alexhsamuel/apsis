@@ -1,18 +1,14 @@
 import asyncio
-from   functools import partial
 import getpass
 import jinja2
 import logging
-from   ora import *
 from   pathlib import Path
 import shlex
 import socket
-import subprocess
 
-from   . import lib
-from   .types import *
+from   .types import ProgramError, ProgramFailure
 
-log = logging.getLogger("program")
+log = logging.getLogger(__file__)
 
 #-------------------------------------------------------------------------------
 
