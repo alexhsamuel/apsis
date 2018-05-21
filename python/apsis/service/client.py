@@ -34,6 +34,14 @@ class Client:
         return resp.json()
 
 
+    def get_job(self, job_id):
+        return self.__get("jobs", job_id)
+
+
+    def get_job_runs(self, job_id):
+        return self.__get("jobs", job_id, "runs")["runs"]
+
+
     def get_jobs(self):
         return self.__get("jobs")
 

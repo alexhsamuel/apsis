@@ -93,6 +93,13 @@ async def job(request, job_id):
     return response_json(jso)
 
 
+@API.route("/jobs/<job_id>/runs")
+async def job(request, job_id):
+    when, runs = STATE.runs.query(job_id=job_id)
+    jso = runs_to_jso(request.app, when, runs)
+    return response_json(jso)
+
+
 @API.route("/jobs")
 async def jobs(request):
     jso = [ 
