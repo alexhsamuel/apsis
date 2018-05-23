@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-import fixfmt
+import fixfmt.table
 import logging
 import ruamel_yaml as yaml
 
@@ -85,24 +85,19 @@ def cmd_jobs_list(client, args):
 
 def cmd_job_runs(client, arg):
     job_id = args.job  # FIXME
-    job = client.get_job(job_id)
     runs = client.get_job_runs(job_id)
-    # for run in runs.values():
-    #     print_lines(format_run(run))
-    #     print()
-    table = Table(
-        run_id=fixfmt.String(12), 
-        **{ p: fixfmt.String(12) for p in job["params"] },
-        state=fixfmt.String(8),
-    )
-    print(table.header)
-    print(table.underline())
-    for run in runs.values():
-        print(table.row(
-            run_id=run["run_id"],
+
+    table = fixfmt.table.RowTable()
+    table.extend(
+        {
+            "run_id": run["run_id"],
             **run["args"],
-            state=run["state"],
-        ))
+            "state": run["state"],
+        }
+        for run in runs.values()
+    )
+    table.print()
+    print()
 
 
 def cmd_job_show(client, args):
