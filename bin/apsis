@@ -53,30 +53,6 @@ def format_run(run, indent=0):
 
 #-------------------------------------------------------------------------------
 
-class Table:
-
-    def __init__(self, **cols):
-        self.__cols = cols
-
-
-    @property
-    def header(self):
-        return " ".join( n.ljust(f.width) for n, f in self.__cols.items() )
-
-
-    def underline(self, char="-"):
-        assert len(char) == 1
-        return " ".join( char * f.width for f in self.__cols.values() )
-
-
-    def row(self, **vals):
-        return " ".join( f(vals[n]) for n, f in self.__cols.items() )
-
-
-
-
-#-------------------------------------------------------------------------------
-
 def cmd_jobs_list(client, args):
     for job in client.get_jobs():
         print_lines(format_job(job))
