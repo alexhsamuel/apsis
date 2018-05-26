@@ -54,9 +54,18 @@ def format_run(run, indent=0):
 #-------------------------------------------------------------------------------
 
 def cmd_jobs_list(client, args):
-    for job in client.get_jobs():
-        print_lines(format_job(job))
-        print()
+    jobs = client.get_jobs()
+
+    table = fixfmt.table.RowTable()
+    table.extend(
+        {
+            "job_id": job["job_id"],
+            "params": ", ".join(job["params"]),
+        }
+        for job in jobs
+    )
+    table.print()
+    print()
 
 
 def cmd_job_runs(client, arg):
