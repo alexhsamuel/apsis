@@ -38,10 +38,10 @@ JOBS = [
     #     ProcessProgram(["/bin/sleep", "5"]),
     # ),
     Job(
-        "test-job-2",
+        "hot-test",
         "time",
         ExplicitSchedule([ now() + 1 + i * 10 for i in range(12) ]),
-        ShellCommandProgram("/Users/alex/dev/sched/jobs/test0 test-job-2"),
+        ShellCommandProgram("/Users/alex/dev/sched/jobs/test0 hot-test"),
     ),        
 ]
 
