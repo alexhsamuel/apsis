@@ -50,4 +50,8 @@ class Client:
         return self.__get("runs")["runs"]
 
 
+    def get_run(self, run_id):
+        return self.__get("runs", run_id)["runs"][run_id]
+
+
 
