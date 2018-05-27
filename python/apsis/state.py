@@ -9,7 +9,7 @@ from   .lib import Interval
 from   .lib.itr import take_last
 from   .types import Run, Instance, ProgramFailure, ProgramError
 
-log = logging.getLogger("state")
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 

@@ -8,7 +8,7 @@ import socket
 
 from   .types import ProgramError, ProgramFailure
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 

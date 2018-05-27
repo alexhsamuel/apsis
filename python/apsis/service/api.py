@@ -6,7 +6,7 @@ import websockets
 from   .. import state
 from   ..state import STATE
 
-log = logging.getLogger("api/v1")
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 

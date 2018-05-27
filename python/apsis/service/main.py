@@ -1,8 +1,6 @@
 import asyncio
 import argparse
-from   functools import partial
 import logging
-from   ora import *
 from   pathlib import Path
 import sanic
 import sanic.response
@@ -16,8 +14,8 @@ from   .. import crontab, repo, state, testing
 #-------------------------------------------------------------------------------
 
 LOG_FORMATTER = logging.Formatter(
-    fmt="%(asctime)s %(name)-12s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%SZ"
+    fmt="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
+    datefmt="%H:%M:%S"
 )
 LOG_FORMATTER.converter = time.gmtime  # FIXME: Use cron.Time?
 
@@ -131,7 +129,6 @@ def main():
         host        =args.host,
         port        =args.port,
         debug       =args.debug,
-        log_config  =None,
     )
     app.running = True
     asyncio.ensure_future(server)
