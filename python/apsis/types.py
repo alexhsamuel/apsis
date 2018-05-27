@@ -1,10 +1,10 @@
-from   aslib.py import format_ctor, tupleize
 import json
 from   ora import *
 from   pathlib import Path
 from   typing import *
 
 from   .lib import format_time
+from   .lib.py import format_ctor, tupleize
 
 __all__ = (
     "Instance",

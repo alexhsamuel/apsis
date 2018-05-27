@@ -1,6 +1,4 @@
-# FIXME: Elsewhere!
-
-from   aslib import py
+from   . import py
 import collections
 
 __all__ = (

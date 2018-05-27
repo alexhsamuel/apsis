@@ -1,9 +1,9 @@
-from   aslib import py
 from   ora import *
 from   pathlib import Path
 import re
 
 from   .lib import format_time
+from   .lib import py
 from   .program import ShellCommandProgram
 from   .types import Job
 
