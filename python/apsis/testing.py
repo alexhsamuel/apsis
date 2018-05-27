@@ -41,7 +41,7 @@ JOBS = [
         "hot-test",
         "time",
         ExplicitSchedule([ now() + 1 + i * 10 for i in range(12) ]),
-        ShellCommandProgram("$HOME/dev/sched/jobs/test0 hot-test"),
+        ShellCommandProgram("$HOME/dev/apsis/jobs/test0 hot-test"),
     ),        
 ]
 
