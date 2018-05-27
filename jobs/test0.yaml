@@ -13,5 +13,5 @@ schedule:
   calendar: Mon-Thu
   daytime: "16:00:00"
 
-program: /Users/alex/dev/sched/jobs/test0 '{{ message }}'
+program: $HOME/dev/sched/jobs/test0 '{{ message }}'
 
