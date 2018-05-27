@@ -1,0 +1,33 @@
+package:
+  name: apsis
+  version: 0.0.0
+
+about:
+  home: https://github.com/alexhsamuel/apsis
+  license: BSD
+  license_file: LICENSE
+
+source:
+  git_rev: 0.0.0
+  git_url: https://github.com/alexhsamuel/apsis.git
+
+requirements:
+  build:
+    - python
+  run:
+    - jinja2
+    - conda-forge/fixfmt
+    - conda-forge/ora
+    - conda-forge/sanic
+    - python
+    - requests
+    - ruamel_yaml
+    - ujson
+
+build:
+  script: python setup.py install
+
+test:
+  imports:
+    - apsis
+
