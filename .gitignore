@@ -3,3 +3,4 @@
 Makefile.local
 doc
 work/
+env.sh
