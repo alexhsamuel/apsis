@@ -63,7 +63,6 @@ def run_to_jso(app, run):
         "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.job_id,
         "job_url"       : app.url_for("v1.job", job_id=run.job_id),
-        "inst_id"       : run.inst.inst_id,
         "args"          : run.inst.args,
         "number"        : run.number,
         "run_id"        : run.run_id,

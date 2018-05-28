@@ -49,7 +49,6 @@ METADATA = sa.MetaData()
 TBL_RUNS = sa.Table(
     "runs", METADATA,
     sa.Column("run_id"      , sa.String()       , nullable=False),
-    sa.Column("inst_id"     , sa.String()       , nullable=False),
     sa.Column("job_id"      , sa.String()       , nullable=False),
     sa.Column("number"      , sa.Integer()      , nullable=False),
     sa.Column("state"       , sa.String()       , nullable=False),
@@ -99,7 +98,6 @@ class SQLAlchemyRunDB(RunDB):
         with self.__engine.begin() as conn:
             conn.execute(TBL_RUNS.insert().values(
                 run_id  =run.run_id,
-                inst_id =run.inst.inst_id,
                 job_id  =run.job_id,
                 number  =run.number,
                 state   =run.state,
@@ -137,10 +135,10 @@ class SQLAlchemyRunDB(RunDB):
 
         cursor = conn.execute(query)
         for (
-                run_id, inst_id, job_id, number, state, times, meta, output 
+                run_id, job_id, number, state, times, meta, output 
         ) in cursor:
             # FIXME: Inst!
-            run = Run(run_id, inst_id, number)
+            run = Run(run_id, "BOGUS INST ID", number)
             run.state = state
             run.times = json.loads(times)
             run.meta = json.loads(meta)
@@ -157,12 +155,10 @@ class SQLAlchemyRunDB(RunDB):
         return when, run
 
 
-    def query(self, *, job_id=None, inst_id=None, since=None, until=None):
+    def query(self, *, job_id=None, since=None, until=None):
         where = []
         if job_id is not None:
             where.append(TBL_RUNS.c.job_id == job_id)
-        if inst_id is not None:
-            where.append(TBL_RUNS.c.inst_id == inst_id)
         if since is not None:
             where.append(TBL_RUNS.c.rowid >= int(since))
         if until is not None:

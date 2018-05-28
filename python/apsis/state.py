@@ -50,7 +50,7 @@ class Runs:
         return when, run
 
 
-    def query(self, *, job_id=None, inst_id=None, since=None, until=None):
+    def query(self, *, job_id=None, since=None, until=None):
         """
         @return
           When, and iterable of runs.
@@ -60,8 +60,6 @@ class Runs:
         runs    = iter(self.__runs[start : stop])
         if job_id is not None:
             runs = ( r for r in runs if r.job_id == job_id )
-        if inst_id is not None:
-            runs = ( r for r in runs if r.inst.inst_id == inst_id )
         return str(stop), runs
 
 
@@ -345,12 +343,11 @@ async def execute(run, job):
             run.state = Run.FAILURE
         else:
             run.state = Run.SUCCESS
-    log.info(f"done: {run.run_id} state={run.state}")
+    log.info(f"done: {run.run_id} {run.state}")
     done_time = now()
     run.times["done"] = str(done_time)
     run.times["elapsed"] = done_time - execute_time
     await STATE.runs.update(run)
-
 
 
 #-------------------------------------------------------------------------------
