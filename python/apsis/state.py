@@ -185,7 +185,7 @@ def get_schedule_runs(times: Interval, jobs):
                 inst_id = job.job_id + "-" + str(sched_time)
                 args = schedule.bind_args(job.params, sched_time)
                 inst = Instance(inst_id, job, args, sched_time)
-                run = Run(next(STATE.runs.run_ids), inst)
+                run = Run(next(STATE.runs.run_ids), job.job_id, inst)
                 run.times["schedule"] = str(sched_time)
                 yield run
 
@@ -284,7 +284,7 @@ async def rerun(run):
     number = max_run_number(run.inst.inst_id) + 1
 
     # Create the new run.
-    new_run = Run(next(STATE.runs.run_ids), run.inst, number)
+    new_run = Run(next(STATE.runs.run_ids), run.job_id, run.inst, number)
     new_run.state = Run.SCHEDULED
     when = await STATE.runs.add(new_run)
 

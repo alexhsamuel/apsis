@@ -138,7 +138,7 @@ class SQLAlchemyRunDB(RunDB):
                 run_id, job_id, number, state, times, meta, output 
         ) in cursor:
             # FIXME: Inst!
-            run = Run(run_id, "BOGUS INST ID", number)
+            run = Run(run_id, job_id, "BOGUS INST ID", number)
             run.state = state
             run.times = json.loads(times)
             run.meta = json.loads(meta)
