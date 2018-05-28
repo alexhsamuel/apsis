@@ -15,7 +15,7 @@ from   .. import crontab, repo, state, testing
 
 LOG_FORMATTER = logging.Formatter(
     fmt="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
-    datefmt="%H:%M:%S"
+    datefmt="%H:%M:%S",
 )
 LOG_FORMATTER.converter = time.gmtime  # FIXME: Use cron.Time?
 
@@ -64,7 +64,23 @@ WS_HANDLER = QueueHandler(LOG_FORMATTER)
 
 #-------------------------------------------------------------------------------
 
-app = sanic.Sanic(__name__, log_config=None)
+SANIC_LOG_CONFIG = {
+    **sanic.log.LOGGING_CONFIG_DEFAULTS,
+    "formatters": {
+        "generic": {
+            "class": "logging.Formatter",
+            "format": "%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
+            "datefmt": LOG_FORMATTER.datefmt,
+        },
+        "access": {
+            "class": "logging.Formatter",
+            "format": "%(asctime)s %(name)-18s [%(levelname)-7s] [%(host)s %(request)s %(status)d %(byte)d] %(message)s",
+            "datefmt": LOG_FORMATTER.datefmt,
+        },
+    }
+}    
+    
+app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
 app.config.LOGO = None
 
 top_dir = Path(__file__).parents[3]
