@@ -22,6 +22,7 @@ requirements:
     - python
     - requests
     - ruamel_yaml
+    - sqlalchemy
     - ujson
 
 build:

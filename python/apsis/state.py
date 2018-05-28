@@ -8,7 +8,7 @@ from   ora import now, Time
 from   .lib import Interval
 from   .lib.itr import take_last
 from   .types import Run, Instance, ProgramFailure, ProgramError
-from   .rundb_sqlite import SQLiteRunDB
+from   .rundb_sa import SQLAlchemyRunDB
 
 log = logging.getLogger(__name__)
 
@@ -355,7 +355,7 @@ class State:
 
     def __init__(self):
         self.jobs = []
-        self.runs = SQLiteRunDB.create("./apsis.sqlite")  # FIXME
+        self.runs = SQLAlchemyRunDB.create("./apsis.sqlite")  # FIXME
         self.docket = Docket()
 
 
