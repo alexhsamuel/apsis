@@ -8,10 +8,13 @@ from   ora import now, Time
 from   .lib import Interval
 from   .lib.itr import take_last
 from   .types import Run, Instance, ProgramFailure, ProgramError
+from   .rundb_sqlite import SQLiteRunDB
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+
+# FIXME: Clean this up and move to a new module.
 
 class Runs:
     # FIXME: Very inefficient.
@@ -352,7 +355,7 @@ class State:
 
     def __init__(self):
         self.jobs = []
-        self.runs = Runs()
+        self.runs = SQLiteRunDB.create("./apsis.sqlite")  # FIXME
         self.docket = Docket()
 
 
