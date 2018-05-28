@@ -18,10 +18,14 @@ def expand(string, run):
     template = jinja2.Template(string)
     ns = {
         "run_id": run.run_id,
-        "job_id": run.inst.job_id,
+        "job_id": run.job_id,
         **run.inst.args, 
     }
     return template.render(ns)
+
+
+def join_args(argv):
+    return " ".join( shlex.quote(a) for a in argv )
 
 
 #-------------------------------------------------------------------------------
@@ -36,7 +40,7 @@ class ProcessProgram:
 
 
     def __str__(self):
-        return " ".join( shlex.quote(a) for a in self.__argv )
+        return join_args(self.__argv)
 
 
     def to_jso(self):
@@ -46,8 +50,6 @@ class ProcessProgram:
 
 
     async def start(self, run):
-        log.info("running: {}".format(run))
-
         # FIXME: Start / end time one level up.
         run.meta.update({
             "hostname"  : socket.gethostname(),
@@ -55,6 +57,7 @@ class ProcessProgram:
         })
 
         argv = [ expand(a, run) for a in self.__argv ]
+        log.info("starting: {}".format(join_args(self.__argv)))
 
         try:
             with open("/dev/null") as stdin:
@@ -82,6 +85,7 @@ class ProcessProgram:
 
         run.meta["return_code"] = return_code
         run.output = stdout
+        log.info(f"complete with return code {return_code}")
         if return_code == 0:
             return
         else:

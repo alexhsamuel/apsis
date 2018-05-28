@@ -89,6 +89,7 @@ class Run:
 
     def __init__(self, run_id, inst, number=0):
         self.run_id = str(run_id)
+        self.job_id = inst.job_id
         self.inst   = inst
         self.number = number
         self.state  = self.NEW

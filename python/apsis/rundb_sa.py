@@ -100,7 +100,7 @@ class SQLAlchemyRunDB(RunDB):
             conn.execute(TBL_RUNS.insert().values(
                 run_id  =run.run_id,
                 inst_id =run.inst.inst_id,
-                job_id  =run.inst.job_id,
+                job_id  =run.job_id,
                 number  =run.number,
                 state   =run.state,
                 times   =json.dumps(run.times),
@@ -162,7 +162,7 @@ class SQLAlchemyRunDB(RunDB):
         if job_id is not None:
             where.append(TBL_RUNS.c.job_id == job_id)
         if inst_id is not None:
-            where.append(TBL_RUNS.c.inst_Id == inst_id)
+            where.append(TBL_RUNS.c.inst_id == inst_id)
         if since is not None:
             where.append(TBL_RUNS.c.rowid >= int(since))
         if until is not None:
