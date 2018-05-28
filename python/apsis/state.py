@@ -59,7 +59,7 @@ class Runs:
         stop    = len(self.__runs) if until is None else int(until)
         runs    = iter(self.__runs[start : stop])
         if job_id is not None:
-            runs = ( r for r in runs if r.inst.job.job_id == job_id )
+            runs = ( r for r in runs if r.inst.job_id == job_id )
         if inst_id is not None:
             runs = ( r for r in runs if r.inst.inst_id == inst_id )
         return str(stop), runs
@@ -314,14 +314,15 @@ def run_current(docket, time):
     # FIXME: Check if the docket is behind.
     runs = extract_current_runs(docket, time)
     for run in runs:
-        asyncio.ensure_future(execute(run))
+        # FIXME: Is this the right way to get the job?
+        asyncio.ensure_future(execute(run, STATE.get_job(run.inst.job_id)))
 
 
 #-------------------------------------------------------------------------------
 
-async def execute(run):
+async def execute(run, job):
     # Start it.
-    program = run.inst.job.program
+    program = job.program
     execute_time = now()
     run.times["execute"] = str(execute_time)
     try:

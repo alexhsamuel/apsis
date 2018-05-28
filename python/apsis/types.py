@@ -50,7 +50,7 @@ class Instance:
         assert args.keys() == job.params
 
         self.inst_id    = str(inst_id)
-        self.job        = job
+        self.job_id     = job.job_id
         self.args       = args
         self.time       = Time(time)
 
@@ -61,7 +61,7 @@ class Instance:
 
     def __str__(self):
         return "{}({})".format(
-            self.job.job_id, 
+            self.job_id, 
             " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
         )
 

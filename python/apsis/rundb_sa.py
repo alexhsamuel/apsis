@@ -100,7 +100,7 @@ class SQLAlchemyRunDB(RunDB):
             conn.execute(TBL_RUNS.insert().values(
                 run_id  =run.run_id,
                 inst_id =run.inst.inst_id,
-                job_id  =run.inst.job.job_id,
+                job_id  =run.inst.job_id,
                 number  =run.number,
                 state   =run.state,
                 times   =json.dumps(run.times),
