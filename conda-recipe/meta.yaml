@@ -16,8 +16,8 @@ requirements:
     - python
   run:
     - jinja2
-    - conda-forge/fixfmt
-    - conda-forge/ora
+    - alexhsamuel/fixfmt
+    - alexhsamuel/ora
     - conda-forge/sanic
     - python
     - requests

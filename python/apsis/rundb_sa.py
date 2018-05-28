@@ -170,7 +170,7 @@ class SQLAlchemyRunDB(RunDB):
 
         with self.__engine.begin() as conn:
             # FIMXE: Return only the last record for each run_id?
-            runs = list(self.__get_runs(conn, sa.and_(where)))
+            runs = list(self.__get_runs(conn, sa.and_(*where)))
             when = self.__now(conn)
         
         return when, runs
