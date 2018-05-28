@@ -1,9 +1,5 @@
-import json
-from   ora import *
-from   pathlib import Path
-from   typing import *
+from   ora import Time
 
-from   .lib import format_time
 from   .lib.py import format_ctor, tupleize
 
 __all__ = (
@@ -73,7 +69,7 @@ class Instance:
     def __lt__(self, other):
         return (
             self.inst_id < other.inst_id if isinstance(other, Instance)
-            else NotSupported
+            else NotImplemented
         )
 
 
