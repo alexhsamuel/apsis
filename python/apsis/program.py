@@ -18,7 +18,7 @@ def expand(string, run):
     template = jinja2.Template(string)
     ns = {
         "run_id": run.run_id,
-        "job_id": run.job_id,
+        "job_id": run.inst.job_id,
         **run.inst.args, 
     }
     return template.render(ns)

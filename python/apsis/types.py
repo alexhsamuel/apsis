@@ -45,12 +45,11 @@ class Job:
 
 class Instance:
 
-    def __init__(self, inst_id, job, args, time):
+    def __init__(self, inst_id, job_id, args, time):
         args = { str(k): str(v) for k, v in args.items() }
-        assert args.keys() == job.params
 
         self.inst_id    = str(inst_id)
-        self.job_id     = job.job_id
+        self.job_id     = job_id
         self.args       = args
         self.time       = Time(time)
 
@@ -87,9 +86,8 @@ class Run:
 
     STATES = frozenset((NEW, SCHEDULED, RUNNING, SUCCESS, FAILURE, ERROR))
 
-    def __init__(self, run_id, job_id, inst, number=0):
+    def __init__(self, run_id, inst, number=0):
         self.run_id = str(run_id)
-        self.job_id = job_id
         self.inst   = inst
         self.number = number
         self.state  = self.NEW

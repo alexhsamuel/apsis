@@ -3,11 +3,12 @@ from   contextlib import contextmanager
 import itertools
 import json
 import logging
+import ora
 from   pathlib import Path
 import sqlalchemy as sa
 
 from   .lib.itr import take_last
-from   .types import Run
+from   .types import Instance, Run
 
 log = logging.getLogger(__name__)
 
@@ -41,15 +42,34 @@ class RunDB:
 
 
 
+#-------------------------------------------------------------------------------
+
+# We store times as float seconds from the epoch.
+
+def store_time(time):
+    return time - ora.UNIX_EPOCH
+
+
+def load_time(time):
+    return ora.UNIX_EPOCH + time
+
+
 METADATA = sa.MetaData()
 
 # FIXME: For now, we store times and meta as JSON.  To make these searchable,
 # we'll need to break them out into tables.
 
+# FIXME: Split out args into a separate table?
+# FIXME: Split out instances into a separate table?
+
+# FIMXE: Use a TIME column for 'time'?
+
 TBL_RUNS = sa.Table(
     "runs", METADATA,
     sa.Column("run_id"      , sa.String()       , nullable=False),
     sa.Column("job_id"      , sa.String()       , nullable=False),
+    sa.Column("args"        , sa.String()       , nullable=False),
+    sa.Column("time"        , sa.Float()        , nullable=False),
     sa.Column("number"      , sa.Integer()      , nullable=False),
     sa.Column("state"       , sa.String()       , nullable=False),
     sa.Column("times"       , sa.String()       , nullable=False),
@@ -98,7 +118,9 @@ class SQLAlchemyRunDB(RunDB):
         with self.__engine.begin() as conn:
             conn.execute(TBL_RUNS.insert().values(
                 run_id  =run.run_id,
-                job_id  =run.job_id,
+                job_id  =run.inst.job_id,
+                args    =json.dumps(run.inst.args),
+                time    =store_time(run.inst.time),
                 number  =run.number,
                 state   =run.state,
                 times   =json.dumps(run.times),
@@ -135,10 +157,13 @@ class SQLAlchemyRunDB(RunDB):
 
         cursor = conn.execute(query)
         for (
-                run_id, job_id, number, state, times, meta, output 
+                run_id, job_id, args, time, number, state, times, meta, output 
         ) in cursor:
             # FIXME: Inst!
-            run = Run(run_id, job_id, "BOGUS INST ID", number)
+            args = json.loads(args)
+            time = load_time(time)
+            inst = Instance("BOGUS INST ID", job_id, args, time)
+            run = Run(run_id, inst, number)
             run.state = state
             run.times = json.loads(times)
             run.meta = json.loads(meta)

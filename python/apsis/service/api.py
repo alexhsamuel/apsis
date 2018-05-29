@@ -61,8 +61,8 @@ def run_to_jso(app, run):
 
     return {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
-        "job_id"        : run.job_id,
-        "job_url"       : app.url_for("v1.job", job_id=run.job_id),
+        "job_id"        : run.inst.job_id,
+        "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
         "args"          : run.inst.args,
         "number"        : run.number,
         "run_id"        : run.run_id,
@@ -184,7 +184,7 @@ def _run_filter_for_query(args):
     def filter(run):
         return (
                 (run_id is None or run.run_id == run_id)
-            and (job_id is None or run.job_id == job_id)
+            and (job_id is None or run.inst.job_id == job_id)
         )
 
     return filter
