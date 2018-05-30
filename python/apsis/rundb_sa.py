@@ -151,7 +151,7 @@ class SQLAlchemyRunDB(RunDB):
 
     def __get_runs(self, conn, expr):
         query = sa.select([TBL_RUNS]).where(expr)
-        log.info(query)
+        log.info(str(query).replace("\n", " "))
 
         cursor = conn.execute(query)
         for run_id, job_id, args, time, state, times, meta, output in cursor:
