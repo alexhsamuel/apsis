@@ -7,7 +7,7 @@ from   ora import now, Time
 
 from   .lib import Interval
 from   .lib.itr import take_last
-from   .types import Run, Instance, ProgramFailure, ProgramError
+from   .types import Job, Run, Instance, ProgramFailure, ProgramError
 from   .rundb_sa import SQLAlchemyRunDB
 
 log = logging.getLogger(__name__)
@@ -351,10 +351,17 @@ class State:
         self.jobs.append(job)
 
 
-    def get_job(self, job_id):
-        # FIXME
-        job, = [ j for j in self.jobs if j.job_id == job_id ]
-        return job
+    def get_job(self, job_id) -> Job:
+        """
+        :raise LookupError:
+          Can't find `job_id`.
+        """
+        jobs = [ j for j in self.jobs if j.job_id == job_id ]
+        if len(jobs) == 0:
+            raise LookupError(job_id)
+        else:
+            assert len(jobs) == 1
+            return jobs[0]
 
 
     def get_jobs(self):

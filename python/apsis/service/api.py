@@ -83,8 +83,10 @@ def runs_to_jso(app, when, runs):
 
 @API.route("/jobs/<job_id>")
 async def job(request, job_id):
-    jso = job_to_jso(request.app, STATE.get_job(job_id))
-    return response_json(jso)
+    try:
+        return response_json(job_to_jso(request.app, STATE.get_job(job_id)))
+    except LookupError as exc:
+        sanic.exceptions.abort(404, f"job_id: {job_id}")
 
 
 @API.route("/jobs/<job_id>/runs")
