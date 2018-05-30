@@ -52,11 +52,8 @@ def run_to_jso(app, run):
         actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
         actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
 
-    # Retry is available if the run didn't succeed, and if it's the highest
-    # run number of the inst.
-    if (    run.state in {run.FAILURE, run.ERROR}
-        and state.max_run_number(run.inst.inst_id) == run.number
-    ):
+    # Retry is available if the run didn't succeed.
+    if run.state in {run.FAILURE, run.ERROR}:
         actions["retry"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
     return {
@@ -64,7 +61,6 @@ def run_to_jso(app, run):
         "job_id"        : run.inst.job_id,
         "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
         "args"          : run.inst.args,
-        "number"        : run.number,
         "run_id"        : run.run_id,
         "state"         : run.state,
         "times"         : run.times,
@@ -93,7 +89,7 @@ async def job(request, job_id):
 
 
 @API.route("/jobs/<job_id>/runs")
-async def job(request, job_id):
+async def job_runs(request, job_id):
     when, runs = STATE.runs.query(job_id=job_id)
     jso = runs_to_jso(request.app, when, runs)
     return response_json(jso)

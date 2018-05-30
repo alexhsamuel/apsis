@@ -70,7 +70,6 @@ TBL_RUNS = sa.Table(
     sa.Column("job_id"      , sa.String()       , nullable=False),
     sa.Column("args"        , sa.String()       , nullable=False),
     sa.Column("time"        , sa.Float()        , nullable=False),
-    sa.Column("number"      , sa.Integer()      , nullable=False),
     sa.Column("state"       , sa.String()       , nullable=False),
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
@@ -121,7 +120,6 @@ class SQLAlchemyRunDB(RunDB):
                 job_id  =run.inst.job_id,
                 args    =json.dumps(run.inst.args),
                 time    =store_time(run.inst.time),
-                number  =run.number,
                 state   =run.state,
                 times   =json.dumps(run.times),
                 meta    =json.dumps(run.meta),
@@ -156,14 +154,12 @@ class SQLAlchemyRunDB(RunDB):
         log.info(query)
 
         cursor = conn.execute(query)
-        for (
-                run_id, job_id, args, time, number, state, times, meta, output 
-        ) in cursor:
+        for run_id, job_id, args, time, state, times, meta, output in cursor:
             # FIXME: Inst!
             args = json.loads(args)
             time = load_time(time)
             inst = Instance("BOGUS INST ID", job_id, args, time)
-            run = Run(run_id, inst, number)
+            run = Run(run_id, inst)
             run.state = state
             run.times = json.loads(times)
             run.meta = json.loads(meta)

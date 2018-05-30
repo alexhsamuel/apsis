@@ -85,14 +85,6 @@ class Runs:
 
 
 
-def max_run_number(inst_id):
-    """
-    Returns the largest run number of runs for an inst.
-    """
-    _, runs = STATE.runs.query(inst_id=inst_id)
-    return max( r.number for r in runs )
-
-
 #-------------------------------------------------------------------------------
 
 class Docket:
@@ -280,11 +272,8 @@ async def start(run):
 
 
 async def rerun(run):
-    # Determine the next run number.
-    number = max_run_number(run.inst.inst_id) + 1
-
     # Create the new run.
-    new_run = Run(next(STATE.runs.run_ids), run.inst, number)
+    new_run = Run(next(STATE.runs.run_ids), run.inst)
     new_run.state = Run.SCHEDULED
     when = await STATE.runs.add(new_run)
 
