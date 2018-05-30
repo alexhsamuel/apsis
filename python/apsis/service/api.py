@@ -66,7 +66,6 @@ def run_to_jso(app, run):
         "times"         : run.times,
         "meta"          : run.meta,
         "actions"       : actions,
-        # FIXME         : "inst_url"
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
         "output_len"    :  None if run.output is None else len(run.output),
     }

@@ -335,7 +335,6 @@ async def execute(run, job):
     log.info(f"done: {run.run_id} {run.state}")
     done_time = now()
     run.times["done"] = str(done_time)
-    run.times["elapsed"] = done_time - execute_time
     await STATE.runs.update(run)
 
 
