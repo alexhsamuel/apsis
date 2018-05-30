@@ -174,9 +174,8 @@ def get_schedule_runs(times: Interval, jobs):
         for schedule in job.schedules:
             times = itertools.takewhile(lambda t: t < stop, schedule(start))
             for sched_time in times:
-                inst_id = job.job_id + "-" + str(sched_time)
                 args = schedule.bind_args(job.params, sched_time)
-                inst = Instance(inst_id, job.job_id, args, sched_time)
+                inst = Instance(job.job_id, args, sched_time)
                 run = Run(next(STATE.runs.run_ids), inst)
                 run.times["schedule"] = str(sched_time)
                 yield run

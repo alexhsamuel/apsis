@@ -158,7 +158,7 @@ class SQLAlchemyRunDB(RunDB):
             # FIXME: Inst!
             args = json.loads(args)
             time = load_time(time)
-            inst = Instance("BOGUS INST ID", job_id, args, time)
+            inst = Instance(job_id, args, time)
             run = Run(run_id, inst)
             run.state = state
             run.times = json.loads(times)

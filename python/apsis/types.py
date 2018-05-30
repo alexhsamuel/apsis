@@ -45,17 +45,14 @@ class Job:
 
 class Instance:
 
-    def __init__(self, inst_id, job_id, args, time):
-        args = { str(k): str(v) for k, v in args.items() }
-
-        self.inst_id    = str(inst_id)
+    def __init__(self, job_id, args, time):
         self.job_id     = job_id
-        self.args       = args
+        self.args       = { str(k): str(v) for k, v in args.items() }
         self.time       = Time(time)
 
 
     def __repr__(self):
-        return format_ctor(self, self.inst_id, self.job, self.args, self.time)
+        return format_ctor(self, self.job_id, self.args, self.time)
 
 
     def __str__(self):
@@ -65,11 +62,30 @@ class Instance:
         )
 
 
+    def __hash__(self):
+        return (
+            hash(self.job_id) 
+            ^ hash(tuple(sorted(self.args.items())))
+            ^ hash(self.time)
+        )
+
+
+    def __eq__(self, other):
+        return (
+            self.job_id == other.job_id
+            and self.args == other.args
+            and self.time == other.time
+        ) if isinstance(other, Instance) else NotImplemented
+
+
     def __lt__(self, other):
         return (
-            self.inst_id < other.inst_id if isinstance(other, Instance)
-            else NotImplemented
-        )
+            self.job_id < other.job_id
+            or (
+                self.job_id == other.job_id
+                and sorted(self.args.items()) < sorted(other.args.items())
+            )
+        ) if isinstance(other, Instance) else NotImplemented
 
 
 
