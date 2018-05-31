@@ -53,9 +53,7 @@ def format_run(run, indent=0):
 
 def format_elapsed(secs):
     secs = round(secs)
-    if secs < 60:
-        return f"      {secs:2d}"
-    elif secs < 3600:
+    if secs < 3600:
         return f"   {secs // 60:2d}:{secs % 60:02d}"
     else:
         return f"{secs // 3600:2d}:{secs // 60 % 60:02d}:{secs % 60:02d}"
