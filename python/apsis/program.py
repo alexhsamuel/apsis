@@ -36,7 +36,6 @@ class ProcessProgram:
 
     def __init__(self, argv):
         self.__argv = tuple( str(a) for a in argv )
-        self.__executable = Path(argv[0])
 
 
     def __str__(self):
@@ -63,7 +62,7 @@ class ProcessProgram:
             with open("/dev/null") as stdin:
                 proc = await asyncio.create_subprocess_exec(
                     *argv, 
-                    executable  =self.__executable,
+                    executable  =Path(argv[0]),
                     stdin       =stdin,
                     # Merge stderr with stdin.  FIXME: Do better.
                     stdout      =asyncio.subprocess.PIPE,
