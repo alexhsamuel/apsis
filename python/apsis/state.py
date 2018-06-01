@@ -3,7 +3,9 @@ from   contextlib import contextmanager
 import heapq
 import itertools
 import logging
+from   pathlib import Path
 from   ora import now, Time
+import sqlalchemy as sa
 
 from   .lib import Interval
 from   .lib.itr import take_last
@@ -342,10 +344,34 @@ async def execute(run, job):
 
 class State:
 
-    def __init__(self):
+    def __init__(self, runs):
         self.jobs = []
-        self.runs = SQLAlchemyRunDB.create("./apsis.sqlite")  # FIXME
+        self.runs = runs
         self.docket = Docket()
+
+
+    @classmethod
+    def __get_url(Class, path):
+        # For now, sqlite only.
+        return f"sqlite:///{path}"
+
+
+    @classmethod
+    def create(Class, path):
+        path = Path(path).absolute()
+        url = Class.__get_url(path)
+        engine = sa.create_engine(url)
+        runs = SQLAlchemyRunDB.create(engine)
+        return Class(runs)
+
+
+    @classmethod
+    def open(Class, path):
+        path = Path(path).absolute()
+        url = Class.__get_url(path)
+        engine = sa.create_engine(url)
+        runs = SQLAlchemyRunDB.open(engine)
+        return Class(runs)
 
 
     def add_job(self, job):
@@ -370,5 +396,5 @@ class State:
 
 
 
-STATE = State()
+STATE = None
 

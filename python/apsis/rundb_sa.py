@@ -88,27 +88,13 @@ class SQLAlchemyRunDB(RunDB):
 
 
     @classmethod
-    def __get_url(Class, path):
-        # For now, sqlite only.
-        return f"sqlite:///{path}"
-
-
-    @classmethod
-    def open(Class, path):
-        path = Path(path).absolute()
-        assert path.is_file()
-        url = Class.__get_url(path)
-        engine = sa.create_engine(url)
+    def open(Class, engine):
         # FIXME: Check that tables exist.
         return Class(engine)
 
 
     @classmethod
-    def create(Class, path):
-        path = Path(path).absolute()
-        assert not path.is_file()
-        url = Class.__get_url(path)
-        engine = sa.create_engine(url)
+    def create(Class, engine):
         METADATA.create_all(engine)
         return Class(engine)
 

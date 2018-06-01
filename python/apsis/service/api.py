@@ -4,13 +4,16 @@ import sanic
 import websockets
 
 from   .. import state
-from   ..state import STATE
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
 API = sanic.Blueprint("v1")
+
+def get_state():
+    return state.STATE
+
 
 def response_json(jso, status=200):
     return sanic.response.json(jso, status=status, indent=1, sort_keys=True)
@@ -84,14 +87,14 @@ def runs_to_jso(app, when, runs):
 @API.route("/jobs/<job_id>")
 async def job(request, job_id):
     try:
-        return response_json(job_to_jso(request.app, STATE.get_job(job_id)))
+        return response_json(job_to_jso(request.app, get_state().get_job(job_id)))
     except LookupError as exc:
         sanic.exceptions.abort(404, f"job_id: {job_id}")
 
 
 @API.route("/jobs/<job_id>/runs")
 async def job_runs(request, job_id):
-    when, runs = STATE.runs.query(job_id=job_id)
+    when, runs = get_state().runs.query(job_id=job_id)
     jso = runs_to_jso(request.app, when, runs)
     return response_json(jso)
 
@@ -100,7 +103,7 @@ async def job_runs(request, job_id):
 async def jobs(request):
     jso = [ 
         job_to_jso(request.app, j) 
-        for j in STATE.get_jobs() 
+        for j in get_state().get_jobs() 
     ]
     return response_json(jso)
 
@@ -110,14 +113,14 @@ async def jobs(request):
 
 @API.route("/runs/<run_id>")
 async def run(request, run_id):
-    when, run = await STATE.runs.get(run_id)
+    when, run = await get_state().runs.get(run_id)
     jso = runs_to_jso(request.app, when, [run])
     return response_json(jso)
 
 
 @API.route("/runs/<run_id>/output")
 async def run_output(request, run_id):
-    when, run = await STATE.runs.get(run_id)
+    when, run = await get_state().runs.get(run_id)
     if run.output is None:
         raise sanic.exceptions.NotFound("no output")
     else:
@@ -126,13 +129,13 @@ async def run_output(request, run_id):
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
 async def run_state_get(request, run_id):
-    _, run = await STATE.runs.get(run_id)
+    _, run = await get_state().runs.get(run_id)
     return response_json({"state": run.state})
 
 
 @API.route("/runs/<run_id>/cancel", methods={"POST"})
 async def run_cancel(request, run_id):
-    _, run = await STATE.runs.get(run_id)
+    _, run = await get_state().runs.get(run_id)
     if run.state == run.SCHEDULED:
         await state.cancel(run)
         return response_json({})
@@ -146,7 +149,7 @@ async def run_cancel(request, run_id):
 
 @API.route("/runs/<run_id>/start", methods={"POST"})
 async def run_start(request, run_id):
-    _, run = await STATE.runs.get(run_id)
+    _, run = await get_state().runs.get(run_id)
     if run.state == run.SCHEDULED:
         await state.start(run)
         return response_json({})
@@ -159,7 +162,7 @@ async def run_start(request, run_id):
 
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
 async def run_rerun(request, run_id):
-    _, run = await STATE.runs.get(run_id)
+    _, run = await get_state().runs.get(run_id)
     if run.state in {run.FAILURE, run.ERROR, run.SUCCESS}:
         when, new_run = await state.rerun(run)
         jso = runs_to_jso(request.app, when, [new_run])
@@ -192,7 +195,7 @@ async def runs(request):
     # Get runs from the selected interval.
     since,  = request.args.pop("since", (None, ))
     until,  = request.args.pop("until", (None, ))
-    when, runs = STATE.runs.query(since=since, until=until)
+    when, runs = get_state().runs.query(since=since, until=until)
 
     # Select runs based on query args.
     filter = _run_filter_for_query(request.args)
@@ -207,7 +210,7 @@ async def websocket_runs(request, ws):
     filter  = _run_filter_for_query(request.args)
 
     log.info("live runs connect")
-    with STATE.runs.query_live(since=since) as queue:
+    with get_state().runs.query_live(since=since) as queue:
         while True:
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.

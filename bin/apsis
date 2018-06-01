@@ -91,21 +91,13 @@ def cmd_job_runs(client, arg):
 
     table = fixfmt.table.RowTable()
 
-    def get_elapsed_time(run):
-        try:
-            execute_time = Time(run["times"]["execute"])
-        except KeyError:
-            return None
-        else:
-            return Time(run["times"].get("done", now())) - execute_time
-        
     table.extend(
         {
             "run_id"    : run["run_id"],
             **run["args"],
             "start"     : run["times"].get("running", run["times"]["schedule"]),
             "state"     : run["state"],
-            "elapsed"   : get_elapsed_time(run),
+            "elapsed"   : run["meta"].get("elapsed"),
         }
         for run in sorted(runs.values(), key=lambda r: r["times"]["schedule"])
     )
