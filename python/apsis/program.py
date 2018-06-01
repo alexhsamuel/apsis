@@ -14,14 +14,8 @@ log = logging.getLogger(__name__)
 
 # FIXME: Elsewhere.
 
-def expand(string, run):
-    template = jinja2.Template(string)
-    ns = {
-        "run_id": run.run_id,
-        "job_id": run.inst.job_id,
-        **run.inst.args, 
-    }
-    return template.render(ns)
+def template_expand(template, args):
+    return jinja2.Template(template).render(args)
 
 
 def join_args(argv):
@@ -42,6 +36,11 @@ class ProcessProgram:
         return join_args(self.__argv)
 
 
+    def bind(self, args):
+        argv = tuple( template_expand(a, args) for a in self.__argv )
+        return type(self)(argv)
+
+
     def to_jso(self):
         return {
             "argv"      : list(self.__argv),
@@ -55,8 +54,8 @@ class ProcessProgram:
             "username"  : getpass.getuser(),
         })
 
-        argv = [ expand(a, run) for a in self.__argv ]
-        log.info("starting: {}".format(join_args(self.__argv)))
+        argv = self.__argv
+        log.info("starting: {}".format(join_args(argv)))
 
         try:
             with open("/dev/null") as stdin:
@@ -99,6 +98,11 @@ class ShellCommandProgram(ProcessProgram):
         command = str(command)
         super().__init__(["/bin/bash", "-c", command])
         self.__command = command
+
+
+    def bind(self, args):
+        command = template_expand(self.__command, args)
+        return type(self)(command)
 
 
     def __str__(self):

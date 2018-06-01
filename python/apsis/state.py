@@ -309,9 +309,17 @@ def run_current(docket, time):
 
 #-------------------------------------------------------------------------------
 
+def bind_program(program, run):
+    return program.bind({
+        "run_id": run.run_id,
+        "job_id": run.inst.job_id,
+        **run.inst.args,
+    })
+
+
 async def execute(run, job):
     # Start it.
-    program = job.program
+    program = bind_program(job.program, run)
     execute_time = now()
     run.times["execute"] = str(execute_time)
     log.info(f"executing: {run.run_id}")
