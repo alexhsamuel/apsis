@@ -48,14 +48,14 @@ class ProcessProgram:
 
 
     async def start(self, run):
-        # FIXME: Start / end time one level up.
+        argv = self.__argv
+        log.info("starting: {}".format(join_args(argv)))
+
         run.meta.update({
+            "command"   : " ".join( shlex.quote(a) for a in argv ),
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
         })
-
-        argv = self.__argv
-        log.info("starting: {}".format(join_args(argv)))
 
         try:
             with open("/dev/null") as stdin:
