@@ -170,6 +170,9 @@ class Docket:
 def get_schedule_runs(times: Interval, jobs):
     """
     Generates runs scheduled in interval `times`.
+
+    :return:
+      Iterable of (time, run) pairs.
     """
     start, stop = times
     for job in jobs:
