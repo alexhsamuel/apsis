@@ -44,6 +44,9 @@ class Job:
 #-------------------------------------------------------------------------------
 
 class Instance:
+    """
+    A job with bound parameters.  Not user-visible.
+    """
 
     def __init__(self, job_id, args):
         self.job_id     = job_id
