@@ -125,10 +125,10 @@ class Docket:
     def push(self, runs, interval):
         start, stop = interval
         assert start == self.__stop
-        for run in runs:
-            assert run.inst.time in interval
-            log.info("schedule: {} for {}".format(run, run.inst.time))
-            heapq.heappush(self.__runs, (run.inst.time, run))
+        for time, run in runs:
+            assert time in interval
+            log.info("schedule: {} for {}".format(run, time))
+            heapq.heappush(self.__runs, (time, run))
         self.__stop = stop
 
 
@@ -177,10 +177,10 @@ def get_schedule_runs(times: Interval, jobs):
             times = itertools.takewhile(lambda t: t < stop, schedule(start))
             for sched_time in times:
                 args = schedule.bind_args(job.params, sched_time)
-                inst = Instance(job.job_id, args, sched_time)
+                inst = Instance(job.job_id, args)
                 run = Run(next(STATE.runs.run_ids), inst)
                 run.times["schedule"] = str(sched_time)
-                yield run
+                yield sched_time, run
 
 
 async def schedule_runs(docket, time: Time, jobs):
@@ -201,7 +201,7 @@ async def schedule_runs(docket, time: Time, jobs):
         await STATE.runs.add(run)
 
     # Create the run.
-    await asyncio.gather(*( add_run(r) for r in runs ))
+    await asyncio.gather(*( add_run(r) for _, r in runs ))
     docket.push(runs, interval)
 
 

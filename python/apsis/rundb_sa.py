@@ -4,7 +4,6 @@ import itertools
 import json
 import logging
 import ora
-from   pathlib import Path
 import sqlalchemy as sa
 
 from   .lib.itr import take_last
@@ -69,7 +68,6 @@ TBL_RUNS = sa.Table(
     sa.Column("run_id"      , sa.String()       , nullable=False),
     sa.Column("job_id"      , sa.String()       , nullable=False),
     sa.Column("args"        , sa.String()       , nullable=False),
-    sa.Column("time"        , sa.Float()        , nullable=False),
     sa.Column("state"       , sa.String()       , nullable=False),
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
@@ -105,7 +103,6 @@ class SQLAlchemyRunDB(RunDB):
                 run_id  =run.run_id,
                 job_id  =run.inst.job_id,
                 args    =json.dumps(run.inst.args),
-                time    =store_time(run.inst.time),
                 state   =run.state,
                 times   =json.dumps(run.times),
                 meta    =json.dumps(run.meta),
@@ -140,11 +137,10 @@ class SQLAlchemyRunDB(RunDB):
         log.info(str(query).replace("\n", " "))
 
         cursor = conn.execute(query)
-        for run_id, job_id, args, time, state, times, meta, output in cursor:
+        for run_id, job_id, args, state, times, meta, output in cursor:
             # FIXME: Inst!
             args = json.loads(args)
-            time = load_time(time)
-            inst = Instance(job_id, args, time)
+            inst = Instance(job_id, args)
             run = Run(run_id, inst)
             run.state = state
             run.times = json.loads(times)
