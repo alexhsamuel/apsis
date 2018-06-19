@@ -4,3 +4,4 @@ Makefile.local
 doc
 work/
 env.sh
+apsis.db
