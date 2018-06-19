@@ -121,17 +121,26 @@ def main():
         "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
         help="server port")
     parser.add_argument(
+        "--create", action="store_true", default=False,
+        help="create a new state database")
+    parser.add_argument(
         "--crontab", action="store_true", default=False,
         help="JOBS in a crontab file")
     parser.add_argument(
         "jobs", metavar="JOBS", 
         help="job directory")
+    parser.add_argument(
+        "state", metavar="STATE-DB",
+        help="state database")
     args = parser.parse_args()
 
     if args.crontab:
         _, jobs = crontab.read_crontab_file(args.crontab)
     else:
         jobs = repo.load_yaml_files(args.jobs)
+
+    state.STATE = (state.State.create if args.create else state.State.open)(args.state)
+
     for j in jobs:
         state.STATE.add_job(j)
 

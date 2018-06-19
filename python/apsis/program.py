@@ -14,14 +14,12 @@ log = logging.getLogger(__name__)
 
 # FIXME: Elsewhere.
 
-def expand(string, run):
-    template = jinja2.Template(string)
-    ns = {
-        "run_id": run.run_id,
-        "job_id": run.inst.job.job_id,
-        **run.inst.args, 
-    }
-    return template.render(ns)
+def template_expand(template, args):
+    return jinja2.Template(template).render(args)
+
+
+def join_args(argv):
+    return " ".join( shlex.quote(a) for a in argv )
 
 
 #-------------------------------------------------------------------------------
@@ -32,11 +30,15 @@ class ProcessProgram:
 
     def __init__(self, argv):
         self.__argv = tuple( str(a) for a in argv )
-        self.__executable = Path(argv[0])
 
 
     def __str__(self):
-        return " ".join( shlex.quote(a) for a in self.__argv )
+        return join_args(self.__argv)
+
+
+    def bind(self, args):
+        argv = tuple( template_expand(a, args) for a in self.__argv )
+        return type(self)(argv)
 
 
     def to_jso(self):
@@ -46,21 +48,20 @@ class ProcessProgram:
 
 
     async def start(self, run):
-        log.info("running: {}".format(run))
+        argv = self.__argv
+        log.info("starting: {}".format(join_args(argv)))
 
-        # FIXME: Start / end time one level up.
         run.meta.update({
+            "command"   : " ".join( shlex.quote(a) for a in argv ),
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
         })
-
-        argv = [ expand(a, run) for a in self.__argv ]
 
         try:
             with open("/dev/null") as stdin:
                 proc = await asyncio.create_subprocess_exec(
                     *argv, 
-                    executable  =self.__executable,
+                    executable  =Path(argv[0]),
                     stdin       =stdin,
                     # Merge stderr with stdin.  FIXME: Do better.
                     stdout      =asyncio.subprocess.PIPE,
@@ -82,6 +83,7 @@ class ProcessProgram:
 
         run.meta["return_code"] = return_code
         run.output = stdout
+        log.info(f"complete with return code {return_code}")
         if return_code == 0:
             return
         else:
@@ -96,6 +98,11 @@ class ShellCommandProgram(ProcessProgram):
         command = str(command)
         super().__init__(["/bin/bash", "-c", command])
         self.__command = command
+
+
+    def bind(self, args):
+        command = template_expand(self.__command, args)
+        return type(self)(command)
 
 
     def __str__(self):

@@ -3,15 +3,20 @@ from   contextlib import contextmanager
 import heapq
 import itertools
 import logging
+from   pathlib import Path
 from   ora import now, Time
+import sqlalchemy as sa
 
 from   .lib import Interval
 from   .lib.itr import take_last
-from   .types import Run, Instance, ProgramFailure, ProgramError
+from   .types import Job, Run, Instance, ProgramFailure, ProgramError
+from   .rundb_sa import SQLAlchemyRunDB
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+
+# FIXME: Clean this up and move to a new module.
 
 class Runs:
     # FIXME: Very inefficient.
@@ -47,7 +52,7 @@ class Runs:
         return when, run
 
 
-    def query(self, *, job_id=None, inst_id=None, since=None, until=None):
+    def query(self, *, job_id=None, since=None, until=None):
         """
         @return
           When, and iterable of runs.
@@ -56,9 +61,7 @@ class Runs:
         stop    = len(self.__runs) if until is None else int(until)
         runs    = iter(self.__runs[start : stop])
         if job_id is not None:
-            runs = ( r for r in runs if r.inst.job.job_id == job_id )
-        if inst_id is not None:
-            runs = ( r for r in runs if r.inst.inst_id == inst_id )
+            runs = ( r for r in runs if r.inst.job_id == job_id )
         return str(stop), runs
 
 
@@ -82,14 +85,6 @@ class Runs:
         for queue in self.__queues:
             queue.put_nowait((when, [run]))  # FIXME: Nowait?
 
-
-
-def max_run_number(inst_id):
-    """
-    Returns the largest run number of runs for an inst.
-    """
-    _, runs = STATE.runs.query(inst_id=inst_id)
-    return max( r.number for r in runs )
 
 
 #-------------------------------------------------------------------------------
@@ -130,10 +125,10 @@ class Docket:
     def push(self, runs, interval):
         start, stop = interval
         assert start == self.__stop
-        for run in runs:
-            assert run.inst.time in interval
-            log.info("schedule: {} for {}".format(run, run.inst.time))
-            heapq.heappush(self.__runs, (run.inst.time, run))
+        for time, run in runs:
+            assert time in interval
+            log.info("schedule: {} for {}".format(run, time))
+            heapq.heappush(self.__runs, (time, run))
         self.__stop = stop
 
 
@@ -175,18 +170,20 @@ class Docket:
 def get_schedule_runs(times: Interval, jobs):
     """
     Generates runs scheduled in interval `times`.
+
+    :return:
+      Iterable of (time, run) pairs.
     """
     start, stop = times
     for job in jobs:
         for schedule in job.schedules:
             times = itertools.takewhile(lambda t: t < stop, schedule(start))
             for sched_time in times:
-                inst_id = job.job_id + "-" + str(sched_time)
                 args = schedule.bind_args(job.params, sched_time)
-                inst = Instance(inst_id, job, args, sched_time)
+                inst = Instance(job.job_id, args)
                 run = Run(next(STATE.runs.run_ids), inst)
                 run.times["schedule"] = str(sched_time)
-                yield run
+                yield sched_time, run
 
 
 async def schedule_runs(docket, time: Time, jobs):
@@ -207,7 +204,7 @@ async def schedule_runs(docket, time: Time, jobs):
         await STATE.runs.add(run)
 
     # Create the run.
-    await asyncio.gather(*( add_run(r) for r in runs ))
+    await asyncio.gather(*( add_run(r) for _, r in runs ))
     docket.push(runs, interval)
 
 
@@ -279,11 +276,8 @@ async def start(run):
 
 
 async def rerun(run):
-    # Determine the next run number.
-    number = max_run_number(run.inst.inst_id) + 1
-
     # Create the new run.
-    new_run = Run(next(STATE.runs.run_ids), run.inst, number)
+    new_run = Run(next(STATE.runs.run_ids), run.inst)
     new_run.state = Run.SCHEDULED
     when = await STATE.runs.add(new_run)
 
@@ -311,16 +305,27 @@ def run_current(docket, time):
     # FIXME: Check if the docket is behind.
     runs = extract_current_runs(docket, time)
     for run in runs:
-        asyncio.ensure_future(execute(run))
+        # FIXME: Is this the right way to get the job?
+        job = STATE.get_job(run.inst.job_id)
+        asyncio.ensure_future(execute(run, job))
 
 
 #-------------------------------------------------------------------------------
 
-async def execute(run):
+def bind_program(program, run):
+    return program.bind({
+        "run_id": run.run_id,
+        "job_id": run.inst.job_id,
+        **run.inst.args,
+    })
+
+
+async def execute(run, job):
     # Start it.
-    program = run.inst.job.program
+    program = bind_program(job.program, run)
     execute_time = now()
     run.times["execute"] = str(execute_time)
+    log.info(f"executing: {run.run_id}")
     try:
         proc = await program.start(run)
     except ProgramError as exc:
@@ -339,31 +344,62 @@ async def execute(run):
             run.state = Run.FAILURE
         else:
             run.state = Run.SUCCESS
+    log.info(f"done: {run.run_id} {run.state}")
     done_time = now()
     run.times["done"] = str(done_time)
-    run.times["elapsed"] = done_time - execute_time
+    run.meta["elapsed"] = done_time - execute_time
     await STATE.runs.update(run)
-
 
 
 #-------------------------------------------------------------------------------
 
 class State:
 
-    def __init__(self):
+    def __init__(self, runs):
         self.jobs = []
-        self.runs = Runs()
+        self.runs = runs
         self.docket = Docket()
+
+
+    @classmethod
+    def __get_url(Class, path):
+        # For now, sqlite only.
+        return f"sqlite:///{path}"
+
+
+    @classmethod
+    def create(Class, path):
+        path = Path(path).absolute()
+        url = Class.__get_url(path)
+        engine = sa.create_engine(url)
+        runs = SQLAlchemyRunDB.create(engine)
+        return Class(runs)
+
+
+    @classmethod
+    def open(Class, path):
+        path = Path(path).absolute()
+        url = Class.__get_url(path)
+        engine = sa.create_engine(url)
+        runs = SQLAlchemyRunDB.open(engine)
+        return Class(runs)
 
 
     def add_job(self, job):
         self.jobs.append(job)
 
 
-    def get_job(self, job_id):
-        # FIXME
-        job, = [ j for j in self.jobs if j.job_id == job_id ]
-        return job
+    def get_job(self, job_id) -> Job:
+        """
+        :raise LookupError:
+          Can't find `job_id`.
+        """
+        jobs = [ j for j in self.jobs if j.job_id == job_id ]
+        if len(jobs) == 0:
+            raise LookupError(job_id)
+        else:
+            assert len(jobs) == 1
+            return jobs[0]
 
 
     def get_jobs(self):
@@ -371,5 +407,5 @@ class State:
 
 
 
-STATE = State()
+STATE = None
 

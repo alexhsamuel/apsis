@@ -3,7 +3,7 @@
 import argparse
 import fixfmt.table
 import logging
-from   ora import Time
+from   ora import Time, now
 import ruamel_yaml as yaml
 
 import apsis.service.client
@@ -53,9 +53,7 @@ def format_run(run, indent=0):
 
 def format_elapsed(secs):
     secs = round(secs)
-    if secs < 60:
-        return f"      {secs:2d}"
-    elif secs < 3600:
+    if secs < 3600:
         return f"   {secs // 60:2d}:{secs % 60:02d}"
     else:
         return f"{secs // 3600:2d}:{secs // 60 % 60:02d}:{secs % 60:02d}"
@@ -92,13 +90,14 @@ def cmd_job_runs(client, arg):
     runs = client.get_job_runs(job_id)
 
     table = fixfmt.table.RowTable()
+
     table.extend(
         {
-            "run_id": run["run_id"],
+            "run_id"    : run["run_id"],
             **run["args"],
-            "state": run["state"],
-            "start": run["times"].get("running", run["times"]["schedule"]),
-            "elapsed": run["times"].get("elapsed", None),
+            "start"     : run["times"].get("running", run["times"]["schedule"]),
+            "state"     : run["state"],
+            "elapsed"   : run["meta"].get("elapsed"),
         }
         for run in sorted(runs.values(), key=lambda r: r["times"]["schedule"])
     )

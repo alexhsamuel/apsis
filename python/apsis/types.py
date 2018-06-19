@@ -44,33 +44,45 @@ class Job:
 #-------------------------------------------------------------------------------
 
 class Instance:
+    """
+    A job with bound parameters.  Not user-visible.
+    """
 
-    def __init__(self, inst_id, job, args, time):
-        args = { str(k): str(v) for k, v in args.items() }
-        assert args.keys() == job.params
-
-        self.inst_id    = str(inst_id)
-        self.job        = job
-        self.args       = args
-        self.time       = Time(time)
+    def __init__(self, job_id, args):
+        self.job_id     = job_id
+        self.args       = { str(k): str(v) for k, v in args.items() }
 
 
     def __repr__(self):
-        return format_ctor(self, self.inst_id, self.job, self.args, self.time)
+        return format_ctor(self, self.job_id, self.args)
 
 
     def __str__(self):
         return "{}({})".format(
-            self.job.job_id, 
+            self.job_id, 
             " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
         )
 
 
+    def __hash__(self):
+        return hash(self.job_id) ^ hash(tuple(sorted(self.args.items())))
+
+
+    def __eq__(self, other):
+        return (
+            self.job_id == other.job_id
+            and self.args == other.args
+        ) if isinstance(other, Instance) else NotImplemented
+
+
     def __lt__(self, other):
         return (
-            self.inst_id < other.inst_id if isinstance(other, Instance)
-            else NotImplemented
-        )
+            self.job_id < other.job_id
+            or (
+                self.job_id == other.job_id
+                and sorted(self.args.items()) < sorted(other.args.items())
+            )
+        ) if isinstance(other, Instance) else NotImplemented
 
 
 
@@ -87,10 +99,9 @@ class Run:
 
     STATES = frozenset((NEW, SCHEDULED, RUNNING, SUCCESS, FAILURE, ERROR))
 
-    def __init__(self, run_id, inst, number=0):
+    def __init__(self, run_id, inst):
         self.run_id = str(run_id)
         self.inst   = inst
-        self.number = number
         self.state  = self.NEW
         self.times  = {}
         self.meta   = {}
@@ -102,7 +113,7 @@ class Run:
 
 
     def __str__(self):
-        return "{} #{} of {}".format(self.run_id, self.number, self.inst)
+        return f"{self.run_id} of {self.inst}"
 
 
 
