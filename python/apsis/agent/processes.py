@@ -128,8 +128,16 @@ def start(argv, cwd, env, stdin_fd, out_fd):
 #-------------------------------------------------------------------------------
 
 class ProcessDir:
+    """
+    Support directory for a running process.
 
-    def __init__(self, path):
+    Stores:
+    - The stdin file, if any.  (Unlinked after exec.)
+    - The spooled output, containing merged stdout and stderr.
+    - The pid file.
+    """
+
+    def __init__(self, path: Path):
         self.path = path
         assert self.path.is_dir()
         self.out_path = None
@@ -142,6 +150,9 @@ class ProcessDir:
 
     @contextmanager
     def get_stdin_fd(self, stdin=None):
+        """
+        Produces the stdin file descriptor.
+        """
         if stdin is None:
             yield -1
         else:
@@ -155,23 +166,28 @@ class ProcessDir:
             os.unlink(path)
             # Ready to go.
             yield fd
-            # Clean it up.
+            # Done with it.
             os.close(fd)
 
 
     @contextmanager
     def get_out_fd(self):
+        """
+        Produces the output file descriptor.a
+        """
         self.out_path = self.path / "out"
         # Open a file for the output.
         fd = os.open(
             self.out_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode=0o400)
+        # Ready to go.
         yield fd
+        # Done with it.
         os.close(fd)
 
 
     def write_pid(self, pid):
         self.pid_path = self.path / "pid"
-        with open(self.pid_path, "w") as file:
+        with open(self.pid_path, "w", mode=0o400) as file:
             print(pid, file=file)
 
 

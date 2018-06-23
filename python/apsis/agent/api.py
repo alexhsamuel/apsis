@@ -77,3 +77,15 @@ async def process_get(req, proc_id):
         return json_rsp({"process": proc_to_jso(proc)}, 200)
 
     
+@API.route("/processes/<proc_id>/output", methods={"GET"})
+async def process_get_output(req, proc_id):
+    try:
+        proc = req.app.processes[proc_id]
+    except KeyError:
+        return json_rsp({"error": f"proc_id {proc_id} not found"}, 404)
+    else:
+        with open(proc.proc_dir.out_path, "rb") as file:
+            data = file.read()
+        return sanic.response.raw(data, status=200)
+
+    
