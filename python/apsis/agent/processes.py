@@ -4,6 +4,7 @@ from   contextlib import contextmanager
 import errno
 import itertools
 import logging
+import ora
 import os
 from   pathlib import Path
 import shlex
@@ -222,6 +223,8 @@ class Processes:
             self.exception  = None
             self.status     = None
             self.rusage     = None
+            self.start_time = None
+            self.end_time   = None
 
 
     def __init__(self, dir_path: Path):
@@ -242,6 +245,8 @@ class Processes:
         try:
             command = " ".join( shlex.quote(a) for a in argv )
             log.info(f"start: {proc_dir}: {command}")
+
+            proc.start_time = ora.now()
 
             with proc_dir.get_stdin_fd(stdin) as stdin_fd, \
                  proc_dir.get_out_fd() as out_fd:
@@ -295,6 +300,7 @@ class Processes:
                 log.error(f"reaped unknown child pid {pid}")
                 continue
 
+            proc.end_time = ora.now()
             proc.status = status
             proc.rusage = rusage
 
