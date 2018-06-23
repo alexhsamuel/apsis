@@ -1,10 +1,12 @@
 import _posixsubprocess  # Yes, we use an internal API here.
 import builtins
+from   enum import Enum
 import errno
 import logging
 import os
 from   pathlib import Path
 import sanic
+import shlex
 from   subprocess import SubprocessError
 
 log = logging.getLogger(__name__)
@@ -13,23 +15,20 @@ log = logging.getLogger(__name__)
 
 MAX_EXC_SIZE = 1048576
 
-def start(argv, cwd, env, stdin):
+def start(argv, cwd, env, stdin_fd, out_fd):
     # Cribbed from subprocess.Popen._execute_child() (POSIX version).
-
-    # FIXME: Implement this.
-    assert stdin is None
 
     executable = argv[0]
 
     # For transferring possible exec failure from child to parent.
     # Data format: "exception name:hex errno:description"
     # Pickle is not used; it is complex and involves memory allocation.
-    errpipe_read, errpipe_write = os.pipe()
-    # errpipe_write must not be in the standard io 0, 1, or 2 fd range.
+    err_read, err_write = os.pipe()
+    # err_write must not be in the standard io 0, 1, or 2 fd range.
     low_fds_to_close = []
-    while errpipe_write < 3:
-        low_fds_to_close.append(errpipe_write)
-        errpipe_write = os.dup(errpipe_write)
+    while err_write < 3:
+        low_fds_to_close.append(err_write)
+        err_write = os.dup(err_write)
     for low_fd in low_fds_to_close:
         os.close(low_fd)
 
@@ -51,36 +50,36 @@ def start(argv, cwd, env, stdin):
                 argv, 
                 executables,
                 True,                   # close_fds
-                (errpipe_write, ),      # pass_fds
+                (err_write, ),          # pass_fds
                 cwd, 
                 env_list,
-                -1,                     # stdin read
+                stdin_fd,               # stdin read
                 -1,                     # stdin write
                 -1,                     # stdout read
-                -1,                     # stdout write
+                out_fd,                 # stdout write
                 -1,                     # stderr read
-                -1,                     # stderr write
-                errpipe_read, 
-                errpipe_write,
+                out_fd,                 # stderr write
+                err_read, 
+                err_write,
                 True,                   # restore_signals
                 True,                   # start_new_session
                 None,                   # preexec_fn
             )
         finally:
             # be sure the FD is closed no matter what
-            os.close(errpipe_write)
+            os.close(err_write)
 
         # Wait for exec to fail or succeed; possibly raising an exception.
         err_data = bytearray()
         while True:
-            part = os.read(errpipe_read, MAX_EXC_SIZE)
+            part = os.read(err_read, MAX_EXC_SIZE)
             err_data += part
             if not part or len(err_data) > MAX_EXC_SIZE:
                 break
 
     finally:
         # Be sure the fd is closed no matter what.
-        os.close(errpipe_read)
+        os.close(err_read)
 
     if len(err_data) > 0:
         try:
@@ -122,6 +121,99 @@ def start(argv, cwd, env, stdin):
     else:
         return pid
 
+
+
+#-------------------------------------------------------------------------------
+
+class Process:
+
+    WAIT_OPTIONS = os.WNOHANG | os.WUNTRACED | os.WCONTINUED
+
+    def __init__(self, pid):
+        self.__pid      = pid
+        self.__state    = 0
+        self.__status   = None
+        self.__rusage   = None
+
+
+    @property
+    def pid(self):
+        return self.__pid
+
+
+    def wait(self):
+        """
+        Nonblocking wait.
+        """
+        if self.__state < 2:
+            pid, status, rusage = os.wait4(self.__pid, self.WAIT_OPTIONS)
+            if pid == 0:
+                # Not done.
+                pass
+            elif pid == self.__pid:
+                # Terminated.
+                self.__state = 2
+                self.__status = status
+                self.__rusage = rusage
+        else:
+            # Already cleaned; do nothing.
+            pass
+
+
+
+class Process:
+
+    STATE = Enum("STATE", ("INIT", "ERR", "RUN", "TERM", "DONE"))
+
+    def __init__(self, dir, stdin):
+        self.__state = self.STATE.INIT
+
+        self.__dir = Path(os.mkdtemp(dir=dir))
+        assert self.__dir.isdir()
+
+        self.__exception    = None
+        self.__pid          = None
+        self.__stdin_path   = None
+        self.__stdin_fd     = None
+        self.__out_path     = None
+        self.__out_fd       = None
+
+        
+    def start(self, argv, cwd, env, stdin):
+        assert self.__state == self.STATE.INIT
+
+        if stdin is None:
+            # No stdin.
+            self.__stdin_path = None
+            self.__stdin_fd = -1
+        else:
+            # Write stdin to a file.
+            self.__stdin_path = self.__dir / "stdin"
+            with open(self.__stdin_path, "wb") as file:
+                file.write(stdin)
+            # Open the stdin file for the process to read.
+            self.__stdin_fd = os.open(self.__stdin_path, os.O_RDONLY)
+        
+        # Open a file for the output.
+        self.__out_path = self.__dir / "out"
+        self.__out_fd = os.open(self.__out_path, os.O_CREAT | os.O_WRONLY)
+
+        command = " ".join( shlex.quote(a) for a in argv )
+        log.info(f"start: {self.__dir}: {command}")
+        try:
+            self.__pid = start(argv, cwd, env, self.__stdin_fd, self.__out_fd)
+        except Exception as exc:
+            log.info(f"start failed: {exc}")
+            self.__state = self.STATE.ERR
+            self.__exception = exc
+        else:
+            log.info(f"started: pid={self.__pid}")
+            self.__state = self.STATE.RUN
+
+
+    def sigchld(self):
+        assert self.__state == self.STATE.RUN
+        
 
 
 class Processes:
