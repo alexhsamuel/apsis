@@ -4,9 +4,11 @@ import os
 from   pathlib import Path
 import sanic
 import sanic.response
+import signal
 import time
 
 from   .api import API
+from   .processes import Processes
 
 #-------------------------------------------------------------------------------
 
@@ -51,8 +53,11 @@ def main():
     parser.add_argument(
         "--debug", action="store_true", default=False,
         help="run in debug mode")
+    # FIXME: Can't use localhost on OSX, where it resolves to an IPV6 address,
+    # until we pick up this Sanic fix:
+    # https://github.com/channelcat/sanic/pull/1053
     parser.add_argument(
-        "--host", metavar="HOST", default="localhost",
+        "--host", metavar="HOST", default="127.0.0.1",
         help="server host address")
     parser.add_argument(
         "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
@@ -66,12 +71,16 @@ def main():
         parser.error(f"state directory {args.dir} exists")
     os.mkdir(args.dir, mode=0o700)
     
+    app.processes = Processes(args.dir)
+    signal.signal(signal.SIGCHLD, app.processes.sigchld)
+
     # FIXME: auto_reload added to sanic after 0.7.
     app.run(
         host    =args.host,
         port    =args.port,
         debug   =args.debug,
     )
+    # FIXME: Kill and clean up procs on shutdown.
 
 
 if __name__ == "__main__":
