@@ -18,21 +18,18 @@ log = logging.getLogger(__name__)
 MAX_EXC_SIZE = 1048576
 
 def start(argv, cwd, env, stdin_fd, out_fd):
-    # Cribbed from subprocess.Popen._execute_child() (POSIX version).
-
+    """
+    Starts a program in a subprocess.
+    """
+    argv = [ str(a) for a in argv ]
     executable = argv[0]
 
-    # For transferring possible exec failure from child to parent.
-    # Data format: "exception name:hex errno:description"
-    # Pickle is not used; it is complex and involves memory allocation.
+    # Logic copied from subprocess.Popen._execute_child() (POSIX version).
+
+    # Pipe for transferring exec failure from child to parent, in format
+    # "exception name:hex errno:description".
     err_read, err_write = os.pipe()
-    # err_write must not be in the standard io 0, 1, or 2 fd range.
-    low_fds_to_close = []
-    while err_write < 3:
-        low_fds_to_close.append(err_write)
-        err_write = os.dup(err_write)
-    for low_fd in low_fds_to_close:
-        os.close(low_fd)
+    assert err_write >= 3
 
     try:
         try:
@@ -307,6 +304,13 @@ class Processes:
 
     def __getitem__(self, proc_id):
         return self.__procs[proc_id]
+
+
+    def __delitem__(self, proc_id):
+        proc = self.__procs.pop(proc_id)
+        if proc.proc_dir is not None:
+            proc.proc_dir.clean()
+            proc.proc_dir = None
 
 
     def __iter__(self):

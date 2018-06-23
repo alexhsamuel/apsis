@@ -65,7 +65,7 @@ async def processes_post(req):
         return json_rsp({"error": str(exc)}, 400)
     else:
         return json_rsp({"process": proc_to_jso(proc)}, 201)
-    
+
 
 @API.route("/processes/<proc_id>", methods={"GET"})
 async def process_get(req, proc_id):
@@ -89,3 +89,9 @@ async def process_get_output(req, proc_id):
         return sanic.response.raw(data, status=200)
 
     
+@API.route("/processes/<proc_id>", methods={"DELETE"})
+async def process_delete(req, proc_id):
+    del req.app.processes[proc_id]
+    return json_rsp({}, 200)
+
+
