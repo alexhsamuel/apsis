@@ -6,7 +6,7 @@ CXX 	    	= c++ -std=c++11
 CPPFLAGS    	= -I $(shell pwd)
 CXXFLAGS    	= -Werror -Wall -Wextra -g
 
-SOURCES		= $(wildcard *.cc) # $(wildcard cron/*.cc)
+SOURCES		= $(wildcard *.cc)
 DEPS	    	= $(SOURCES:.cc=.dd)
 OBJS	    	= $(SOURCES:.cc=.o)
 LIB 	    	= libsched.a
