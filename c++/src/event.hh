@@ -2,6 +2,7 @@
 #define __EVENT_HH__
 
 #include <deque>
+#include <functional>
 #include <list>
 #include <map>
 #include <memory>
