@@ -90,7 +90,7 @@ async def process_signal(req, proc_id, signum):
 @API.route("/processes/<proc_id>", methods={"DELETE"})
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
-    shutdown = len(req.app.processes) == 0
+    shutdown = req.app.config.auto_shutdown and len(req.app.processes) == 0
     if shutdown:
         req.app.add_task(req.app.stop())
     return response({"shutdown": shutdown})

@@ -63,6 +63,9 @@ def main():
         "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
         help="server port")
     parser.add_argument(
+        "--no-shutdown", action="store_true", default=False,
+        help="don't shut down automatically after last process")
+    parser.add_argument(
         "dir", metavar="DIR", type=Path,
         help="state directory")
     args = parser.parse_args()
@@ -70,6 +73,8 @@ def main():
     if args.dir.exists():
         parser.error(f"state directory {args.dir} exists")
     os.mkdir(args.dir, mode=0o700)
+
+    app.config.auto_shutdown = not args.no_shutdown
 
     app.processes = Processes(args.dir)
     signal.signal(signal.SIGCHLD, app.processes.sigchld)
