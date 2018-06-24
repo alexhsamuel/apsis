@@ -49,8 +49,8 @@ def exception(request, exception):
 
 @API.route("/processes", methods={"GET"})
 async def processes_get(req):
-    return json_rsp(
-        {"processes": [ proc_to_jso(p) for p in req.app.processes ]})
+    procs = req.app.processes
+    return json_rsp({"processes": [ proc_to_jso(p) for p in procs ]})
 
 
 @API.route("/processes", methods={"POST"})
@@ -61,39 +61,34 @@ async def processes_post(req):
     env     = prog.get("env", None)
     stdin   = prog.get("stdin", None)
 
-    try:
-        proc = req.app.processes.start(argv, cwd, env, stdin)
-    except Exception as exc:
-        return json_rsp({"error": str(exc)}, 400)
-    else:
-        return json_rsp({"process": proc_to_jso(proc)}, 201)
+    proc = req.app.processes.start(argv, cwd, env, stdin)
+    return json_rsp({"process": proc_to_jso(proc)}, 201)
 
 
 @API.route("/processes/<proc_id>", methods={"GET"})
 async def process_get(req, proc_id):
-    try:
-        proc = req.app.processes[proc_id]
-    except KeyError:
-        return json_rsp({"error": f"proc_id {proc_id} not found"}, 404)
-    else:
-        return json_rsp({"process": proc_to_jso(proc)}, 200)
+    proc = req.app.processes[proc_id]
+    return json_rsp({"process": proc_to_jso(proc)})
 
     
 @API.route("/processes/<proc_id>/output", methods={"GET"})
 async def process_get_output(req, proc_id):
-    try:
-        proc = req.app.processes[proc_id]
-    except KeyError:
-        return json_rsp({"error": f"proc_id {proc_id} not found"}, 404)
-    else:
-        with open(proc.proc_dir.out_path, "rb") as file:
-            data = file.read()
-        return sanic.response.raw(data, status=200)
+    proc = req.app.processes[proc_id]
+    with open(proc.proc_dir.out_path, "rb") as file:
+        # FIXME: Stream it?
+        data = file.read()
+    return sanic.response.raw(data, status=200)
 
     
+@API.route("/processes/<proc_id>/signal/<signum:int>", methods={"PUT"})
+async def process_signal(req, proc_id, signum):
+    req.app.processes.kill(proc_id, signum)
+    return json_rsp({})
+
+
 @API.route("/processes/<proc_id>", methods={"DELETE"})
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
-    return json_rsp({}, 200)
+    return json_rsp({})
 
 

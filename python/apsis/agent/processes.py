@@ -309,11 +309,17 @@ class Processes:
 
 
     def __getitem__(self, proc_id):
-        return self.__procs[proc_id]
+        try:
+            return self.__procs[proc_id]
+        except KeyError:
+            raise LookupError(f"proc_id not found: {proc_id}")
 
 
     def __delitem__(self, proc_id):
-        proc = self.__procs.pop(proc_id)
+        try:
+            proc = self.__procs.pop(proc_id)
+        except KeyError:
+            raise LookupError(f"proc_id not found: {proc_id}")
         if proc.proc_dir is not None:
             proc.proc_dir.clean()
             proc.proc_dir = None
@@ -321,6 +327,15 @@ class Processes:
 
     def __iter__(self):
         return iter(self.__procs.values())
+
+
+    def kill(self, proc_id, signum):
+        proc = self[proc_id]
+        if proc.pid is None:
+            raise RuntimeError(f"proc {proc_id} is not running")
+        else:
+            log.info(f"signalling child: pid={proc.pid} signum={signum}")
+            os.kill(proc.pid, signum)
 
 
 
