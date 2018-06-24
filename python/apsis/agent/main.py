@@ -70,7 +70,7 @@ def main():
     if args.dir.exists():
         parser.error(f"state directory {args.dir} exists")
     os.mkdir(args.dir, mode=0o700)
-    
+
     app.processes = Processes(args.dir)
     signal.signal(signal.SIGCHLD, app.processes.sigchld)
 

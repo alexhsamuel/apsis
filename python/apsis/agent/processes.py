@@ -12,7 +12,7 @@ import signal
 from   subprocess import SubprocessError
 import tempfile
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("processes")
 
 #-------------------------------------------------------------------------------
 

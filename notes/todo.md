@@ -60,11 +60,11 @@ cron
 
 # agent
 
-- agent shuts down after last process deleted
 - explicit shutdown API entry point
 - agent kills children and removes directory when shut down
 - agent runs on named pipe only, or local TCP with access control
 - redirect agent log file
 - daemonize agent
 - command/API for starting (if necessary) and connecting to agent
+- document it
 

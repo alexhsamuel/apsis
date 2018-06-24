@@ -4,7 +4,7 @@ from   pathlib import Path
 import sanic
 import traceback
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("api")
 
 #-------------------------------------------------------------------------------
 
@@ -44,7 +44,7 @@ API = sanic.Blueprint("v1")
 
 @API.exception(Exception)
 def exception(request, exception):
-    log.error(traceback.format_exc())
+    log.error("exception:\n" + traceback.format_exc().rstrip())
     return response({"error": str(exception)}, 500)
 
 
@@ -90,6 +90,9 @@ async def process_signal(req, proc_id, signum):
 @API.route("/processes/<proc_id>", methods={"DELETE"})
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
-    return response({})
+    shutdown = len(req.app.processes) == 0
+    if shutdown:
+        req.app.add_task(req.app.stop())
+    return response({"shutdown": shutdown})
 
 
