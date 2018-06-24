@@ -2,6 +2,7 @@ import json
 import logging
 from   pathlib import Path
 import sanic
+import traceback
 
 log = logging.getLogger(__name__)
 
@@ -9,9 +10,8 @@ log = logging.getLogger(__name__)
 
 def response(jso, status=200):
     jso["status"] = status
-    data = json.dumps(jso, indent=2).encode("utf-8")
     return sanic.response.raw(
-        data, 
+        json.dumps(jso, indent=2).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         status=status,
     )
@@ -44,6 +44,7 @@ API = sanic.Blueprint("v1")
 
 @API.exception(Exception)
 def exception(request, exception):
+    log.error(traceback.format_exc())
     return response({"error": str(exception)}, 500)
 
 

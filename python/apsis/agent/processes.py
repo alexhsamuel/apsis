@@ -273,6 +273,36 @@ class Processes:
         return proc
 
 
+    def reap(self) -> bool:
+        """
+        Reaps one completed child process, if available.
+
+        :return:
+          True if a process was reaped.
+        """
+        try:
+            pid, status, rusage = os.wait4(
+                -1, os.WNOHANG | os.WUNTRACED | os.WCONTINUED)
+        except ChildProcessError as exc:
+            if exc.errno == errno.ECHILD:
+                # No child ready to be reaped.
+                return False
+            else:
+                raise
+        log.info(f"reaped child: pid={pid} status={status}")
+
+        try:
+            proc = self.__pids.pop(pid)
+        except KeyError:
+            log.error(f"reaped unknown child pid {pid}")
+            return True
+
+        proc.end_time = ora.now()
+        proc.status = status
+        proc.rusage = rusage
+        return True
+
+
     def sigchld(self, signum, frame):
         """
         SIGCHLD handler.
@@ -283,29 +313,14 @@ class Processes:
         log.info("SIGCHLD")
 
         count = 0
-        while True:
-            try:
-                pid, status, rusage = os.wait4(
-                    -1, os.WNOHANG | os.WUNTRACED | os.WCONTINUED)
-            except ChildProcessError as exc:
-                if exc.errno == errno.ECHILD:
-                    # No child ready to be reaped.
-                    break
+        while self.reap():
             count += 1
-            log.info(f"reaped child: pid={pid} status={status}")
-
-            try:
-                proc = self.__pids.pop(pid)
-            except KeyError:
-                log.error(f"reaped unknown child pid {pid}")
-                continue
-
-            proc.end_time = ora.now()
-            proc.status = status
-            proc.rusage = rusage
-
         if count == 0:
-            log.error("SIGCHLD but no child ready")
+            log.error("SIGCHLD but no child reaped")
+
+
+    def __len__(self):
+        return len(self.__procs)
 
 
     def __getitem__(self, proc_id):
