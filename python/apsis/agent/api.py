@@ -7,7 +7,7 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-def json_rsp(jso, status=200):
+def response(jso, status=200):
     jso["status"] = status
     data = json.dumps(jso, indent=2).encode("utf-8")
     return sanic.response.raw(
@@ -44,13 +44,13 @@ API = sanic.Blueprint("v1")
 
 @API.exception(Exception)
 def exception(request, exception):
-    return json_rsp({"error": str(exception)}, 500)
+    return response({"error": str(exception)}, 500)
 
 
 @API.route("/processes", methods={"GET"})
 async def processes_get(req):
     procs = req.app.processes
-    return json_rsp({"processes": [ proc_to_jso(p) for p in procs ]})
+    return response({"processes": [ proc_to_jso(p) for p in procs ]})
 
 
 @API.route("/processes", methods={"POST"})
@@ -62,13 +62,13 @@ async def processes_post(req):
     stdin   = prog.get("stdin", None)
 
     proc = req.app.processes.start(argv, cwd, env, stdin)
-    return json_rsp({"process": proc_to_jso(proc)}, 201)
+    return response({"process": proc_to_jso(proc)}, 201)
 
 
 @API.route("/processes/<proc_id>", methods={"GET"})
 async def process_get(req, proc_id):
     proc = req.app.processes[proc_id]
-    return json_rsp({"process": proc_to_jso(proc)})
+    return response({"process": proc_to_jso(proc)})
 
     
 @API.route("/processes/<proc_id>/output", methods={"GET"})
@@ -83,12 +83,12 @@ async def process_get_output(req, proc_id):
 @API.route("/processes/<proc_id>/signal/<signum:int>", methods={"PUT"})
 async def process_signal(req, proc_id, signum):
     req.app.processes.kill(proc_id, signum)
-    return json_rsp({})
+    return response({})
 
 
 @API.route("/processes/<proc_id>", methods={"DELETE"})
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
-    return json_rsp({})
+    return response({})
 
 
