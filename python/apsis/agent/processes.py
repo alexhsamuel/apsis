@@ -330,6 +330,12 @@ class Processes:
 
 
     def kill(self, proc_id, signum):
+        """
+        Sends signal `signum` to the process.
+
+        :raise RuntimeError:
+          The process is not running.
+        """
         proc = self[proc_id]
         if proc.pid is None:
             raise RuntimeError(f"proc {proc_id} is not running")
