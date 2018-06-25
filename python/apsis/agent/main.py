@@ -1,10 +1,14 @@
 import argparse
+from   contextlib import suppress
+import getpass
 import logging
 import os
 from   pathlib import Path
 import sanic
 import sanic.response
 import signal
+import sys
+import tempfile
 import time
 
 from   .api import API
@@ -23,31 +27,85 @@ LOG_FORMATTER = logging.Formatter(
 LOG_FORMATTER.converter = time.gmtime  # FIXME: Use ora.
 
 SANIC_LOG_CONFIG = {
-    **sanic.log.LOGGING_CONFIG_DEFAULTS,
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "loggers": {
+        "root": {
+            "level": "INFO",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "sanic.error": {
+            "level": "INFO",
+            "handlers": ["error_console"],
+            "propagate": False,
+            "qualname": "sanic.error",
+        },
+
+        "sanic.access": {
+            "level": "INFO",
+            "handlers": ["access_console"],
+            "propagate": False,
+            "qualname": "sanic.access",
+        }
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "generic",
+            "stream": sys.stderr,
+        },
+        "error_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "generic",
+            "stream": sys.stderr,
+        },
+        "access_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "access",
+            "stream": sys.stderr,
+        },
+    },
+
     "formatters": {
         "generic": {
-            "class": "logging.Formatter",
             "format": "%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
             "datefmt": LOG_FORMATTER.datefmt,
+            "class": "logging.Formatter"
         },
         "access": {
-            "class": "logging.Formatter",
             "format": "%(asctime)s %(name)-18s [%(levelname)-7s] [%(host)s %(request)s %(status)d %(byte)d] %(message)s",
             "datefmt": LOG_FORMATTER.datefmt,
+            "class": "logging.Formatter"
         },
-    }
-}    
+    },
+
+}
     
 #-------------------------------------------------------------------------------
 
-app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
-app.config.LOGO = None
+def get_state_dir():
+    """
+    Returns the state directory path, creating it if necessary.
+    """
+    user = getpass.getuser()
+    path = Path(tempfile.gettempdir()) / f"apsis-agent-{user}"
+    with suppress(FileExistsError):
+        os.mkdir(path, mode=0o700)
+    os.chmod(path, 0o700)
+    return path
 
-app.blueprint(API, url_prefix="/api/v1")
+
+#-------------------------------------------------------------------------------
 
 def main():
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger().handlers[0].formatter = LOG_FORMATTER
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
+        datefmt="%H:%M:%S"
+    )
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -63,21 +121,39 @@ def main():
         "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
         help="server port")
     parser.add_argument(
+        "--no-daemon", action="store_true", default=False,
+        help="don't daemonize; run in foreground")
+    parser.add_argument(
         "--no-shutdown", action="store_true", default=False,
         help="don't shut down automatically after last process")
-    parser.add_argument(
-        "dir", metavar="DIR", type=Path,
-        help="state directory")
     args = parser.parse_args()
+    daemon = not args.no_daemon
 
-    if args.dir.exists():
-        parser.error(f"state directory {args.dir} exists")
-    os.mkdir(args.dir, mode=0o700)
+    state_dir = get_state_dir()
+    logging.info(f"using dir: {state_dir}")
+
+    app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
+    app.config.LOGO = None
 
     app.config.auto_shutdown = not args.no_shutdown
-
-    app.processes = Processes(args.dir)
+    app.processes = Processes(state_dir)
     signal.signal(signal.SIGCHLD, app.processes.sigchld)
+
+    app.blueprint(API, url_prefix="/api/v1")
+
+    if daemon:
+        # Redirect stdin from /dev/null.
+        null_fd = os.open("/dev/null", os.O_RDONLY)
+        os.dup2(null_fd, 0)
+        os.close(null_fd)
+
+        # Redirect stdout/stderr to a log file.
+        log_path = state_dir / "log"
+        logging.info(f"redirecting logs: {log_path}")
+        log_fd = os.open(log_path, os.O_CREAT | os.O_APPEND | os.O_WRONLY)
+        os.dup2(log_fd, 1)
+        os.dup2(log_fd, 2)
+        os.close(log_fd)
 
     # FIXME: auto_reload added to sanic after 0.7.
     app.run(
