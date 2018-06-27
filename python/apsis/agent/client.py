@@ -10,27 +10,43 @@ log = logging.getLogger("agent.client")
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Make async.
-
 class Agent:
 
+    # Number of attempts to start the agent, if a request fails.
     START_TRIES = 3
-    START_DELAY = 1
+
+    # Delay after starting the agent before a request is sent.
+    START_DELAY = 0.25
 
     def __init__(self, host="localhost", port=DEFAULT_PORT):
         self.url = f"http://{host}:{port}/api/v1"
 
 
     async def start(self):
+        """
+        Attempts to start the agent.
+        """
         # FIXME: Start async.
         log.info("starting agent")
         subprocess.run([sys.executable, "-m", "apsis.agent.main"])
 
 
     async def request(self, method, endpoint, data=None):
+        """
+        Performs an HTTP request to the agent.
+
+        :param method:
+          HTTP method.
+        :param endpoint:
+          API endpoint path fragment.
+        :param data:
+          Payload data, to send as JSON.
+        """
         url = self.url + endpoint
         log.debug(f"{method} {url}")
         
+        # FIXME: Use async requests.
+
         for i in range(self.START_TRIES + 1):
             try:
                 rsp = requests.request(method, url, json=data)
