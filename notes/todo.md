@@ -62,7 +62,6 @@ cron
 
 - serve HTTPS
 - access control with secret
-- explicit shutdown API entry point
 - agent kills children and removes directory when shut down
 - command/API for starting (if necessary) and connecting to agent
 - document it

@@ -96,3 +96,12 @@ async def process_delete(req, proc_id):
     return response({"shutdown": shutdown})
 
 
+@API.route("/shutdown", methods={"POST"})
+async def process_shutdown(req):
+    # FIXME: Add a query option to kill and shut down, or another endpoint.
+    shutdown = len(req.app.processes) == 0
+    if shutdown:
+        req.app.add_task(req.app.stop())
+    return response({"shutdown": shutdown})
+
+
