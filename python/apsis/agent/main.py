@@ -11,6 +11,8 @@ import sys
 import tempfile
 import time
 
+from   ..lib.daemon import daemonize
+from   ..lib.pidfile import PidFile, PidExistsError
 from   .api import API
 from   .processes import Processes
 
@@ -127,41 +129,37 @@ def main():
         "--no-shutdown", action="store_true", default=False,
         help="don't shut down automatically after last process")
     args = parser.parse_args()
-    daemon = not args.no_daemon
 
     state_dir = get_state_dir()
     logging.info(f"using dir: {state_dir}")
 
-    app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
-    app.config.LOGO = None
+    try:
+        with PidFile(state_dir / "pid") as pid_file:
+            app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
+            app.config.LOGO = None
 
-    app.config.auto_shutdown = not args.no_shutdown
-    app.processes = Processes(state_dir)
-    signal.signal(signal.SIGCHLD, app.processes.sigchld)
+            app.config.auto_shutdown = not args.no_shutdown
+            app.processes = Processes(state_dir)
+            signal.signal(signal.SIGCHLD, app.processes.sigchld)
 
-    app.blueprint(API, url_prefix="/api/v1")
+            app.blueprint(API, url_prefix="/api/v1")
 
-    if daemon:
-        # Redirect stdin from /dev/null.
-        null_fd = os.open("/dev/null", os.O_RDONLY)
-        os.dup2(null_fd, 0)
-        os.close(null_fd)
+            if not args.no_daemon:
+                daemonize(state_dir / "log")
 
-        # Redirect stdout/stderr to a log file.
-        log_path = state_dir / "log"
-        logging.info(f"redirecting logs: {log_path}")
-        log_fd = os.open(log_path, os.O_CREAT | os.O_APPEND | os.O_WRONLY)
-        os.dup2(log_fd, 1)
-        os.dup2(log_fd, 2)
-        os.close(log_fd)
+            pid_file.write()
 
-    # FIXME: auto_reload added to sanic after 0.7.
-    app.run(
-        host    =args.host,
-        port    =args.port,
-        debug   =args.debug,
-    )
-    # FIXME: Kill and clean up procs on shutdown.
+            # FIXME: auto_reload added to sanic after 0.7.
+            logging.info("running app")
+            app.run(
+                host    =args.host,
+                port    =args.port,
+                debug   =args.debug,
+            )
+            # FIXME: Kill and clean up procs on shutdown.
+    except PidExistsError as exc:
+        logging.critical(exc)
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

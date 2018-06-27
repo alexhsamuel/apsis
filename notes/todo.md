@@ -60,7 +60,6 @@ cron
 
 # agent
 
-- daemonize
 - serve HTTPS
 - access control with secret
 - explicit shutdown API entry point
