@@ -219,6 +219,7 @@ class Processes:
             self.proc_id    = proc_id
             self.state      = None
             self.proc_dir   = None
+            self.progam     = None
             self.pid        = None
             self.exception  = None
             self.status     = None
@@ -239,6 +240,12 @@ class Processes:
         Starts a process.
         """
         proc = self.Process(next(self.__proc_ids))
+        proc.program = {
+            "argv"  : [ str(a) for a in argv ],  # FIXME?
+            "cwd"   : str(cwd),
+            "env"   : env,
+            "stdin" : stdin,
+        }
         path = Path(tempfile.mkdtemp(dir=self.__dir_path))
         proc_dir = ProcessDir(path)
 
@@ -339,9 +346,15 @@ class Processes:
 
     def __delitem__(self, proc_id):
         try:
-            proc = self.__procs.pop(proc_id)
+            proc = self.__procs[proc_id]
         except KeyError:
             raise LookupError(f"proc_id not found: {proc_id}")
+
+        if proc.state == "run":
+            raise RuntimeError(f"process is running: {proc_id}")
+
+        self.__procs.pop(proc_id)
+
         if proc.proc_dir is not None:
             proc.proc_dir.clean()
             proc.proc_dir = None

@@ -34,6 +34,7 @@ def proc_to_jso(proc):
     return {
         "proc_id"   : proc.proc_id,
         "state"     : proc.state,
+        "program"   : proc.program,
         "pid"       : proc.pid,
         "exception" : str(proc.exception),
         "status"    : proc.status,
@@ -46,6 +47,12 @@ def proc_to_jso(proc):
 #-------------------------------------------------------------------------------
 
 API = sanic.Blueprint("v1")
+
+@API.exception(RuntimeError)
+def runtime_error(request, exception):
+    log.error("exception:\n" + traceback.format_exc().rstrip())
+    return response({"error": str(exception)}, 400)
+
 
 @API.exception(Exception)
 def exception(request, exception):

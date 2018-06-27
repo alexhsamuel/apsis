@@ -56,33 +56,75 @@ class Agent:
                 else:
                     await self.start()
                     await asyncio.sleep(self.START_DELAY)
+            else:
+                break
 
         log.debug(f"{method} {url} -> {rsp.status_code}")
-        rsp.raise_for_status()
-        return rsp.json()
+        if 400 <= rsp.status_code < 500:
+            raise RuntimeError(rsp.json()["error"])
+        else:
+            rsp.raise_for_status()
+
+        return rsp
 
 
     async def get_processes(self):
-        return (await self.request("GET", "/processes"))["processes"]
+        return (await self.request("GET", "/processes")).json()["processes"]
 
 
     async def start_process(self, argv, cwd="/", env=None, stdin=None):
+        """
+        Starts a process.
+
+        :return:
+          The new process, which will either be in state "rub" or "err".
+        """
         return (await self.request(
             "POST", "/processes", data={
-                "argv"  : [ str(a) for a in argv ],
-                "cwd"   : str(argv),
-                "env"   : env,
-                "stdin" : stdin,
+                "program": {
+                    "argv"  : [ str(a) for a in argv ],
+                    "cwd"   : str(cwd),
+                    "env"   : env,
+                    "stdin" : stdin,
+                },
             })
-        )["process"]
+        ).json()["process"]
 
 
     async def get_process(self, proc_id):
-        return (await self.request("GET", f"/processes/{proc_id}"))["process"]
+        """
+        Returns inuformation about a process.
+        """
+        return (
+            await self.request("GET", f"/processes/{proc_id}")
+        ).json()["process"]
+
+
+    async def get_process_output(self, proc_id):
+        """
+        Returns process output.
+        """
+        return (
+            await self.request("GET", f"/processes/{proc_id}/output")
+        ).json()["process"]
 
 
     async def del_process(self, proc_id):
-        return (await self.request("DELETE", f"/processes/{proc_id}"))["shutdown"]
+        """
+        Deltes a process.  The process may not be running.
+        """
+        return (
+            await self.request("DELETE", f"/processes/{proc_id}")
+        ).json()["shutdown"]
+
+
+    async def shut_down(self):
+        """
+        Shuts down an agent, if there are no remaining processes.
+        """
+        return (
+            await self.request("POST", f"/shutdown")
+        ).json()["shutdown"]
 
 
 
