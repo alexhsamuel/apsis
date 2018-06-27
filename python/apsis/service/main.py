@@ -114,8 +114,11 @@ def main():
     parser.add_argument(
         "--debug", action="store_true", default=False,
         help="run in debug mode")
+    # FIXME: Can't use localhost on OSX, where it resolves to an IPV6 address,
+    # until we pick up this Sanic fix:
+    # https://github.com/channelcat/sanic/pull/1053
     parser.add_argument(
-        "--host", metavar="HOST", default="localhost",
+        "--host", metavar="HOST", default="127.0.0.1",
         help="server host address")
     parser.add_argument(
         "--port", metavar="PORT", type=int, default=DEFAULT_PORT,

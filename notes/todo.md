@@ -60,6 +60,8 @@ cron
 
 # agent
 
+- randomize proc_id
+- break up `execute()` so that start, wait/update are separated
 - async requests in agent client
 - serve HTTPS
 - access control with secret

@@ -106,7 +106,7 @@ class Agent:
         """
         return (
             await self.request("GET", f"/processes/{proc_id}/output")
-        ).json()["process"]
+        ).content
 
 
     async def del_process(self, proc_id):
