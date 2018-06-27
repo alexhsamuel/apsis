@@ -60,6 +60,7 @@ cron
 
 # agent
 
+- async requests in agent client
 - serve HTTPS
 - access control with secret
 - agent kills children and removes directory when shut down
