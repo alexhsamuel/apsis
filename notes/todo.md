@@ -60,9 +60,6 @@ cron
 
 # agent
 
-- kill endpoint
-- kill all endpoint
-- delete all endpoint
 - serve HTTPS
 - access control with secret
 - agent kills children and removes directory when shut down

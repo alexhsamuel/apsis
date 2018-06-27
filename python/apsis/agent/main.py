@@ -133,16 +133,15 @@ def main():
     state_dir = get_state_dir()
     logging.info(f"using dir: {state_dir}")
 
+    app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
+    app.config.LOGO = None
+    app.config.auto_shutdown = not args.no_shutdown
+    app.blueprint(API, url_prefix="/api/v1")
+
     try:
         with PidFile(state_dir / "pid") as pid_file:
-            app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
-            app.config.LOGO = None
-
-            app.config.auto_shutdown = not args.no_shutdown
             app.processes = Processes(state_dir)
             signal.signal(signal.SIGCHLD, app.processes.sigchld)
-
-            app.blueprint(API, url_prefix="/api/v1")
 
             if not args.no_daemon:
                 daemonize(state_dir / "log")
@@ -157,6 +156,7 @@ def main():
                 debug   =args.debug,
             )
             # FIXME: Kill and clean up procs on shutdown.
+
     except PidExistsError as exc:
         logging.critical(exc)
         raise SystemExit(2)

@@ -80,7 +80,7 @@ async def process_get_output(req, proc_id):
         data = file.read()
     return sanic.response.raw(data, status=200)
 
-    
+
 @API.route("/processes/<proc_id>/signal/<signum:int>", methods={"PUT"})
 async def process_signal(req, proc_id, signum):
     req.app.processes.kill(proc_id, signum)

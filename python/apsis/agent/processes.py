@@ -289,6 +289,9 @@ class Processes:
                 return False
             else:
                 raise
+        if pid == 0:
+            # No child ready to be reaped.
+            return False
         log.info(f"reaped child: pid={pid} status={status}")
 
         try:
@@ -297,6 +300,10 @@ class Processes:
             log.error(f"reaped unknown child pid {pid}")
             return True
 
+        if proc.state != "run":
+            log.error(f"reaped child in state {proc.state}")
+
+        proc.state = "done"
         proc.end_time = ora.now()
         proc.status = status
         proc.rusage = rusage
