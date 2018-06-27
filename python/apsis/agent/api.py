@@ -18,10 +18,15 @@ def response(jso, status=200):
 
 
 def rusage_to_jso(rusage):
-    return { 
+    usage = { 
         n: getattr(rusage, n) 
         for n in dir(rusage)
         if n.startswith("ru_")
+    }
+    # Round times to ns, to avoid silly rounding issues.
+    return {
+        n: round(v, 9) if isinstance(v, float) else v
+        for n, v in usage.items()
     }
 
 
