@@ -11,14 +11,13 @@ import sys
 import tempfile
 import time
 
+from   . import DEFAULT_PORT
 from   ..lib.daemon import daemonize
 from   ..lib.pidfile import PidFile, PidExistsError
 from   .api import API
 from   .processes import Processes
 
 #-------------------------------------------------------------------------------
-
-DEFAULT_PORT = 5001
 
 # FIXME: Deduplicate with apsis.service.main.
 
