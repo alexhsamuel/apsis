@@ -71,7 +71,7 @@ def jso_to_schedule(jso):
 def jso_to_program(jso):
     if isinstance(jso, str):
         return program.ShellCommandProgram(jso)
-    elif isinstance(jos, list):
+    elif isinstance(jso, list):
         return program.ProcessProgram(jso)
     else:
         # FIXME: Support something reasonable here.
@@ -99,7 +99,7 @@ def jso_to_job(jso, job_id):
 
 
 def load_yaml(file, job_id):
-    jso = yaml.load(file)
+    jso = yaml.YAML(typ="safe").load(file)
     return jso_to_job(jso, job_id)
 
 
