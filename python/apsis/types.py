@@ -1,4 +1,4 @@
-from   ora import now
+from   ora import now, Time
 
 from   .lib.py import format_ctor, tupleize
 
@@ -114,5 +114,49 @@ class Run:
 
     def __str__(self):
         return f"{self.run_id} of {self.inst}"
+
+
+    def set_running(self, meta={}):
+        """
+        Transitions to "running" state: started.
+        """
+        assert self.state == self.SCHEDULED
+        self.times["running"] = str(now())
+        self.meta.update(meta)
+        self.state = self.RUNNING
+
+
+    def set_error(self, msg, meta={}):
+        """
+        Transitions to "error" state: encountered an error while starting.
+        """
+        assert self.state == self.SCHEDULED
+        self.times["error"] = str(now())
+        self.meta.update(meta)
+        self.meta["error"] = msg  # FIXME: Not in meta?
+        self.state = self.ERROR
+
+
+    def set_success(self, output, meta={}):
+        """
+        Transitions to "success" state: completed successfully.
+        """
+        assert self.state == self.RUNNING
+        time = now()
+        self.times["success"] = str(time)
+        self.output = output
+        self.state = self.SUCCESS
+
+        
+    def set_failure(self, msg, output, meta={}):
+        """
+        Transitions to "success" state: failed.
+        """
+        assert self.state == self.RUNNING
+        time = now()
+        self.times["failure"] = str(time)
+        self.output = output
+        self.state = self.FAILURE
+        
 
 

@@ -177,33 +177,30 @@ class AgentProgram:
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
-        execute_time = now()
-        run.times["start"] = str(execute_time)
-
-        # FIXME: Factor out.
-        run.meta.update({
+        # FIXME: Factor out, or move to agent.
+        meta = {
             "command"   : " ".join( shlex.quote(a) for a in argv ),
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
-        })
+        }
 
-        proc    = await self.__agent.start_process(argv)
+        proc = await self.__agent.start_process(argv)
 
         state   = proc["state"]
         if state == "run":
-            run.meta["proc_id"] = proc["proc_id"]
-            run.meta["pid"] = proc["pid"]
             # FIXME: Propagate times from agent.
-            run.times["running"] = str(now())
-            run.state = Run.RUNNING
+            run.set_running(meta={
+                "proc_id"   : proc["proc_id"],
+                "pid"       : proc["pid"],
+                **meta
+            })
             await update_run(run)
 
             # FIXME: Do this asynchronously from the agent instead.
             await self.wait(run, proc, update_run)
 
         elif state == "err":
-            run.meta["error"] = proc.get("exception", "program error")
-            run.state = Run.ERROR
+            run.set_error(proc.get("exception", "program error"))
             await update_run(run)
 
         else:
@@ -212,10 +209,9 @@ class AgentProgram:
         
 
     async def wait(self, run, proc, update_run):
+        proc_id = proc["proc_id"]
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
-
-        proc_id = proc["proc_id"]
         while True:
             log.debug(f"polling proc: {proc_id}")
             proc = await self.__agent.get_process(proc_id)
@@ -224,19 +220,19 @@ class AgentProgram:
             else:
                 break
 
-        run.meta["return_code"] = status = proc["status"]  # FIXME: Translate?
-        run.output = await self.__agent.get_process_output(proc_id)
-        await self.__agent.del_process(proc_id)
-        done_time = now()
+        status = proc["status"]
+        meta = {
+            "return_code"   : status,
+        }            
+        output = await self.__agent.get_process_output(proc_id)
 
         if status == 0:
-            run.state = Run.SUCCESS
+            run.set_success(output, meta)
         else:
-            run.state = Run.FAILURE
-            run.meta["failure"] = f"program failed: status {status}"
-        run.times["done"] = str(done_time)
-        run.meta["elapsed"] = done_time - Time(run.times["running"])
+            run.set_failure(f"program failed: status {status}", output, meta)
         await update_run(run)
+
+        await self.__agent.del_process(proc_id)
 
 
 
