@@ -4,7 +4,8 @@ For development/testing purposes.
 
 #-------------------------------------------------------------------------------
 
-from   ora import *
+import math
+from   ora import now
 from   ora.calendar import WeekdayCalendar
 
 from   .program import *
@@ -12,6 +13,9 @@ from   .schedule import *
 from   .types import *
 
 #-------------------------------------------------------------------------------
+
+time = now()
+time = time.MIN + math.ceil(time - time.MIN)
 
 JOBS = [ 
     # Job(
@@ -40,7 +44,7 @@ JOBS = [
     Job(
         "hot-test",
         "time",
-        ExplicitSchedule([ now() + 1 + i * 10 for i in range(12) ]),
+        ExplicitSchedule([ time + 1 + i * 10 for i in range(12) ]),
         AgentShellProgram("$HOME/dev/apsis/jobs/test0 hot-test"),
     ),        
 ]
