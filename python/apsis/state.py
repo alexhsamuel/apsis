@@ -247,10 +247,10 @@ def schedule_docket_handler(docket, time):
     delay = next_time - time
     log.info(
         "docket_handler scheduled for {}, delay {}".format(next_time, delay))
-    loop = asyncio.get_event_loop()
-    # FIXME: Is this really how to schedule a coroutine in the future?
-    handle = loop.call_later(
-        delay, asyncio.ensure_future, docket_handler(docket))
+
+    # We schedle with call_later() to obtain a handle that we can later cancel.
+    handle = asyncio.get_event_loop().call_later(
+        delay, lambda: asyncio.async(docket_handler(docket)))
 
     # Store the callback handle and the time at which it is scheduled.
     docket.handle = next_time, handle
@@ -299,6 +299,14 @@ def extract_current_runs(docket, time: Time):
     return docket.pop(interval)
 
 
+def bind_program(program, run):
+    return program.bind({
+        "run_id": run.run_id,
+        "job_id": run.inst.job_id,
+        **run.inst.args,
+    })
+
+
 def run_current(docket, time):
     """
     Executes runs in `docket` that are current at `time`.
@@ -310,49 +318,6 @@ def run_current(docket, time):
         job = STATE.get_job(run.inst.job_id)
         program = bind_program(job.program, run)
         asyncio.ensure_future(program.start(run, STATE.runs.update))
-        # asyncio.ensure_future(execute(run, job))
-
-
-#-------------------------------------------------------------------------------
-
-def bind_program(program, run):
-    return program.bind({
-        "run_id": run.run_id,
-        "job_id": run.inst.job_id,
-        **run.inst.args,
-    })
-
-
-# FIXME: Remove?
-async def execute(run, job):
-    # Start it.
-    program = bind_program(job.program, run)
-    execute_time = now()
-    run.times["execute"] = str(execute_time)
-    log.info(f"executing: {run.run_id}")
-    try:
-        proc = await program.start(run)
-    except ProgramError as exc:
-        run.meta["error"] = str(exc)
-        run.state = Run.ERROR
-    else:
-        # Started successfully.
-        run.state = Run.RUNNING
-        run.times["running"] = str(now())
-        await STATE.runs.update(run)
-        # Wait for it to complete.
-        try:
-            await program.wait(run, proc)
-        except ProgramFailure as exc:
-            run.meta["failure"] = str(exc)
-            run.state = Run.FAILURE
-        else:
-            run.state = Run.SUCCESS
-    log.info(f"done: {run.run_id} {run.state}")
-    done_time = now()
-    run.times["done"] = str(done_time)
-    run.meta["elapsed"] = done_time - execute_time
-    await STATE.runs.update(run)
 
 
 #-------------------------------------------------------------------------------
