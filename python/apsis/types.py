@@ -1,4 +1,4 @@
-from   ora import Time
+from   ora import now
 
 from   .lib.py import format_ctor, tupleize
 
@@ -114,6 +114,5 @@ class Run:
 
     def __str__(self):
         return f"{self.run_id} of {self.inst}"
-
 
 

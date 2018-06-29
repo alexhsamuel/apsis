@@ -269,6 +269,7 @@ async def cancel(run):
     await STATE.runs.update(run)
 
 
+# FIXME: Rename to schedule_now() or something like that.
 async def start(run):
     assert run.state == run.SCHEDULED
     STATE.docket.reschedule_now(run)
@@ -307,7 +308,9 @@ def run_current(docket, time):
     for run in runs:
         # FIXME: Is this the right way to get the job?
         job = STATE.get_job(run.inst.job_id)
-        asyncio.ensure_future(execute(run, job))
+        program = bind_program(job.program, run)
+        asyncio.ensure_future(program.start(run, STATE.runs.update))
+        # asyncio.ensure_future(execute(run, job))
 
 
 #-------------------------------------------------------------------------------
@@ -320,6 +323,7 @@ def bind_program(program, run):
     })
 
 
+# FIXME: Remove?
 async def execute(run, job):
     # Start it.
     program = bind_program(job.program, run)

@@ -2,11 +2,12 @@ import asyncio
 import getpass
 import jinja2
 import logging
+from   ora import now, Time
 from   pathlib import Path
 import shlex
 import socket
 
-from   .types import ProgramError, ProgramFailure
+from   .types import ProgramError, ProgramFailure, Run
 from   .agent.client import Agent
 
 log = logging.getLogger(__name__)
@@ -25,7 +26,35 @@ def join_args(argv):
 
 #-------------------------------------------------------------------------------
 
+class Program:
+
+    def bind(self, args):
+        """
+        Returns a new program with parameters bound to `args`.
+        """
+
+
+    async def start(self, run, update_run):
+        """
+        Starts the run.
+
+        Updates `run` in place.
+
+        :param run:
+          The run to run.
+        :param update_run:
+          Coro to update run state.
+        :postcondition:
+          The run state is "running" or "error".
+        """
+
+
+
+#-------------------------------------------------------------------------------
+
 class ShellMixin:
+    # Note: This mixin must precede the main program class in bases, as its
+    # __init__ needs to go first.
 
     def __init__(self, command, **kw_args):
         # FIXME: Which shell?
@@ -144,29 +173,45 @@ class AgentProgram:
         }
 
 
-    async def start(self, run):
+    async def start(self, run, update_run):
         argv = self.__argv
-        log.info(f"starting: {join_args(argv)}")
+        log.info(f"starting program: {join_args(argv)}")
 
+        execute_time = now()
+        run.times["start"] = str(execute_time)
+
+        # FIXME: Factor out.
         run.meta.update({
             "command"   : " ".join( shlex.quote(a) for a in argv ),
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
         })
 
-        process = await self.__agent.start_process(argv)
-        state   = process["state"]
+        proc    = await self.__agent.start_process(argv)
+
+        state   = proc["state"]
         if state == "run":
-            run.meta["proc_id"] = process["proc_id"]
-            run.meta["pid"] = process["pid"]
-            return process
+            run.meta["proc_id"] = proc["proc_id"]
+            run.meta["pid"] = proc["pid"]
+            # FIXME: Propagate times from agent.
+            run.times["running"] = str(now())
+            run.state = Run.RUNNING
+            await update_run(run)
+
+            # FIXME: Do this asynchronously from the agent instead.
+            await self.wait(run, proc, update_run)
+
         elif state == "err":
-            raise ProgramError(process.get("exception", "program error"))
+            run.meta["error"] = proc.get("exception", "program error")
+            run.state = Run.ERROR
+            await update_run(run)
+
         else:
             assert False, f"unknown state: {state}"
+
         
 
-    async def wait(self, run, proc):
+    async def wait(self, run, proc, update_run):
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
 
@@ -182,10 +227,16 @@ class AgentProgram:
         run.meta["return_code"] = status = proc["status"]  # FIXME: Translate?
         run.output = await self.__agent.get_process_output(proc_id)
         await self.__agent.del_process(proc_id)
+        done_time = now()
+
         if status == 0:
-            return
+            run.state = Run.SUCCESS
         else:
-            raise ProgramFailure(f"program failed: status {status}")
+            run.state = Run.FAILURE
+            run.meta["failure"] = f"program failed: status {status}"
+        run.times["done"] = str(done_time)
+        run.meta["elapsed"] = done_time - Time(run.times["running"])
+        await update_run(run)
 
 
 
