@@ -1,4 +1,4 @@
-from   ora import now, Time
+from   ora import now
 
 from   .lib.py import format_ctor, tupleize
 

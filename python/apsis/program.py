@@ -99,15 +99,15 @@ class ProcessProgram:
         }
 
 
-    async def start(self, run):
+    async def start(self, run, update_run):
         argv = self.__argv
-        log.info(f"starting: {join_args(argv)}")
+        log.info(f"starting program: {join_args(argv)}")
 
-        run.meta.update({
+        meta = {
             "command"   : " ".join( shlex.quote(a) for a in argv ),
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
-        })
+        }
 
         try:
             with open("/dev/null") as stdin:
@@ -119,27 +119,35 @@ class ProcessProgram:
                     stdout      =asyncio.subprocess.PIPE,
                     stderr      =asyncio.subprocess.STDOUT,
                 )
+
         except OSError as exc:
-            raise ProgramError(str(exc))
+            # Error starting.
+            run.set_error(str(exc), meta)
+            update_run(run)
+
         else:
-            run.meta["pid"] = proc.pid
-            return proc
+            # Started successfully.
+            run.set_running(meta={"pid": proc.pid, **meta})
+            update_run(run)
+            await self.wait(run, proc, update_run)
 
 
-    async def wait(self, run, proc):
+    async def wait(self, run, proc, update_run):
         stdout, stderr  = await proc.communicate()
         return_code     = proc.returncode
+        log.info(f"complete with return code {return_code}")
+        meta = {
+            "return_code": return_code,
+        }
 
         assert stderr is None
         assert return_code is not None
 
-        run.meta["return_code"] = return_code
-        run.output = stdout
-        log.info(f"complete with return code {return_code}")
         if return_code == 0:
-            return
+            run.set_success(stdout, meta)
         else:
-            raise ProgramFailure("return code = {}".format(return_code))
+            run.set_failure(f"program failed: status {return_code}", stdout, meta)
+        await update_run(run)
 
 
 
@@ -200,7 +208,7 @@ class AgentProgram:
             await self.wait(run, proc, update_run)
 
         elif state == "err":
-            run.set_error(proc.get("exception", "program error"))
+            run.set_error(proc.get("exception", "program error"), meta)
             await update_run(run)
 
         else:
