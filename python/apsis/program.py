@@ -123,12 +123,12 @@ class ProcessProgram:
         except OSError as exc:
             # Error starting.
             run.set_error(str(exc), meta)
-            update_run(run)
+            await update_run(run)
 
         else:
             # Started successfully.
             run.set_running(meta={"pid": proc.pid, **meta})
-            update_run(run)
+            await update_run(run)
             await self.wait(run, proc, update_run)
 
 
