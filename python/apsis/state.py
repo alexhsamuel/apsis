@@ -155,7 +155,7 @@ class Apsis:
         # Create the new run.
         new_run = Run(run.inst)
         self.runs.add(new_run)
-        self.__start(new_run)
+        await self.__start(new_run)
         return new_run
 
 
