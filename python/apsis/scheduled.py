@@ -8,14 +8,8 @@ log = logging.getLogger(__name__)
 # Helpers
 
 def at(time, coro):
-    async def delayed():
-        delay = time - now()
-        if delay > 0:
-            # FIXME: Maybe we shouldn't sleep all at once, so we can cancel
-            # this without waiting for the schedule time?
-            await asyncio.sleep(delay)
-        await coro
-    return asyncio.ensure_future(delayed())
+    return asyncio.get_event_loop().call_later(
+        time - now(), lambda: asyncio.ensure_future(coro))
 
 
 #-------------------------------------------------------------------------------
@@ -51,6 +45,5 @@ class ScheduledRuns:
         log.info(f"unschedule: {run}")
         task = self.__runs.pop(run)
         task.cancel()
-
 
 
