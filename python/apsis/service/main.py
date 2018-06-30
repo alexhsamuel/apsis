@@ -4,6 +4,7 @@ import logging
 from   pathlib import Path
 import sanic
 import sanic.response
+import sanic.router
 import time
 import websockets
 
@@ -80,7 +81,24 @@ SANIC_LOG_CONFIG = {
     }
 }    
     
-app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
+#-------------------------------------------------------------------------------
+
+class Router(sanic.router.Router):
+    """
+    Extended router that supports a catch-all path for missing pages.
+    """
+
+    CATCH_ALL_PATH = "/static/index.html"
+
+    def get(self, request):
+        try:
+            return super().get(request)
+        except sanic.router.NotFound:
+            return self._get(self.CATCH_ALL_PATH, request.method, "")
+
+
+
+app = sanic.Sanic(__name__, router=Router(), log_config=SANIC_LOG_CONFIG)
 app.config.LOGO = None
 
 top_dir = Path(__file__).parents[3]
