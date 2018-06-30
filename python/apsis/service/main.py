@@ -114,8 +114,11 @@ def main():
     parser.add_argument(
         "--debug", action="store_true", default=False,
         help="run in debug mode")
+    # FIXME: Can't use localhost on OSX, where it resolves to an IPV6 address,
+    # until we pick up this Sanic fix:
+    # https://github.com/channelcat/sanic/pull/1053
     parser.add_argument(
-        "--host", metavar="HOST", default="localhost",
+        "--host", metavar="HOST", default="127.0.0.1",
         help="server host address")
     parser.add_argument(
         "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
@@ -130,8 +133,8 @@ def main():
         "jobs", metavar="JOBS", 
         help="job directory")
     parser.add_argument(
-        "state", metavar="STATE-DB",
-        help="state database")
+        "db", metavar="DATABASE",
+        help="database file")
     args = parser.parse_args()
 
     if args.crontab:
@@ -139,16 +142,17 @@ def main():
     else:
         jobs = repo.load_yaml_files(args.jobs)
 
-    state.STATE = (state.State.create if args.create else state.State.open)(args.state)
+    db = state.DB(args.db, args.create)
+    state.STATE = state.Apsis(db)
 
+    # FIXME: Cumbersome.
     for j in jobs:
         state.STATE.add_job(j)
 
     for job in testing.JOBS:
         state.STATE.add_job(job)
 
-    # Kick off the docket.
-    state.start_docket(state.STATE.docket)
+    loop = asyncio.get_event_loop()
 
     server = app.create_server(
         host        =args.host,
@@ -158,7 +162,9 @@ def main():
     app.running = True
     asyncio.ensure_future(server)
 
-    loop = asyncio.get_event_loop()
+    # Set up the scheduler.
+    asyncio.ensure_future(state.STATE.scheduler_loop())
+
     try:
         loop.run_forever()
     except KeyboardInterrupt:

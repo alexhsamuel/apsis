@@ -51,12 +51,12 @@ def run_to_jso(app, run):
     actions = {}
 
     # Start a scheduled job now.
-    if run.state == run.SCHEDULED:
+    if run.state == run.STATE.scheduled:
         actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
         actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
 
     # Retry is available if the run didn't succeed.
-    if run.state in {run.FAILURE, run.ERROR}:
+    if run.state in {run.STATE.failure, run.STATE.error}:
         actions["retry"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
     return {
@@ -65,8 +65,8 @@ def run_to_jso(app, run):
         "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
-        "state"         : run.state,
-        "times"         : run.times,
+        "state"         : run.state.name,
+        "times"         : { n: str(t) for n, t in run.times.items() },
         "meta"          : run.meta,
         "actions"       : actions,
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
@@ -76,7 +76,7 @@ def run_to_jso(app, run):
 
 def runs_to_jso(app, when, runs):
     return {
-        "when": when,
+        "when": str(when),
         "runs": { r.run_id: run_to_jso(app, r) for r in runs },
     }
 
@@ -113,14 +113,14 @@ async def jobs(request):
 
 @API.route("/runs/<run_id>")
 async def run(request, run_id):
-    when, run = await get_state().runs.get(run_id)
+    when, run = get_state().runs.get(run_id)
     jso = runs_to_jso(request.app, when, [run])
     return response_json(jso)
 
 
 @API.route("/runs/<run_id>/output")
 async def run_output(request, run_id):
-    when, run = await get_state().runs.get(run_id)
+    when, run = get_state().runs.get(run_id)
     if run.output is None:
         raise sanic.exceptions.NotFound("no output")
     else:
@@ -129,13 +129,13 @@ async def run_output(request, run_id):
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
 async def run_state_get(request, run_id):
-    _, run = await get_state().runs.get(run_id)
+    _, run = get_state().runs.get(run_id)
     return response_json({"state": run.state})
 
 
 @API.route("/runs/<run_id>/cancel", methods={"POST"})
 async def run_cancel(request, run_id):
-    _, run = await get_state().runs.get(run_id)
+    _, run = get_state().runs.get(run_id)
     if run.state == run.SCHEDULED:
         await state.cancel(run)
         return response_json({})
@@ -144,12 +144,11 @@ async def run_cancel(request, run_id):
             error="invalid run state for cancel",
             state=run.state
         ), status=409)
-    
 
 
 @API.route("/runs/<run_id>/start", methods={"POST"})
 async def run_start(request, run_id):
-    _, run = await get_state().runs.get(run_id)
+    _, run = get_state().runs.get(run_id)
     if run.state == run.SCHEDULED:
         await state.start(run)
         return response_json({})
@@ -162,7 +161,7 @@ async def run_start(request, run_id):
 
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
 async def run_rerun(request, run_id):
-    _, run = await get_state().runs.get(run_id)
+    _, run = get_state().runs.get(run_id)
     if run.state in {run.FAILURE, run.ERROR, run.SUCCESS}:
         when, new_run = await state.rerun(run)
         jso = runs_to_jso(request.app, when, [new_run])
