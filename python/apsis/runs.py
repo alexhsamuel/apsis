@@ -204,7 +204,7 @@ class Run:
             meta=meta, times=times, run_state=run_state)
 
 
-    def to_error(self, message, *, meta={}, times={}, output={}):
+    def to_error(self, message, *, meta={}, times={}, output=None):
         if self.state not in {Run.STATE.new, Run.STATE.scheduled}:
             raise TransitionError(self.state, Run.STATE.error)
         self.__transition(
@@ -212,7 +212,7 @@ class Run:
             message=message, meta=meta, times=times, output=output)
 
 
-    def to_success(self, *, meta={}, times={}, output={}):
+    def to_success(self, *, meta={}, times={}, output=None):
         if self.state != Run.STATE.running:
             raise TransitionError(self.state, Run.STATE.success)
         self.__transition(
@@ -220,7 +220,7 @@ class Run:
             meta=meta, times=times, output=output)
 
         
-    def to_failure(self, message, *, meta={}, times={}, output={}):
+    def to_failure(self, message, *, meta={}, times={}, output=None):
         if self.state != Run.STATE.running:
             raise TransitionError(self.state, Run.STATE.failure)
         self.__transition(

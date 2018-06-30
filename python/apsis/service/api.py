@@ -1,5 +1,6 @@
 import json  # FIXME: ujson?
 import logging
+import ora
 import sanic
 import websockets
 
@@ -66,6 +67,7 @@ def run_to_jso(app, run):
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state.name,
+        "message"       : run.message,
         "times"         : { n: str(t) for n, t in run.times.items() },
         "meta"          : run.meta,
         "actions"       : actions,
@@ -135,7 +137,8 @@ async def run_state_get(request, run_id):
 
 @API.route("/runs/<run_id>/cancel", methods={"POST"})
 async def run_cancel(request, run_id):
-    _, run = get_state().runs.get(run_id)
+    state = get_state()
+    _, run = state.runs.get(run_id)
     if run.state == run.STATE.scheduled:
         await state.cancel(run)
         return response_json({})
@@ -148,7 +151,8 @@ async def run_cancel(request, run_id):
 
 @API.route("/runs/<run_id>/start", methods={"POST"})
 async def run_start(request, run_id):
-    _, run = get_state().runs.get(run_id)
+    state = get_state()
+    _, run = state.runs.get(run_id)
     if run.state == run.STATE.scheduled:
         await state.start(run)
         return response_json({})
@@ -161,10 +165,11 @@ async def run_start(request, run_id):
 
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
 async def run_rerun(request, run_id):
-    _, run = get_state().runs.get(run_id)
+    state = get_state()
+    _, run = state.runs.get(run_id)
     if run.state in {run.STATE.failure, run.STATE.error, run.STATE.success}:
-        when, new_run = await state.rerun(run)
-        jso = runs_to_jso(request.app, when, [new_run])
+        new_run = await state.rerun(run)
+        jso = runs_to_jso(request.app, ora.now(), [new_run])
         return response_json(jso)
     else:
         return response_json(dict(

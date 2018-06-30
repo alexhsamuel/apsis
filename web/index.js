@@ -300,6 +300,11 @@ const run_template = `
       <dt>state</dt>
       <dd>{{ run.state }}</dd>
 
+      <template v-if="run.message">
+        <dt>message</dt>
+        <dd>{{ run.message }}</dd>
+      </template>
+
       <dt>times</dt>
       <dd>
         <dl>

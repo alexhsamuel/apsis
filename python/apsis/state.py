@@ -153,16 +153,10 @@ class Apsis:
         # FIXME: Not updated, so broken.
 
         # Create the new run.
-        new_run = Run(next(STATE.runs.run_ids), run.inst)
-        new_run.state = Run.STATE.scheduled
-        when = STATE.runs.add(new_run)
-
-        # Schedule it for immediate execution.
-        STATE.docket.push_now([new_run])
-
-        return when, new_run
-
-
+        new_run = Run(run.inst)
+        self.runs.add(new_run)
+        self.__start(new_run)
+        return new_run
 
 
 
