@@ -239,7 +239,7 @@ class AgentProgram:
             run.to_success(output=output, meta=meta)
         else:
             message = f"program failed: status {status}"
-            log.info(f"program faile: {run.run_id}: {message}")
+            log.info(f"program failed: {run.run_id}: {message}")
             run.to_failure(message, output=output, meta=meta)
 
         # Clean up the process from the agent.
