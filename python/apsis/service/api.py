@@ -136,7 +136,7 @@ async def run_state_get(request, run_id):
 @API.route("/runs/<run_id>/cancel", methods={"POST"})
 async def run_cancel(request, run_id):
     _, run = get_state().runs.get(run_id)
-    if run.state == run.SCHEDULED:
+    if run.state == run.STATE.scheduled:
         await state.cancel(run)
         return response_json({})
     else:
@@ -149,7 +149,7 @@ async def run_cancel(request, run_id):
 @API.route("/runs/<run_id>/start", methods={"POST"})
 async def run_start(request, run_id):
     _, run = get_state().runs.get(run_id)
-    if run.state == run.SCHEDULED:
+    if run.state == run.STATE.scheduled:
         await state.start(run)
         return response_json({})
     else:
@@ -162,7 +162,7 @@ async def run_start(request, run_id):
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
 async def run_rerun(request, run_id):
     _, run = get_state().runs.get(run_id)
-    if run.state in {run.FAILURE, run.ERROR, run.SUCCESS}:
+    if run.state in {run.STATE.failure, run.STATE.error, run.STATE.success}:
         when, new_run = await state.rerun(run)
         jso = runs_to_jso(request.app, when, [new_run])
         return response_json(jso)
