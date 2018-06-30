@@ -203,7 +203,7 @@ const runs_template = `
         <td class="rt">{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
         <td>
           <action-url
-            v-for="(url, action) in run.actions" :url="url" :action="action">
+            v-for="(url, action) in run.actions" :url="url" :action="action" :key="action">
           </action-url>
         </td>
       </tr>
