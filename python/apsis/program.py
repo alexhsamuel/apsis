@@ -2,12 +2,10 @@ import asyncio
 import getpass
 import jinja2
 import logging
-from   ora import now, Time
 from   pathlib import Path
 import shlex
 import socket
 
-from   .types import ProgramError, ProgramFailure, Run
 from   .agent.client import Agent
 
 log = logging.getLogger(__name__)
@@ -181,7 +179,7 @@ class AgentProgram:
         }
 
 
-    async def start(self, run, update_run):
+    async def start(self, run):
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
@@ -194,30 +192,32 @@ class AgentProgram:
 
         proc = await self.__agent.start_process(argv)
 
-        state   = proc["state"]
+        state = proc["state"]
         if state == "run":
-            # FIXME: Propagate times from agent.
-            run.set_running(meta={
+            log.info(f"program running: {run.run_id} as {proc['proc_id']}")
+
+            run_state = {
                 "proc_id"   : proc["proc_id"],
                 "pid"       : proc["pid"],
-                **meta
-            })
-            await update_run(run)
+            }
+            # FIXME: Propagate times from agent.
+            run.to_running(run_state, meta=meta)
 
             # FIXME: Do this asynchronously from the agent instead.
-            await self.wait(run, proc, update_run)
+            await self.wait(run)
 
         elif state == "err":
-            run.set_error(proc.get("exception", "program error"), meta)
-            await update_run(run)
+            message = proc.get("exception", "program error")
+            log.info(f"program error: {run.run_id}: {message}")
+            run.to_error(message, meta=meta)
 
         else:
             assert False, f"unknown state: {state}"
-
         
 
-    async def wait(self, run, proc, update_run):
-        proc_id = proc["proc_id"]
+    async def wait(self, run):
+        proc_id = run.run_state["proc_id"]
+
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
         while True:
@@ -235,11 +235,14 @@ class AgentProgram:
         output = await self.__agent.get_process_output(proc_id)
 
         if status == 0:
-            run.set_success(output, meta)
+            log.info(f"program success: {run.run_id}")
+            run.to_success(output=output, meta=meta)
         else:
-            run.set_failure(f"program failed: status {status}", output, meta)
-        await update_run(run)
+            message = f"program failed: status {status}"
+            log.info(f"program faile: {run.run_id}: {message}")
+            run.to_failure(message, output=output, meta=meta)
 
+        # Clean up the process from the agent.
         await self.__agent.del_process(proc_id)
 
 

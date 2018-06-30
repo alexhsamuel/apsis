@@ -20,6 +20,7 @@
 - live notification from agent instead of polling
 - restore running jobs and other state from DB on restart
 - associate reruns with previous runs
+- change output to a dict
 
 
 ### Retries
