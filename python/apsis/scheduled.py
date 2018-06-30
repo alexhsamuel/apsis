@@ -15,7 +15,7 @@ def at(time, coro):
             # this without waiting for the schedule time?
             await asyncio.sleep(delay)
         await coro
-    return asyncio.get_event_loop().create_task(delayed())
+    return asyncio.ensure_future(delayed())
 
 
 #-------------------------------------------------------------------------------
