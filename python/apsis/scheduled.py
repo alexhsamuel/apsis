@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 
 def at(time, coro):
     return asyncio.get_event_loop().call_later(
-        time - now(), lambda: asyncio.ensure_future(coro))
+        time - now(), lambda: asyncio.ensure_future(coro()))
 
 
 #-------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ class ScheduledRuns:
 
     def schedule(self, time, run):
         log.info(f"schedule: {time} {run.run_id}")
-        task = at(time, self.__ready(run))
+        task = at(time, lambda: self.__ready(run))
         self.__runs[run] = task
 
 
