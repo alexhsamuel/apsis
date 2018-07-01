@@ -54,11 +54,22 @@ JOBS = [
 def get_test_job(num):
     start = now()
     start = start.MIN + math.ceil(start - start.MIN)
-    times = [ start + random.randint(-60, 900) for _ in range(num) ]
+
+    schedules = [
+        ExplicitSchedule(
+            times   =[ 
+                start + random.randint(-60, 900) 
+                for _ in range(random.randint(1, 8))
+            ],
+            args    ={"j": j},
+        )
+        for j in range(num)
+    ]
+
     return Job(
-        "hot",
-        "time",
-        ExplicitSchedule(times),
+        f"hot",
+        "j",
+        schedules,
         AgentShellProgram("$HOME/dev/apsis/jobs/test0 hot-test"),
     )
 

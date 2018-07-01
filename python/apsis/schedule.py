@@ -82,8 +82,9 @@ class DailySchedule:
 
 class ExplicitSchedule:
 
-    def __init__(self, times):
+    def __init__(self, times, args={}):
         self.__times = tuple(sorted( Time(t) for t in times ))
+        self.__args = args
 
 
     def __str__(self):
@@ -97,7 +98,7 @@ class ExplicitSchedule:
 
 
     def bind_args(self, params, sched_time):
-        args = {}
+        args = dict(self.__args)
         if "time" in params:
             args["time"] = lib.format_time(sched_time)
         return args
@@ -106,6 +107,7 @@ class ExplicitSchedule:
     def to_jso(self):
         return {
             "times" : [ str(t) for t in self.__times ],
+            "args"  : self.__args,
         }
 
 
