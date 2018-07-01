@@ -51,7 +51,7 @@ def run_to_jso(app, run):
         actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
 
     # Retry is available if the run didn't succeed.
-    if run.state in {run.STATE.failure, run.STATE.error}:
+    if run.state in {run.STATE.failure, run.STATE.error} and run.rerun is None:
         actions["retry"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
     return {
@@ -67,6 +67,8 @@ def run_to_jso(app, run):
         "actions"       : actions,
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
         "output_len"    :  None if run.output is None else len(run.output),
+        "rerun"         : run.rerun,
+        "rerun_of"      : run.rerun_of,
     }
 
 

@@ -137,7 +137,7 @@ class Run:
 
     # FIXME: Make the attributes read-only.
 
-    def __init__(self, inst):
+    def __init__(self, inst, *, rerun_of=None):
         self.inst       = inst
 
         self.__runs     = None
@@ -145,11 +145,18 @@ class Run:
         self.timestamp  = None
 
         self.state      = Run.STATE.new
+        # Timestamps for state transitions and other events.
         self.times      = {}
+        # Additional run metadata.
         self.meta       = {}
+        # User message explaining the state.
         self.message    = None
         self.output     = None
+        # State information specific to the program, for a running run.
         self.run_state  = None
+
+        self.rerun      = None
+        self.rerun_of   = rerun_of
 
 
     def __hash__(self):
@@ -170,6 +177,8 @@ class Run:
 
     def __transition(self, state, *, meta={}, times={}, 
                      output=None, message=None, run_state=None):
+        log.debug(f"transition {self.run_id}: {self.state.name} → {state.name}")
+
         timestamp = now()
 
         # Update attributes.
@@ -226,6 +235,15 @@ class Run:
         self.__transition(
             Run.STATE.failure, 
             message=message, meta=meta, times=times, output=output)
+
+
+    def set_rerun(self, run_id):
+        """
+        Sets `run_id` as the rerun of this run.
+        """
+        assert self.rerun is None
+        self.rerun = run_id
+        self.__runs.update(self, now())
 
 
 

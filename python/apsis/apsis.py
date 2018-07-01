@@ -114,11 +114,11 @@ class Apsis:
 
 
     async def rerun(self, run):
-        # FIXME: Not updated, so broken.
-
         # Create the new run.
-        new_run = Run(run.inst)
+        log.info(f"rerun: {run.run_id}")
+        new_run = Run(run.inst, rerun_of=run.run_id)
         self.runs.add(new_run)
+        run.set_rerun(new_run.run_id)
         await self.__start(new_run)
         return new_run
 
