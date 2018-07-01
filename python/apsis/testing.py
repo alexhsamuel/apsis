@@ -6,11 +6,12 @@ For development/testing purposes.
 
 import math
 from   ora import now
-from   ora.calendar import WeekdayCalendar
+# from   ora.calendar import WeekdayCalendar
+import random
 
-from   .program import *
-from   .schedule import *
-from   .types import *
+from   .program import AgentShellProgram
+from   .schedule import ExplicitSchedule
+from   .types import Job
 
 #-------------------------------------------------------------------------------
 
@@ -48,5 +49,17 @@ JOBS = [
         AgentShellProgram("$HOME/dev/apsis/jobs/test0 hot-test"),
     ),        
 ]
+
+
+def get_test_job(num):
+    start = now()
+    start = start.MIN + math.ceil(start - start.MIN)
+    times = [ start + random.randint(-60, 900) for _ in range(num) ]
+    return Job(
+        "hot",
+        "time",
+        ExplicitSchedule(times),
+        AgentShellProgram("$HOME/dev/apsis/jobs/test0 hot-test"),
+    )
 
 
