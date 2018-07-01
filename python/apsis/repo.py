@@ -12,7 +12,7 @@ import ruamel_yaml as yaml
 
 from   . import program
 from   .schedule import DailySchedule
-from   .types import Job
+from   .jobs import Job
 
 #-------------------------------------------------------------------------------
 

@@ -2,8 +2,8 @@ import asyncio
 import logging
 from   ora import Time, now
 
+from   .jobs import Job
 from   .lib import Interval
-from   .types import Job
 from   .runs import Run, Runs
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler

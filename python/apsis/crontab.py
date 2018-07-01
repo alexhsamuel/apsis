@@ -1,11 +1,14 @@
-from   ora import *
+import logging
+from   ora import Time, Sun, TimeZone
 from   pathlib import Path
 import re
 
+from   .jobs import Job
 from   .lib import format_time
 from   .lib import py
 from   .program import ShellCommandProgram
-from   .types import Job
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -115,7 +118,7 @@ class CrontabSchedule:
 
 
     def __repr__(self):
-        return py.format_ctor(self, tz, fields)
+        return py.format_ctor(self, self.tz, self.fields)
 
 
     def __str__(self):

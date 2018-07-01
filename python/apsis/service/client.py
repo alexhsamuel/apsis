@@ -3,7 +3,6 @@ import requests
 from   urllib.parse import urlunparse
 
 import apsis.service
-import apsis.types
 
 #-------------------------------------------------------------------------------
 

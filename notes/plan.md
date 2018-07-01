@@ -52,6 +52,7 @@
 
 - a proper Vue setup with npm and or similar
 - choose a javascript timestamp library
+- put elapsed time in UI
 
 
 ### CLUI

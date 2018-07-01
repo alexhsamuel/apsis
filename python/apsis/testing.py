@@ -12,7 +12,7 @@ import random
 from   .program import AgentShellProgram
 from   .runs import Run, Instance
 from   .schedule import ExplicitSchedule
-from   .types import Job
+from   .jobs import Job
 
 #-------------------------------------------------------------------------------
 
