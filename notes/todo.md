@@ -1,3 +1,13 @@
+# Current
+
+- [ ] store scheduling horizon (`Scheduler.__stop`) in DB
+- [ ] restore running runs from DB
+- [ ] test restarting apsis
+- [ ] convert test runs to API
+
+
+# Old
+
 - Kill button for executing run.
 - Don't run a job when an inst has succeeded.
 - Don't run a job if another inst is running.
