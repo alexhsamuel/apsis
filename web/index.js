@@ -184,6 +184,7 @@ const runs_template = `
       <tr>
         <th>ID</th>
         <th>Job</th>
+        <th>Args</th>
         <th>State</th>
         <th>Schedule</th>
         <th>Start</th>
@@ -195,9 +196,10 @@ const runs_template = `
       <tr v-for="run in sorted" :key="run.run_id">
         <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
         <td class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
+        <td class="args">{{ arg_str(run.args) }}</td>
         <td>{{ run.state }}</td>
-        <td>{{ run.times.schedule || "" }}</td>
-        <td>{{ run.times.running || "" }}</td>
+        <td class="time">{{ run.times.schedule || "" }}</td>
+        <td class="time">{{ run.times.running || "" }}</td>
         <td class="rt">{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
         <td>
           <action-url
@@ -261,10 +263,20 @@ const Runs = Vue.component('runs', {
     sorted() {
       return _.flow(_.values, _.sortBy(r => r.times.schedule))(this.runs)
     },
+
   },
 
   methods: {
     format_elapsed,  // FIXME: Why do we need this?
+
+    // FIXME: Duplicated.
+    arg_str(args) {
+      return _.flow([
+        _.toPairs,
+        _.map(([k, v]) => k + "=" + v),
+        _.join(" ")
+      ])(args)
+    },
 
   },
 
