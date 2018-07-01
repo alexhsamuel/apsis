@@ -304,7 +304,6 @@ const run_template = `
     <div>
       <a class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</a>
       {{ arg_str }}
-      #{{ run.number }}
     </div>
     <dl>
       <dt>state</dt>
