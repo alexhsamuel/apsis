@@ -1,13 +1,10 @@
 import asyncio
 import logging
-from   pathlib import Path
 from   ora import Time, now
-import sqlalchemy as sa
 
 from   .lib import Interval
 from   .types import Job
 from   .runs import Run, Runs
-from   .rundb_sa import SQLAlchemyRunDB
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler
 
@@ -31,34 +28,6 @@ def bind_program(program, run):
         "job_id": run.inst.job_id,
         **run.inst.args,
     })
-
-
-#-------------------------------------------------------------------------------
-
-class DB:
-    """
-    A SQLite3 file containing persistent state.
-    """
-
-    def __init__(self, path, create=False):
-        path    = Path(path).absolute()
-        if create and path.exists():
-            raise FileExistsError(path)
-        if not create and not path.exists():
-            raise FileNotFoundError(path)
-
-        url     = self.__get_url(path)
-        engine  = sa.create_engine(url)
-        run_db  = SQLAlchemyRunDB(engine, create)
-
-        self.run_db = run_db
-
-
-    @classmethod
-    def __get_url(Class, path):
-        # For now, sqlite only.
-        return f"sqlite:///{path}"
-
 
 
 #-------------------------------------------------------------------------------

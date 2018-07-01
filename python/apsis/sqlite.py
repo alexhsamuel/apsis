@@ -1,7 +1,11 @@
-import datetime
+"""
+Persistent state stored in a sqlite file.
+"""
+
 import json
 import logging
 import ora
+from   pathlib import Path
 import sqlalchemy as sa
 
 from   .runs import Instance, Run
@@ -44,7 +48,9 @@ TBL_RUNS = sa.Table(
 )
 
 
-class SQLAlchemyRunDB:
+#-------------------------------------------------------------------------------
+
+class SqliteRunDB:
 
     def __init__(self, engine, create=False):
         self.__engine = engine
@@ -129,6 +135,33 @@ class SQLAlchemyRunDB:
             runs = list(self.__query_runs(conn, sa.and_(*where)))
         
         return runs
+
+
+
+#-------------------------------------------------------------------------------
+
+class SqliteDB:
+    """
+    A SQLite3 file containing persistent state.
+    """
+
+    def __init__(self, path, create=False):
+        path    = Path(path).absolute()
+        if create and path.exists():
+            raise FileExistsError(path)
+        if not create and not path.exists():
+            raise FileNotFoundError(path)
+
+        url     = self.__get_url(path)
+        engine  = sa.create_engine(url)
+        run_db  = SqliteRunDB(engine, create)
+
+        self.run_db = run_db
+
+
+    @classmethod
+    def __get_url(Class, path):
+        return f"sqlite:///{path}"
 
 
 

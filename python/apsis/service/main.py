@@ -11,7 +11,8 @@ import websockets
 from   . import api
 from   . import DEFAULT_PORT
 from   .. import crontab, repo, testing
-from   ..apsis import Apsis, DB
+from   ..apsis import Apsis
+from   ..sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
 
@@ -161,7 +162,7 @@ def main():
     else:
         jobs = repo.load_yaml_files(args.jobs)
 
-    db = DB(args.db, args.create)
+    db = SqliteDB(args.db, args.create)
     apsis = Apsis(db)
 
     # FIXME: Cumbersome.
