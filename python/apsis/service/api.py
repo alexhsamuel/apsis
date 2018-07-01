@@ -52,7 +52,7 @@ def run_to_jso(app, run):
 
     # Retry is available if the run didn't succeed.
     if run.state in {run.STATE.failure, run.STATE.error} and run.rerun is None:
-        actions["retry"] = app.url_for("v1.run_rerun", run_id=run.run_id)
+        actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
     return {
         "url"           : app.url_for("v1.run", run_id=run.run_id),

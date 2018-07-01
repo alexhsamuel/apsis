@@ -28,9 +28,7 @@ function format_elapsed(elapsed) {
 Vue.component('action-url', {
   props: ['action', 'url'],
   template: `
-    <span class="action" v-on:click="do_action(url)">
-      {{ action }}
-    </span>
+    <span class="action" v-on:click="do_action(url)">&nbsp;{{ action }}&nbsp;</span>
   `,
 
   methods: {
