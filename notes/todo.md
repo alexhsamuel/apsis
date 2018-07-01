@@ -2,6 +2,7 @@
 
 - [ ] store scheduling horizon (`Scheduler.__stop`) in DB
 - [ ] restore running runs from DB
+- [ ] sanity checker
 - [ ] test restarting apsis
 - [ ] convert test runs to API
 
