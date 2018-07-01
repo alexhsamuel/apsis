@@ -42,6 +42,9 @@
 - run filtering by time
 - job filtering by name
 
+- group reruns together
+
+- a proper Vue setup with npm and or similar
 - choose a javascript timestamp library
 
 

@@ -84,7 +84,7 @@ class Apsis:
 
         for time, run in runs:
             self.runs.add(run)
-            run.to_scheduled()
+            run.to_scheduled(times={"schedule": time})
             self.scheduled.schedule(time, run)
 
 

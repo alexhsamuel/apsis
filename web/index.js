@@ -196,7 +196,7 @@ const runs_template = `
         <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
         <td class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
         <td>{{ run.state }}</td>
-        <td>{{ run.times.scheduled || "" }}</td>
+        <td>{{ run.times.schedule || "" }}</td>
         <td>{{ run.times.running || "" }}</td>
         <td class="rt">{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
         <td>
