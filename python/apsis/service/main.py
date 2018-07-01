@@ -10,7 +10,8 @@ import websockets
 
 from   . import api
 from   . import DEFAULT_PORT
-from   .. import crontab, repo, state, testing
+from   .. import crontab, repo, testing
+from   ..apsis import Apsis, DB
 
 #-------------------------------------------------------------------------------
 
@@ -160,8 +161,8 @@ def main():
     else:
         jobs = repo.load_yaml_files(args.jobs)
 
-    db = state.DB(args.db, args.create)
-    apsis = state.Apsis(db)
+    db = DB(args.db, args.create)
+    apsis = Apsis(db)
 
     # FIXME: Cumbersome.
     for j in jobs:
