@@ -53,7 +53,6 @@
 
 ### Refactor
 
-- attach apsis object to app, intead of using a global
 - rename `state.py` to `apsis.py`
 - enapsulate job repo
 - shut down scheduler loop cleanly

@@ -161,14 +161,13 @@ def main():
         jobs = repo.load_yaml_files(args.jobs)
 
     db = state.DB(args.db, args.create)
-    state.STATE = state.Apsis(db)
+    apsis = state.Apsis(db)
 
     # FIXME: Cumbersome.
     for j in jobs:
-        state.STATE.add_job(j)
-
+        apsis.add_job(j)
     for job in testing.JOBS:
-        state.STATE.add_job(job)
+        apsis.add_job(job)
 
     loop = asyncio.get_event_loop()
 
@@ -177,11 +176,12 @@ def main():
         port        =args.port,
         debug       =args.debug,
     )
+    app.apsis = apsis
     app.running = True
     asyncio.ensure_future(server)
 
     # Set up the scheduler.
-    asyncio.ensure_future(state.STATE.scheduler_loop())
+    asyncio.ensure_future(apsis.scheduler_loop())
 
     try:
         loop.run_forever()

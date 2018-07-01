@@ -33,22 +33,12 @@ def bind_program(program, run):
     })
 
 
-def run_current(docket, time):
-    """
-    Executes runs in `docket` that are current at `time`.
-    """
-    # FIXME: Check if the docket is behind.
-    runs = extract_current_runs(docket, time)
-    for run in runs:
-        # FIXME: Is this the right way to get the job?
-        job = STATE.get_job(run.inst.job_id)
-        program = bind_program(job.program, run)
-        asyncio.ensure_future(program.start(run))
-
-
 #-------------------------------------------------------------------------------
 
 class DB:
+    """
+    A SQLite3 file containing persistent state.
+    """
 
     def __init__(self, path, create=False):
         path    = Path(path).absolute()
@@ -74,6 +64,9 @@ class DB:
 #-------------------------------------------------------------------------------
 
 class Apsis:
+    """
+    The gestalt scheduling application.
+    """
 
     def __init__(self, db):
         # FIXME: Back-populate runs?
@@ -85,6 +78,8 @@ class Apsis:
         self.scheduled = ScheduledRuns(self.__start)
         # FIXME: Restore scheduled runs from DB.
 
+
+    # --------------------------------------------------------------------------
 
     # FIXME: Encapsulate job stuff.
 
@@ -159,6 +154,4 @@ class Apsis:
         return new_run
 
 
-
-STATE = None
 
