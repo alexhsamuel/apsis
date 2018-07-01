@@ -163,15 +163,19 @@ async def run_start(request, run_id):
 async def run_rerun(request, run_id):
     state = request.app.apsis
     _, run = state.runs.get(run_id)
-    if run.state in {run.STATE.failure, run.STATE.error, run.STATE.success}:
-        new_run = await state.rerun(run)
-        jso = runs_to_jso(request.app, ora.now(), [new_run])
-        return response_json(jso)
-    else:
+    if run.state not in {run.STATE.failure, run.STATE.error, run.STATE.success}:
         return response_json(dict(
             error="invalid run state for rerun",
             state=run.state
         ), status=409)
+    elif run.rerun is not None:
+        return response_json(dict(
+            error="run has already been rerun"
+        ), status=400)
+    else:
+        new_run = await state.rerun(run)
+        jso = runs_to_jso(request.app, ora.now(), [new_run])
+        return response_json(jso)
 
 
 def _run_filter_for_query(args):
