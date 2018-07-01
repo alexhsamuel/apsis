@@ -1,0 +1,4 @@
+params: [j]
+schedule:
+program: $HOME/dev/apsis/jobs/test0 'j={{ j }}'
+
