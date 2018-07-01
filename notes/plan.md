@@ -9,6 +9,12 @@
 
 # Components
 
+### Jobs
+
+- factor out job repo
+- store transient jobs in the database (for at/cron/ad hoc runs)
+
+
 ### Scheduling
 
 - update calendar support for ora
@@ -64,7 +70,6 @@
 
 ### Refactor
 
-- enapsulate job repo
 - shut down scheduler loop cleanly
 
 
