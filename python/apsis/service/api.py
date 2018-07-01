@@ -14,6 +14,10 @@ def response_json(jso, status=200):
     return sanic.response.json(jso, status=status, indent=1, sort_keys=True)
 
 
+def time_to_jso(time):
+    return format(time, "%.i")
+
+
 #-------------------------------------------------------------------------------
 
 def program_to_jso(app, program):
@@ -62,7 +66,7 @@ def run_to_jso(app, run):
         "run_id"        : run.run_id,
         "state"         : run.state.name,
         "message"       : run.message,
-        "times"         : { n: str(t) for n, t in run.times.items() },
+        "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
         "meta"          : run.meta,
         "actions"       : actions,
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
@@ -74,7 +78,7 @@ def run_to_jso(app, run):
 
 def runs_to_jso(app, when, runs):
     return {
-        "when": str(when),
+        "when": time_to_jso(when),
         "runs": { r.run_id: run_to_jso(app, r) for r in runs },
     }
 
