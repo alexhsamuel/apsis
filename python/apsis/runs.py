@@ -92,10 +92,12 @@ class Runs:
         return now(), run
 
 
-    def query(self, *, job_id=None, since=None, until=None):
+    def query(self, *, job_id=None, state=None, since=None, until=None):
         runs = self.__runs.values()
         if job_id is not None:
             runs = ( r for r in runs if r.inst.job_id == job_id )
+        if state is not None:
+            runs = ( r for r in runs if r.state == state )
         if since is not None:
             runs = ( r for r in runs if r.timestamp >= since )
         if until is not None:

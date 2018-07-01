@@ -70,9 +70,9 @@ def jso_to_schedule(jso):
 
 def jso_to_program(jso):
     if isinstance(jso, str):
-        return program.ShellCommandProgram(jso)
+        return program.AgentShellProgram(jso)
     elif isinstance(jso, list):
-        return program.ProcessProgram(jso)
+        return program.AgentProgram(jso)
     else:
         # FIXME: Support something reasonable here.
         raise JobSpecificationError("bad program")
@@ -86,7 +86,11 @@ def jso_to_job(jso, job_id):
         schedules = jso["schedule"]
     except KeyError:
         raise JobSpecificationError("missing schedule")
-    schedules = [schedules] if isinstance(schedules, dict) else schedules
+    schedules = (
+        [schedules] if isinstance(schedules, dict) 
+        else [] if schedules is None
+        else schedules
+    )
     schedules = [ jso_to_schedule(s) for s in schedules ]
 
     try:

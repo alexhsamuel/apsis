@@ -10,6 +10,7 @@ from   ora import now
 import random
 
 from   .program import AgentShellProgram
+from   .runs import Run, Instance
 from   .schedule import ExplicitSchedule
 from   .types import Job
 
@@ -51,26 +52,13 @@ JOBS = [
 ]
 
 
-def get_test_job(num):
+def get_test_runs(num):
     start = now()
     start = start.MIN + math.ceil(start - start.MIN)
 
-    schedules = [
-        ExplicitSchedule(
-            times   =[ 
-                start + random.randint(-60, 900) 
-                for _ in range(random.randint(1, 8))
-            ],
-            args    ={"j": j},
-        )
+    return (
+        (start + random.randint(-60, 600), Run(Instance("hot", {"j": j})))
         for j in range(num)
-    ]
-
-    return Job(
-        f"hot",
-        "j",
-        schedules,
-        AgentShellProgram("$HOME/dev/apsis/jobs/test0 hot-test"),
     )
 
 

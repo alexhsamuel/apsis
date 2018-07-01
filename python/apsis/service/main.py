@@ -150,8 +150,8 @@ def main():
         "--crontab", action="store_true", default=False,
         help="JOBS in a crontab file")
     parser.add_argument(
-        "--test-jobs", metavar="NUM", type=int, default=None,
-        help="add NUM test jobs")
+        "--test-runs", metavar="NUM", type=int, default=None,
+        help="add NUM test runs")
     parser.add_argument(
         "jobs", metavar="JOBS", 
         help="job directory")
@@ -171,8 +171,10 @@ def main():
     # FIXME: Cumbersome.
     for j in jobs:
         apsis.add_job(j)
-    if args.test_jobs is not None:
-        apsis.add_job(testing.get_test_job(args.test_jobs))
+
+    if args.test_runs is not None:
+        for t, run in testing.get_test_runs(args.test_runs):
+            asyncio.ensure_future(apsis.schedule(t, run))
 
     loop = asyncio.get_event_loop()
 

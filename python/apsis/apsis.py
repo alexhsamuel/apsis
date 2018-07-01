@@ -45,7 +45,11 @@ class Apsis:
         self.scheduler = Scheduler(self.jobs, start_time)
         self.runs = Runs(db.run_db)
         self.scheduled = ScheduledRuns(self.__start)
-        # FIXME: Restore scheduled runs from DB.
+
+        # Restore scheduled runs from DB.
+        _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
+        for run in scheduled_runs:
+            self.scheduled.schedule(run.times["schedule"], run)
 
 
     # --------------------------------------------------------------------------
@@ -83,9 +87,7 @@ class Apsis:
         runs = self.scheduler.get_runs(timestamp)
 
         for time, run in runs:
-            self.runs.add(run)
-            run.to_scheduled(times={"schedule": time})
-            self.scheduled.schedule(time, run)
+            await self.schedule(time, run)
 
 
     async def scheduler_loop(self, interval=86400):
@@ -101,6 +103,15 @@ class Apsis:
 
 
     # --- API ------------------------------------------------------------------
+
+    async def schedule(self, time, run):
+        """
+        Adds and schedules a new run.
+        """
+        self.runs.add(run)
+        run.to_scheduled(times={"schedule": time})
+        self.scheduled.schedule(time, run)
+
 
     async def cancel(self, run):
         self.scheduled.unschedule(run)
