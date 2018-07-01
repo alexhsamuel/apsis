@@ -305,6 +305,16 @@ const run_template = `
         <dd>{{ run.message }}</dd>
       </template>
 
+      <template v-if="run.rerun_of">
+        <dt>rerun of</dt>
+        <dd><span class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.rerun_of } })">{{ run.rerun_of }}</span></dd>
+      </template>
+
+      <template v-if="run.rerun">
+        <dt>rerun by</dt>
+        <dd><span class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.rerun } })">{{ run.rerun }}</span></dd>
+      </template>
+
       <dt>times</dt>
       <dd>
         <dl>
@@ -357,6 +367,17 @@ const Run = {
   methods: {
     format_elapsed,  // FIXME: Why do we need this?
 
+    load() {
+      const v = this
+      this.runs_socket = new RunsSocket(this.run_id, undefined)
+      this.runs_socket.open((msg) => { 
+        v.run = msg.runs[v.run_id] 
+        // Immediately load the output too, unless it's quite large.
+        if (v.run.output_len !== null && v.run.output_len < 32768)
+          v.load_output()
+      })
+    },
+
     load_output() {
       const v = this
       const url = "/api/v1/runs/" + this.run.run_id + "/output"  // FIXME
@@ -367,20 +388,20 @@ const Run = {
     },
   },
 
-  created() {
-    const v = this
-    this.runs_socket = new RunsSocket(this.run_id, undefined)
-    this.runs_socket.open((msg) => { 
-      v.run = msg.runs[v.run_id] 
-      // Immediately load the output too, unless it's quite large.
-      if (v.run.output_len !== null && v.run.output_len < 32768)
-        v.load_output()
-    })
+  mounted() { 
+    this.load()
   },
 
   destroyed() {
     this.runs_socket.close()
   },
+
+  watch: {
+    '$route' (to, from) {
+      this.load()
+    },
+  },
+
 }
 
 /*------------------------------------------------------------------------------
