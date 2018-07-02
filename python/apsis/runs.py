@@ -156,7 +156,6 @@ class Runs:
     Stores run state.
 
     Responsible for:
-    1. Creating new runs.
     1. Managing run IDs.
     1. Storing runs, in all states.
     1. Satisfying run queries.
