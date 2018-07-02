@@ -35,6 +35,9 @@ TBL_SCHEDULER = sa.Table(
 
 
 class SchedulerDB:
+    """
+    Stores the stop time: the frontier to which jobs have been scheduled.
+    """
 
     def __init__(self, engine):
         self.__engine = engine
