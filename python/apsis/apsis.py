@@ -3,6 +3,7 @@ import logging
 from   ora import Time, now
 
 from   .lib import Interval
+from   .program import ProgramError, ProgramFailure
 from   .runs import Run, Runs
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler
@@ -56,19 +57,38 @@ class Apsis:
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
         for run in running_runs:
-            self.get_program(run).reconnect(run)
+            future = self.__get_program(run).reconnect(run)
+            self.__wait(run, future)
 
 
-    # --------------------------------------------------------------------------
-
-    def get_program(self, run):
+    def __get_program(self, run):
         job = self.jobs.get_job(run.inst.job_id)
         program = bind_program(job.program, run)
         return program
 
 
     async def __start(self, run):
-        await self.get_program(run).start(run)
+        try:
+            running, coro = await self.__get_program(run).start(run)
+        except ProgramError as exc:
+            run.to_error(**exc.__dict__)
+        else:
+            run.to_running(**running.__dict__)
+
+        future = asyncio.ensure_future(coro)
+        self.__wait(run, future)
+
+
+    def __wait(self, run, future):
+        def done(future):
+            try:
+                success = future.result()
+            except ProgramFailure as exc:
+                run.to_failure(**exc.__dict__)
+            else:
+                run.to_success(**success.__dict__)
+
+        future.add_done_callback(done)
 
 
     async def __schedule_runs(self, timestamp: Time):

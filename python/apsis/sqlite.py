@@ -59,7 +59,7 @@ class SchedulerDB:
 
         return stop
 
-        
+
     def set_stop(self, stop):
         with self.__engine.begin() as conn:
             conn.execute(TBL_SCHEDULER.update().values(stop=dump_time(stop)))

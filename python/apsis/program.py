@@ -24,6 +24,44 @@ def join_args(argv):
 
 #-------------------------------------------------------------------------------
 
+class ProgramRunning:
+
+    def __init__(self, run_state, *, meta={}, times={}):
+        self.run_state  = run_state
+        self.meta       = meta
+        self.times      = times
+
+
+
+class ProgramError(RuntimeError):
+
+    def __init__(self, message, *, meta={}, times={}, output=None):
+        self.message    = message
+        self.meta       = meta
+        self.times      = times
+        self.output     = output
+
+
+
+class ProgramSuccess:
+
+    def __init__(self, *, meta={}, times={}, output=None):
+        self.meta       = meta
+        self.times      = times
+        self.output     = output
+    
+
+
+class ProgramFailure(RuntimeError):
+
+    def __init__(self, message, *, meta={}, times={}, output=None):
+        self.message    = message
+        self.meta       = meta
+        self.times      = times
+        self.output     = output
+
+
+
 class Program:
 
     def bind(self, args):
@@ -32,7 +70,7 @@ class Program:
         """
 
 
-    async def start(self, run, update_run):
+    async def start(self, run):
         """
         Starts the run.
 
@@ -40,10 +78,21 @@ class Program:
 
         :param run:
           The run to run.
-        :param update_run:
-          Coro to update run state.
-        :postcondition:
-          The run state is "running" or "error".
+        :raise ProgramError:
+          The program failed to start.
+        :return:
+          `running, done`, where `running` is a `ProgramRunning` instance and
+          `done` is a coroutine or future that returns `ProgramSuccess` when the
+          program is complete.
+        """
+
+
+    def reconnect(self, run):
+        """
+        Reconnects to an already running run.
+
+        :return:
+          A coroutine or future for the program completion, as `start`.
         """
 
 
@@ -97,7 +146,7 @@ class ProcessProgram:
         }
 
 
-    async def start(self, run, update_run):
+    async def start(self, run):
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
@@ -120,17 +169,15 @@ class ProcessProgram:
 
         except OSError as exc:
             # Error starting.
-            run.set_error(str(exc), meta)
-            await update_run(run)
+            raise ProgramError(str(exc), meta=meta)
 
         else:
             # Started successfully.
-            run.set_running(meta={"pid": proc.pid, **meta})
-            await update_run(run)
-            await self.wait(run, proc, update_run)
+            done = self.wait(run, proc)
+            return ProgramRunning({"pid": proc.pid}, meta=meta), done
 
 
-    async def wait(self, run, proc, update_run):
+    async def wait(self, run, proc):
         stdout, stderr  = await proc.communicate()
         return_code     = proc.returncode
         log.info(f"complete with return code {return_code}")
@@ -142,10 +189,11 @@ class ProcessProgram:
         assert return_code is not None
 
         if return_code == 0:
-            run.set_success(stdout, meta)
+            return ProgramSuccess(meta=meta, output=stdout)
+
         else:
-            run.set_failure(f"program failed: status {return_code}", stdout, meta)
-        await update_run(run)
+            message = f"program failed: status {return_code}"
+            raise ProgramFailure(message, meta=meta, output=stdout)
 
 
 
@@ -201,15 +249,14 @@ class AgentProgram:
                 "pid"       : proc["pid"],
             }
             # FIXME: Propagate times from agent.
-            run.to_running(run_state, meta=meta)
-
             # FIXME: Do this asynchronously from the agent instead.
-            await self.wait(run)
+            done = self.wait(run)
+            return ProgramRunning(run_state, meta=meta), done
 
         elif state == "err":
             message = proc.get("exception", "program error")
             log.info(f"program error: {run.run_id}: {message}")
-            run.to_error(message, meta=meta)
+            raise ProgramError(message, message=message)
 
         else:
             assert False, f"unknown state: {state}"
@@ -228,27 +275,31 @@ class AgentProgram:
             else:
                 break
 
+        # FIXME: Is it "status" or is it "return code"?
         status = proc["status"]
         meta = {
-            "return_code"   : status,
+            "return_code": status,
         }            
         output = await self.__agent.get_process_output(proc_id)
 
-        if status == 0:
-            log.info(f"program success: {run.run_id}")
-            run.to_success(output=output, meta=meta)
-        else:
-            message = f"program failed: status {status}"
-            log.info(f"program failed: {run.run_id}: {message}")
-            run.to_failure(message, output=output, meta=meta)
+        try:
+            if status == 0:
+                log.info(f"program success: {run.run_id}")
+                return ProgramSuccess(meta=meta, output=output)
 
-        # Clean up the process from the agent.
-        await self.__agent.del_process(proc_id)
+            else:
+                message = f"program failed: status {status}"
+                log.info(f"program failed: {run.run_id}: {message}")
+                raise ProgramFailure(message, meta=meta, output=output)
+
+        finally:
+            # Clean up the process from the agent.
+            await self.__agent.del_process(proc_id)
 
 
     def reconnect(self, run):
         log.info(f"reconnect: {run.run_id}")
-        asyncio.ensure_future(self.wait(run))
+        return asyncio.ensure_future(self.wait(run))
 
 
                                         
