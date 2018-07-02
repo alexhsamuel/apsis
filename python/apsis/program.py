@@ -213,7 +213,7 @@ class AgentProgram:
 
         else:
             assert False, f"unknown state: {state}"
-        
+
 
     async def wait(self, run):
         proc_id = run.run_state["proc_id"]
@@ -246,7 +246,12 @@ class AgentProgram:
         await self.__agent.del_process(proc_id)
 
 
+    def reconnect(self, run):
+        log.info(f"reconnect: {run.run_id}")
+        asyncio.ensure_future(self.wait(run))
 
+
+                                        
 class AgentShellProgram(ShellMixin, AgentProgram):
 
     pass
