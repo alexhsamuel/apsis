@@ -1,9 +1,7 @@
 import bisect
-from   functools import partial
-from   ora import *
+from   ora import Daytime, Time, TimeZone, to_local, from_local
 
 from   . import lib
-from   .crontab import CrontabSchedule
 
 #-------------------------------------------------------------------------------
 
