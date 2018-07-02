@@ -46,8 +46,8 @@ class Runs:
 
         # FIXME: Do this better.
         run_ids = ( int(r.run_id[1 :]) for r in self.__runs.values() )
-        max_run_id = max(run_ids, default=0)
-        self.__run_ids = ( "r" + str(i) for i in itertools.count(max_run_id) )
+        start_run_id = max(run_ids, default=0) + 1
+        self.__run_ids = ( "r" + str(i) for i in itertools.count(start_run_id) )
 
         # For live notification.
         self.__queues = set()
