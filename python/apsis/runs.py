@@ -41,7 +41,6 @@ class Runs:
         # Populate cache from database.
         self.__runs = {}
         for run in self.__db.query():
-            run._Run__runs = self
             self.__runs[run.run_id] = run
 
         # FIXME: Do this better.
@@ -68,7 +67,6 @@ class Runs:
         run_id = next(self.__run_ids)
         assert run.run_id not in self.__runs
 
-        run._Run__runs  = self
         run.run_id      = run_id
         run.timestamp   = timestamp
 
@@ -152,7 +150,6 @@ class Run:
     def __init__(self, inst, *, rerun=None):
         self.inst       = inst
 
-        self.__runs     = None
         self.run_id     = None
         self.timestamp  = None
 
