@@ -86,7 +86,11 @@ TBL_RUNS = sa.Table(
     sa.Column("state"       , sa.String()       , nullable=False),
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
+    sa.Column("message"     , sa.String()       , nullable=True),
     sa.Column("output"      , sa.LargeBinary()  , nullable=True),
+    sa.Column("run_state"   , sa.String()       , nullable=True),
+    sa.Column("rerun"       , sa.String()       , nullable=True),
+    sa.Column("rerun_of"    , sa.String()       , nullable=True),
 )
 
 
@@ -108,7 +112,11 @@ class RunDB:
             state       =run.state.name,
             times       =times,
             meta        =json.dumps(run.meta),
+            message     =run.message,
             output      =run.output,
+            run_state   =json.dumps(run.run_state),
+            rerun       =run.rerun,
+            rerun_of    =run.rerun_of,
         )
 
 
@@ -118,11 +126,12 @@ class RunDB:
         log.info(str(query).replace("\n", " "))
 
         cursor = conn.execute(query)
-        for run_id, timestamp, job_id, args, state, times, meta, output in cursor:
-            # FIXME: Inst!
+        for (
+                run_id, timestamp, job_id, args, state, times, meta, message, 
+                output, run_state, rerun, rerun_of
+        ) in cursor:
             args            = json.loads(args)
-            inst            = Instance(job_id, args)
-            run             = Run(inst)
+            run             = Run(Instance(job_id, args), rerun_of=rerun_of)
             times           = json.loads(times)
             times           = { n: ora.Time(t) for n, t in times.items() }
             run.run_id      = run_id
@@ -130,7 +139,10 @@ class RunDB:
             run.state       = Run.STATE[state]
             run.times       = times
             run.meta        = json.loads(meta)
+            run.message     = message
             run.output      = output
+            run.run_state   = json.loads(run_state)
+            run.rerun       = rerun
             yield run
 
 
