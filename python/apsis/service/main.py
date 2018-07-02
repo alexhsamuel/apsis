@@ -135,6 +135,9 @@ def main():
     parser.add_argument(
         "--debug", action="store_true", default=False,
         help="run in debug mode")
+    parser.add_argument(
+        "--log-level", metavar="LEVEL", default="INFO",
+        help="log at LEVEL [def: INFO]")
     # FIXME: Can't use localhost on OSX, where it resolves to an IPV6 address,
     # until we pick up this Sanic fix:
     # https://github.com/channelcat/sanic/pull/1053
@@ -157,6 +160,7 @@ def main():
         "db", metavar="DATABASE",
         help="database file")
     args = parser.parse_args()
+    logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
     jobs    = JobsDir(args.jobs)
     db      = SqliteDB(args.db, args.create)
