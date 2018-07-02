@@ -38,12 +38,15 @@ class Apsis:
     """
 
     def __init__(self, db):
-        # FIXME: Back-populate runs?
-        start_time = now()
-
+        self.__db = db
         self.jobs = []
-        self.scheduler = Scheduler(self.jobs, start_time)
+
+        # Continue scheduling where we left off.
+        scheduler_stop = db.scheduler_db.get_stop()
+        self.scheduler = Scheduler(self.jobs, scheduler_stop)
+
         self.runs = Runs(db.run_db)
+
         self.scheduled = ScheduledRuns(self.__start)
 
         # Restore scheduled runs from DB.
@@ -92,7 +95,9 @@ class Apsis:
 
     async def scheduler_loop(self, interval=86400):
         while True:
-            await self.__schedule_runs(now() + interval)
+            stop = now() + interval
+            await self.__schedule_runs(stop)
+            self.__db.scheduler_db.set_stop(stop)
             await asyncio.sleep(60)
 
 

@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 # We store times as float seconds from the epoch.
 
-def store_time(time):
+def dump_time(time):
     return time - ora.UNIX_EPOCH
 
 
@@ -25,6 +25,45 @@ def load_time(time):
 
 
 METADATA = sa.MetaData()
+
+#-------------------------------------------------------------------------------
+
+TBL_SCHEDULER = sa.Table(
+    "scheduler", METADATA,
+    sa.Column("stop"        , sa.Float()        , nullable=False),
+)
+
+
+class SchedulerDB:
+
+    def __init__(self, engine):
+        self.__engine = engine
+
+
+    def get_stop(self):
+        query = sa.select([TBL_SCHEDULER])
+        with self.__engine.begin() as conn:
+            rows = list(conn.execute(query))
+            assert len(rows) <= 1
+
+            if len(rows) == 0:
+                # No rows yet; assume current time.
+                stop = ora.now()
+                conn.execute(
+                    TBL_SCHEDULER.insert().values(stop=dump_time(stop)))
+            else:
+                stop = load_time(rows[0][0])
+
+        return stop
+
+        
+    def set_stop(self, stop):
+        with self.__engine.begin() as conn:
+            conn.execute(TBL_SCHEDULER.update().values(stop=dump_time(stop)))
+
+
+
+#-------------------------------------------------------------------------------
 
 # FIXME: For now, we store times and meta as JSON.  To make these searchable,
 # we'll need to break them out into tables.
@@ -48,18 +87,10 @@ TBL_RUNS = sa.Table(
 )
 
 
-#-------------------------------------------------------------------------------
+class RunDB:
 
-class SqliteRunDB:
-
-    def __init__(self, engine, create=False):
+    def __init__(self, engine):
         self.__engine = engine
-
-        if create:
-            METADATA.create_all(engine)
-        else:
-            # FIXME: Check that tables exist.
-            pass
 
 
     @staticmethod
@@ -68,7 +99,7 @@ class SqliteRunDB:
         times = json.dumps(times)
         return dict(
             run_id      =run.run_id,
-            timestamp   =store_time(run.timestamp),
+            timestamp   =dump_time(run.timestamp),
             job_id      =run.inst.job_id,
             args        =json.dumps(run.inst.args),
             state       =run.state.name,
@@ -154,9 +185,15 @@ class SqliteDB:
 
         url     = self.__get_url(path)
         engine  = sa.create_engine(url)
-        run_db  = SqliteRunDB(engine, create)
 
-        self.run_db = run_db
+        if create:
+            METADATA.create_all(engine)
+        else:
+            # FIXME: Check that tables exist.
+            pass
+
+        self.run_db         = RunDB(engine)
+        self.scheduler_db   = SchedulerDB(engine)
 
 
     @classmethod
