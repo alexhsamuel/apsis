@@ -20,107 +20,6 @@ class TransitionError(RuntimeError):
 
 #-------------------------------------------------------------------------------
 
-class Runs:
-    """
-    Stores run state.
-
-    Responsible for:
-    1. Creating new runs.
-    1. Managing run IDs.
-    1. Storing runs, in all states.
-    1. Satisfying run queries.
-    1. Serving live queries of runs.
-    """
-
-    # FIXME: For now, we cache all runs in memory.  At some point, we'll need
-    # to start retiring older runs.
-
-    def __init__(self, db):
-        self.__db = db
-
-        # Populate cache from database.
-        self.__runs = {}
-        for run in self.__db.query():
-            self.__runs[run.run_id] = run
-
-        # FIXME: Do this better.
-        run_ids = ( int(r.run_id[1 :]) for r in self.__runs.values() )
-        start_run_id = max(run_ids, default=0) + 1
-        self.__run_ids = ( "r" + str(i) for i in itertools.count(start_run_id) )
-
-        # For live notification.
-        self.__queues = set()
-
-
-    def __send(self, when, run):
-        """
-        Sends live notification of changes to `run`.
-        """
-        for queue in self.__queues:
-            queue.put_nowait((when, [run]))
-
-
-    def add(self, run):
-        assert run.state == Run.STATE.new
-
-        timestamp = now()
-        run_id = next(self.__run_ids)
-        assert run.run_id not in self.__runs
-
-        run.run_id      = run_id
-        run.timestamp   = timestamp
-
-        log.info(f"new run: {run}")
-
-        self.__runs[run.run_id] = run
-        self.__db.insert(run)
-        self.__send(timestamp, run)
-
-
-    def update(self, run, timestamp):
-        # Make sure we know about this run.
-        assert self.__runs[run.run_id] is run
-        # Persist the changes.
-        self.__db.update(run)
-        self.__send(timestamp, run)
-
-
-    def get(self, run_id):
-        run = self.__runs[run_id]
-        return now(), run
-
-
-    def query(self, *, job_id=None, state=None, since=None, until=None):
-        runs = self.__runs.values()
-        if job_id is not None:
-            runs = ( r for r in runs if r.inst.job_id == job_id )
-        if state is not None:
-            runs = ( r for r in runs if r.state == state )
-        if since is not None:
-            runs = ( r for r in runs if r.timestamp >= since )
-        if until is not None:
-            runs = ( r for r in runs if r.timestamp < until )
-
-        return now(), runs
-
-
-    @contextmanager
-    def query_live(self, *, since=None, **kw_args):
-        queue = asyncio.Queue()
-        self.__queues.add(queue)
-
-        when, runs = self.query(since=since, **kw_args)
-        queue.put_nowait((when, runs))
-
-        try:
-            yield queue
-        finally:
-            self.__queues.remove(queue)
-
-
-
-#-------------------------------------------------------------------------------
-
 class Run:
 
     STATE = enum.Enum(
@@ -247,6 +146,107 @@ class Instance:
                 and sorted(self.args.items()) < sorted(other.args.items())
             )
         ) if isinstance(other, Instance) else NotImplemented
+
+
+
+#-------------------------------------------------------------------------------
+
+class Runs:
+    """
+    Stores run state.
+
+    Responsible for:
+    1. Creating new runs.
+    1. Managing run IDs.
+    1. Storing runs, in all states.
+    1. Satisfying run queries.
+    1. Serving live queries of runs.
+    """
+
+    # FIXME: For now, we cache all runs in memory.  At some point, we'll need
+    # to start retiring older runs.
+
+    def __init__(self, db):
+        self.__db = db
+
+        # Populate cache from database.
+        self.__runs = {}
+        for run in self.__db.query():
+            self.__runs[run.run_id] = run
+
+        # FIXME: Do this better.
+        run_ids = ( int(r.run_id[1 :]) for r in self.__runs.values() )
+        start_run_id = max(run_ids, default=0) + 1
+        self.__run_ids = ( "r" + str(i) for i in itertools.count(start_run_id) )
+
+        # For live notification.
+        self.__queues = set()
+
+
+    def __send(self, when, run):
+        """
+        Sends live notification of changes to `run`.
+        """
+        for queue in self.__queues:
+            queue.put_nowait((when, [run]))
+
+
+    def add(self, run):
+        assert run.state == Run.STATE.new
+
+        timestamp = now()
+        run_id = next(self.__run_ids)
+        assert run.run_id not in self.__runs
+
+        run.run_id      = run_id
+        run.timestamp   = timestamp
+
+        log.info(f"new run: {run}")
+
+        self.__runs[run.run_id] = run
+        self.__db.insert(run)
+        self.__send(timestamp, run)
+
+
+    def update(self, run, timestamp):
+        # Make sure we know about this run.
+        assert self.__runs[run.run_id] is run
+        # Persist the changes.
+        self.__db.update(run)
+        self.__send(timestamp, run)
+
+
+    def get(self, run_id):
+        run = self.__runs[run_id]
+        return now(), run
+
+
+    def query(self, *, job_id=None, state=None, since=None, until=None):
+        runs = self.__runs.values()
+        if job_id is not None:
+            runs = ( r for r in runs if r.inst.job_id == job_id )
+        if state is not None:
+            runs = ( r for r in runs if r.state == state )
+        if since is not None:
+            runs = ( r for r in runs if r.timestamp >= since )
+        if until is not None:
+            runs = ( r for r in runs if r.timestamp < until )
+
+        return now(), runs
+
+
+    @contextmanager
+    def query_live(self, *, since=None, **kw_args):
+        queue = asyncio.Queue()
+        self.__queues.add(queue)
+
+        when, runs = self.query(since=since, **kw_args)
+        queue.put_nowait((when, runs))
+
+        try:
+            yield queue
+        finally:
+            self.__queues.remove(queue)
 
 
 
