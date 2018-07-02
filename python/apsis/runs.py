@@ -137,6 +137,16 @@ class Run:
         )
     )
 
+    # Allowed transitions to each state.
+    TRANSITIONS = {
+        STATE.new       : set(),
+        STATE.scheduled : {STATE.new},
+        STATE.running   : {STATE.new, STATE.scheduled},
+        STATE.error     : {STATE.new, STATE.scheduled},
+        STATE.success   : {STATE.running},
+        STATE.failure   : {STATE.running},
+    }
+
     # FIXME: Make the attributes read-only.
 
     def __init__(self, inst, *, rerun_of=None):
@@ -177,66 +187,25 @@ class Run:
         return f"{self.run_id} {self.state.name} {self.inst}"
 
 
-    def __transition(self, state, *, meta={}, times={}, 
-                     output=None, message=None, run_state=None):
+    def _transition(self, timestamp, state, *, meta={}, times={}, 
+                    output=None, message=None, run_state=None):
+        # Check that this is a valid transition.
+        if self.state not in self.TRANSITIONS[state]:
+            raise TransitionError(self.state, state)
+
         log.debug(f"transition {self.run_id}: {self.state.name} → {state.name}")
 
-        timestamp = now()
-
         # Update attributes.
-        self.timestamp = timestamp
+        self.timestamp  = timestamp
+        self.message    = str(message)
         self.meta.update(meta)
         self.times[state.name] = self.timestamp
         self.times.update(times)
-        self.output = output
-        self.message = str(message)
-        self.run_state = run_state
+        self.output     = output
+        self.run_state  = run_state
 
         # Transition to the new state.
         self.state = state
-
-        # Apply the changes.
-        self.__runs.update(self, timestamp)
-
-
-    def to_scheduled(self, *, meta={}, times={}):
-        if self.state not in {Run.STATE.new}:
-            raise TransitionError(self.state, Run.STATE.scheduled)
-        self.__transition(
-            Run.STATE.scheduled, 
-            meta=meta, times=times)
-
-
-    def to_running(self, run_state, *, meta={}, times={}):
-        if self.state not in {Run.STATE.new, Run.STATE.scheduled}:
-            raise TransitionError(self.state, Run.STATE.running)
-        self.__transition(
-            Run.STATE.running, 
-            meta=meta, times=times, run_state=run_state)
-
-
-    def to_error(self, message, *, meta={}, times={}, output=None):
-        if self.state not in {Run.STATE.new, Run.STATE.scheduled}:
-            raise TransitionError(self.state, Run.STATE.error)
-        self.__transition(
-            Run.STATE.error, 
-            message=message, meta=meta, times=times, output=output)
-
-
-    def to_success(self, *, meta={}, times={}, output=None):
-        if self.state != Run.STATE.running:
-            raise TransitionError(self.state, Run.STATE.success)
-        self.__transition(
-            Run.STATE.success, 
-            meta=meta, times=times, output=output)
-
-        
-    def to_failure(self, message, *, meta={}, times={}, output=None):
-        if self.state != Run.STATE.running:
-            raise TransitionError(self.state, Run.STATE.failure)
-        self.__transition(
-            Run.STATE.failure, 
-            message=message, meta=meta, times=times, output=output)
 
 
     def set_rerun(self, run_id):

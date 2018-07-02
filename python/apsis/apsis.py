@@ -71,9 +71,9 @@ class Apsis:
         try:
             running, coro = await self.__get_program(run).start(run)
         except ProgramError as exc:
-            run.to_error(**exc.__dict__)
+            self._transition(run, run.STATE.error, **exc.__dict__)
         else:
-            run.to_running(**running.__dict__)
+            self._transition(run, run.STATE.running, **running.__dict__)
 
         future = asyncio.ensure_future(coro)
         self.__wait(run, future)
@@ -84,9 +84,9 @@ class Apsis:
             try:
                 success = future.result()
             except ProgramFailure as exc:
-                run.to_failure(**exc.__dict__)
+                self._transition(run, run.STATE.failure, **exc.__dict__)
             else:
-                run.to_success(**success.__dict__)
+                self._transition(run, run.STATE.success, **success.__dict__)
 
         future.add_done_callback(done)
 
@@ -110,6 +110,40 @@ class Apsis:
             await asyncio.sleep(60)
 
 
+    # --- Internal API ---------------------------------------------------------
+
+    def _transition(self, run, state, **kw_args):
+        timestamp = now()
+        # Transition the run object.
+        run._transition(timestamp, state, **kw_args)
+        # Store the new state.
+        self.runs.update(run, timestamp)
+
+
+    def _to_running(self, run, run_state, *, meta={}, times={}):
+        run._transition(
+            Run.STATE.running, 
+            meta=meta, times=times, run_state=run_state)
+
+
+    def _to_error(self, run, message, *, meta={}, times={}, output=None):
+        run._transition(
+            Run.STATE.error, 
+            message=message, meta=meta, times=times, output=output)
+
+
+    def _to_success(self, run, *, meta={}, times={}, output=None):
+        run._transition(
+            Run.STATE.success, 
+            meta=meta, times=times, output=output)
+
+        
+    def _to_failure(self, run, message, *, meta={}, times={}, output=None):
+        run._transition(
+            Run.STATE.failure, 
+            message=message, meta=meta, times=times, output=output)
+
+
     # --- API ------------------------------------------------------------------
 
     async def schedule(self, time, run):
@@ -117,13 +151,13 @@ class Apsis:
         Adds and schedules a new run.
         """
         self.runs.add(run)
-        run.to_scheduled(times={"schedule": time})
         self.scheduled.schedule(time, run)
+        self._transition(run, run.STATE.scheduled, times={"schedule": time})
 
 
     async def cancel(self, run):
         self.scheduled.unschedule(run)
-        run.to_error("cancelled")
+        self._transition(run, run.STATE.error, message="cancelled")
 
 
     async def start(self, run):
