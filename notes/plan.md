@@ -11,7 +11,6 @@
 
 ### Jobs
 
-- factor out job repo
 - store transient jobs in the database (for at/cron/ad hoc runs)
 
 
@@ -24,7 +23,6 @@
 ### Running
 
 - live notification from agent instead of polling
-- restore running jobs and other state from DB on restart
 - change output to a dict
 - abort running run
 

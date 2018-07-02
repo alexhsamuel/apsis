@@ -89,9 +89,10 @@ def runs_to_jso(app, when, runs):
 @API.route("/jobs/<job_id>")
 async def job(request, job_id):
     try:
-        return response_json(job_to_jso(request.app, request.app.apsis.get_job(job_id)))
+        job = request.app.apsis.jobs.get_job(job_id)
     except LookupError as exc:
         sanic.exceptions.abort(404, f"job_id: {job_id}")
+    return response_json(job_to_jso(request.app, job))
 
 
 @API.route("/jobs/<job_id>/runs")
@@ -105,7 +106,7 @@ async def job_runs(request, job_id):
 async def jobs(request):
     jso = [ 
         job_to_jso(request.app, j) 
-        for j in request.app.apsis.get_jobs() 
+        for j in request.app.apsis.jobs.get_jobs() 
     ]
     return response_json(jso)
 

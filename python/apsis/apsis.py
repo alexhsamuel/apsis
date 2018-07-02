@@ -37,9 +37,9 @@ class Apsis:
     The gestalt scheduling application.
     """
 
-    def __init__(self, db):
+    def __init__(self, jobs, db):
         self.__db = db
-        self.jobs = []
+        self.jobs = jobs
 
         # Continue scheduling where we left off.
         scheduler_stop = db.scheduler_db.get_stop()
@@ -54,33 +54,23 @@ class Apsis:
         for run in scheduled_runs:
             self.scheduled.schedule(run.times["schedule"], run)
 
-
-    # --------------------------------------------------------------------------
-
-    # FIXME: Encapsulate job stuff.
-
-    def add_job(self, job):
-        self.jobs.append(job)
-
-
-    def get_job(self, job_id) -> Job:
-        """
-        :raise LookupError:
-          Can't find `job_id`.
-        """
-        jobs = [ j for j in self.jobs if j.job_id == job_id ]
-        if len(jobs) == 0:
-            raise LookupError(job_id)
-        else:
-            assert len(jobs) == 1
-            return jobs[0]
-
-
-    def get_jobs(self):
-        return iter(self.jobs)
+        # Reconnect to running runs.
+        _, running_runs = self.runs.query(state=Run.STATE.running)
+        for run in running_runs:
+            self.get_program(run).reconnect(run)
 
 
     # --------------------------------------------------------------------------
+
+    def get_program(self, run):
+        job = self.jobs.get_job(run.inst.job_id)
+        program = bind_program(job.program, run)
+        return program
+
+
+    async def __start(self, run):
+        await self.get_program(run).start(run)
+
 
     async def __schedule_runs(self, timestamp: Time):
         """
@@ -99,12 +89,6 @@ class Apsis:
             await self.__schedule_runs(stop)
             self.__db.scheduler_db.set_stop(stop)
             await asyncio.sleep(60)
-
-
-    async def __start(self, run):
-        job = self.get_job(run.inst.job_id)
-        program = bind_program(job.program, run)
-        await program.start(run)
 
 
     # --- API ------------------------------------------------------------------

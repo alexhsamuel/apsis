@@ -23,7 +23,7 @@ class Scheduler:
             # Nothing to do.
             return
 
-        for job in self.__jobs:
+        for job in self.__jobs.get_jobs():
             for schedule in job.schedules:
                 times = itertools.takewhile(
                     lambda t: t < stop, schedule(self.__stop))

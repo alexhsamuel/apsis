@@ -10,8 +10,9 @@ import websockets
 
 from   . import api
 from   . import DEFAULT_PORT
-from   .. import crontab, repo, testing
+from   .. import testing
 from   ..apsis import Apsis
+from   ..jobs import JobsDir
 from   ..sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
@@ -147,9 +148,6 @@ def main():
         "--create", action="store_true", default=False,
         help="create a new state database")
     parser.add_argument(
-        "--crontab", action="store_true", default=False,
-        help="JOBS in a crontab file")
-    parser.add_argument(
         "--test-runs", metavar="NUM", type=int, default=None,
         help="add NUM test runs")
     parser.add_argument(
@@ -160,17 +158,9 @@ def main():
         help="database file")
     args = parser.parse_args()
 
-    if args.crontab:
-        _, jobs = crontab.read_crontab_file(args.crontab)
-    else:
-        jobs = repo.load_yaml_files(args.jobs)
-
-    db = SqliteDB(args.db, args.create)
-    apsis = Apsis(db)
-
-    # FIXME: Cumbersome.
-    for j in jobs:
-        apsis.add_job(j)
+    jobs    = JobsDir(args.jobs)
+    db      = SqliteDB(args.db, args.create)
+    apsis   = Apsis(jobs, db)
 
     if args.test_runs is not None:
         for t, run in testing.get_test_runs(args.test_runs):
