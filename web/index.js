@@ -261,7 +261,9 @@ const Runs = Vue.component('runs', {
 
   computed: {
     sorted() {
-      return _.flow(_.values, _.sortBy(r => r.times.schedule))(this.runs)
+      return _.flow(_.values, _.sortBy(
+        r => r.times.schedule || r.times.error || r.times.running
+      ))(this.runs)
     },
 
   },
