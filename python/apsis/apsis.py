@@ -120,30 +120,6 @@ class Apsis:
         self.runs.update(run, timestamp)
 
 
-    def _to_running(self, run, run_state, *, meta={}, times={}):
-        run._transition(
-            Run.STATE.running, 
-            meta=meta, times=times, run_state=run_state)
-
-
-    def _to_error(self, run, message, *, meta={}, times={}, output=None):
-        run._transition(
-            Run.STATE.error, 
-            message=message, meta=meta, times=times, output=output)
-
-
-    def _to_success(self, run, *, meta={}, times={}, output=None):
-        run._transition(
-            Run.STATE.success, 
-            meta=meta, times=times, output=output)
-
-        
-    def _to_failure(self, run, message, *, meta={}, times={}, output=None):
-        run._transition(
-            Run.STATE.failure, 
-            message=message, meta=meta, times=times, output=output)
-
-
     # --- API ------------------------------------------------------------------
 
     async def schedule(self, time, run):
@@ -169,9 +145,9 @@ class Apsis:
     async def rerun(self, run):
         # Create the new run.
         log.info(f"rerun: {run.run_id}")
-        new_run = Run(run.inst, rerun_of=run.run_id)
+        rerun = run.run_id if run.rerun is None else run.rerun
+        new_run = Run(run.inst, rerun=rerun)
         self.runs.add(new_run)
-        run.set_rerun(new_run.run_id)
         await self.__start(new_run)
         return new_run
 

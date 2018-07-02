@@ -55,7 +55,7 @@ def run_to_jso(app, run):
         actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
 
     # Retry is available if the run didn't succeed.
-    if run.state in {run.STATE.failure, run.STATE.error} and run.rerun is None:
+    if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
     return {
@@ -72,7 +72,6 @@ def run_to_jso(app, run):
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
         "output_len"    :  None if run.output is None else len(run.output),
         "rerun"         : run.rerun,
-        "rerun_of"      : run.rerun_of,
     }
 
 
@@ -173,10 +172,6 @@ async def run_rerun(request, run_id):
             error="invalid run state for rerun",
             state=run.state
         ), status=409)
-    elif run.rerun is not None:
-        return response_json(dict(
-            error="run has already been rerun"
-        ), status=400)
     else:
         new_run = await state.rerun(run)
         jso = runs_to_jso(request.app, ora.now(), [new_run])

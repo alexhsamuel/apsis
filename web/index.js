@@ -314,13 +314,8 @@ const run_template = `
         <dd>{{ run.message }}</dd>
       </template>
 
-      <template v-if="run.rerun_of">
-        <dt>rerun of</dt>
-        <dd><span class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.rerun_of } })">{{ run.rerun_of }}</span></dd>
-      </template>
-
       <template v-if="run.rerun">
-        <dt>rerun by</dt>
+        <dt>rerun of</dt>
         <dd><span class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.rerun } })">{{ run.rerun }}</span></dd>
       </template>
 

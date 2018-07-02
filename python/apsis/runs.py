@@ -149,7 +149,7 @@ class Run:
 
     # FIXME: Make the attributes read-only.
 
-    def __init__(self, inst, *, rerun_of=None):
+    def __init__(self, inst, *, rerun=None):
         self.inst       = inst
 
         self.__runs     = None
@@ -167,8 +167,7 @@ class Run:
         # State information specific to the program, for a running run.
         self.run_state  = None
 
-        self.rerun      = None
-        self.rerun_of   = rerun_of
+        self.rerun      = rerun
 
 
     def __hash__(self):
@@ -206,15 +205,6 @@ class Run:
 
         # Transition to the new state.
         self.state = state
-
-
-    def set_rerun(self, run_id):
-        """
-        Sets `run_id` as the rerun of this run.
-        """
-        assert self.rerun is None
-        self.rerun = run_id
-        self.__runs.update(self, now())
 
 
 

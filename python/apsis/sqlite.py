@@ -90,7 +90,6 @@ TBL_RUNS = sa.Table(
     sa.Column("output"      , sa.LargeBinary()  , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),
-    sa.Column("rerun_of"    , sa.String()       , nullable=True),
 )
 
 
@@ -116,7 +115,6 @@ class RunDB:
             output      =run.output,
             run_state   =json.dumps(run.run_state),
             rerun       =run.rerun,
-            rerun_of    =run.rerun_of,
         )
 
 
@@ -128,10 +126,10 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 run_id, timestamp, job_id, args, state, times, meta, message, 
-                output, run_state, rerun, rerun_of
+                output, run_state, rerun,
         ) in cursor:
             args            = json.loads(args)
-            run             = Run(Instance(job_id, args), rerun_of=rerun_of)
+            run             = Run(Instance(job_id, args), rerun=rerun)
             times           = json.loads(times)
             times           = { n: ora.Time(t) for n, t in times.items() }
             run.run_id      = run_id
@@ -142,7 +140,6 @@ class RunDB:
             run.message     = message
             run.output      = output
             run.run_state   = json.loads(run_state)
-            run.rerun       = rerun
             yield run
 
 
