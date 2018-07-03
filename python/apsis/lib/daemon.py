@@ -12,7 +12,7 @@ def daemonize(log_path):
     os.close(null_fd)
 
     # Redirect stdout/stderr to a log file.
-    logging.info(f"redirecting logs: {log_path}")
+    logging.debug(f"redirecting logs: {log_path}")
     log_fd = os.open(log_path, os.O_CREAT | os.O_APPEND | os.O_WRONLY)
     os.dup2(log_fd, 1)
     os.dup2(log_fd, 2)
