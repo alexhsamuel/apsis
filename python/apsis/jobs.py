@@ -10,11 +10,29 @@ from   .schedule import DailySchedule
 
 #-------------------------------------------------------------------------------
 
+class Reruns:
+    """
+    :ivar count:
+      Maximum number of reruns; 0 for no reruns.
+    :ivar delay:
+      Delay after failure before rerun.
+    :ivar max_delay:
+      Maximum delay after schedule time for starting a rerun.  If this delay
+      has elapsed, no further reruns are attempted.
+    """
+
+    def __init__(self, count=0, delay=0, max_delay=None):
+        self.count      = int(count)
+        self.delay      = float(delay)
+        self.max_delay  = None if max_delay is None else float(max_delay)
+
+
+
 class Job:
 
-    def __init__(self, job_id, params, schedules, program):
+    def __init__(self, job_id, params, schedules, program, reruns=Reruns()):
         """
-        @param schedules
+        :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
           dict.
         """
@@ -22,7 +40,7 @@ class Job:
         self.params     = frozenset( str(p) for p in tupleize(params) )
         self.schedules  = tupleize(schedules)
         self.program    = program
-
+        self.reruns     = reruns
 
 
 
@@ -90,6 +108,14 @@ def jso_to_program(jso):
         raise JobSpecificationError("bad program")
 
 
+def jso_to_reruns(jso):
+    return Reruns(
+        count       =jso.get("count", 0),
+        delay       =jso.get("delay", 0),
+        max_delay   =jso.get("max_delay", None),
+    )
+
+
 def jso_to_job(jso, job_id):
     params = jso.get("params", "date")
     params = [params] if isinstance(params, str) else params
@@ -111,7 +137,9 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("missing program")
     program = jso_to_program(program)
 
-    return Job(job_id, params, schedules, program)
+    reruns = jso_to_reruns(jso.get("reruns", {}))
+
+    return Job(job_id, params, schedules, program, reruns)
 
 
 def load_yaml(file, job_id):
