@@ -3,10 +3,10 @@
 - [x] store scheduling horizon (`Scheduler.__stop`) in DB
 - [x] restore running runs from DB
 - [x] group runs by reruns in GUI
+- [x] auto rerun logic
+- [ ] convert test runs to API
 - [ ] sanity checker
 - [ ] test restarting apsis
-- [ ] convert test runs to API
-- [x] auto rerun logic
 
 
 # Old

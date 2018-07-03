@@ -158,23 +158,21 @@ table.runlist {
   width: 100%;
 }
 
-.runlist tbody tr:hover {
+.runlist tbody tr.run:hover {
   background: #f0fff8;
 }
 
 .runlist th,
 .runlist td {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  padding-left: 0.5rem;
+  padding: 0.1rem;
 }
 
 .runlist td {
   border: none;
-  padding-top: 0;
 }
 
-.runlist tr.first td {
+.runlist .group td {
+  spacing-top: 1cm;
   padding-top: 0.5rem;
   border-top: 1px solid #e0e0e0;
 }

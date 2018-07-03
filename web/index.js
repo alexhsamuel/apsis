@@ -182,8 +182,6 @@ const runs_template = `
   <table class="runlist">
     <thead>
       <tr>
-        <th>Job</th>
-        <th>Args</th>
         <th>ID</th>
         <th>State</th>
         <th>Schedule</th>
@@ -194,11 +192,13 @@ const runs_template = `
     </thead>
     <tbody>
       <template v-for="rerun_group in rerun_groups">
-        <tr v-for="(run, i) in rerun_group" :key="run.run_id" v-bind:class="{ first: i == 0 }">
-          <template v-if="i == 0">
-            <td v-bind:rowspan="rerun_group.length" class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
-            <td v-bind:rowspan="rerun_group.length" class="args">{{ arg_str(run.args) }}</td>
-          </template>
+        <tr class="group">
+          <td colspan="6">
+            <span class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: rerun_group[0].job_id } })">{{ rerun_group[0].job_id }}</span>
+            {{ arg_str(rerun_group[0].args) }}
+          </td>
+        </tr>
+        <tr v-for="(run, i) in rerun_group" :key="run.run_id" class="run">
           <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
           <td>{{ run.state }}</td>
           <td class="time">{{ run.times.schedule || "" }}</td>
