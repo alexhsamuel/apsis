@@ -182,39 +182,6 @@ table.runlist {
 }
 
 /*------------------------------------------------------------------------------
-  Inst list
-------------------------------------------------------------------------------*/
-
-table.inst-list {
-  width: 100%;
-}
-
-.inst-list tbody tr:hover {
-  background: #f0fff8;
-}
-
-.inst-list th,
-.inst-list td {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  padding-left: 0.5rem;
-}
-
-.inst-list tbody td {
-  max-width: 48rem;
-}
-
-.inst-list tbody tr td {
-  border-top: 1px solid #e1e1e1;
-}
-
-.inst-list tr.run td {
-  border-top: none;
-  border-bottom: none;
-  opacity: 0.6;
-}
-
-/*------------------------------------------------------------------------------
   output
 ------------------------------------------------------------------------------*/
 
