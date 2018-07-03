@@ -130,7 +130,7 @@ def main():
     args = parser.parse_args()
 
     state_dir = get_state_dir()
-    logging.info(f"using dir: {state_dir}")
+    logging.debug(f"using dir: {state_dir}")
 
     app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
     app.config.LOGO = None
@@ -157,8 +157,9 @@ def main():
             # FIXME: Kill and clean up procs on shutdown.
 
     except PidExistsError as exc:
-        logging.critical(exc)
-        raise SystemExit(2)
+        if args.no_daemon:
+            logging.critical(exc)
+            raise SystemExit(2)
 
 
 if __name__ == "__main__":
