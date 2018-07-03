@@ -57,7 +57,7 @@ def get_test_runs(num):
     start = start.MIN + math.ceil(start - start.MIN)
 
     return (
-        (start + random.randint(-60, 600), Run(Instance("hot", {"j": j})))
+        (start + random.randint(-60, 600), Run(Instance("reruntest", {"id": j})))
         for j in range(num)
     )
 

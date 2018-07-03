@@ -91,6 +91,37 @@ class Apsis:
         future.add_done_callback(done)
 
 
+    def __rerun(self, run):
+        """
+        Reruns a failed run, if indicated by the job's rerun policy.
+        """
+        job = self.jobs.get_job(run.inst.job_id)
+        if job.reruns.count == 0:
+            # No reruns.
+            return
+        
+        # Collect all reruns of this run, including the original run.
+        _, runs = self.runs.query(rerun=run.rerun)
+        runs = list(runs)
+
+        if len(runs) > job.reruns.count:
+            # No further reruns.
+            log.info(f"retry max count exceeded: {run.rerun}")
+            return
+
+        time = now()
+
+        main_run, = ( r for r in runs if r.run_id == run.rerun )
+        if (main_run.times["schedule"] is not None
+            and time - main_run.times["schedule"] > job.reruns.max_delay):
+            # Too much time has elapsed.
+            log.info(f"retry max delay exceeded: {run.rerun}")
+
+        # OK, we can rerun.
+        rerun_time = time + job.reruns.delay
+        asyncio.ensure_future(self.rerun(run, time=rerun_time))
+
+
     async def __schedule_runs(self, timestamp: Time):
         """
         Schedules instances of jobs until `time`.
@@ -119,36 +150,60 @@ class Apsis:
         # Store the new state.
         self.runs.update(run, timestamp)
 
+        if state == run.STATE.failure:
+            self.__rerun(run)
+
 
     # --- API ------------------------------------------------------------------
 
     async def schedule(self, time, run):
         """
         Adds and schedules a new run.
+
+        :param time:
+          The schedule time at which to run the run.  If `None`, the run
+          is run now, instead of scheduled.
         """
         self.runs.add(run)
-        self.scheduled.schedule(time, run)
-        self._transition(run, run.STATE.scheduled, times={"schedule": time})
+        if time is None:
+            self.__start(run)
+        else:
+            self.scheduled.schedule(time, run)
+            self._transition(run, run.STATE.scheduled, times={"schedule": time})
 
 
     async def cancel(self, run):
+        """
+        Cancels a scheduled run.
+
+        Unschedules the run and sets it to the error state.
+        """
         self.scheduled.unschedule(run)
         self._transition(run, run.STATE.error, message="cancelled")
 
 
     async def start(self, run):
+        """
+        Starts immediately a scheduled run.
+        """
         # FIXME: Race conditions?
         self.scheduled.unschedule(run)
         await self.__start(run)
 
 
-    async def rerun(self, run):
+    async def rerun(self, run, *, time=None):
+        """
+        Creates a rerun of `run`.
+
+        :param time:
+          The time at which to schedule the rerun.  If `None`, runs the rerun
+          immediately.
+        """
         # Create the new run.
-        log.info(f"rerun: {run.run_id}")
+        log.info(f"rerun: {run.run_id} at {time or 'now'}")
         rerun = run.run_id if run.rerun is None else run.rerun
         new_run = Run(run.inst, rerun=rerun)
-        self.runs.add(new_run)
-        await self.__start(new_run)
+        await self.schedule(time, new_run)
         return new_run
 
 

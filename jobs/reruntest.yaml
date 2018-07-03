@@ -1,0 +1,11 @@
+params: [id]
+
+schedule:
+
+reruns:
+  count: 2
+  delay: 10
+  max_delay: 30
+
+program: $HOME/dev/apsis/jobs/test1 '{{ id }}'
+

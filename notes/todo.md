@@ -6,8 +6,7 @@
 - [ ] sanity checker
 - [ ] test restarting apsis
 - [ ] convert test runs to API
-
-- [ ] auto retry logic
+- [x] auto rerun logic
 
 
 # Old

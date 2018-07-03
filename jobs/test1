@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+
+import logging
+import random
+import sys
+import time
+
+logging.basicConfig(
+    format  ="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
+    datefmt ="%H:%M:%S",
+    level   =logging.INFO,
+)
+
+_, id = sys.argv
+print(f"id={id}")
+sys.stdout.flush()
+
+n = random.randint(1, 16)
+logging.info(f"n={n}")
+
+for i in range(n):
+    logging.info(f"{i:2d}: {'tick' if i % 2 == 0 else 'tock'}")
+    if random.random() < 0.25:
+        logging.error("oops!")
+        raise SystemExit(1)
+    time.sleep(random.random())
+
+print("success")

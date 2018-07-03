@@ -21,6 +21,12 @@ class TransitionError(RuntimeError):
 #-------------------------------------------------------------------------------
 
 class Run:
+    """
+    :ivar rerun:
+      The run ID of the original run of which this is a rerun.  If this is not
+      a rerun, equal to the run ID.  (This attribute partitions groups by 
+      initial run ID.)
+    """
 
     STATE = enum.Enum(
         "Run.STATE", 
@@ -197,8 +203,12 @@ class Runs:
         run_id = next(self.__run_ids)
         assert run.run_id not in self.__runs
 
-        run.run_id      = run_id
-        run.timestamp   = timestamp
+        run.run_id = run_id
+        # If not a rerun, set the rerun ID to the run ID.
+        if run.rerun is None:
+            run.rerun = run_id
+
+        run.timestamp = timestamp
 
         log.info(f"new run: {run}")
 
@@ -220,7 +230,8 @@ class Runs:
         return now(), run
 
 
-    def query(self, *, job_id=None, state=None, since=None, until=None):
+    def query(self, *, job_id=None, state=None, since=None, until=None, 
+              rerun=None):
         runs = self.__runs.values()
         if job_id is not None:
             runs = ( r for r in runs if r.inst.job_id == job_id )
@@ -230,6 +241,8 @@ class Runs:
             runs = ( r for r in runs if r.timestamp >= since )
         if until is not None:
             runs = ( r for r in runs if r.timestamp < until )
+        if rerun is not None:
+            runs = ( r for r in runs if r.rerun == rerun )
 
         return now(), runs
 
