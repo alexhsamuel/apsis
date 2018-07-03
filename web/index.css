@@ -169,14 +169,14 @@ table.runlist {
   padding-left: 0.5rem;
 }
 
-.runlist .gh td.head {
-  color: transparent;
+.runlist td {
+  border: none;
+  padding-top: 0;
 }
 
-.runlist .gt th,
-.runlist .gt td {
-  border-bottom: none;
-  padding-bottom: 0;
+.runlist tr.first td {
+  padding-top: 0.5rem;
+  border-top: 1px solid #e0e0e0;
 }
 
 .runlist tbody td {

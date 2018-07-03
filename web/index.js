@@ -194,9 +194,11 @@ const runs_template = `
     </thead>
     <tbody>
       <template v-for="rerun_group in rerun_groups">
-        <tr v-for="(run, i) in rerun_group" :key="run.run_id" v-bind:class="{ 'gh': i > 0, 'gt': i < rerun_group.length - 1 }">
-          <td class="job-link head" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
-          <td class="args head">{{ arg_str(run.args) }}</td>
+        <tr v-for="(run, i) in rerun_group" :key="run.run_id" v-bind:class="{ first: i == 0 }">
+          <template v-if="i == 0">
+            <td v-bind:rowspan="rerun_group.length" class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
+            <td v-bind:rowspan="rerun_group.length" class="args">{{ arg_str(run.args) }}</td>
+          </template>
           <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
           <td>{{ run.state }}</td>
           <td class="time">{{ run.times.schedule || "" }}</td>
