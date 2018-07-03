@@ -97,7 +97,7 @@ def jso_to_job(jso, job_id):
     try:
         schedules = jso["schedule"]
     except KeyError:
-        raise JobSpecificationError("missing schedule")
+        schedules = ()
     schedules = (
         [schedules] if isinstance(schedules, dict) 
         else [] if schedules is None
