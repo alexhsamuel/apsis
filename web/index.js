@@ -182,9 +182,9 @@ const runs_template = `
   <table class="runlist">
     <thead>
       <tr>
-        <th>ID</th>
         <th>Job</th>
         <th>Args</th>
+        <th>ID</th>
         <th>State</th>
         <th>Schedule</th>
         <th>Start</th>
@@ -193,20 +193,22 @@ const runs_template = `
       </tr>
     </thead>
     <tbody>
-      <tr v-for="run in sorted" :key="run.run_id">
-        <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
-        <td class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
-        <td class="args">{{ arg_str(run.args) }}</td>
-        <td>{{ run.state }}</td>
-        <td class="time">{{ run.times.schedule || "" }}</td>
-        <td class="time">{{ run.times.running || "" }}</td>
-        <td class="rt">{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
-        <td>
-          <action-url
-            v-for="(url, action) in run.actions" :url="url" :action="action" :key="action">
-          </action-url>
-        </td>
-      </tr>
+      <template v-for="rerun_group in rerun_groups">
+        <tr v-for="(run, i) in rerun_group" :key="run.run_id" v-bind:class="{ 'gh': i > 0, 'gt': i < rerun_group.length - 1 }">
+          <td class="job-link head" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</td>
+          <td class="args head">{{ arg_str(run.args) }}</td>
+          <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
+          <td>{{ run.state }}</td>
+          <td class="time">{{ run.times.schedule || "" }}</td>
+          <td class="time">{{ run.times.running || "" }}</td>
+          <td class="rt">{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
+          <td>
+            <action-url
+              v-for="(url, action) in run.actions" :url="url" :action="action" :key="action">
+            </action-url>
+          </td>
+        </tr>
+      </template>
     </tbody>
   </table>
 </div>
@@ -260,16 +262,36 @@ const Runs = Vue.component('runs', {
   },
 
   computed: {
-    sorted() {
-      return _.flow(_.values, _.sortBy(
-        r => r.times.schedule || r.times.error || r.times.running
-      ))(this.runs)
+    // Organizes runs by rerun group.
+    rerun_groups() {
+      const runs = this.runs
+      // Collect reruns of the same run into an object keyed by run ID.
+      const reruns = {}
+      _.flow(
+        _.values, 
+        _.each(r => {
+          if (r.rerun)
+            (reruns[r.rerun] || (reruns[r.rerun] = [])).push(r)
+          else 
+            (reruns[r.run_id] || (reruns[r.run_id] = [])).splice(0, 0, r)
+        })
+      )(runs)
+      // Sort original runs.
+      return _.flow(
+        _.values,
+        _.sortBy(rr => {
+          const r = rr[0]
+          return r.times.schedule || r.times.error || r.times.running
+        }),
+      )(reruns)
     },
 
   },
 
   methods: {
     format_elapsed,  // FIXME: Why do we need this?
+
+    
 
     // FIXME: Duplicated.
     arg_str(args) {
