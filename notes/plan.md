@@ -29,13 +29,6 @@
 
 ### Retries
 
-```js
-"retry": {
-  "count": None,
-  "delay": 600,
-  "max_delay": 86400
-}
-```
 
 
 ### Web UI
