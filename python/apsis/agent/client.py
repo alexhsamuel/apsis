@@ -29,8 +29,8 @@ class Agent:
         argv = [sys.executable, "-m", "apsis.agent.main"]
         proc = await asyncio.create_subprocess_exec(*argv)
         await proc.communicate()
-        # if proc.returncode != 0:
-        #     raise RuntimeError("agent start failed")
+        if proc.returncode != 0:
+            raise RuntimeError("agent start failed")
 
 
     async def request(self, method, endpoint, data=None):
