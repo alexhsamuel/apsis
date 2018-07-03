@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import requests
-import subprocess
 import sys
 
 from   . import DEFAULT_PORT
@@ -26,9 +25,12 @@ class Agent:
         """
         Attempts to start the agent.
         """
-        # FIXME: Start async.
         log.info("starting agent")
-        subprocess.run([sys.executable, "-m", "apsis.agent.main"])
+        argv = [sys.executable, "-m", "apsis.agent.main"]
+        proc = await asyncio.create_subprocess_exec(*argv)
+        await proc.communicate()
+        # if proc.returncode != 0:
+        #     raise RuntimeError("agent start failed")
 
 
     async def request(self, method, endpoint, data=None):
