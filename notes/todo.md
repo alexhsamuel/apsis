@@ -7,6 +7,7 @@
 - [ ] convert test runs to API
 - [ ] sanity checker
 - [ ] test restarting apsis
+- [ ] CLUI for testing jobs repo
 
 
 # Old

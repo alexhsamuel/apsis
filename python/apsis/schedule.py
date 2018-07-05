@@ -38,11 +38,11 @@ class DailySchedule:
                     break
             else:
                 # All daytimes have passed for this date.
-                date = self.calendar.shift(date, 1)
+                date = self.calendar.after(date + 1)
                 i = 0
         else:
             # Start at the beginning of the next date.
-            date = self.calendar.next(local.date)
+            date = self.calendar.after(local.date)
             i = 0
 
         # Now generate.
@@ -51,7 +51,7 @@ class DailySchedule:
             i += 1
             if i == len(self.daytimes):
                 # On to the next day.
-                date = self.calendar.shift(date, 1)
+                date = self.calendar.after(date + 1)
                 i = 0
 
 

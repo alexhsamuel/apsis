@@ -46,31 +46,6 @@ class Job:
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Move to ora.
-
-def weekday_range(start, end):
-    return [ 
-        ora.Weekday(w) 
-        for w in range(int(start), int(end) + (7 if end < start else 0) + 1)
-    ]
-
-
-def get_calendar(name):
-    # FIXME: Support named calendars, loaded from somewhere.
-    # FIXME: Handle errors sensibly.
-    if name == "all":
-        return ora.calendar.AllCalendar()
-    elif "-" in name:
-        start, end = name.split("-")
-        start = ora.Weekday[start]
-        end = ora.Weekday[end]
-        return ora.calendar.WeekdayCalendar(weekday_range(start, end))
-    else:
-        return sorted(set( ora.Weekday[w.strip()] for w in name.split(",") ))
-
-
-#-------------------------------------------------------------------------------
-
 class JobSpecificationError(Exception):
 
     pass
@@ -86,7 +61,7 @@ def jso_to_schedule(jso):
         raise JobSpecificationError("missing time zone")
     tz = ora.TimeZone(tz)
 
-    calendar = get_calendar(jso.get("calendar", "all"))
+    calendar = ora.get_calendar(jso.get("calendar", "all"))
 
     try:
         daytimes = jso["daytime"]

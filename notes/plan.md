@@ -16,8 +16,6 @@
 
 ### Scheduling
 
-- update calendar support for ora
-- ora named calendar repo
 
 
 ### Running
