@@ -16,15 +16,20 @@
       </template>
     </dl>
 
-    <runs v-bind:job_id="job_id"></runs>
+    <RunsList v-bind:job_id="job_id"></RunsList>
   </div>
 </template>
 
 <script>
 import { join } from 'lodash'
+import RunsList from './RunsList'
 
 export default {
   props: ['job_id'],
+
+  components: {
+    RunsList,
+  },
 
   data() {
     return {
@@ -33,8 +38,8 @@ export default {
   },
 
   computed: {
-    params(job) {
-      return join(job.params, ', ')
+    params() {
+      return join(this.job.params, ', ')
     },
   },
 

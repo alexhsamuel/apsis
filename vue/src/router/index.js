@@ -1,12 +1,15 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Job from '@/components/Job'
-import JobsList from '@/components/JobsList'
-import HelloWorld from '@/components/HelloWorld'
+
+import Job          from '@/components/Job'
+import JobsList     from '@/components/JobsList'
+import HelloWorld   from '@/components/HelloWorld'
+import RunsList     from '@/components/RunsList'
 
 Vue.use(Router)
 
 export default new Router({
+  mode: 'history',
   routes: [
     {
       path: '/',
@@ -23,6 +26,11 @@ export default new Router({
       path: '/jobs',
       name: 'jobs-list',
       component: JobsList,
+    },
+    {
+      path: '/runs',
+      name: 'runs-list',
+      component: RunsList,
     },
   ]
 })

@@ -35,5 +35,7 @@ module.exports = {
 
     'space-before-function-paren': ["error", {"anonymous": "always", "named": "never", "asyncArrow": "always"}],
     'vue/require-v-for-key': 'off',
+    'curly': ['error', 'multi'],
+    'camelcase': 'off',
   }
 }

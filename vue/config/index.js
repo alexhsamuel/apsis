@@ -15,7 +15,11 @@ module.exports = {
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-      }
+      },
+      '/api': {
+         target: 'ws://localhost:5000',
+         ws: true
+      },
     },
 
     // Various Dev Server settings
