@@ -29,5 +29,9 @@ module.exports = {
     'comma-dangle': 'off',
     // Blank lines at end are nice.
     'no-multiple-empty-lines': ['error', {'max': 2}],
+    // No one cares about end of line whitespace.
+    'no-trailing-spaces': 'off',
+
+    'space-before-function-paren': ["error", {"anonymous": "always", "named": "never", "asyncArrow": "always"}],
   }
 }

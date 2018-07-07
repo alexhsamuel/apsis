@@ -89,7 +89,7 @@ import test from './test.vue'
 export default {
   name: 'HelloWorld',
   props: ['message'],
-  data () {
+  data() {
     return {
       msg: 'Welcome to Your Vue.js App'
     }
