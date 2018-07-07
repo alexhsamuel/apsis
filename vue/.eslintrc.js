@@ -31,7 +31,9 @@ module.exports = {
     'no-multiple-empty-lines': ['error', {'max': 2}],
     // No one cares about end of line whitespace.
     'no-trailing-spaces': 'off',
+    'no-multi-spaces': 'off',
 
     'space-before-function-paren': ["error", {"anonymous": "always", "named": "never", "asyncArrow": "always"}],
+    'vue/require-v-for-key': 'off',
   }
 }
