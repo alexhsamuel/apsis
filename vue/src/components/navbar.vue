@@ -24,8 +24,12 @@
 </template>
 
 <script>
+import Clock from './clock.vue'
 export default {
   name: 'navbar',
+  components: {
+    Clock,
+  }
 }
 </script>
 
