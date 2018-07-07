@@ -15,7 +15,7 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
 #app {
   width: 90%;
   max-width: none;
@@ -40,19 +40,19 @@ dd {
 .job-link {
   color: #00a050;
   cursor: default;
-}
 
-.job-link:hover {
-  text-decoration: underline;
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .run-link {
   color: #007030;
   cursor: default;
-}
 
-.run-link:hover {
-  text-decoration: underline;
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 </style>
