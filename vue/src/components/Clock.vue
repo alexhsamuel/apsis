@@ -10,15 +10,8 @@
 </template>
 
 <script>
-import moment from 'moment-timezone'
-
+import { formatTime } from '../format'
 import store from '../store'
-
-const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss'
-
-function formatTime(date, tz) {
-  return moment(date).tz(tz).format(TIME_FORMAT)
-}
 
 export default {
   data() {
