@@ -1,36 +1,29 @@
 <template>
   <span>
-    {{ formatTime(time) }}
+    {{ formatTime(store.state.time, store.state.timeZone) }}
   </span>
 </template>
 
 <script>
 import moment from 'moment-timezone'
 
-const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss'
-let tz = 'UTC'
+import store from '../store'
 
-function formatTime(date) {
+const TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss'
+
+function formatTime(date, tz) {
   return moment(date).tz(tz).format(TIME_FORMAT)
 }
 
 export default {
   data() {
     return {
-      time: new Date(),
+      store,
     }
   },
 
   methods: {
     formatTime
-  },
-
-  mounted() {
-    const tick = () => {
-      this.time = new Date()
-      window.setTimeout(tick, 1000 - this.time % 1000)
-    }
-    tick()
   },
 
 }
