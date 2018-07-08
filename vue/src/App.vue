@@ -21,7 +21,7 @@ export default {
   max-width: none;
   margin-left: auto;
   margin-right: auto;
-  font-family: "Roboto", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Roboto", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
