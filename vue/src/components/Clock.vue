@@ -1,7 +1,7 @@
 <template>
   <div>
     <span>
-      {{ formatTime(store.state.time, store.state.timeZone) }}
+      {{ formatTime(store.state.time, store.state.timeZone, TIME_FORMAT) }}
     </span>
     <select id="timeZone" v-model="timeZone" v-on:change="onTimeZoneChange">
       <option v-for="tz in timeZones" v-bind:value="tz">{{ shortTimeZone(tz) }}</option>
@@ -25,6 +25,7 @@ export default {
         'Europe/London',
         'America/New_York',
       ],
+      TIME_FORMAT: 'YYYY-MM-DD HH:mm:ss Z',
     }
   },
 
