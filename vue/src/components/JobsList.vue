@@ -15,7 +15,7 @@
             v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
             >
           <td class="job-link">{{ job.job_id }}</td>
-          <td>{{ job.program.str || "" }}</td>
+          <td class="program">{{ job.program.str || "" }}</td>
           <td>
             <template 
                 v-for="s in job.schedules"
@@ -67,6 +67,11 @@ tbody tr:hover {
 tbody td {
   min-width: 8rem;
   max-width: 48rem;
+}
+
+.program {
+  font-family: "Roboto mono";
+  font-size: 85%;
 }
 </style>
 
