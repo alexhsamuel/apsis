@@ -23,8 +23,8 @@
           <tr v-for="run in rerun_group" :key="run.run_id" class="run">
             <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
             <td>{{ run.state }}</td>
-            <td class="time">{{ run.times.schedule || "" }}</td>
-            <td class="time">{{ run.times.running || "" }}</td>
+            <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
+            <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
             <td class="rt">{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
             <td>
               <ActionButton
@@ -43,12 +43,14 @@ import { each, join, map, sortBy, toPairs, values } from 'lodash'
 
 import ActionButton from './ActionButton'
 import RunsSocket from '../RunsSocket'
+import Timestamp from './Timestamp'
 
 export default { 
   name: 'runs',
   props: ['job_id'],
   components: {
     ActionButton,
+    Timestamp,
   },
 
   data() { 
@@ -126,11 +128,6 @@ td {
 
 tbody td {
   max-width: 48rem;
-}
-
-.time {
-  font-size: 90%;
-  font-family: 'Roboto condensed';
 }
 
 .args {

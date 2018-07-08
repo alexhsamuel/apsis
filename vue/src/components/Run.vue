@@ -24,9 +24,9 @@
         <dt>times</dt>
         <dd>
           <dl>
-            <template v-for="[key, value] in run_times">
-              <dt>{{ key }}</dt>
-              <dd>{{ value }}</dd>
+            <template v-for="[name, time] in run_times">
+              <dt>{{ name }}</dt>
+              <dd><Timestamp v-bind:time="time"></Timestamp></dd>
             </template>
           </dl>
         </dd>
@@ -49,9 +49,11 @@
 import { join, map, sortBy, toPairs } from 'lodash'
 
 import RunsSocket from '../RunsSocket'
+import Timestamp from './Timestamp'
 
 export default {
   props: ['run_id'],
+  components: { Timestamp },
 
   data() {
     return {
@@ -116,6 +118,5 @@ export default {
   padding: 0.5rem;
   font-family: "Roboto mono", monospaced;
 }
-
 </style>
 
