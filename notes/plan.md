@@ -12,6 +12,8 @@
 ### Jobs
 
 - store transient jobs in the database (for at/cron/ad hoc runs)
+- API endpoint to reload jobs
+- watch jobs for changes
 
 
 ### Scheduling

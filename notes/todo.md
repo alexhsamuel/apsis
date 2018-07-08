@@ -4,20 +4,25 @@
 - [x] restore running runs from DB
 - [x] group runs by reruns in GUI
 - [x] auto rerun logic
+- [ ] store transient jobs in the database (for at/cron/ad hoc runs)
+- [ ] _ad hoc_ runs
+- [ ] search, filtering in RunsList
+- [ ] search, filtering in JobsList
 - [ ] convert test runs to API
+- [ ] performance test with lots of jobs and runs
 - [ ] sanity checker
+  - [ ] check for unscheduled runs
+  - [ ] check for late scheduled runs
+  - [ ] check for orphaned running runs
+  - [ ] check for runs that ran late
 - [ ] test restarting apsis
 - [ ] CLUI for testing jobs repo
 - [ ] use [vue-select](http://sagalbot.github.io/vue-select/docs/) for time zone dropdown
 - [ ] tooltip for timestamps with local, UTC, (run-local?), and elapsed times
+- [ ] kill button for running run
 
 
 # Old
-
-- Kill button for executing run.
-- Don't run a job when an inst has succeeded.
-- Don't run a job if another inst is running.
-- Customize run view for overall, job screen.
 
 - Make RunsSocket replace runs, not stack them.
 - Replace RunsSocket with a single ws pubsub protocol.
@@ -28,9 +33,6 @@
 - Command line UI.
 - Hot reload jobs via API.
 - Clean shutdown.
-
-- Write runs to Mongo.
-- Look for missed jobs by comparing schedule to runs.
 
 - When jobs changed, reschedule the docket job.
 - When is the job fixed for an inst/run?  At start time?
@@ -44,9 +46,6 @@
 - Better test jobs.
 - Figure out what to do about the sanic wildcard route hack.  Submit?
 - Webpack setup for web GUI.
-- Block out web GUI.
-- Rename State -> Apsis, or somethign else.
-- Rename Inst -> Task, or something else.
 - Incremental search on job / instance tables.
 - Show when websocket disconnects, and try to reconnect.
 - Handle exceptions in API.
