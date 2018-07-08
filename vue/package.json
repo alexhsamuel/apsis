@@ -15,7 +15,10 @@
   },
   "dependencies": {
     "lodash": "^4.17.10",
+    "moment": "^2.22.2",
+    "moment-timezone": "^0.5.21",
     "node-sass": "^4.9.1",
+    "npm": "^6.1.0",
     "sass-loader": "^7.0.3",
     "vue": "^2.5.2",
     "vue-router": "^3.0.1"
