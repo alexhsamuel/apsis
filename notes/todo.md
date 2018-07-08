@@ -9,6 +9,7 @@
 - [ ] test restarting apsis
 - [ ] CLUI for testing jobs repo
 - [ ] use [vue-select](http://sagalbot.github.io/vue-select/docs/) for time zone dropdown
+- [ ] tooltip for timestamps with local, UTC, (run-local?), and elapsed times
 
 
 # Old
