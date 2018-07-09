@@ -4,6 +4,7 @@ import ora
 import sanic
 import websockets
 
+from   ..jobs import jso_to_job
 from   ..runs import Instance, Run
 
 log = logging.getLogger(__name__)
@@ -75,12 +76,6 @@ def run_to_jso(app, run):
         "output_len"    :  None if run.output is None else len(run.output),
         "rerun"         : run.rerun,
     }
-
-
-def jso_to_run(app, jso):
-    inst = Instance(jso["job_id"], jso["args"])
-    run = Run(inst)
-    return run
 
 
 def runs_to_jso(app, when, runs):
@@ -240,7 +235,22 @@ async def websocket_runs(request, ws):
     
 @API.route("/runs", methods={"POST"})
 async def run_post(request):
-    run = jso_to_run(request.app, request.json)
+    # The run may either contain a job ID, or a complete job.
+    jso = request.json
+    if "job" in jso:
+        # A complete job.
+        job = jso_to_job(jso["job"])
+        request.app.jobs.add(job)
+        job_id = job.job_id
+
+    elif "job_id" in jso:
+        # Just a job ID.
+        job_id = jso["job_id"]
+
+    else:
+        return response_json({"error": "missing job_id or job"}, status=400)
+
+    run = Run(Instance(job_id, jso.get("args", [])))
     await request.app.apsis.schedule(None, run)
     jso = runs_to_jso(request.app, ora.now(), [run])
     return response_json(jso)
