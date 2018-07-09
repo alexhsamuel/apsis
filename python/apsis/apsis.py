@@ -2,6 +2,7 @@ import asyncio
 import logging
 from   ora import Time, now
 
+from   .jobs import Jobs
 from   .lib import Interval
 from   .program import ProgramError, ProgramFailure
 from   .runs import Run, Runs
@@ -39,7 +40,7 @@ class Apsis:
 
     def __init__(self, jobs, db):
         self.__db = db
-        self.jobs = jobs
+        self.jobs = Jobs(jobs, db.job_db)
 
         # Continue scheduling where we left off.
         scheduler_stop = db.scheduler_db.get_stop()

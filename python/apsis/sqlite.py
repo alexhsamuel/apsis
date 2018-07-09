@@ -8,6 +8,7 @@ import ora
 from   pathlib import Path
 import sqlalchemy as sa
 
+from   .jobs import jso_to_job, job_to_jso
 from   .runs import Instance, Run
 
 log = logging.getLogger(__name__)
@@ -63,6 +64,51 @@ class SchedulerDB:
     def set_stop(self, stop):
         with self.__engine.begin() as conn:
             conn.execute(TBL_SCHEDULER.update().values(stop=dump_time(stop)))
+
+
+
+#-------------------------------------------------------------------------------
+
+TBL_JOBS = sa.Table(
+  "jobs", METADATA,
+  sa.Column("job_id"        , sa.String()       , nullable=False),
+  sa.Column("job"           , sa.String()       , nullable=False),
+)
+
+class JobDB:
+
+    def __init__(self, engine):
+        self.__engine = engine
+
+
+    def insert(self, job):
+        # FIXME: Check that the job ID doesn't exist already
+        with self.__engine.begin() as conn:
+            conn.execute(TBL_JOBS.insert().values(
+                job_id  =job.job_id,
+                job     =json.dumps(job_to_jso(job)),
+            ))
+
+
+    def get(self, job_id):
+        with self.__engine.begin() as conn:
+            query = sa.select([TBL_JOBS]).where(TBL_JOBS.c.job_id == job_id)
+            rows = list(conn.execute(query))
+            assert len(rows) <= 1
+
+            if len(rows) == 0:
+                raise LookupError(job_id)
+            else:
+                (_, jso), = rows
+                return jso_to_job(jso, job_id)
+
+
+    def query(self):
+        query = sa.select([TBL_JOBS])
+        with self.__engine.begin() as conn:
+            for row in conn.execute(query):
+                _, jso = row
+                yield jso_to_job(jso)
 
 
 
@@ -204,8 +250,9 @@ class SqliteDB:
             # FIXME: Check that tables exist.
             pass
 
-        self.run_db         = RunDB(engine)
         self.scheduler_db   = SchedulerDB(engine)
+        self.job_db         = JobDB(engine)
+        self.run_db         = RunDB(engine)
 
 
     @classmethod

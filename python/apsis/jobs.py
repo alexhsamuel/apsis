@@ -1,3 +1,4 @@
+from   contextlib import suppress
 import ora
 import ora.calendar
 import os
@@ -52,6 +53,8 @@ class JobSpecificationError(Exception):
 
 
 
+# FIXME: This is for daily schedule only!
+
 def jso_to_schedule(jso):
     args = jso.get("args", {})
 
@@ -73,6 +76,13 @@ def jso_to_schedule(jso):
     return DailySchedule(tz, calendar, daytimes, args)
 
 
+def schedule_to_jso(schedule):
+    return { 
+        "type"  : type(schedule).__qualname__,
+        **schedule.to_jso()
+    }
+
+
 def jso_to_program(jso):
     if isinstance(jso, str):
         return program.AgentShellProgram(jso)
@@ -81,6 +91,13 @@ def jso_to_program(jso):
     else:
         # FIXME: Support something reasonable here.
         raise JobSpecificationError("bad program")
+
+
+def program_to_jso(program):
+    return {
+        "type"  : type(program).__qualname__,
+        **program.to_jso()
+    }
 
 
 def jso_to_reruns(jso):
@@ -117,6 +134,15 @@ def jso_to_job(jso, job_id):
     return Job(job_id, params, schedules, program, reruns)
 
 
+def job_to_jso(job):
+    return {
+        "job_id"        : job.job_id,
+        "params"        : list(sorted(job.params)),
+        "schedules"     : [ schedule_to_jso(s) for s in job.schedules ],
+        "program"       : program_to_jso(job.program),
+    }
+
+
 def load_yaml(file, job_id):
     jso = yaml.YAML(typ="safe").load(file)
     return jso_to_job(jso, job_id)
@@ -135,6 +161,9 @@ def load_yaml_files(dir_path):
 
 
 #-------------------------------------------------------------------------------
+
+# FIXME: Rename get_job() -> get().
+# FIXME: Rename get_jobs() -> all().
 
 class JobsDir:
 
@@ -163,5 +192,35 @@ class JobsDir:
     def get_jobs(self):
         return self.__jobs.values()
 
+
+
+#-------------------------------------------------------------------------------
+
+# FIXME: This feels so awkward.  Is there a better design?
+
+class Jobs:
+    """
+    Combines a job dir and a job DB.
+    """
+
+    def __init__(self, job_dir, job_db):
+        self.__job_dir = job_dir
+        self.__job_db = job_db
+
+
+    def get_job(self, job_id) -> Job:
+        with suppress(KeyError):
+            return self.__job_dir.get_job(job_id)
+        return self.__job_db.get(job_id)
+
+
+    def get_jobs(self):
+        yield from self.__job_dir.get_jobs()
+        yield from self.__job_db.query()
+
+
+    def add(self, job):
+        self.__job_db.insert(job)
+                
 
 
