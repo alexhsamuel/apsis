@@ -166,7 +166,7 @@ class Apsis:
         """
         self.runs.add(run)
         if time is None:
-            self.__start(run)
+            await self.__start(run)
         else:
             self.scheduled.schedule(time, run)
             self._transition(run, run.STATE.scheduled, times={"schedule": time})
