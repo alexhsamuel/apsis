@@ -4,6 +4,8 @@ import ora
 import sanic
 import websockets
 
+from   ..runs import Instance, Run
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -75,6 +77,12 @@ def run_to_jso(app, run):
     }
 
 
+def jso_to_run(app, jso):
+    inst = Instance(jso["job_id"], jso["args"])
+    run = Run(inst)
+    return run
+
+
 def runs_to_jso(app, when, runs):
     return {
         "when": time_to_jso(when),
@@ -113,14 +121,14 @@ async def jobs(request):
 #-------------------------------------------------------------------------------
 # Runs
 
-@API.route("/runs/<run_id>")
+@API.route("/runs/<run_id>", methods={"GET"})
 async def run(request, run_id):
     when, run = request.app.apsis.runs.get(run_id)
     jso = runs_to_jso(request.app, when, [run])
     return response_json(jso)
 
 
-@API.route("/runs/<run_id>/output")
+@API.route("/runs/<run_id>/output", methods={"GET"})
 async def run_output(request, run_id):
     when, run = request.app.apsis.runs.get(run_id)
     if run.output is None:
@@ -230,3 +238,11 @@ async def websocket_runs(request, ws):
     log.info("live runs disconnect")
 
     
+@API.route("/runs", methods={"POST"})
+async def run_post(request):
+    run = jso_to_run(request.app, request.json)
+    await request.app.apsis.schedule(None, run)
+    jso = runs_to_jso(request.app, ora.now(), [run])
+    return response_json(jso)
+    
+
