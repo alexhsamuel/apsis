@@ -8,6 +8,7 @@
 - [ ] _ad hoc_ runs
 - [ ] search, filtering in RunsList
 - [ ] search, filtering in JobsList
+- [ ] document API
 - [ ] convert test runs to API
 - [ ] performance test with lots of jobs and runs
 - [ ] sanity checker
