@@ -3,10 +3,12 @@ import ora
 import ora.calendar
 import os
 from   pathlib import Path
+import random
 import ruamel_yaml as yaml
+import string
 
-from   . import program
 from   .lib.py import tupleize
+from   .program import jso_to_program, program_to_jso
 from   .schedule import DailySchedule
 
 #-------------------------------------------------------------------------------
@@ -37,7 +39,7 @@ class Job:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
           dict.
         """
-        self.job_id     = str(job_id)
+        self.job_id     = None if job_id is None else str(job_id)
         self.params     = frozenset( str(p) for p in tupleize(params) )
         self.schedules  = tupleize(schedules)
         self.program    = program
@@ -80,23 +82,6 @@ def schedule_to_jso(schedule):
     return { 
         "type"  : type(schedule).__qualname__,
         **schedule.to_jso()
-    }
-
-
-def jso_to_program(jso):
-    if isinstance(jso, str):
-        return program.AgentShellProgram(jso)
-    elif isinstance(jso, list):
-        return program.AgentProgram(jso)
-    else:
-        # FIXME: Support something reasonable here.
-        raise JobSpecificationError("bad program")
-
-
-def program_to_jso(program):
-    return {
-        "type"  : type(program).__qualname__,
-        **program.to_jso()
     }
 
 
@@ -209,7 +194,7 @@ class Jobs:
 
 
     def get_job(self, job_id) -> Job:
-        with suppress(KeyError):
+        with suppress(LookupError):
             return self.__job_dir.get_job(job_id)
         return self.__job_db.get(job_id)
 
@@ -219,7 +204,18 @@ class Jobs:
         yield from self.__job_db.query()
 
 
+    def __get_job_id(self):
+        # FIXME: Something better.
+        return (
+            "adhoc-"
+            + "".join( random.choice(string.ascii_letters) for _ in range(12) )
+        )
+
+
     def add(self, job):
+        assert job.job_id is None
+        job.job_id = self.__get_job_id()
+
         self.__job_db.insert(job)
                 
 

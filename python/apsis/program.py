@@ -99,30 +99,6 @@ class Program:
 
 #-------------------------------------------------------------------------------
 
-class ShellMixin:
-    # Note: This mixin must precede the main program class in bases, as its
-    # __init__ needs to go first.
-
-    def __init__(self, command, **kw_args):
-        # FIXME: Which shell?
-        command = str(command)
-        argv = ["/bin/bash", "-c", command]
-        super().__init__(argv, **kw_args)
-        self.__command = command
-
-
-    def bind(self, args):
-        command = template_expand(self.__command, args)
-        return type(self)(command)
-
-
-    def __str__(self):
-        return self.__command
-
-
-
-#-------------------------------------------------------------------------------
-
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%kZ"
 
 class ProcessProgram:
@@ -144,6 +120,11 @@ class ProcessProgram:
         return {
             "argv"      : list(self.__argv),
         }
+
+
+    @classmethod
+    def from_jso(Class, jso):
+        return Class(jso["argv"])
 
 
     async def start(self, run):
@@ -197,9 +178,33 @@ class ProcessProgram:
 
 
 
-class ShellCommandProgram(ShellMixin, ProcessProgram):
+class ShellCommandProgram(ProcessProgram):
 
-    pass
+    def __init__(self, command):
+        command = str(command)
+        argv = ["/bin/bash", "-c", command]
+        super().__init__(argv)
+        self.__command = command
+
+
+    def bind(self, args):
+        command = template_expand(self.__command, args)
+        return type(self)(command)
+
+
+    def __str__(self):
+        return self.__command
+
+
+    def to_jso(self):
+        return {
+            "command"   : self.__command,
+        }
+
+
+    @classmethod
+    def from_jso(Class, jso):
+        return Class(jso["command"])
 
 
 
@@ -225,6 +230,11 @@ class AgentProgram:
         return {
             "argv"      : list(self.__argv),
         }
+
+
+    @classmethod
+    def from_jso(Class, jso):
+        return Class(jso["argv"])
 
 
     async def start(self, run):
@@ -303,9 +313,68 @@ class AgentProgram:
 
 
                                         
-class AgentShellProgram(ShellMixin, AgentProgram):
+class AgentShellProgram(AgentProgram):
 
-    pass
+    def __init__(self, command):
+        command = str(command)
+        argv = ["/bin/bash", "-c", command]
+        super().__init__(argv)
+        self.__command = command
 
+
+    def bind(self, args):
+        command = template_expand(self.__command, args)
+        return type(self)(command)
+
+
+    def __str__(self):
+        return self.__command
+
+
+    def to_jso(self):
+        return {
+            "command": self.__command,
+        }
+
+
+    @classmethod
+    def from_jso(Class, jso):
+        return Class(jso["command"])
+
+
+
+#-------------------------------------------------------------------------------
+
+TYPES = {
+    c.__name__: c
+    for c in (
+        AgentProgram,
+        AgentShellProgram,
+        ProcessProgram,
+        ShellCommandProgram,
+    )
+}
+
+
+def jso_to_program(jso):
+    if isinstance(jso, str):
+        return AgentShellProgram(jso)
+    elif isinstance(jso, list):
+        return AgentProgram(jso)
+    else:
+        type_name = jso["type"]
+        try:
+            Type = TYPES[type_name]
+        except KeyError:
+            # FIXME: Better exception type.
+            raise LookupError(type_name)
+        return Type.from_jso(jso)
+
+
+def program_to_jso(program):
+    return {
+        "type"  : type(program).__name__,
+        **program.to_jso()
+    }
 
 

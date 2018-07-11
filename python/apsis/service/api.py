@@ -232,15 +232,15 @@ async def websocket_runs(request, ws):
                 break
     log.info("live runs disconnect")
 
-    
+
 @API.route("/runs", methods={"POST"})
 async def run_post(request):
     # The run may either contain a job ID, or a complete job.
     jso = request.json
     if "job" in jso:
         # A complete job.
-        job = jso_to_job(jso["job"])
-        request.app.jobs.add(job)
+        job = jso_to_job(jso["job"], None)
+        request.app.apsis.jobs.add(job)
         job_id = job.job_id
 
     elif "job_id" in jso:
@@ -250,7 +250,7 @@ async def run_post(request):
     else:
         return response_json({"error": "missing job_id or job"}, status=400)
 
-    run = Run(Instance(job_id, jso.get("args", [])))
+    run = Run(Instance(job_id, jso.get("args", {})))
     await request.app.apsis.schedule(None, run)
     jso = runs_to_jso(request.app, ora.now(), [run])
     return response_json(jso)
