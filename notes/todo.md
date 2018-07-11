@@ -4,6 +4,7 @@
 - [x] restore running runs from DB
 - [x] group runs by reruns in GUI
 - [x] auto rerun logic
+- [ ] define the extension mechanism (program, schedule, etc.)
 - [ ] store transient jobs in the database (for at/cron/ad hoc runs)
 - [ ] _ad hoc_ runs
 - [ ] search, filtering in RunsList
