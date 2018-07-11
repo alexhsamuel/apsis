@@ -251,7 +251,9 @@ async def run_post(request):
         return response_json({"error": "missing job_id or job"}, status=400)
 
     run = Run(Instance(job_id, jso.get("args", {})))
-    await request.app.apsis.schedule(None, run)
+    time = jso.get("times", {}).get("schedule", None)
+    time = None if time is None else ora.Time(time)
+    await request.app.apsis.schedule(time, run)
     jso = runs_to_jso(request.app, ora.now(), [run])
     return response_json(jso)
     
