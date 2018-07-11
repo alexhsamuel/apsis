@@ -5,8 +5,10 @@
 - [x] group runs by reruns in GUI
 - [x] auto rerun logic
 - [ ] define the extension mechanism (program, schedule, etc.)
-- [ ] store transient jobs in the database (for at/cron/ad hoc runs)
-- [ ] _ad hoc_ runs
+- [x] store transient jobs in the database (for at/cron/ad hoc runs)
+- [x] _ad hoc_ runs
+- [ ] web UI for ad hoc runs
+- [ ] command line UI for ad hoc runs
 - [ ] search, filtering in RunsList
 - [ ] search, filtering in JobsList
 - [ ] document API
