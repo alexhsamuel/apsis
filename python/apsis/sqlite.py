@@ -99,16 +99,15 @@ class JobDB:
             if len(rows) == 0:
                 raise LookupError(job_id)
             else:
-                (_, jso), = rows
-                return jso_to_job(jso, job_id)
+                (_, job), = rows
+                return jso_to_job(json.loads(job), job_id)
 
 
     def query(self):
         query = sa.select([TBL_JOBS])
         with self.__engine.begin() as conn:
-            for row in conn.execute(query):
-                _, jso = row
-                yield jso_to_job(jso)
+            for job_id, job in conn.execute(query):
+                yield jso_to_job(json.loads(job), job_id)
 
 
 
