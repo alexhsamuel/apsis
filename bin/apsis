@@ -89,7 +89,9 @@ def cmd_job(client, args):
     print_lines(format_job(job))
 
 
-cmd = commands.add_parser("job")
+cmd = commands.add_parser(
+    "job",
+    description="Displays a job.")
 cmd.add_argument(
     "job", metavar="JOB-ID")
 cmd.set_defaults(cmd=cmd_job)
@@ -111,7 +113,9 @@ def cmd_jobs(client, args):
     print()
 
 
-cmd = commands.add_parser("jobs")
+cmd = commands.add_parser(
+    "jobs",
+    description="ists all jobs.")
 cmd.set_defaults(cmd=cmd_jobs)
 
 #--- command: run --------------------------------------------------------------
@@ -122,7 +126,9 @@ def cmd_run(client, args):
     print_lines(format_run(run))
 
 
-cmd = commands.add_parser("run")
+cmd = commands.add_parser(
+    "run",
+    description="Displays a run.")
 cmd.add_argument(
     "run", metavar="RUN-ID")
 cmd.set_defaults(cmd=cmd_run)
@@ -151,7 +157,9 @@ def cmd_runs(client, arg):
     print()
 
 
-cmd = commands.add_parser("runs")
+cmd = commands.add_parser(
+    "runs",
+    description="Displays runs of a job.")
 cmd.add_argument(
     "job", metavar="JOB-ID")
 cmd.set_defaults(cmd=cmd_runs)
@@ -167,7 +175,9 @@ def cmd_schedule(client, args):
     print_lines(format_run(run))
 
 
-cmd = commands.add_parser("schedule")
+cmd = commands.add_parser(
+    "schedule", 
+    description="Schedules a custom ad hoc run.")
 cmd.add_argument(
     "time", metavar="TIME",
     help="time to run, or NOW")
