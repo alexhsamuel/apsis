@@ -81,7 +81,20 @@ parser.add_argument(
     help=f"connect to PORT [def: {apsis.service.DEFAULT_PORT}]")
 commands = parser.add_subparsers(title="commands")
 
-# jobs -------------------------------------------------------------------------
+#--- command: job --------------------------------------------------------------
+
+def cmd_job(client, args):
+    job_id = args.job  # FIXME
+    job = client.get_job(job_id)
+    print_lines(format_job(job))
+
+
+cmd = commands.add_parser("job")
+cmd.add_argument(
+    "job", metavar="JOB-ID")
+cmd.set_defaults(cmd=cmd_job)
+
+#--- command: jobs -------------------------------------------------------------
 
 def cmd_jobs(client, args):
     jobs = client.get_jobs()
@@ -101,20 +114,20 @@ def cmd_jobs(client, args):
 cmd = commands.add_parser("jobs")
 cmd.set_defaults(cmd=cmd_jobs)
 
-# job --------------------------------------------------------------------------
+#--- command: run --------------------------------------------------------------
 
-def cmd_job(client, args):
-    job_id = args.job  # FIXME
-    job = client.get_job(job_id)
-    print_lines(format_job(job))
+def cmd_run(client, args):
+    run_id = args.run  # FIXME
+    run = client.get_run(run_id)
+    print_lines(format_run(run))
 
 
-cmd = commands.add_parser("job")
+cmd = commands.add_parser("run")
 cmd.add_argument(
-    "job", metavar="JOB-ID")
-cmd.set_defaults(cmd=cmd_job)
+    "run", metavar="RUN-ID")
+cmd.set_defaults(cmd=cmd_run)
 
-# runs -------------------------------------------------------------------------
+#--- command: runs -------------------------------------------------------------
 
 def cmd_runs(client, arg):
     job_id = args.job  # FIXME
@@ -142,19 +155,6 @@ cmd = commands.add_parser("runs")
 cmd.add_argument(
     "job", metavar="JOB-ID")
 cmd.set_defaults(cmd=cmd_runs)
-
-# run --------------------------------------------------------------------------
-
-def cmd_run(client, args):
-    run_id = args.run  # FIXME
-    run = client.get_run(run_id)
-    print_lines(format_run(run))
-
-
-cmd = commands.add_parser("run")
-cmd.add_argument(
-    "run", metavar="RUN-ID")
-cmd.set_defaults(cmd=cmd_run)
 
 #-------------------------------------------------------------------------------
 
