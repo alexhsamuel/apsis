@@ -3,7 +3,7 @@
 import argparse
 import fixfmt.table
 import logging
-from   ora import Time, now
+from   ora import Time
 import ruamel_yaml as yaml
 
 import apsis.service.client
@@ -70,7 +70,20 @@ format_time.width = 19
 
 #-------------------------------------------------------------------------------
 
-def cmd_jobs_list(client, args):
+logging.basicConfig(level=logging.INFO)
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--host", metavar="HOST", default="localhost",
+    help="connect to HOST [def: localhost]")
+parser.add_argument(
+    "--port", metavar="PORT", default=apsis.service.DEFAULT_PORT,
+    help=f"connect to PORT [def: {apsis.service.DEFAULT_PORT}]")
+commands = parser.add_subparsers(title="commands")
+
+# jobs -------------------------------------------------------------------------
+
+def cmd_jobs(client, args):
     jobs = client.get_jobs()
 
     table = fixfmt.table.RowTable()
@@ -85,7 +98,25 @@ def cmd_jobs_list(client, args):
     print()
 
 
-def cmd_job_runs(client, arg):
+cmd = commands.add_parser("jobs")
+cmd.set_defaults(cmd=cmd_jobs)
+
+# job --------------------------------------------------------------------------
+
+def cmd_job(client, args):
+    job_id = args.job  # FIXME
+    job = client.get_job(job_id)
+    print_lines(format_job(job))
+
+
+cmd = commands.add_parser("job")
+cmd.add_argument(
+    "job", metavar="JOB-ID")
+cmd.set_defaults(cmd=cmd_job)
+
+# runs -------------------------------------------------------------------------
+
+def cmd_runs(client, arg):
     job_id = args.job  # FIXME
     runs = client.get_job_runs(job_id)
 
@@ -107,64 +138,27 @@ def cmd_job_runs(client, arg):
     print()
 
 
-def cmd_job_show(client, args):
-    job_id = args.job  # FIXME
-    job = client.get_job(job_id)
-    print_lines(format_job(job))
+cmd = commands.add_parser("runs")
+cmd.add_argument(
+    "job", metavar="JOB-ID")
+cmd.set_defaults(cmd=cmd_runs)
 
+# run --------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-
-def cmd_run_show(client, args):
+def cmd_run(client, args):
     run_id = args.run  # FIXME
     run = client.get_run(run_id)
     print_lines(format_run(run))
 
 
-#-------------------------------------------------------------------------------
-
-logging.basicConfig(level=logging.INFO)
-
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--host", metavar="HOST", default="localhost",
-    help="connect to HOST [def: localhost]")
-parser.add_argument(
-    "--port", metavar="PORT", default=apsis.service.DEFAULT_PORT,
-    help=f"connect to PORT [def: {apsis.service.DEFAULT_PORT}]")
-commands = parser.add_subparsers(title="commands")
-
-
-cmd = commands.add_parser("jobs")
-jobs_commands = cmd.add_subparsers(title="jobs commands")
-
-cmd = jobs_commands.add_parser("list")
-cmd.set_defaults(cmd=cmd_jobs_list)
-
-
-cmd = commands.add_parser("job")
-cmd.add_argument(
-    "job", metavar="JOB-ID")
-job_commands = cmd.add_subparsers(title="job commands")
-
-cmd = job_commands.add_parser("show")
-cmd.set_defaults(cmd=cmd_job_show)
-
-cmd = job_commands.add_parser("runs")
-cmd.set_defaults(cmd=cmd_job_runs)
-
-
 cmd = commands.add_parser("run")
 cmd.add_argument(
     "run", metavar="RUN-ID")
-run_commands = cmd.add_subparsers(title="run commands")
+cmd.set_defaults(cmd=cmd_run)
 
-cmd = run_commands.add_parser("show")
-cmd.set_defaults(cmd=cmd_run_show)
-
+#-------------------------------------------------------------------------------
 
 args = parser.parse_args()
-
 client = apsis.service.client.Client(host=args.host, port=args.port)
 args.cmd(client, args)
 
