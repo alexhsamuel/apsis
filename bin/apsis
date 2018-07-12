@@ -156,6 +156,29 @@ cmd.add_argument(
     "job", metavar="JOB-ID")
 cmd.set_defaults(cmd=cmd_runs)
 
+#--- command: schedule ---------------------------------------------------------
+
+def cmd_schedule(client, args):
+    # FIXME: Accept daytimes.
+    if args.shell:
+        assert False  # FIXME
+    else:
+        run = client.schedule_command(args.time, args.command)
+    print_lines(format_run(run))
+
+
+cmd = commands.add_parser("schedule")
+cmd.add_argument(
+    "time", metavar="TIME",
+    help="time to run, or NOW")
+cmd.add_argument(
+    "command", metavar="CMD...", nargs="+",
+    help="command to run")
+cmd.add_argument(
+    "--shell", action="store_true", default=False,
+    help="treat CMD as shell code (contactenated)")
+cmd.set_defaults(cmd=cmd_schedule)
+
 #-------------------------------------------------------------------------------
 
 args = parser.parse_args()

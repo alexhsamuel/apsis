@@ -266,7 +266,7 @@ class AgentProgram:
         elif state == "err":
             message = proc.get("exception", "program error")
             log.info(f"program error: {run.run_id}: {message}")
-            raise ProgramError(message, message=message)
+            raise ProgramError(message)
 
         else:
             assert False, f"unknown state: {state}"

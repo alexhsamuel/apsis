@@ -75,9 +75,8 @@ class Apsis:
             self._transition(run, run.STATE.error, **exc.__dict__)
         else:
             self._transition(run, run.STATE.running, **running.__dict__)
-
-        future = asyncio.ensure_future(coro)
-        self.__wait(run, future)
+            future = asyncio.ensure_future(coro)
+            self.__wait(run, future)
 
 
     def __wait(self, run, future):
