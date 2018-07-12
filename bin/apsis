@@ -169,9 +169,10 @@ cmd.set_defaults(cmd=cmd_runs)
 def cmd_schedule(client, args):
     # FIXME: Accept daytimes.
     if args.shell:
-        assert False  # FIXME
+        command = " ".join(args.command)
+        run = client.schedule_shell_program(args.time, command)
     else:
-        run = client.schedule_command(args.time, args.command)
+        run = client.schedule_program(args.time, args.command)
     print_lines(format_run(run))
 
 

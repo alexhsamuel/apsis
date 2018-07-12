@@ -62,18 +62,10 @@ class Client:
         return self.__get("runs", run_id)["runs"][run_id]
 
 
-    def schedule_command(self, time, args):
-        """
-        :param time:
-          The schedule time, or "now" for immediate.
-        """
+    def __schedule(self, time, job):
         time = "now" if time == "now" else str(Time(time))
-        args = [ str(a) for a in args ]
-
         data = {
-            "job": {
-                "program": args,
-            },
+            "job": job,
             "times": {
                 "schedule": time,
             },
@@ -81,5 +73,27 @@ class Client:
         runs = self.__post("runs", data=data)["runs"]
         return next(iter(runs.values()))
 
+
+    def schedule_program(self, time, args):
+        """
+        :param time:
+          The schedule time, or "now" for immediate.
+        :param args:
+          The argument vector.  The first item is the path to the program
+          to run.
+        """
+        args = [ str(a) for a in args ]
+        return self.__schedule(time, {"program": args})
+
+
+    def schedule_shell_program(self, time, command):
+        """
+        :param time:
+          The schedule time, or "now" for immediate.
+        :param command:
+          The shell command to run.
+        """
+        return self.__schedule(time, {"program": str(command)})
+        
 
 
