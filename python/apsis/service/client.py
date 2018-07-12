@@ -54,6 +54,14 @@ class Client:
         return self.__get("jobs")
 
 
+    def get_output(self, run_id) -> bytes:
+        url = self.__url("runs", run_id, "output")
+        logging.debug(f"GET {url}")
+        resp = requests.get(url)
+        resp.raise_for_status()
+        return resp.content
+
+
     def get_runs(self):
         return self.__get("runs")["runs"]
 
