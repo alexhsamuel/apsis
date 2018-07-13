@@ -47,6 +47,38 @@ def last(iterable):
             item = next_item
 
 
+def find_groups(items, group=lambda x: x):
+    """
+    Detects consecutive groups in an iterable.
+
+      >>> list(find_groups([1, 1, 2, 3, 3, 3, 4]))
+      [('f', 1), ('l', 1), ('o', 2), ('f', 3), ('i', 3), ('l', 3), ('o', 4)]
+
+    Yields `code, item` for each element in `items`, where `code` is:
+    - "f" if this is the first element of a group
+    - "i" if this is an interior element of a group
+    - "l" if this is the last element in of group
+    - "o" if this is the lone element of a group with one element
+    """
+    last = None
+    for i in items:
+        g = group(i)
+        if last is None:
+            # The very first item.
+            first = True
+        else:
+            if g == last[1]:
+                # Same group as the previous.
+                yield "f" if last[2] else "i", last[0]
+                first = False
+            else:
+                # New group.
+                yield "o" if last[2] else "l", last[0]
+                first = True
+        last = i, g, first
+    yield "o" if last[2] else "l", last[0]
+
+
 def take_last(iterable):
     """
     Returns the last element.

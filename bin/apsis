@@ -9,6 +9,7 @@ from   ora import Time, Daytime, now, get_display_time_zone
 import sys
 
 from   apsis.lib.argparse import HelpFormatter
+import apsis.lib.itr
 from   apsis.runs import Run
 import apsis.service.client
 
@@ -176,19 +177,36 @@ def format_run(run):
     yield ""
 
 
-def format_runs(runs):
+def format_runs(runs, *, reruns=False):
+    if reruns:
+        key = lambda r: (
+            r["rerun"],
+            r["times"]["schedule"],
+        )
+    else:
+        key = lambda r: r["times"]["schedule"]
+
+    runs = sorted(runs.values(), key=key)
+
     table = fixfmt.table.RowTable()
-    table.extend(
-        {
-            "run_id"    : RUN + run["run_id"] + BLK,
+    for c, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
+        if reruns:
+            c = WHT + {
+                "f": "┌",
+                "i": "│",
+                "l": "╘",
+                "o": " ",
+            }[c] + BLK
+        else:
+            c = ""
+        table.append(**{
+            "run_id"    : c + RUN + run["run_id"] + BLK,
             "start"     : run["times"].get("running", run["times"]["schedule"]),
             "state"     : STATE_COLOR[run["state"]] + run["state"] + BLK,
             "elapsed"   : run["meta"].get("elapsed"),
             "job_id"    : JOB + run["job_id"] + BLK,
             **run["args"],
-        }
-        for run in sorted(runs.values(), key=lambda r: r["times"]["schedule"])
-    )
+        })
 
     if table.num_rows > 0:
         table.fmts["start"] = format_time
@@ -335,7 +353,7 @@ def cmd_runs(client, arg):
     if args.json:
         json.dump(runs, sys.stdout, indent=2)
     else:
-        print_lines(format_runs(runs))
+        print_lines(format_runs(runs, reruns=args.reruns))
 
 
 cmd = add_command(
