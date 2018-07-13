@@ -4,7 +4,7 @@
       {{ formatTime(store.state.time, store.state.timeZone, TIME_FORMAT) }}
     </span>
     <select id="timeZone" v-model="timeZone" v-on:change="onTimeZoneChange">
-      <option v-for="tz in timeZones" v-bind:value="tz">{{ shortTimeZone(tz) }}</option>
+      <option v-for="tz in timeZones" v-bind:key="tz" v-bind:value="tz">{{ shortTimeZone(tz) }}</option>
     </select>
   </div>
 </template>
