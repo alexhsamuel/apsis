@@ -25,7 +25,7 @@
             <td>{{ run.state }}</td>
             <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
             <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
-            <td class="rt">{{ run.meta.elapsed === undefined ? "" : format_elapsed(run.meta.elapsed) }}</td>
+            <td class="rt">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
             <td>
               <ActionButton
                 v-for="(url, action) in run.actions" :url="url" :action="action" :key="action">
@@ -42,6 +42,7 @@
 import { each, join, map, sortBy, toPairs, values } from 'lodash'
 
 import ActionButton from './ActionButton'
+import { formatElapsed } from '../format'
 import RunsSocket from '../RunsSocket'
 import Timestamp from './Timestamp'
 
@@ -87,6 +88,7 @@ export default {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
     },
 
+    formatElapsed,
   },
 
   created() {

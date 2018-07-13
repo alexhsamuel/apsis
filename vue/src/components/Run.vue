@@ -33,7 +33,7 @@
 
         <template v-for="(value, key) in run.meta">
           <dt>{{ key }}</dt>
-          <dd>{{ key == "elapsed" ? format_elapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
+          <dd>{{ key == "elapsed" ? formatElapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
         </template>
       </dl>
       <h5>output</h5>
@@ -49,6 +49,7 @@
 import { join, map, sortBy, toPairs } from 'lodash'
 
 import RunsSocket from '../RunsSocket'
+import { formatElapsed } from '../format'
 import Timestamp from './Timestamp'
 
 export default {
@@ -93,6 +94,8 @@ export default {
         .then((response) => response.text())  // FIXME: Might not be text!
         .then((response) => { v.output = response })
     },
+
+    formatElapsed,
   },
 
   mounted() { 

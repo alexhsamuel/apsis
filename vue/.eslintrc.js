@@ -37,5 +37,8 @@ module.exports = {
     'vue/require-v-for-key': 'off',
     'curly': ['error', 'multi'],
     'camelcase': 'off',
+    'indent': 'off',
+    'operator-linebreak': 'off',
+    'space-in-parens': 'off',
   }
 }
