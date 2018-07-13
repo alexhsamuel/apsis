@@ -3,7 +3,7 @@
 import argparse
 import fixfmt.table
 import logging
-from   ora import Time
+from   ora import Time, Daytime, now, get_display_time_zone
 import ruamel_yaml as yaml
 import sys
 
@@ -11,6 +11,34 @@ from   apsis.lib.argparse import HelpFormatter
 import apsis.service.client
 
 #-------------------------------------------------------------------------------
+
+def parse_at_time(string):
+    """
+    Parses a time for when to run.
+
+    Accepts a full time or a daytime (next occurrence).
+    """
+    if string == "now":
+        return "now"
+
+    try:
+        return Time(string)
+    except ValueError:
+        pass
+
+    try:
+        daytime = Daytime(string)
+    except ValueError:
+        pass
+    else:
+        # Assume this is today's daytime in the display time zone, unless
+        # that has already passed, in which case use tomorrow.
+        z = get_display_time_zone()
+        date, daytime_now = now() @ z
+        return (date if daytime_now < daytime else date + 1, daytime) @ z
+
+    raise ValueError(f"cannot interpret as time: {string}")
+
 
 def print_lines(lines):
     for line in lines:
@@ -193,12 +221,13 @@ cmd.add_argument(
 #--- command: schedule ---------------------------------------------------------
 
 def cmd_schedule(client, args):
+    time = parse_at_time(args.time)
     # FIXME: Accept daytimes.
     if args.shell:
         command = " ".join(args.command)
-        run = client.schedule_shell_program(args.time, command)
+        run = client.schedule_shell_program(time, command)
     else:
-        run = client.schedule_program(args.time, args.command)
+        run = client.schedule_program(time, args.command)
     print_lines(format_run(run))
 
 
