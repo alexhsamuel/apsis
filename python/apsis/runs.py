@@ -98,7 +98,7 @@ class Run:
 
         # Update attributes.
         self.timestamp  = timestamp
-        self.message    = str(message)
+        self.message    = None if message is None else str(message)
         self.meta.update(meta)
         self.times[state.name] = self.timestamp
         self.times.update(times)
