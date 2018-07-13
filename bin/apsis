@@ -15,41 +15,37 @@ import apsis.service.client
 #-------------------------------------------------------------------------------
 
 if sys.stdout.isatty():
-    BLD = "\x1b[1m"
-    NBL = "\x1b[0m"
-    UND = "\x1b[4m"
-    NUN = "\x1b[24m"
-    BLK = "\x1b[30m"
-    RED = "\x1b[31m"
-    GRN = "\x1b[32m"
-    YEL = "\x1b[33m"
-    BLU = "\x1b[34m"
-    MAG = "\x1b[35m"
-    CYN = "\x1b[36m"
-    WHT = "\x1b[37m"
-
+    SGR = lambda *cc: "\x1b[" + ";".join( str(c) for c in cc ) + "m"
 else:
-    BLD = ""
-    NBL = ""
-    UND = ""
-    NUN = ""
-    BLK = ""
-    RED = ""
-    GRN = ""
-    YEL = ""
-    BLU = ""
-    MAG = ""
-    CYN = ""
-    WHT = ""
+    SGR = lambda *cc: ""
+
+BLD = SGR( 1)
+NBL = SGR( 0)
+UND = SGR( 4)
+NUN = SGR(24)
+BLK = SGR(30)
+RED = SGR(31)
+GRN = SGR(32)
+YEL = SGR(33)
+BLU = SGR(34)
+MAG = SGR(35)
+CYN = SGR(36)
+WHT = SGR(37)
+
+COLOR = lambda n: SGR(38, 5, n)
 
 STATE_COLOR = {
-    "new"       : CYN,
-    "scheduled" : WHT,
-    "running"   : BLU,
-    "success"   : GRN,
-    "failure"   : MAG,
-    "error"     : RED,
+    "new"       : COLOR( 17),
+    "scheduled" : COLOR(243),
+    "running"   : COLOR(136),
+    "success"   : COLOR( 29),
+    "failure"   : COLOR(124),
+    "error"     : COLOR(127),
 }
+
+RUN = COLOR( 36)
+JOB = COLOR( 30)
+ARG = COLOR( 60)
 
 #-------------------------------------------------------------------------------
 
@@ -142,25 +138,25 @@ def format_run(run):
 
     # Run ID.
     run_id = run["run_id"]
-    yield f"{BLD}run {GRN}{run_id}{BLK}{NBL}"
+    yield f"{BLD}run {RUN}{run_id}{BLK}{NBL}"
 
     # The job.
     job = (
         run["job_id"]
         + (
             "with " + " ".join( 
-                f"{k}={CYN}{v}{BLK}" 
+                f"{k}={ARG}{v}{BLK}" 
                 for k, v in run["args"].items() 
             )
             if len(run["args"]) > 0
             else ""
         )
     )
-    yield f"{b} job        {CYN}{job}{BLK}"
+    yield f"{b} job        {JOB}{job}{BLK}"
 
     # Rerun info.
     if run["rerun"] != run_id:
-        yield f"{b} rerun of   run {GRN}{run['rerun']}{BLK}"
+        yield f"{b} rerun of   run {RUN}{run['rerun']}{BLK}"
 
     # Current state and relevant time.
     time = lambda n: format_time(run["times"].get(n, "?"))
@@ -184,7 +180,8 @@ def format_runs(runs):
     table = fixfmt.table.RowTable()
     table.extend(
         {
-            "run_id"    : run["run_id"],
+            "run_id"    : RUN + run["run_id"] + BLK,
+            "job_id"    : JOB + run["job_id"] + BLK,
             **run["args"],
             "start"     : run["times"].get("running", run["times"]["schedule"]),
             "state"     : STATE_COLOR[run["state"]] + run["state"] + BLK,
@@ -202,6 +199,7 @@ def format_runs(runs):
         yield f"{RED}No runs.{BLK}"
 
     yield ""
+
 
 def format_elapsed(secs):
     secs = round(secs)
