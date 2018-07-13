@@ -257,7 +257,6 @@ class Runs:
             groups = {}
             for run in runs:
                 groups.setdefault(run.rerun, []).append(run)
-            print(groups)
             runs = ( 
                 max(g, key=lambda r: max(r.times.values()))
                 for g in groups.values()
