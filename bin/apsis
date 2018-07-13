@@ -7,6 +7,7 @@ from   ora import Time
 import ruamel_yaml as yaml
 import sys
 
+from   apsis.lib.argparse import HelpFormatter
 import apsis.service.client
 
 #-------------------------------------------------------------------------------
@@ -73,7 +74,10 @@ format_time.width = 19
 
 logging.basicConfig(level=logging.INFO)
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    usage="%(prog)s [ OPTIONS ] COMMAND ...",
+    formatter_class=HelpFormatter,
+)
 parser.add_argument(
     "--host", metavar="HOST", default="localhost",
     help="connect to HOST [def: localhost]")
@@ -81,6 +85,16 @@ parser.add_argument(
     "--port", metavar="PORT", default=apsis.service.DEFAULT_PORT,
     help=f"connect to PORT [def: {apsis.service.DEFAULT_PORT}]")
 commands = parser.add_subparsers(title="commands")
+
+def add_command(name, fn, description=None):
+    cmd = commands.add_parser(
+        name, 
+        formatter_class =HelpFormatter, 
+        description     =description,
+    )
+    cmd.set_defaults(cmd=fn)
+    return cmd
+
 
 #--- command: job --------------------------------------------------------------
 
@@ -90,12 +104,12 @@ def cmd_job(client, args):
     print_lines(format_job(job))
 
 
-cmd = commands.add_parser(
-    "job",
+cmd = add_command(
+    "job", cmd_job,
     description="Displays a job.")
 cmd.add_argument(
-    "job", metavar="JOB-ID")
-cmd.set_defaults(cmd=cmd_job)
+    "job", metavar="JOB-ID",
+    help="display job with JOB-ID")
 
 #--- command: jobs -------------------------------------------------------------
 
@@ -114,10 +128,9 @@ def cmd_jobs(client, args):
     print()
 
 
-cmd = commands.add_parser(
-    "jobs",
-    description="ists all jobs.")
-cmd.set_defaults(cmd=cmd_jobs)
+cmd = add_command(
+    "jobs", cmd_jobs,
+    description="Lists all jobs.")
 
 #--- command: output -----------------------------------------------------------
 
@@ -127,12 +140,11 @@ def cmd_output(client, args):
     sys.stdout.buffer.write(output)
 
 
-cmd = commands.add_parser(
-    "output",
+cmd = add_command(
+    "output", cmd_output,
     description="Dumps the output of a run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID")
-cmd.set_defaults(cmd=cmd_output)
 
 #--- command: run --------------------------------------------------------------
 
@@ -142,12 +154,11 @@ def cmd_run(client, args):
     print_lines(format_run(run))
 
 
-cmd = commands.add_parser(
-    "run",
+cmd = add_command(
+    "run", cmd_run,
     description="Displays a run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID")
-cmd.set_defaults(cmd=cmd_run)
 
 #--- command: runs -------------------------------------------------------------
 
@@ -173,12 +184,11 @@ def cmd_runs(client, arg):
     print()
 
 
-cmd = commands.add_parser(
-    "runs",
+cmd = add_command(
+    "runs", cmd_runs,
     description="Displays runs of a job.")
 cmd.add_argument(
     "job", metavar="JOB-ID")
-cmd.set_defaults(cmd=cmd_runs)
 
 #--- command: schedule ---------------------------------------------------------
 
@@ -192,8 +202,8 @@ def cmd_schedule(client, args):
     print_lines(format_run(run))
 
 
-cmd = commands.add_parser(
-    "schedule", 
+cmd = add_command(
+    "schedule", cmd_schedule,
     description="Schedules a custom ad hoc run.")
 cmd.add_argument(
     "time", metavar="TIME",
@@ -204,7 +214,6 @@ cmd.add_argument(
 cmd.add_argument(
     "--shell", action="store_true", default=False,
     help="treat CMD as shell code (contactenated)")
-cmd.set_defaults(cmd=cmd_schedule)
 
 #-------------------------------------------------------------------------------
 
