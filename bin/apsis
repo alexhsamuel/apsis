@@ -1,14 +1,54 @@
 #!/usr/bin/env python
 
 import argparse
+import fixfmt
 import fixfmt.table
+import json
 import logging
 from   ora import Time, Daytime, now, get_display_time_zone
-import ruamel_yaml as yaml
 import sys
 
 from   apsis.lib.argparse import HelpFormatter
 import apsis.service.client
+
+#-------------------------------------------------------------------------------
+
+if sys.stdout.isatty():
+    BLD = "\x1b[1m"
+    NBL = "\x1b[0m"
+    UND = "\x1b[4m"
+    NUN = "\x1b[24m"
+    BLK = "\x1b[30m"
+    RED = "\x1b[31m"
+    GRN = "\x1b[32m"
+    YEL = "\x1b[33m"
+    BLU = "\x1b[34m"
+    MAG = "\x1b[35m"
+    CYN = "\x1b[36m"
+    WHT = "\x1b[37m"
+
+else:
+    BLD = ""
+    NBL = ""
+    UND = ""
+    NUN = ""
+    BLK = ""
+    RED = ""
+    GRN = ""
+    YEL = ""
+    BLU = ""
+    MAG = ""
+    CYN = ""
+    WHT = ""
+
+STATE_COLOR = {
+    "new"       : CYN,
+    "scheduled" : WHT,
+    "running"   : BLU,
+    "success"   : GRN,
+    "failure"   : MAG,
+    "error"     : RED,
+}
 
 #-------------------------------------------------------------------------------
 
@@ -66,19 +106,71 @@ def format_schedule(schedule, indent=0):
 
 
 def format_job(job):
-    fmt = lambda k, v: f"{k:12s}: {v}"
-    yield fmt("job_id", job["job_id"])
-    yield fmt("url", job["url"])
-    yield fmt("params", ", ".join(job["params"]))
-    yield "program"
-    yield from format_program(job["program"], indent=2)
-    yield "schedules"
-    for schedule in job["schedules"]:
-        yield from format_schedule(schedule, indent=2)
+    # fmt = lambda k, v: f"{k:12s}: {v}"
+    # yield fmt("job_id", job["job_id"])
+    # yield fmt("url", job["url"])
+    # yield fmt("params", ", ".join(job["params"]))
+    # yield "program"
+    # yield from format_program(job["program"], indent=2)
+    # yield "schedules"
+    # for schedule in job["schedules"]:
+    #     yield from format_schedule(schedule, indent=2)
+    yield from _fmt(None, job)
 
 
-def format_run(run, indent=0):
-    yield from yaml.dump(run, default_flow_style=False).splitlines()
+def _fmt(name, val, width=16, indent=-2):
+    prefix = " " * indent
+    if isinstance(val, dict):
+        if name is not None:
+            yield prefix + name + ":"
+        for name, val in val.items():
+            yield from _fmt(name, val, width, indent + 2)
+    elif isinstance(val, list):
+        if name is not None:
+            yield prefix + name + ":"
+        for val in val:
+            yield from _fmt("-", val, width, indent + 2)
+    else:
+        if name is None:
+            name = ""
+        yield prefix + fixfmt.pad(name, width - indent) + ": " + str(val)
+
+
+def format_run(run):
+    b = "✦"
+    run_id = run["run_id"]
+    yield f"{BLD}run {GRN}{run_id}{BLK}{NBL}"
+
+    job = (
+        run["job_id"]
+        + (
+            "with " + " ".join( 
+                f"{k}={CYN}{v}{BLK}" 
+                for k, v in run["args"].items() 
+            )
+            if len(run["args"]) > 0
+            else ""
+        )
+    )
+    yield f"{b} job        {CYN}{job}{BLK}"
+
+    if run["rerun"] != run_id:
+        yield f"{b} rerun of   run {GRN}{run['rerun']}{BLK}"
+
+    state = run["state"]
+    if state == "scheduled":
+        time = "for " + run["times"].get("schedule", "?")
+    elif state == "running":
+        time = "since " + run["times"].get("running", "?")
+    else:
+        time = "at " + run["times"].get(state, "?")
+    yield f"{b} {STATE_COLOR[state]}{state:10s}{BLK} {time}"
+
+    if run["message"] is not None:
+        yield f"➔ {WHT}{run['message']}{BLK}"
+    
+    yield ""
+
 
 
 def format_elapsed(secs):
@@ -100,7 +192,11 @@ format_time.width = 19
 
 #-------------------------------------------------------------------------------
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format  ="%(asctime)s %(name)-24s [%(levelname)-7s] %(message)s",
+    datefmt ="%H:%M:%S",
+    level   =logging.WARNING,
+)
 
 parser = argparse.ArgumentParser(
     usage="%(prog)s [ OPTIONS ] COMMAND ...",
@@ -112,6 +208,10 @@ parser.add_argument(
 parser.add_argument(
     "--port", metavar="PORT", default=apsis.service.DEFAULT_PORT,
     help=f"connect to PORT [def: {apsis.service.DEFAULT_PORT}]")
+parser.add_argument(
+    "--log-level", metavar="LEVEL", default="WARNING",
+    choices={"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
+    help="log at LEVEL [def: WARNING]")
 commands = parser.add_subparsers(title="commands")
 
 def add_command(name, fn, description=None):
@@ -179,7 +279,10 @@ cmd.add_argument(
 def cmd_run(client, args):
     run_id = args.run_id  # FIXME
     run = client.get_run(run_id)
-    print_lines(format_run(run))
+    if args.json:
+        json.dump(run, sys.stdout, indent=2)
+    else:
+        print_lines(format_run(run))
 
 
 cmd = add_command(
@@ -187,6 +290,9 @@ cmd = add_command(
     description="Displays a run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID")
+cmd.add_argument(
+    "--json", action="store_true", default=False,
+    help="dump run as JSON")
 
 #--- command: runs -------------------------------------------------------------
 
@@ -247,6 +353,7 @@ cmd.add_argument(
 #-------------------------------------------------------------------------------
 
 args = parser.parse_args()
+logging.getLogger().setLevel(getattr(logging, args.log_level))
 client = apsis.service.client.Client(host=args.host, port=args.port)
 args.cmd(client, args)
 
