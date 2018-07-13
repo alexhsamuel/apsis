@@ -74,7 +74,7 @@ def run_to_jso(app, run):
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
-    return {
+    jso = {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job_id,
         "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
@@ -89,6 +89,13 @@ def run_to_jso(app, run):
         "output_len"    :  None if run.output is None else len(run.output),
         "rerun"         : run.rerun,
     }
+
+    start   = run.times.get("running", run.times.get("error"))
+    end     = run.times.get("success", run.times.get("failure"))
+    if start is not None and end is not None:
+        jso["meta"]["elapsed"] = end - start
+
+    return jso
 
 
 def runs_to_jso(app, when, runs):

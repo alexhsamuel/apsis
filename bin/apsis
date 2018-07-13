@@ -44,6 +44,15 @@ STATE_COLOR = {
     "error"     : COLOR(127),
 }
 
+STATE_SYMBOL = {
+    "new"       : "\u25ef",
+    "scheduled" : "\u25f7",
+    "running"   : "\u25c0",
+    "success"   : "\u2714",
+    "failure"   : "\u2716",
+    "error"     : "\u2757",
+}
+
 RUN = COLOR( 36)
 JOB = COLOR( 30)
 ARG = COLOR( 60)
@@ -95,12 +104,25 @@ def format_jso(jso, indent=0):
         yield f"{ind}{key:{wid}s}: {value}"
 
 
+def format_state_symbol(state):
+    return STATE_COLOR[state] + STATE_SYMBOL[state] + BLK
+
+format_state_symbol.width = 1
+
+
 def format_program(program, indent=0):
     yield from format_jso(program, indent=indent)
 
 
 def format_schedule(schedule, indent=0):
     yield from format_jso(schedule, indent=indent)
+
+
+def format_instance(run):
+    return (
+        f"{JOB}{run['job_id']}{BLK} "
+        + " ".join( f"{k}:{ARG}{v}{BLK}" for k, v in run["args"].items() )
+    )
 
 
 def format_job(job):
@@ -142,22 +164,12 @@ def format_run(run):
     yield f"{BLD}run {RUN}{run_id}{BLK}{NBL}"
 
     # The job.
-    job = (
-        run["job_id"]
-        + (
-            "with " + " ".join( 
-                f"{k}={ARG}{v}{BLK}" 
-                for k, v in run["args"].items() 
-            )
-            if len(run["args"]) > 0
-            else ""
-        )
-    )
-    yield f"{b} job        {JOB}{job}{BLK}"
+    job = format_instance(run)
+    yield f"{b} job {job}"
 
     # Rerun info.
     if run["rerun"] != run_id:
-        yield f"{b} rerun of   run {RUN}{run['rerun']}{BLK}"
+        yield f"{b} rerun of run {RUN}{run['rerun']}{BLK}"
 
     # Current state and relevant time.
     time = lambda n: format_time(run["times"].get(n, "?"))
@@ -168,7 +180,10 @@ def format_run(run):
         time = "since " + time("running")
     else:
         time = "at " + time(state)
-    yield f"{b} {STATE_COLOR[state]}{state:10s}{BLK} {time}"
+    elapsed = run["meta"].get("elapsed")
+    if elapsed is not None:
+        time += " elapsed " + format_elapsed(elapsed).lstrip()
+    yield f"{STATE_COLOR[state]}{STATE_SYMBOL[state]} {state}{BLK} {time}"
 
     # Message, if any.
     if run["message"] is not None:
@@ -184,26 +199,21 @@ def format_runs(runs, *, reruns=False):
         runs = sorted(runs, key=lambda r: r["rerun"])
 
     table = fixfmt.table.RowTable()
-    for c, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
-        if reruns:
-            c = WHT + {
-                "f": "┌",
-                "i": "│",
-                "l": "╘",
-                "o": " ",
-            }[c] + BLK
-        else:
-            c = ""
-        table.append(**{
-            "run_id"    : c + RUN + run["run_id"] + BLK,
+    for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
+        row = {
+            "run_id"    : RUN + run["run_id"] + BLK,
+            "S"         : run["state"],
             "start"     : run["times"].get("running", run["times"]["schedule"]),
-            "state"     : STATE_COLOR[run["state"]] + run["state"] + BLK,
             "elapsed"   : run["meta"].get("elapsed"),
             "job_id"    : JOB + run["job_id"] + BLK,
             **run["args"],
-        })
+        }
+        table.append(**row)
+        if reruns and pos in "lo":
+            table.text("")
 
     if table.num_rows > 0:
+        table.fmts["S"] = format_state_symbol
         table.fmts["start"] = format_time
         table.fmts["elapsed"] = format_elapsed
         yield from table
@@ -211,7 +221,8 @@ def format_runs(runs, *, reruns=False):
     else:
         yield f"{RED}No runs.{BLK}"
 
-    yield ""
+    if not reruns:
+        yield ""
 
 
 def format_elapsed(secs):
