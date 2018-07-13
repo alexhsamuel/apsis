@@ -157,13 +157,15 @@ def format_run(run):
     if run["rerun"] != run_id:
         yield f"{b} rerun of   run {GRN}{run['rerun']}{BLK}"
 
+    time = lambda n: format_time(run["times"].get(n, "?"))
+
     state = run["state"]
     if state == "scheduled":
-        time = "for " + run["times"].get("schedule", "?")
+        time = "for " + time("schedule")
     elif state == "running":
-        time = "since " + run["times"].get("running", "?")
+        time = "since " + time("running")
     else:
-        time = "at " + run["times"].get(state, "?")
+        time = "at " + time(state)
     yield f"{b} {STATE_COLOR[state]}{state:10s}{BLK} {time}"
 
     if run["message"] is not None:
