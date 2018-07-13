@@ -17,6 +17,10 @@ def response_json(jso, status=200):
     return sanic.response.json(jso, status=status, indent=1, sort_keys=True)
 
 
+def error(message, status=400, **kw_args):
+    return response_json({"error": str(message), **kw_args}, status=status)
+
+
 def time_to_jso(time):
     return format(time, "%.i")
 
@@ -138,7 +142,11 @@ async def jobs(request):
 
 @API.route("/runs/<run_id>", methods={"GET"})
 async def run(request, run_id):
-    when, run = request.app.apsis.runs.get(run_id)
+    try:
+        when, run = request.app.apsis.runs.get(run_id)
+    except KeyError:
+        return error(f"unknown run {run_id}", 404)
+            
     jso = runs_to_jso(request.app, when, [run])
     return response_json(jso)
 
@@ -166,10 +174,7 @@ async def run_cancel(request, run_id):
         await state.cancel(run)
         return response_json({})
     else:
-        return response_json(dict(
-            error="invalid run state for cancel",
-            state=run.state
-        ), status=409)
+        return error("invalid run state for cancel", 409, state=run.state)
 
 
 @API.route("/runs/<run_id>/start", methods={"POST"})
@@ -180,10 +185,7 @@ async def run_start(request, run_id):
         await state.start(run)
         return response_json({})
     else:
-        return response_json(dict(
-            error="invalid run state for start",
-            state=run.state
-        ), status=409)
+        return error("invalid run state for start", 409, state=run.state)
 
 
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
@@ -191,10 +193,7 @@ async def run_rerun(request, run_id):
     state = request.app.apsis
     _, run = state.runs.get(run_id)
     if run.state not in {run.STATE.failure, run.STATE.error, run.STATE.success}:
-        return response_json(dict(
-            error="invalid run state for rerun",
-            state=run.state
-        ), status=409)
+        return error("invalid run state for rerun", 409, state=run.state)
     else:
         new_run = await state.rerun(run)
         jso = runs_to_jso(request.app, ora.now(), [new_run])
@@ -281,7 +280,7 @@ async def run_post(request):
         job_id = jso["job_id"]
 
     else:
-        return response_json({"error": "missing job_id or job"}, status=400)
+        return error("missing job_id or job")
 
     run = Run(Instance(job_id, jso.get("args", {})))
     time = jso.get("times", {}).get("schedule", "now")
