@@ -178,15 +178,10 @@ def format_run(run):
 
 
 def format_runs(runs, *, reruns=False):
+    # FIXME: Support other sorts.
+    runs = sorted(runs.values(), key=lambda r: r["times"]["schedule"])
     if reruns:
-        key = lambda r: (
-            r["rerun"],
-            r["times"]["schedule"],
-        )
-    else:
-        key = lambda r: r["times"]["schedule"]
-
-    runs = sorted(runs.values(), key=key)
+        runs = sorted(runs, key=lambda r: r["rerun"])
 
     table = fixfmt.table.RowTable()
     for c, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
