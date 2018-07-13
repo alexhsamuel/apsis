@@ -21,6 +21,15 @@ def time_to_jso(time):
     return format(time, "%.i")
 
 
+def to_bool(string):
+    if string in {"True", "true", "T", "t"}:
+        return True
+    elif string in {"False", "false", "F", "f"}:
+        return False
+    else:
+        raise ValueError(f"unknown bool: {string}")
+
+
 def to_state(state):
     return None if state is None else Run.STATE[state]
 
@@ -215,19 +224,15 @@ async def runs(request):
     state,  = args.pop("state", (None, ))
     since,  = args.pop("since", (None, ))
     until,  = args.pop("until", (None, ))
-    rerun,  = args.pop("rerun", (None, ))
-
-    if rerun is not None:
-        _, run = request.app.apsis.runs.get(rerun)
-        rerun = run.rerun
+    reruns, = args.pop("reruns", (False, ))
 
     when, runs = request.app.apsis.runs.query(
         run_ids =run_ids, 
         job_id  =job_id,
         state   =to_state(state),
         since   =since, 
+        reruns  =to_bool(reruns),
         until   =until,
-        rerun   =rerun,
     )
 
     return response_json(runs_to_jso(request.app, when, runs))

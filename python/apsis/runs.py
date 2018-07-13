@@ -231,7 +231,12 @@ class Runs:
 
 
     def query(self, *, run_ids=None, job_id=None, state=None, since=None,
-              until=None, rerun=None):
+              until=None, reruns=False):
+        """
+        :param reruns:
+          If true, include all reruns; otherwise, includes only the latest run
+          in each rerun group.
+        """
         if run_ids is None:
             runs = self.__runs.values()
         else:
@@ -246,8 +251,17 @@ class Runs:
             runs = ( r for r in runs if r.timestamp >= since )
         if until is not None:
             runs = ( r for r in runs if r.timestamp < until )
-        if rerun is not None:
-            runs = ( r for r in runs if r.rerun == rerun )
+
+        if not reruns:
+            # FIXME: Make this more efficient.
+            groups = {}
+            for run in runs:
+                groups.setdefault(run.rerun, []).append(run)
+            print(groups)
+            runs = ( 
+                max(g, key=lambda r: max(r.times.values()))
+                for g in groups.values()
+            )
 
         return now(), runs
 

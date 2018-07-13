@@ -181,11 +181,11 @@ def format_runs(runs):
     table.extend(
         {
             "run_id"    : RUN + run["run_id"] + BLK,
-            "job_id"    : JOB + run["job_id"] + BLK,
-            **run["args"],
             "start"     : run["times"].get("running", run["times"]["schedule"]),
             "state"     : STATE_COLOR[run["state"]] + run["state"] + BLK,
             "elapsed"   : run["meta"].get("elapsed"),
+            "job_id"    : JOB + run["job_id"] + BLK,
+            **run["args"],
         }
         for run in sorted(runs.values(), key=lambda r: r["times"]["schedule"])
     )
@@ -327,7 +327,7 @@ cmd.add_argument(
 def cmd_runs(client, arg):
     runs = client.get_runs(
         job_id  =args.job,
-        rerun   =args.reruns,
+        reruns  =args.reruns,
         state   =args.state,
         # FIXME: times
     )
@@ -345,7 +345,7 @@ cmd.add_argument(
     "--job", "-j", metavar="JOB-ID", default=None,
     help="show only runs of job JOB-ID")
 cmd.add_argument(
-    "--reruns", metavar="RUN-ID", default=None,
+    "--reruns", action="store_true", default=False,
     help="show RUN-ID and its reruns")
 cmd.add_argument(
     "--state", "-s", metavar="STATE", default=None,

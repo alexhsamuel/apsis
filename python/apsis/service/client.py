@@ -15,16 +15,17 @@ class Client:
 
 
     def __url(self, *path, **query):
+        query = "&".join(
+            f"{k}={quote(str(v))}"
+            for k, v in query.items()
+            if v is not None
+        )
         return urlunparse((
             "http",
             f"{self.__host}:{self.__port}",
             "/api/v1/" + "/".join(path),
             "",
-            "&".join( 
-                f"{k}={quote(v)}" 
-                for k, v in query.items() 
-                if v is not None 
-            ),
+            query,
             "",
         ))
 
@@ -65,13 +66,13 @@ class Client:
         return resp.content
 
 
-    def get_runs(self, *, job_id=None, state=None, rerun=None, 
+    def get_runs(self, *, job_id=None, state=None, reruns=False,
                  since=None, until=None):
         return self.__get(
             "runs",
             job_id  =job_id,
-            rerun   =rerun,
             state   =state,
+            reruns  =reruns,
         )["runs"]
 
 
