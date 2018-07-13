@@ -230,9 +230,14 @@ class Runs:
         return now(), run
 
 
-    def query(self, *, job_id=None, state=None, since=None, until=None, 
-              rerun=None):
-        runs = self.__runs.values()
+    def query(self, *, run_ids=None, job_id=None, state=None, since=None,
+              until=None, rerun=None):
+        if run_ids is None:
+            runs = self.__runs.values()
+        else:
+            run_ids = sorted(set(run_ids))
+            runs = ( self.__runs.get(i, None) for i in run_ids )
+            runs = ( r for r in runs if r is not None )
         if job_id is not None:
             runs = ( r for r in runs if r.inst.job_id == job_id )
         if state is not None:

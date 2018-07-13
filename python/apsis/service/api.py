@@ -21,6 +21,10 @@ def time_to_jso(time):
     return format(time, "%.i")
 
 
+def to_state(state):
+    return None if state is None else Run.STATE[state]
+
+
 #-------------------------------------------------------------------------------
 
 def program_to_jso(app, program):
@@ -181,32 +185,50 @@ async def run_rerun(request, run_id):
         return response_json(jso)
 
 
-def _run_filter_for_query(args):
+def _filter_runs(runs, args):
     """
     Constructs a filter for runs from query args.
     """
-    run_id = args.get("run_id", None)
-    job_id = args.get("job_id", None)
+    try:
+        run_id = args["run_id"]
+    except KeyError:
+        pass
+    else:
+        runs = ( r for r in runs if run.run_id == run_id )
 
-    def filter(run):
-        return (
-                (run_id is None or run.run_id == run_id)
-            and (job_id is None or run.inst.job_id == job_id)
-        )
+    try:
+        job_id = args["job_id"]
+    except KeyError:
+        pass
+    else:
+        runs = ( r for r in runs if run.job_id == job_id )
 
-    return filter
+    return runs
 
 
 @API.route("/runs")
 async def runs(request):
     # Get runs from the selected interval.
-    since,  = request.args.pop("since", (None, ))
-    until,  = request.args.pop("until", (None, ))
-    when, runs = request.app.apsis.runs.query(since=since, until=until)
+    args    = request.args
+    run_ids = args.pop("run_id", None)
+    job_id, = args.pop("job_id", (None, ))
+    state,  = args.pop("state", (None, ))
+    since,  = args.pop("since", (None, ))
+    until,  = args.pop("until", (None, ))
+    rerun,  = args.pop("rerun", (None, ))
 
-    # Select runs based on query args.
-    filter = _run_filter_for_query(request.args)
-    runs = ( r for r in runs if filter(r) )
+    if rerun is not None:
+        _, run = request.app.apsis.runs.get(rerun)
+        rerun = run.rerun
+
+    when, runs = request.app.apsis.runs.query(
+        run_ids =run_ids, 
+        job_id  =job_id,
+        state   =to_state(state),
+        since   =since, 
+        until   =until,
+        rerun   =rerun,
+    )
 
     return response_json(runs_to_jso(request.app, when, runs))
 
@@ -214,7 +236,6 @@ async def runs(request):
 @API.websocket("/runs-live")  # FIXME: Do we really need this?
 async def websocket_runs(request, ws):
     since,  = request.args.pop("since", (None, ))
-    filter  = _run_filter_for_query(request.args)
 
     log.info("live runs connect")
     with request.app.apsis.runs.query_live(since=since) as queue:
@@ -222,7 +243,7 @@ async def websocket_runs(request, ws):
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.
             when, runs = await queue.get()
-            runs = [ r for r in runs if filter(r) ]
+            runs = list(_filter_runs(runs, request.args))
             if len(runs) == 0:
                 continue
             jso = runs_to_jso(request.app, when, runs)

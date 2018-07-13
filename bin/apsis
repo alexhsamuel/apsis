@@ -9,6 +9,7 @@ from   ora import Time, Daytime, now, get_display_time_zone
 import sys
 
 from   apsis.lib.argparse import HelpFormatter
+from   apsis.runs import Run
 import apsis.service.client
 
 #-------------------------------------------------------------------------------
@@ -138,9 +139,12 @@ def _fmt(name, val, width=16, indent=-2):
 
 def format_run(run):
     b = "✦"
+
+    # Run ID.
     run_id = run["run_id"]
     yield f"{BLD}run {GRN}{run_id}{BLK}{NBL}"
 
+    # The job.
     job = (
         run["job_id"]
         + (
@@ -154,11 +158,12 @@ def format_run(run):
     )
     yield f"{b} job        {CYN}{job}{BLK}"
 
+    # Rerun info.
     if run["rerun"] != run_id:
         yield f"{b} rerun of   run {GRN}{run['rerun']}{BLK}"
 
+    # Current state and relevant time.
     time = lambda n: format_time(run["times"].get(n, "?"))
-
     state = run["state"]
     if state == "scheduled":
         time = "for " + time("schedule")
@@ -168,12 +173,35 @@ def format_run(run):
         time = "at " + time(state)
     yield f"{b} {STATE_COLOR[state]}{state:10s}{BLK} {time}"
 
+    # Message, if any.
     if run["message"] is not None:
         yield f"➔ {WHT}{run['message']}{BLK}"
     
     yield ""
 
 
+def format_runs(runs):
+    table = fixfmt.table.RowTable()
+    table.extend(
+        {
+            "run_id"    : run["run_id"],
+            **run["args"],
+            "start"     : run["times"].get("running", run["times"]["schedule"]),
+            "state"     : STATE_COLOR[run["state"]] + run["state"] + BLK,
+            "elapsed"   : run["meta"].get("elapsed"),
+        }
+        for run in sorted(runs.values(), key=lambda r: r["times"]["schedule"])
+    )
+
+    if table.num_rows > 0:
+        table.fmts["start"] = format_time
+        table.fmts["elapsed"] = format_elapsed
+        yield from table
+
+    else:
+        yield f"{RED}No runs.{BLK}"
+
+    yield ""
 
 def format_elapsed(secs):
     secs = round(secs)
@@ -299,32 +327,40 @@ cmd.add_argument(
 #--- command: runs -------------------------------------------------------------
 
 def cmd_runs(client, arg):
-    job_id = args.job  # FIXME
-    runs = client.get_job_runs(job_id)
-
-    table = fixfmt.table.RowTable()
-
-    table.extend(
-        {
-            "run_id"    : run["run_id"],
-            **run["args"],
-            "start"     : run["times"].get("running", run["times"]["schedule"]),
-            "state"     : run["state"],
-            "elapsed"   : run["meta"].get("elapsed"),
-        }
-        for run in sorted(runs.values(), key=lambda r: r["times"]["schedule"])
+    runs = client.get_runs(
+        job_id  =args.job,
+        rerun   =args.reruns,
+        state   =args.state,
+        # FIXME: times
     )
-    table.fmts["start"] = format_time
-    table.fmts["elapsed"] = format_elapsed
-    table.print()
-    print()
+
+    if args.json:
+        json.dump(runs, sys.stdout, indent=2)
+    else:
+        print_lines(format_runs(runs))
 
 
 cmd = add_command(
     "runs", cmd_runs,
-    description="Displays runs of a job.")
+    description="Queries and displays runs.")
 cmd.add_argument(
-    "job", metavar="JOB-ID")
+    "--job", "-j", metavar="JOB-ID", default=None,
+    help="show only runs of job JOB-ID")
+cmd.add_argument(
+    "--reruns", metavar="RUN-ID", default=None,
+    help="show RUN-ID and its reruns")
+cmd.add_argument(
+    "--state", "-s", metavar="STATE", default=None,
+    choices=[ r.name for r in Run.STATE ],
+    help="show only runs in STATE")
+cmd.add_argument(
+    "--times", "-t", metavar="TIMESPAN", default=None,
+    help="show only runs in TIMESPAN")
+
+grp = cmd.add_mutually_exclusive_group()
+grp.add_argument(
+    "--json", action="store_true", default=False,
+    help="output as JSON")
 
 #--- command: schedule ---------------------------------------------------------
 

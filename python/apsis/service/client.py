@@ -1,7 +1,7 @@
 import logging
 from   ora import Time
 import requests
-from   urllib.parse import urlunparse
+from   urllib.parse import quote, urlunparse
 
 import apsis.service
 
@@ -14,20 +14,23 @@ class Client:
         self.__port = port
 
 
-    def __url(self, *path):
-        # FIXME
+    def __url(self, *path, **query):
         return urlunparse((
             "http",
             f"{self.__host}:{self.__port}",
             "/api/v1/" + "/".join(path),
             "",
-            "",
+            "&".join( 
+                f"{k}={quote(v)}" 
+                for k, v in query.items() 
+                if v is not None 
+            ),
             "",
         ))
-            
 
-    def __get(self, *path):
-        url = self.__url(*path)
+
+    def __get(self, *path, **query):
+        url = self.__url(*path, **query)
         logging.debug(f"GET {url}")
         resp = requests.get(url)
         resp.raise_for_status()
@@ -62,8 +65,14 @@ class Client:
         return resp.content
 
 
-    def get_runs(self):
-        return self.__get("runs")["runs"]
+    def get_runs(self, *, job_id=None, state=None, rerun=None, 
+                 since=None, until=None):
+        return self.__get(
+            "runs",
+            job_id  =job_id,
+            rerun   =rerun,
+            state   =state,
+        )["runs"]
 
 
     def get_run(self, run_id):
