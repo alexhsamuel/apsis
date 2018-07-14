@@ -3,7 +3,6 @@ import logging
 from   ora import Time, now
 
 from   .jobs import Jobs
-from   .lib import Interval
 from   .program import ProgramError, ProgramFailure
 from   .runs import Run, Runs
 from   .scheduled import ScheduledRuns
@@ -12,16 +11,6 @@ from   .scheduler import Scheduler
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-
-def extract_current_runs(docket, time: Time):
-    """
-    Removes and returns current runs as of `time`.
-    """
-    time = Time(time)
-    assert docket.interval.start <= time <= docket.interval.stop
-    interval = Interval(docket.interval.start, time)
-    return docket.pop(interval)
-
 
 def bind_program(program, run):
     return program.bind({
