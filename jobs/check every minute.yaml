@@ -1,0 +1,9 @@
+params: [ip]
+
+program: ping -n -o -t 5 -c 1 {{ ip }}
+
+schedule:
+  type: interval
+  args: {ip: "1.1.1.1"}
+  interval: 60
+
