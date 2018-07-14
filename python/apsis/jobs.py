@@ -1,6 +1,4 @@
 from   contextlib import suppress
-import ora
-import ora.calendar
 import os
 from   pathlib import Path
 import random
@@ -8,8 +6,8 @@ import ruamel_yaml as yaml
 import string
 
 from   .lib.py import tupleize
-from   .program import jso_to_program, program_to_jso
-from   .schedule import DailySchedule
+from   .program import program_from_jso, program_to_jso
+from   .schedule import schedule_from_jso, schedule_to_jso
 
 #-------------------------------------------------------------------------------
 
@@ -55,36 +53,6 @@ class JobSpecificationError(Exception):
 
 
 
-# FIXME: This is for daily schedule only!
-
-def jso_to_schedule(jso):
-    args = jso.get("args", {})
-
-    try:
-        tz = jso["tz"]
-    except KeyError:
-        raise JobSpecificationError("missing time zone")
-    tz = ora.TimeZone(tz)
-
-    calendar = ora.get_calendar(jso.get("calendar", "all"))
-
-    try:
-        daytimes = jso["daytime"]
-    except KeyError:
-        raise JobSpecificationError("missing daytime")
-    daytimes = [daytimes] if isinstance(daytimes, str) else daytimes
-    daytimes = [ ora.Daytime(d) for d in daytimes ]
-
-    return DailySchedule(tz, calendar, daytimes, args)
-
-
-def schedule_to_jso(schedule):
-    return { 
-        "type"  : type(schedule).__qualname__,
-        **schedule.to_jso()
-    }
-
-
 def jso_to_reruns(jso):
     return Reruns(
         count       =jso.get("count", 0),
@@ -106,13 +74,13 @@ def jso_to_job(jso, job_id):
         else [] if schedules is None
         else schedules
     )
-    schedules = [ jso_to_schedule(s) for s in schedules ]
+    schedules = [ schedule_from_jso(s) for s in schedules ]
 
     try:
         program = jso["program"]
     except KeyError:
         raise JobSpecificationError("missing program")
-    program = jso_to_program(program)
+    program = program_from_jso(program)
 
     reruns = jso_to_reruns(jso.get("reruns", {}))
 

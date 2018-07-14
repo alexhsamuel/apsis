@@ -24,6 +24,7 @@
 - [ ] use [vue-select](http://sagalbot.github.io/vue-select/docs/) for time zone dropdown
 - [ ] tooltip for timestamps with local, UTC, (run-local?), and elapsed times
 - [ ] kill button for running run
+- [ ] factor args out of schedule classes
 
 
 # Old

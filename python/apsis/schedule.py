@@ -1,11 +1,17 @@
 import bisect
-from   ora import Daytime, Time, TimeZone, to_local, from_local
+import ora
+from   ora import Daytime, Time, TimeZone
 
 from   . import lib
+from   .lib.exc import SchemaError
+from   .lib.json import Typed
+from   .lib.py import format_ctor
 
 #-------------------------------------------------------------------------------
 
 class DailySchedule:
+
+    TYPE_NAME = "daily"
 
     def __init__(self, tz, calendar, daytimes, args):
         self.tz         = TimeZone(tz)
@@ -23,18 +29,18 @@ class DailySchedule:
         )
 
 
-    def __call__(self, start):
+    def __call__(self, start: Time):
         """
         Generates scheduled times starting not before `start`.
         """
         start = Time(start)
 
-        local = to_local(start, self.tz)
-        if local.date in self.calendar:
-            date = local.date
+        start_date, start_daytime = start @ self.tz
+        if start_date in self.calendar:
+            date = start_date
             # Find the next daytime.
             for i, daytime in enumerate(self.daytimes):
-                if local.daytime <= daytime:
+                if start_daytime <= daytime:
                     break
             else:
                 # All daytimes have passed for this date.
@@ -42,12 +48,12 @@ class DailySchedule:
                 i = 0
         else:
             # Start at the beginning of the next date.
-            date = self.calendar.after(local.date)
+            date = self.calendar.after(start_date)
             i = 0
 
         # Now generate.
         while True:
-            yield from_local((date, self.daytimes[i]), self.tz)
+            yield (date, self.daytimes[i]) @ self.tz
             i += 1
             if i == len(self.daytimes):
                 # On to the next day.
@@ -55,7 +61,7 @@ class DailySchedule:
                 i = 0
 
 
-    def bind_args(self, params, sched_time):
+    def bind_args(self, params, sched_time: Time):
         args = dict(self.args)
 
         # Bind temporal params from the schedule time.
@@ -77,8 +83,34 @@ class DailySchedule:
         }
 
 
+    @classmethod
+    def from_jso(Class, jso):
+        args = jso.get("args", {})
+
+        try:
+            tz = jso["tz"]
+        except KeyError:
+            raise SchemaError("missing time zone")
+        tz = TimeZone(tz)
+
+        calendar = ora.get_calendar(jso.get("calendar", "all"))
+
+        try:
+            daytimes = jso["daytime"]
+        except KeyError:
+            raise SchemaError("missing daytime")
+        daytimes = [daytimes] if isinstance(daytimes, str) else daytimes
+        daytimes = [ Daytime(d) for d in daytimes ]
+
+        return Class(tz, calendar, daytimes, args)
+
+
+
+#-------------------------------------------------------------------------------
 
 class ExplicitSchedule:
+
+    TYPE_NAME = "explicit"
 
     def __init__(self, times, args={}):
         self.__times = tuple(sorted( Time(t) for t in times ))
@@ -89,13 +121,12 @@ class ExplicitSchedule:
         return ",".join( str(t) for t in self.__times )
 
 
-    def __call__(self, start):
-        start = Time(start)
+    def __call__(self, start: Time):
         i = bisect.bisect_left(self.__times, start)
         return iter(self.__times[i :])
 
 
-    def bind_args(self, params, sched_time):
+    def bind_args(self, params, sched_time: Time):
         args = dict(self.__args)
         if "time" in params:
             args["time"] = lib.format_time(sched_time)
@@ -109,6 +140,91 @@ class ExplicitSchedule:
         }
 
 
+    @classmethod
+    def from_jso(Class, jso):
+        try:
+            times = jso["times"]
+        except KeyError:
+            raise SchemaError("missing times")
+        times = times if isinstance(times, list) else [times]
+        times = [ Time(t) for t in times ]
 
+        args = jso.get("args", {})
+
+        return Class(times, args)
+
+
+
+#-------------------------------------------------------------------------------
+
+class IntervalSchedule:
+
+    TYPE_NAME = "interval"
+
+    def __init__(self, interval, args):
+        self.__interval = float(interval)
+        self.__args     = { str(k): str(v) for k, v in args.items() }
+
+
+    def __repr__(self):
+        return format_ctor(self, self.__interval, self.__phase)
+
+
+    def __str__(self):
+        return f"every {self.__interval} sec"
+
+
+    def __call__(self, start: Time):
+        # Round to the next interval.
+        mod = (start - Time.EPOCH) % self.__interval
+        time = start if mod == 0 else start + self.__interval - mod
+
+        while True:
+            yield time
+            time += self.__interval
+
+
+    def bind_args(self, params, sched_time: Time):
+        args = dict(self.__args)
+        if "time" in params:
+            args["time"] = lib.format_time(sched_time)
+        return args
+
+
+    def to_jso(self):
+        return {
+            "interval"  : self.__interval,
+            "args"      : self.__args,
+        }
+
+
+    @classmethod
+    def from_jso(Class, jso):
+        try:
+            interval = jso["interval"]
+        except KeyError:
+            raise SchemaError("missing interval")
+        interval = float(interval)
+
+        args = jso.get("args", {})
+
+        return Class(interval, args)
+
+
+
+#-------------------------------------------------------------------------------
+
+TYPES = Typed(
+    {
+        "daily"     : DailySchedule,
+        "explicit"  : ExplicitSchedule,
+        "interval"  : IntervalSchedule,
+    }, 
+    default=DailySchedule
+)
+
+
+schedule_to_jso = TYPES.to_jso
+schedule_from_jso = TYPES.from_jso
 
 

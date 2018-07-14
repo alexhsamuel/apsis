@@ -7,6 +7,7 @@ import shlex
 import socket
 
 from   .agent.client import Agent
+from   .lib.json import Typed
 
 log = logging.getLogger(__name__)
 
@@ -345,36 +346,22 @@ class AgentShellProgram(AgentProgram):
 
 #-------------------------------------------------------------------------------
 
-TYPES = {
-    c.__name__: c
-    for c in (
-        AgentProgram,
-        AgentShellProgram,
-        ProcessProgram,
-        ShellCommandProgram,
-    )
-}
+TYPES = Typed({
+    "program"       : AgentProgram,
+    "shell"         : AgentShellProgram,
+    "program_inproc": ProcessProgram,
+    "shell_inproc"  : ShellCommandProgram,
+})
 
 
-def jso_to_program(jso):
+def program_from_jso(jso):
     if isinstance(jso, str):
         return AgentShellProgram(jso)
     elif isinstance(jso, list):
         return AgentProgram(jso)
     else:
-        type_name = jso["type"]
-        try:
-            Type = TYPES[type_name]
-        except KeyError:
-            # FIXME: Better exception type.
-            raise LookupError(type_name)
-        return Type.from_jso(jso)
+        return TYPES.from_jso(jso)
 
 
-def program_to_jso(program):
-    return {
-        "type"  : type(program).__name__,
-        **program.to_jso()
-    }
-
+program_to_jso = TYPES.to_jso
 
