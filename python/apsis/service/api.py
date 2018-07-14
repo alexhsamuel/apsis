@@ -124,7 +124,7 @@ async def job(request, job_id):
 
 @API.route("/jobs/<job_id>/runs")
 async def job_runs(request, job_id):
-    when, runs = request.app.apsis.runs.query(job_id=job_id)
+    when, runs = request.app.apsis.runs.query(job_id=unquote(job_id))
     jso = runs_to_jso(request.app, when, runs)
     return response_json(jso)
 
@@ -210,14 +210,14 @@ def _filter_runs(runs, args):
     except KeyError:
         pass
     else:
-        runs = ( r for r in runs if run.run_id == run_id )
+        runs = ( r for r in runs if r.run_id == run_id )
 
     try:
         job_id = args["job_id"]
     except KeyError:
         pass
     else:
-        runs = ( r for r in runs if run.job_id == job_id )
+        runs = ( r for r in runs if r.inst.job_id == job_id )
 
     return runs
 
@@ -255,6 +255,7 @@ async def websocket_runs(request, ws):
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.
             when, runs = await queue.get()
+            runs = list(runs)
             runs = list(_filter_runs(runs, request.args))
             if len(runs) == 0:
                 continue
