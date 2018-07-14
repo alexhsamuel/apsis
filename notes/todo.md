@@ -8,7 +8,7 @@
 - [x] store transient jobs in the database (for at/cron/ad hoc runs)
 - [x] _ad hoc_ runs
 - [ ] web UI for ad hoc runs
-- [ ] command line UI for ad hoc runs
+- [x] command line UI for ad hoc runs
 - [ ] search, filtering in RunsList
 - [ ] search, filtering in JobsList
 - [ ] document API
