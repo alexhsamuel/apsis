@@ -80,6 +80,11 @@ class Client:
         return self.__get("runs", run_id)["runs"][run_id]
 
 
+    def rerun(self, run_id):
+        run, = self.__post("runs", run_id, "rerun", data={})["runs"].values()
+        return run
+
+
     def __schedule(self, time, job):
         time = "now" if time == "now" else str(Time(time))
         data = {

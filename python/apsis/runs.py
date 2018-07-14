@@ -230,8 +230,8 @@ class Runs:
         return now(), run
 
 
-    def query(self, *, run_ids=None, job_id=None, state=None, since=None,
-              until=None, reruns=False):
+    def query(self, *, run_ids=None, job_id=None, state=None, rerun=None, 
+              since=None, until=None, reruns=False):
         """
         :param reruns:
           If true, include all reruns; otherwise, includes only the latest run
@@ -247,6 +247,8 @@ class Runs:
             runs = ( r for r in runs if r.inst.job_id == job_id )
         if state is not None:
             runs = ( r for r in runs if r.state == state )
+        if rerun is not None:
+            runs = ( r for r in runs if r.rerun == rerun )
         if since is not None:
             runs = ( r for r in runs if r.timestamp >= since )
         if until is not None:

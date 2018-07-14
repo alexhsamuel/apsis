@@ -47,7 +47,7 @@ STATE_COLOR = {
 STATE_SYMBOL = {
     "new"       : "\u25ef",
     "scheduled" : "\u25f7",
-    "running"   : "\u25c0",
+    "running"   : "\u25b6",
     "success"   : "\u2714",
     "failure"   : "\u2716",
     "error"     : "\u2757",
@@ -193,8 +193,12 @@ def format_run(run):
 
 
 def format_runs(runs, *, reruns=False):
+    # FIXME: Does this really make sense?
+    def start_time(run):
+        return run["times"].get("running", run["times"].get("schedule", ""))
+
     # FIXME: Support other sorts.
-    runs = sorted(runs.values(), key=lambda r: r["times"]["schedule"])
+    runs = sorted(runs.values(), key=start_time)
     if reruns:
         runs = sorted(runs, key=lambda r: r["rerun"])
 
@@ -203,7 +207,7 @@ def format_runs(runs, *, reruns=False):
         row = {
             "run_id"    : RUN + run["run_id"] + BLK,
             "S"         : run["state"],
-            "start"     : run["times"].get("running", run["times"]["schedule"]),
+            "start"     : start_time(run),
             "elapsed"   : run["meta"].get("elapsed"),
             "job_id"    : JOB + run["job_id"] + BLK,
             **run["args"],
@@ -315,8 +319,7 @@ cmd = add_command(
 #--- command: output -----------------------------------------------------------
 
 def cmd_output(client, args):
-    run_id = args.run_id
-    output = client.get_output(run_id)
+    output = client.get_output(args.run_id)
     sys.stdout.buffer.write(output)
 
 
@@ -325,6 +328,25 @@ cmd = add_command(
     description="Dumps the output of a run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID")
+
+#--- command: rerun ------------------------------------------------------------
+
+def cmd_rerun(client, arg):
+    run = client.rerun(arg.run_id)
+    if args.json:
+        json.dump(run, sys.stdout, indent=2)
+    else:
+        print_lines(format_run(run))
+
+
+cmd = add_command(
+    "rerun", cmd_rerun,
+    description="Reruns a failed (or error) run.")
+cmd.add_argument(
+    "run_id", metavar="RUN-ID")
+cmd.add_argument(
+    "--json", action="store_true", default=False,
+    help="dump run as JSON")
 
 #--- command: run --------------------------------------------------------------
 
