@@ -2,6 +2,7 @@ import json
 import logging
 import ora
 import sanic
+from   urllib.parse import unquote
 import websockets
 
 from   ..jobs import jso_to_job
@@ -115,7 +116,7 @@ def runs_to_jso(app, when, runs):
 @API.route("/jobs/<job_id>")
 async def job(request, job_id):
     try:
-        job = request.app.apsis.jobs.get_job(job_id)
+        job = request.app.apsis.jobs.get_job(unquote(job_id))
     except LookupError as exc:
         sanic.exceptions.abort(404, f"job_id: {job_id}")
     return response_json(job_to_jso(request.app, job))
