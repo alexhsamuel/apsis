@@ -443,5 +443,9 @@ cmd.add_argument(
 args = parser.parse_args()
 logging.getLogger().setLevel(getattr(logging, args.log_level))
 client = apsis.service.client.Client(host=args.host, port=args.port)
-args.cmd(client, args)
+
+try:
+    args.cmd(client, args)
+except (KeyboardInterrupt, BrokenPipeError):
+    pass
 
