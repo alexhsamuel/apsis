@@ -167,7 +167,7 @@ class IntervalSchedule:
 
 
     def __repr__(self):
-        return format_ctor(self, self.__interval, self.__phase)
+        return format_ctor(self, self.__interval, self.__args)
 
 
     def __str__(self):
@@ -176,8 +176,11 @@ class IntervalSchedule:
 
     def __call__(self, start: Time):
         # Round to the next interval.
-        mod = (start - Time.EPOCH) % self.__interval
-        time = start if mod == 0 else start + self.__interval - mod
+        off = start - Time.EPOCH
+        time = (
+            start if off % self.__interval == 0 
+            else Time.EPOCH + (off // self.__interval + 1) * self.__interval
+        )
 
         while True:
             yield time
