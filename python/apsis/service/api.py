@@ -206,14 +206,14 @@ def _filter_runs(runs, args):
     Constructs a filter for runs from query args.
     """
     try:
-        run_id = args["run_id"]
+        run_id, = args["run_id"]
     except KeyError:
         pass
     else:
         runs = ( r for r in runs if r.run_id == run_id )
 
     try:
-        job_id = args["job_id"]
+        job_id, = args["job_id"]
     except KeyError:
         pass
     else:
@@ -255,7 +255,6 @@ async def websocket_runs(request, ws):
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.
             when, runs = await queue.get()
-            runs = list(runs)
             runs = list(_filter_runs(runs, request.args))
             if len(runs) == 0:
                 continue
