@@ -20,8 +20,8 @@
               {{ arg_str(rerun_group[0].args) }}
             </td>
           </tr>
-          <tr v-for="run in rerun_group" :key="run.run_id" class="run">
-            <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
+          <tr v-for="run in rerun_group" :key="run.run_id">
+            <td><span class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</span></td>
             <td>{{ run.state }}</td>
             <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
             <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
@@ -104,7 +104,8 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+
 table {
   width: 100%;
 }
@@ -123,7 +124,6 @@ td {
 }
 
 .group td {
-  spacing-top: 1cm;
   padding-top: 0.5rem;
   border-top: 1px solid #e0e0e0;
 }
