@@ -8,10 +8,11 @@
 - [x] store transient jobs in the database (for at/cron/ad hoc runs)
 - [x] _ad hoc_ runs
 - [x] command line UI for ad hoc runs
-- [ ] make run a Vue component
+- [x] make run a Vue component
 - [ ] make job a Vue component
 - [ ] search, filtering in RunsList
 - [ ] search, filtering in JobsList
+- [ ] changed `Scheduled` back to explicit heap against realtime clock
 - [ ] web UI for ad hoc runs
 - [ ] document API
 - [ ] convert test runs to API
