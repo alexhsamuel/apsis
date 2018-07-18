@@ -16,9 +16,9 @@
           <dd>{{ run.message }}</dd>
         </template>
 
-        <template v-if="run.rerun">
+        <template v-if="run.rerun != run.run_id">
           <dt>rerun of</dt>
-          <dd><span class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.rerun } })">{{ run.rerun }}</span></dd>
+          <dd><Run v-bind:run-id="run.rerun"></Run></dd>
         </template>
 
         <dt>times</dt>
@@ -48,13 +48,17 @@
 <script>
 import { join, map, sortBy, toPairs } from 'lodash'
 
-import RunsSocket from '../RunsSocket'
 import { formatElapsed } from '../format'
+import Run from './Run'
+import RunsSocket from '../RunsSocket'
 import Timestamp from './Timestamp'
 
 export default {
   props: ['run_id'],
-  components: { Timestamp },
+  components: { 
+    Run,
+    Timestamp,
+  },
 
   data() {
     return {
