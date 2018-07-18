@@ -25,6 +25,7 @@
 - [ ] tooltip for timestamps with local, UTC, (run-local?), and elapsed times
 - [ ] kill button for running run
 - [ ] factor args out of schedule classes
+- [ ] when a job has changed, cancel and reschedule all future runs?
 
 
 # Old
