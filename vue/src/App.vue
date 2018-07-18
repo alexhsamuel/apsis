@@ -50,21 +50,5 @@ dd {
   }
 }
 
-.run-link {
-  @extend .uk-badge;
-
-  background-color: white;
-  color: #007030;
-  border: 2px solid #007030;
-  font-weight: 600;
-  padding: 0 0.4rem;
-  cursor: default;
-
-  &:hover {
-    color: white;
-    background-color: #007030;
-  }
-}
-
 </style>
 

@@ -7,10 +7,12 @@
 - [ ] define the extension mechanism (program, schedule, etc.)
 - [x] store transient jobs in the database (for at/cron/ad hoc runs)
 - [x] _ad hoc_ runs
-- [ ] web UI for ad hoc runs
 - [x] command line UI for ad hoc runs
+- [ ] make run a Vue component
+- [ ] make job a Vue component
 - [ ] search, filtering in RunsList
 - [ ] search, filtering in JobsList
+- [ ] web UI for ad hoc runs
 - [ ] document API
 - [ ] convert test runs to API
 - [ ] performance test with lots of jobs and runs
