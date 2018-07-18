@@ -1,0 +1,9 @@
+params: [host]
+
+program: ping -n -c 1 {{ host }}
+
+schedule:
+  type: interval
+  args: {host: "google.com"}
+  interval: 3600
+
