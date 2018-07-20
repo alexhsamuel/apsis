@@ -45,5 +45,6 @@ export default {
 <style lang="scss" scoped>
 #timeZone {
   height: 3.5ex;
+  margin-left: 0.5em;
 }
 </style>
