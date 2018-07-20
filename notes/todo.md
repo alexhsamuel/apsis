@@ -7,10 +7,13 @@
 - [ ] define the extension mechanism (program, schedule, etc.)
 - [x] store transient jobs in the database (for at/cron/ad hoc runs)
 - [x] _ad hoc_ runs
-- [ ] web UI for ad hoc runs
 - [x] command line UI for ad hoc runs
+- [x] make run a Vue component
+- [ ] make job a Vue component
 - [ ] search, filtering in RunsList
 - [ ] search, filtering in JobsList
+- [ ] changed `Scheduled` back to explicit heap against realtime clock
+- [ ] web UI for ad hoc runs
 - [ ] document API
 - [ ] convert test runs to API
 - [ ] performance test with lots of jobs and runs
@@ -21,7 +24,6 @@
   - [ ] check for runs that ran late
 - [ ] test restarting apsis
 - [ ] CLUI for testing jobs repo
-- [ ] use [vue-select](http://sagalbot.github.io/vue-select/docs/) for time zone dropdown
 - [ ] tooltip for timestamps with local, UTC, (run-local?), and elapsed times
 - [ ] kill button for running run
 - [ ] factor args out of schedule classes

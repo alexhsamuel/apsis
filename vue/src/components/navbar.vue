@@ -1,96 +1,56 @@
 <template>
-  <nav class="navbar">
-    <div class="container">
-      <ul class="navbar-list">
-        <li class="navbar-item">
-          <svg width="3em" height="5em" version="1.1" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="1.5em" cy="2.05em" r="20%" stroke="black" fill="transparent" stroke-width="3.1"/>
-            <circle cx="1.5em" cy="1.60em" r="4%" fill="#40c060"/>
-          </svg>
-        </li>
-        <li class="navbar-item">
-          <span class="navbar-title">APSİS</span>
-        </li>
-        <li class="navbar-item">
-          <router-link to="/jobs" class="navbar-link">Jobs</router-link>
-        </li>
-        <li class="navbar-item">
-          <router-link to="/runs" class="navbar-link">Runs</router-link>
-        </li>
-        <li class="navbar-clock"><clock></clock></li>
+  <nav class="uk-navbar-container" uk-navbar>
+    <div class="uk-navbar-left">
+      <div class="uk-navbar-item">
+        <svg width="3em" height="4em" version="1.1" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="1.5em" cy="2.05em" r="20%" stroke="black" fill="transparent" stroke-width="3.1"/>
+          <circle cx="1.5em" cy="1.68em" r="4%" fill="#40c060"/>
+        </svg>
+      </div>
+      <div class="uk-navbar-item title">
+        APSİS
+      </div>
+      <ul class="uk-navbar-nav">
+        <li><router-link to="/jobs">Jobs</router-link></li>
+        <li><router-link to="/runs">Runs</router-link></li>
       </ul>
     </div>
+
+    <div class="uk-navbar-right">
+      <div class="uk-navbar-item clock">
+        <clock></clock>
+        <TimeZoneSelect></TimeZoneSelect>
+      </div>
+    </div>
+
   </nav>
 </template>
 
 <script>
 import Clock from './Clock.vue'
+import TimeZoneSelect from './TimeZoneSelect'
+
 export default {
   name: 'navbar',
   components: {
     Clock,
+    TimeZoneSelect,
   }
 }
 </script>
 
 <style>
-.navbar + .docs-section {
-  border-top-width: 0;
-}
-.navbar,
-.navbar-spacer {
-  display: block;
-  width: 100%;
-  height: 6.5rem;
-  background: #fff;
-  z-index: 99;
-  border-bottom: 1px solid #eee;
-}
-.navbar-spacer {
-  display: none;
-}
-.navbar > .container {
-  width: 100%;
-}
-.navbar-list {
-  list-style: none;
-  margin-bottom: 0;
-}
-.navbar-item {
-  position: relative;
-  float: left;
-  margin-bottom: 0;
-}
-.navbar-title {
-  font-size: 20px;
+.title {
+  font-family: Helvetica;
   font-weight: 600;
-  letter-spacing: .2rem;
-  margin-right: 35px;
-  text-decoration: none;
-  line-height: 6.5rem;
+  padding-left: 0;
+  letter-spacing: .1rem;
+  margin-right: 12px;
   color: #222;
 }
-.navbar-link {
-  text-transform: uppercase;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .2rem;
-  margin-right: 35px;
-  text-decoration: none;
-  line-height: 6.5rem;
-  color: #222;
-}
-.navbar-link.active {
-  color: #33C3F0;
-}
-.navbar-clock {
-  position: relative;
-  float: right;
-  margin-bottom: 0;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .12rem;
-  line-height: 6.5rem;
+
+.clock {
+  letter-spacing: .04rem;
 }
 
 .title {

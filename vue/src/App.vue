@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <navbar/>
-    <router-view/>
+    <div class="uk-container uk-container-expand">
+      <router-view/>
+    </div>
   </div>
 </template>
 
@@ -18,7 +20,6 @@ export default {
 
 <style lang="scss">
 #app {
-  width: 90%;
   max-width: none;
   margin-left: auto;
   margin-right: auto;
@@ -36,24 +37,6 @@ dt {
 
 dd {
   margin: 0 0 0 10rem;
-}
-
-.job-link {
-  color: #00a050;
-  cursor: default;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.run-link {
-  color: #007030;
-  cursor: default;
-
-  &:hover {
-    text-decoration: underline;
-  }
 }
 
 </style>

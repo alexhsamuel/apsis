@@ -4,27 +4,39 @@
     <table>
       <thead>
         <tr>
+          <th>Job</th>
+          <th>Args</th>
           <th>ID</th>
-          <th>State</th>
           <th>Schedule</th>
           <th>Start</th>
+          <th>State</th>
           <th>Elapsed</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <template v-for="rerun_group in rerun_groups">
-          <tr class="group">
+          <!--
+          <tr class="group" v-bind:key="rerun_group[0].job_id">
             <td colspan="6">
-              <span class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: rerun_group[0].job_id } })">{{ rerun_group[0].job_id }}</span>
+              <Job v-bind:job-id="rerun_group[0].job_id"></Job>
               {{ arg_str(rerun_group[0].args) }}
             </td>
           </tr>
-          <tr v-for="run in rerun_group" :key="run.run_id" class="run">
-            <td class="run-link" v-on:click="$router.push({ name: 'run', params: { run_id: run.run_id } })">{{ run.run_id }}</td>
-            <td>{{ run.state }}</td>
+          -->
+          <tr v-for="run in rerun_group" :key="run.run_id">
+            <td><Job v-bind:job-id="run.job_id"></Job></td>
+            <td>{{ arg_str(run.args) }}</td>
+            <td><Run v-bind:run-id="run.run_id"></Run></td>
             <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
             <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
+            <td>
+              <span 
+                v-bind:style="'color: ' + color(run.state)" 
+                v-bind:uk-icon="'icon: ' + icon(run.state) + '; ratio: 1.0'"
+                >
+              </span>
+            </td>
             <td class="rt">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
             <td>
               <ActionButton
@@ -43,14 +55,27 @@ import { each, join, map, sortBy, toPairs, values } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
+import Job from './Job'
+import Run from './Run'
 import RunsSocket from '../RunsSocket'
 import Timestamp from './Timestamp'
+
+const icons = {
+  'new'            : ['#000000', 'tag'],
+  'scheduled'      : ['#a0a0a0', 'clock'],
+  'running'        : ['#a0a000', 'play-circle'],
+  'error'          : ['#a00060', 'warning'],
+  'success'        : ['#00a000', 'check'],
+  'failure'        : ['#a00000', 'close'],
+}
 
 export default { 
   name: 'runs',
   props: ['job_id'],
   components: {
     ActionButton,
+    Job,
+    Run,
     Timestamp,
   },
 
@@ -83,6 +108,14 @@ export default {
   },
 
   methods: {
+    icon(state) {
+      return icons[state][1]
+    },
+
+    color(state) {
+      return icons[state][0]
+    },
+
     // FIXME: Duplicated.
     arg_str(args) {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
@@ -104,7 +137,8 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+
 table {
   width: 100%;
 }
@@ -123,7 +157,6 @@ td {
 }
 
 .group td {
-  spacing-top: 1cm;
   padding-top: 0.5rem;
   border-top: 1px solid #e0e0e0;
 }
