@@ -4,6 +4,8 @@
     <table>
       <thead>
         <tr>
+          <th>Job</th>
+          <th>Args</th>
           <th>ID</th>
           <th>State</th>
           <th>Schedule</th>
@@ -14,15 +16,25 @@
       </thead>
       <tbody>
         <template v-for="rerun_group in rerun_groups">
+          <!--
           <tr class="group" v-bind:key="rerun_group[0].job_id">
             <td colspan="6">
               <Job v-bind:job-id="rerun_group[0].job_id"></Job>
               {{ arg_str(rerun_group[0].args) }}
             </td>
           </tr>
+          -->
           <tr v-for="run in rerun_group" :key="run.run_id">
+            <td><Job v-bind:job-id="run.job_id"></Job></td>
+            <td>{{ arg_str(run.args) }}</td>
             <td><Run v-bind:run-id="run.run_id"></Run></td>
-            <td>{{ run.state }}</td>
+            <td>
+              <span 
+                v-bind:style="'color: ' + color(run.state)" 
+                v-bind:uk-icon="'icon: ' + icon(run.state) + '; ratio: 1.0'"
+                >
+              </span>
+            </td>
             <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
             <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
             <td class="rt">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
@@ -47,6 +59,15 @@ import Job from './Job'
 import Run from './Run'
 import RunsSocket from '../RunsSocket'
 import Timestamp from './Timestamp'
+
+const icons = {
+  'new'            : ['#000000', 'tag'],
+  'scheduled'      : ['#a0a0a0', 'clock'],
+  'running'        : ['#a0a000', 'play-circle'],
+  'error'          : ['#a00060', 'warning'],
+  'success'        : ['#00a000', 'check'],
+  'failure'        : ['#a00000', 'close'],
+}
 
 export default { 
   name: 'runs',
@@ -87,6 +108,14 @@ export default {
   },
 
   methods: {
+    icon(state) {
+      return icons[state][1]
+    },
+
+    color(state) {
+      return icons[state][0]
+    },
+
     // FIXME: Duplicated.
     arg_str(args) {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
