@@ -14,7 +14,7 @@
             v-bind:key="job.job_id"
             v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
             >
-          <td class="job-link">{{ job.job_id }}</td>
+          <td><Job v-bind:job-id="job.job_id"></Job></td>
           <td class="program">{{ job.program.str || "" }}</td>
           <td>
             <template 
@@ -32,11 +32,17 @@
 </template>
 
 <script>
+import Job from './Job'
+
 export default { 
   data() {
     return {
       jobs: [],
     }
+  },
+
+  components: {
+    Job,
   },
 
   created() {

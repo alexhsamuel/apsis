@@ -16,7 +16,7 @@
         <template v-for="rerun_group in rerun_groups">
           <tr class="group">
             <td colspan="6">
-              <span class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: rerun_group[0].job_id } })">{{ rerun_group[0].job_id }}</span>
+              <Job v-bind:job-id="rerun_group[0].job_id"></Job>
               {{ arg_str(rerun_group[0].args) }}
             </td>
           </tr>
@@ -43,6 +43,7 @@ import { each, join, map, sortBy, toPairs, values } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
+import Job from './Job'
 import Run from './Run'
 import RunsSocket from '../RunsSocket'
 import Timestamp from './Timestamp'
@@ -52,6 +53,7 @@ export default {
   props: ['job_id'],
   components: {
     ActionButton,
+    Job,
     Run,
     Timestamp,
   },

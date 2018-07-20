@@ -39,14 +39,5 @@ dd {
   margin: 0 0 0 10rem;
 }
 
-.job-link {
-  color: #00a050;
-  cursor: default;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
 </style>
 

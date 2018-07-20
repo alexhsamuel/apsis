@@ -4,7 +4,7 @@
     <div class="title">{{ run_id }}</div>
     <div v-if="run">
       <div>
-        <a class="job-link" v-on:click="$router.push({ name: 'job', params: { job_id: run.job_id } })">{{ run.job_id }}</a>
+        <Job v-bind:job-id="run.job_id"></Job>
         {{ arg_str }}
       </div>
       <dl>
@@ -49,6 +49,7 @@
 import { join, map, sortBy, toPairs } from 'lodash'
 
 import { formatElapsed } from '../format'
+import Job from './Job'
 import Run from './Run'
 import RunsSocket from '../RunsSocket'
 import Timestamp from './Timestamp'
@@ -56,6 +57,7 @@ import Timestamp from './Timestamp'
 export default {
   props: ['run_id'],
   components: { 
+    Job,
     Run,
     Timestamp,
   },
