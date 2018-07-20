@@ -20,9 +20,7 @@
             <template 
                 v-for="s in job.schedules"
               >
-              {{ s.str }}
-              <!-- eslint-disable-next-line -->
-              <br>
+              <div v-bind:key="s">{{ s.str }}</div>
             </template>
           </td>
         </tr>

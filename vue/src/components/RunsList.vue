@@ -14,7 +14,7 @@
       </thead>
       <tbody>
         <template v-for="rerun_group in rerun_groups">
-          <tr class="group">
+          <tr class="group" v-bind:key="rerun_group[0].job_id">
             <td colspan="6">
               <Job v-bind:job-id="rerun_group[0].job_id"></Job>
               {{ arg_str(rerun_group[0].args) }}
