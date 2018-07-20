@@ -1,5 +1,5 @@
 <template>
-  <span class="run" v-on:click="go()">
+  <span class="uk-badge run-badge" v-on:click="go()">
     {{ runId }}
   </span>
 </template>
@@ -19,9 +19,7 @@ export default {
 <style lang="scss" scoped>
 @import '../styles/index.scss';
 
-.run {
-  @extend .uk-badge;
-
+.run-badge {
   background-color: white;
   color: $apsis-run-color;
   border: 2px solid $apsis-run-color;
