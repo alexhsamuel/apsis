@@ -7,9 +7,9 @@
           <th>Job</th>
           <th>Args</th>
           <th>ID</th>
-          <th>State</th>
           <th>Schedule</th>
           <th>Start</th>
+          <th>State</th>
           <th>Elapsed</th>
           <th>Actions</th>
         </tr>
@@ -28,6 +28,8 @@
             <td><Job v-bind:job-id="run.job_id"></Job></td>
             <td>{{ arg_str(run.args) }}</td>
             <td><Run v-bind:run-id="run.run_id"></Run></td>
+            <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
+            <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
             <td>
               <span 
                 v-bind:style="'color: ' + color(run.state)" 
@@ -35,8 +37,6 @@
                 >
               </span>
             </td>
-            <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
-            <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
             <td class="rt">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
             <td>
               <ActionButton
