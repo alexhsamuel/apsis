@@ -19,6 +19,7 @@
     <div class="uk-navbar-right">
       <div class="uk-navbar-item clock">
         <clock></clock>
+        <TimeZoneSelect></TimeZoneSelect>
       </div>
     </div>
 
@@ -27,10 +28,13 @@
 
 <script>
 import Clock from './Clock.vue'
+import TimeZoneSelect from './TimeZoneSelect'
+
 export default {
   name: 'navbar',
   components: {
     Clock,
+    TimeZoneSelect,
   }
 }
 </script>
