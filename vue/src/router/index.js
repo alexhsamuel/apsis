@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
-import Job          from '@/components/Job'
+import JobView      from '@/components/JobView'
 import JobsList     from '@/components/JobsList'
 import HelloWorld   from '@/components/HelloWorld'
 import RunView      from '@/components/RunView'
@@ -21,7 +21,7 @@ export default new Router({
       path: '/jobs/:job_id',
       props: true,
       name: 'job',
-      component: Job,
+      component: JobView,
     },
     {
       path: '/jobs',
