@@ -1,8 +1,9 @@
 # Current
 
+- web app landing page
 - search, filtering in RunsList
+- in RunList, if sorted by time, draw a line at now
 - search, filtering in JobsList
-- convert test runs to API
 - performance test with lots of jobs and runs
 - when starting up, cancel and reschedule all future jobs
 - add a --since flag, to control how far back to reschedule
