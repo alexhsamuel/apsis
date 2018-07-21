@@ -1,33 +1,25 @@
 # Current
 
-- [x] store scheduling horizon (`Scheduler.__stop`) in DB
-- [x] restore running runs from DB
-- [x] group runs by reruns in GUI
-- [x] auto rerun logic
-- [ ] define the extension mechanism (program, schedule, etc.)
-- [x] store transient jobs in the database (for at/cron/ad hoc runs)
-- [x] _ad hoc_ runs
-- [x] command line UI for ad hoc runs
-- [x] make run a Vue component
-- [ ] make job a Vue component
-- [ ] search, filtering in RunsList
-- [ ] search, filtering in JobsList
-- [ ] changed `Scheduled` back to explicit heap against realtime clock
-- [ ] web UI for ad hoc runs
-- [ ] document API
-- [ ] convert test runs to API
-- [ ] performance test with lots of jobs and runs
-- [ ] sanity checker
-  - [ ] check for unscheduled runs
-  - [ ] check for late scheduled runs
-  - [ ] check for orphaned running runs
-  - [ ] check for runs that ran late
-- [ ] test restarting apsis
-- [ ] CLUI for testing jobs repo
-- [ ] tooltip for timestamps with local, UTC, (run-local?), and elapsed times
-- [ ] kill button for running run
-- [ ] factor args out of schedule classes
-- [ ] when a job has changed, cancel and reschedule all future runs?
+- define the extension mechanism (program, schedule, etc.)
+- search, filtering in RunsList
+- search, filtering in JobsList
+- web UI for ad hoc runs
+- document API
+- convert test runs to API
+- performance test with lots of jobs and runs
+- when starting up, cancel and reschedule all future jobs
+- add a --since flag, to control how far back to reschedule
+- sanity checker
+  - check for unscheduled runs
+  - check for late scheduled runs
+  - check for orphaned running runs
+  - check for runs that ran late
+- test restarting apsis
+- CLUI for testing jobs repo
+- tooltip for timestamps with local, UTC, (run-local?), and elapsed times
+- kill button for running run
+- factor args out of schedule classes
+- when a job has changed, cancel and reschedule all future runs?
 
 
 # Old
