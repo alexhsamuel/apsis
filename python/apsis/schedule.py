@@ -227,7 +227,15 @@ TYPES = Typed(
 )
 
 
-schedule_to_jso = TYPES.to_jso
-schedule_from_jso = TYPES.from_jso
+def schedule_to_jso(schedule):
+    jso = TYPES.to_jso(schedule)
+    jso["enabled"] = schedule.enabled
+    return jso
+
+
+def schedule_from_jso(jso):
+    schedule = TYPES.from_jso(jso)
+    schedule.enabled = jso.get("enabled", True)
+    return schedule
 
 

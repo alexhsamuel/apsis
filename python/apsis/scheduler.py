@@ -31,7 +31,8 @@ class Scheduler:
                 for sched_time in times:
                     args = schedule.bind_args(job.params, sched_time)
                     inst = Instance(job.job_id, args)
-                    yield sched_time, Run(inst)
+                    if schedule.enabled:
+                        yield sched_time, Run(inst)
 
         self.__stop = stop
 
