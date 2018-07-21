@@ -3,11 +3,12 @@
 - define the extension mechanism (program, schedule, etc.)
 - search, filtering in RunsList
 - search, filtering in JobsList
-- changed `Scheduled` back to explicit heap against realtime clock
 - web UI for ad hoc runs
 - document API
 - convert test runs to API
 - performance test with lots of jobs and runs
+- when starting up, cancel and reschedule all future jobs
+- add a --since flag, to control how far back to reschedule
 - sanity checker
   - check for unscheduled runs
   - check for late scheduled runs
