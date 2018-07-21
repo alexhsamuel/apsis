@@ -8,7 +8,7 @@
         </svg>
       </div>
       <div class="uk-navbar-item title">
-        APSİS
+        <router-link to="/">APSİS</router-link>
       </div>
       <ul class="uk-navbar-nav">
         <li><router-link to="/jobs">Jobs</router-link></li>
@@ -39,7 +39,7 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss">
 .title {
   font-family: Helvetica;
   font-weight: 600;
@@ -56,6 +56,13 @@ export default {
 .title {
   font-size: 150%;
   font-weight: 700;
+  padding-top: 4px;
+  a {
+    color: #222;
+  }
+  a:hover {
+    text-decoration: none;
+  }
 }
 
 </style>

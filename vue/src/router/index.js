@@ -3,7 +3,7 @@ import Router from 'vue-router'
 
 import JobView      from '@/components/JobView'
 import JobsList     from '@/components/JobsList'
-import HelloWorld   from '@/components/HelloWorld'
+import Overview     from '@/components/Overview'
 import RunView      from '@/components/RunView'
 import RunsList     from '@/components/RunsList'
 
@@ -14,8 +14,8 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'HelloWorld',
-      component: HelloWorld
+      name: 'Overvue',
+      component: Overview,
     },
     {
       path: '/jobs/:job_id',

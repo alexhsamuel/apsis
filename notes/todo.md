@@ -1,6 +1,5 @@
 # Current
 
-- web app landing page
 - search, filtering in RunsList
 - web UI for showing/hiding reruns
 - in RunList, if sorted by time, draw a line at now
