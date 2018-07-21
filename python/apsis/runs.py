@@ -81,7 +81,8 @@ class Run:
 
 
     def __repr__(self):
-        return format_ctor(self, self.run_id, self.inst, state=self.state)
+        return format_ctor(
+            self, self.run_id, self.inst, state=self.state, rerun=self.rerun)
 
 
     def __str__(self):
@@ -231,7 +232,7 @@ class Runs:
 
 
     def query(self, *, run_ids=None, job_id=None, state=None, rerun=None, 
-              since=None, until=None, reruns=False):
+              since=None, until=None, reruns=True):
         """
         :param reruns:
           If true, include all reruns; otherwise, includes only the latest run
