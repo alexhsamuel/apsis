@@ -10,7 +10,6 @@ import websockets
 
 from   . import api
 from   . import DEFAULT_PORT
-from   .. import testing
 from   ..apsis import Apsis
 from   ..jobs import JobsDir
 from   ..sqlite import SqliteDB
@@ -151,9 +150,6 @@ def main():
         "--create", action="store_true", default=False,
         help="create a new state database")
     parser.add_argument(
-        "--test-runs", metavar="NUM", type=int, default=None,
-        help="add NUM test runs")
-    parser.add_argument(
         "jobs", metavar="JOBS", 
         help="job directory")
     parser.add_argument(
@@ -165,10 +161,6 @@ def main():
     jobs    = JobsDir(args.jobs)
     db      = SqliteDB(args.db, args.create)
     apsis   = Apsis(jobs, db)
-
-    if args.test_runs is not None:
-        for t, run in testing.get_test_runs(args.test_runs):
-            asyncio.ensure_future(apsis.schedule(t, run))
 
     loop = asyncio.get_event_loop()
 

@@ -85,6 +85,25 @@ class Client:
         return run
 
 
+    def schedule(self, job_id, args, time):
+        """
+        Creates and schedules a new run.
+        """
+        job_id  = str(job_id)
+        args    = { str(k): str(v) for k, v in args.items() }
+        time    = "now" if time == "now" else str(Time(time))
+
+        data = {
+            "job_id": job_id,
+            "args": args,
+            "times": {
+                "schedule": time,
+            }
+        }
+        runs = self.__post("runs", data=data)["runs"]
+        return next(iter(runs.values()))
+
+
     def __schedule(self, time, job):
         time = "now" if time == "now" else str(Time(time))
         data = {

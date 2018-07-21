@@ -6,12 +6,15 @@ import fixfmt.table
 import json
 import logging
 from   ora import Time, Daytime, now, get_display_time_zone
+import random
 import sys
 
 from   apsis.lib.argparse import HelpFormatter
 import apsis.lib.itr
 from   apsis.runs import Run
 import apsis.service.client
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -437,6 +440,22 @@ cmd.add_argument(
 cmd.add_argument(
     "--shell", action="store_true", default=False,
     help="treat CMD as shell code (contactenated)")
+
+# --- test commands ------------------------------------------------------------
+
+def cmd_test0(client, args):
+    time = now()
+    past = args.past
+    rng = args.fut - past
+
+    for i in range(args.num):
+        run = client.schedule("reruntest", {"id": i}, time + past + rng * random.random())
+        log.info(f"scheduled: {run['run_id']}")
+
+cmd = add_command("test0", cmd_test0, description="[TEST] Schedule reruntest.")
+cmd.add_argument("num", metavar="NUM", type=int, nargs="?", default=1)
+cmd.add_argument("fut", metavar="SECS", type=float, nargs="?", default=60)
+cmd.add_argument("past", metavar="SECS", type=float, nargs="?", default=0)
 
 #-------------------------------------------------------------------------------
 
