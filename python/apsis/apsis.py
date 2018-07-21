@@ -40,6 +40,7 @@ class Apsis:
         self.scheduled = ScheduledRuns(self.__start)
 
         # Restore scheduled runs from DB.
+        # FIXME: No, just reschedule instead.
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
         for run in scheduled_runs:
             self.scheduled.schedule(run.times["schedule"], run)
