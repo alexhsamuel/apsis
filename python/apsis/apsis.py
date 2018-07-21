@@ -122,6 +122,7 @@ class Apsis:
             await self.schedule(time, run)
 
 
+    # FIXME: Move this into scheduler.
     async def scheduler_loop(self, interval=86400):
         while True:
             stop = now() + interval
