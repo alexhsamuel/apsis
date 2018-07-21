@@ -2,6 +2,7 @@
 
 - web app landing page
 - search, filtering in RunsList
+- web UI for showing/hiding reruns
 - in RunList, if sorted by time, draw a line at now
 - search, filtering in JobsList
 - performance test with lots of jobs and runs
