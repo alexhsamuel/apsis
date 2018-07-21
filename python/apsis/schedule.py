@@ -4,7 +4,7 @@ from   ora import Daytime, Time, TimeZone
 
 from   . import lib
 from   .lib.exc import SchemaError
-from   .lib.json import Typed
+from   .lib.json import Typed, no_unexpected_keys
 from   .lib.py import format_ctor
 
 #-------------------------------------------------------------------------------
@@ -85,18 +85,18 @@ class DailySchedule:
 
     @classmethod
     def from_jso(Class, jso):
-        args = jso.get("args", {})
+        args = jso.pop("args", {})
 
         try:
-            tz = jso["tz"]
+            tz = jso.pop("tz")
         except KeyError:
             raise SchemaError("missing time zone")
         tz = TimeZone(tz)
 
-        calendar = ora.get_calendar(jso.get("calendar", "all"))
+        calendar = ora.get_calendar(jso.pop("calendar", "all"))
 
         try:
-            daytimes = jso["daytime"]
+            daytimes = jso.pop("daytime")
         except KeyError:
             raise SchemaError("missing daytime")
         daytimes = [daytimes] if isinstance(daytimes, str) else daytimes
@@ -143,13 +143,13 @@ class ExplicitSchedule:
     @classmethod
     def from_jso(Class, jso):
         try:
-            times = jso["times"]
+            times = jso.pop("times")
         except KeyError:
             raise SchemaError("missing times")
         times = times if isinstance(times, list) else [times]
         times = [ Time(t) for t in times ]
 
-        args = jso.get("args", {})
+        args = jso.pop("args", {})
 
         return Class(times, args)
 
@@ -204,12 +204,12 @@ class IntervalSchedule:
     @classmethod
     def from_jso(Class, jso):
         try:
-            interval = jso["interval"]
+            interval = jso.pop("interval")
         except KeyError:
             raise SchemaError("missing interval")
         interval = float(interval)
 
-        args = jso.get("args", {})
+        args = jso.pop("args", {})
 
         return Class(interval, args)
 
@@ -234,8 +234,9 @@ def schedule_to_jso(schedule):
 
 
 def schedule_from_jso(jso):
-    schedule = TYPES.from_jso(jso)
-    schedule.enabled = jso.get("enabled", True)
+    with no_unexpected_keys(jso) as jso:
+        schedule = TYPES.from_jso(jso)
+        schedule.enabled = jso.pop("enabled", True)
     return schedule
 
 

@@ -1,6 +1,27 @@
+import contextlib
+import json
+
 from   .exc import SchemaError
 
 #------------------------------------------------------------------------------
+
+@contextlib.contextmanager
+def no_unexpected_keys(jso):
+    """
+    On exit, checks that all JSO keys have been popped.
+
+    :raise SchemaError:
+      The JSO is not empty at the end of the context body.
+    """
+    copy = dict(jso)
+    yield copy
+    if len(copy) > 0:
+        keys = ", ".join( f'"{k}"' for k in copy )
+        raise SchemaError(
+            f"unexpected {keys} in structure:\n"
+            + json.dumps(jso, indent=2)
+        )
+
 
 class Typed:
 
@@ -40,7 +61,7 @@ class Typed:
         The type is determined from the "type" field in `jso`.
         """
         try:
-            name = jso["type"]
+            name = jso.pop("type")
 
         except KeyError:
             # No type field specified.
