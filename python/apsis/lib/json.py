@@ -13,13 +13,13 @@ def no_unexpected_keys(jso):
     :raise SchemaError:
       The JSO is not empty at the end of the context body.
     """
-    copy = dict(jso)
-    yield copy
-    if len(copy) > 0:
-        keys = ", ".join( f'"{k}"' for k in copy )
+    original = dict(jso)
+    yield jso
+    if len(jso) > 0:
+        keys = ", ".join( f'"{k}"' for k in jso )
         raise SchemaError(
             f"unexpected {keys} in structure:\n"
-            + json.dumps(jso, indent=2)
+            + json.dumps(original, indent=2)
         )
 
 

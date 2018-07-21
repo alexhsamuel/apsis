@@ -234,7 +234,7 @@ def schedule_to_jso(schedule):
 
 
 def schedule_from_jso(jso):
-    with no_unexpected_keys(jso) as jso:
+    with no_unexpected_keys(jso):
         schedule = TYPES.from_jso(jso)
         schedule.enabled = jso.pop("enabled", True)
     return schedule

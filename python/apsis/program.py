@@ -7,7 +7,7 @@ import shlex
 import socket
 
 from   .agent.client import Agent
-from   .lib.json import Typed
+from   .lib.json import Typed, no_unexpected_keys
 
 log = logging.getLogger(__name__)
 
@@ -360,7 +360,8 @@ def program_from_jso(jso):
     elif isinstance(jso, list):
         return AgentProgram(jso)
     else:
-        return TYPES.from_jso(jso)
+        with no_unexpected_keys(jso):
+            return TYPES.from_jso(jso)
 
 
 program_to_jso = TYPES.to_jso
