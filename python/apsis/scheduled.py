@@ -2,6 +2,7 @@ import asyncio
 import heapq
 import logging
 from   ora import now, Time
+import traceback
 
 from   .runs import Run
 
@@ -45,7 +46,7 @@ class ScheduledRuns:
 
 
 
-    def __init__(self, start_run, *, loop_time=0.1):
+    def __init__(self, start_run, *, loop_time=0.2):
         """
         :param start_run:
           Async function that starts a run.
@@ -78,21 +79,35 @@ class ScheduledRuns:
         # when the event loop clock wanders from the real time clock, or if a
         # run is scheduled in the very near future after the start loop has
         # already gone to sleep.
+        try:
+            while True:
+                if log.isEnabledFor(logging.DEBUG):
+                    count = len(self.__heap)
+                    until = (
+                        f"until={self.__heap[0].time - now():.1f}" if count > 0
+                        else ""
+                    )
+                    log.debug(f"start loop: count={count} {until}")
 
-        while True:
-            while len(self.__heap) > 0 and self.__heap[0].time <= now():
-                # The next run is ready.
-                entry = heapq.heappop(self.__heap)
-                if entry.scheduled:
-                    # Take it out of the entries dict.
-                    assert self.__scheduled.pop(entry.run) is entry
-                    # Start the run.
-                    await self.__start_run(entry.run)
+                while len(self.__heap) > 0 and self.__heap[0].time <= now():
+                    # The next run is ready.
+                    entry = heapq.heappop(self.__heap)
+                    if entry.scheduled:
+                        # Take it out of the entries dict.
+                        assert self.__scheduled.pop(entry.run) is entry
+                        # Start the run.
+                        await self.__start_run(entry.run)
 
-            await asyncio.sleep(
-                self.loop_time if len(self.__heap) == 0
-                else min(self.loop_time, self.__heap[0][0] - now())
-            )
+                wait = (
+                    loop_time if len(self.__heap) == 0
+                    else min(loop_time, self.__heap[0].time - now())
+                )
+                await asyncio.sleep(wait)
+
+        except Exception:
+            # FIXME: Instead of this, someone should be awaiting this task.
+            log.error(traceback.format_exc())
+            raise
 
 
     def schedule(self, time: Time, run: Run):
@@ -110,7 +125,9 @@ class ScheduledRuns:
         else:
             # Put it onto the schedule heap.
             log.info(f"schedule: {time} {run.run_id}")
-            heapq.heappush(self.__heap, self.Entry(time, run))
+            entry = self.Entry(time, run)
+            heapq.heappush(self.__heap, entry)
+            self.__scheduled[run] = entry
 
 
     def unschedule(self, run: Run) -> bool:
