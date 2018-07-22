@@ -5,6 +5,8 @@
 - show job in run view
 - performance test with lots of jobs and runs
 - when starting up, cancel and reschedule all future jobs
+  - store schedule horizon per (job, schedule) ???
+  - limit number of runs scheduled per job
 - add a --since flag, to control how far back to reschedule
 - search, filtering in runs list
 - live elapsed time in runs list
