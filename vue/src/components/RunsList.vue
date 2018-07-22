@@ -12,7 +12,7 @@
           <th class="col-schedule-time">Schedule</th>
           <th class="col-start-time">Start</th>
           <th class="col-elapsed">Elapsed</th>
-          <th>Actions</th>
+          <th class="col-actions">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -38,7 +38,7 @@
             <td class="col-schedule-time"><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
             <td class="col-start-time"><Timestamp v-bind:time="run.times.running"></Timestamp></td>
             <td class="col-elapsed">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
-            <td>
+            <td class="col-actions">
               <div v-if="Object.keys(run.actions).length > 0" class="uk-inline">
                 <button class="uk-button uk-button-default uk-button-small actions-button" type="button">
                   <span uk-icon="icon: menu; ratio: 0.75"></span>
@@ -197,6 +197,20 @@ td.col-reruns {
 }
 
 .col-state {
+  text-align: center;
+}
+
+th.col-elapsed {
+  text-align: center;
+}
+
+td.col-elapsed {
+  padding-left: 1em;
+  padding-right: 1em;
+  text-align: right;
+}
+
+.col-actions {
   text-align: center;
 }
 
