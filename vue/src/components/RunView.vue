@@ -7,6 +7,17 @@
         <Job v-bind:job-id="run.job_id"></Job>
         {{ arg_str }}
       </div>
+
+      <div class="actions">
+        <ActionButton
+            v-for="(url, action) in run.actions" 
+            :key="action"
+            :url="url" 
+            :action="action" 
+            :button="true"
+          ></ActionButton>
+      </div>
+
       <dl>
         <dt>state</dt>
         <dd><State v-bind:state="run.state" name="1"></State></dd>
@@ -48,6 +59,7 @@
 <script>
 import { join, map, sortBy, toPairs } from 'lodash'
 
+import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
 import Job from './Job'
 import Run from './Run'
@@ -58,6 +70,7 @@ import Timestamp from './Timestamp'
 export default {
   props: ['run_id'],
   components: { 
+    ActionButton,
     Job,
     Run,
     State,
@@ -123,7 +136,17 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+// FIXME: Use a navbar or similar for the action buttons.
+.actions {
+  > :first-child {
+    margin-left: 0;
+  } 
+  > :last-child {
+    margin-right: 0;
+  }
+}
+
 .output {
   border: 1px solid #c0c0c0;
   padding: 0.5rem;

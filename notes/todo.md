@@ -2,7 +2,6 @@
 
 - a good set of demo jobs
 - GitHub README
-- add action buttons to run view
 - show job in run view
 - performance test with lots of jobs and runs
 - when starting up, cancel and reschedule all future jobs
