@@ -1,13 +1,15 @@
-<template>
-  <span 
-      v-on:click="do_action(url)"
-    >&nbsp;{{ action }}&nbsp;</span>
+<template lang="pug">
+  span(
+    class="action"
+    :class="{ button: button }"
+    v-on:click="do_action(url)"
+  ) {{ action }}
 </template>
 
 <script>
 export default {
   name: 'ActionButton',
-  props: ['action', 'url'],
+  props: ['action', 'url', 'button'],
 
   methods: {
     do_action(url) {
@@ -20,7 +22,11 @@ export default {
 </script>
 
 <style scoped>
-span {
+.action {
+  text-transform: capitalize;
+}
+
+.button {
   background: #e0f0e0;
   padding: 2px 6px 2px 8px;
   margin: 0 3px;
@@ -30,7 +36,7 @@ span {
   cursor: default;
 }
 
-span:hover {
+.button:hover {
   background: #90e0a0;
 }
 

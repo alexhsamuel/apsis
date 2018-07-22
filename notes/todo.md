@@ -1,6 +1,5 @@
 # Current
 
-- web UI for showing/hiding reruns
 - search, filtering in RunsList
 - in RunList, if sorted by time, draw a line at now
 - GitHub README

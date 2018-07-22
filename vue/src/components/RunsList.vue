@@ -22,9 +22,9 @@
               :key="run.run_id"
               v-bind:class="{ 'run-group-next': index > 0 }"
             >
-            <td class="col-job"><Job v-bind:job-id="run.job_id"></Job></td>
+            <td class="col-job"><Job :job-id="run.job_id"></Job></td>
             <td class="col-args"><span>{{ arg_str(run.args) }}</span></td>
-            <td class="col-run"><Run v-bind:run-id="run.run_id"></Run></td>
+            <td class="col-run"><Run :run-id="run.run_id"></Run></td>
             <td class="col-reruns">
               <span v-show="index == 0 && rerunGroup.length > 1">
                 {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
@@ -39,9 +39,22 @@
             <td class="col-start-time"><Timestamp v-bind:time="run.times.running"></Timestamp></td>
             <td class="col-elapsed">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
             <td>
-              <ActionButton
-                v-for="(url, action) in run.actions" :url="url" :action="action" :key="action">
-              </ActionButton>
+              <div v-if="Object.keys(run.actions).length > 0" class="uk-inline">
+                <button class="uk-button uk-button-default uk-button-small actions-button" type="button">
+                  <span uk-icon="icon: menu; ratio: 0.75"></span>
+                </button>
+                <div uk-dropdown="pos: left-center">
+                  <ul class="uk-nav uk-dropdown-nav">
+                    <li><ActionButton
+                        v-for="(url, action) in run.actions" 
+                        :key="action"
+                        :url="url" 
+                        :action="action" 
+                        :button="true"
+                      ></ActionButton></li>
+                  </ul>
+                </div>
+              </div>
             </td>
           </tr>
         </template>
@@ -185,6 +198,17 @@ td.col-reruns {
 
 .col-state {
   text-align: center;
+}
+
+.actions-button {
+  font-size: 80%;
+  line-height: 1.4;
+}
+
+// FIXME
+.uk-dropdown {
+  padding: 12px;
+  min-width: 0;
 }
 </style>
 
