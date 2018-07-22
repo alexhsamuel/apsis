@@ -1,7 +1,16 @@
 class Store {
   state = {
+    // The current time.
     time: new Date(),
+
+    // The time zone for displaying times by default.
     timeZone: 'UTC',
+
+    runList: {
+      // Collapse state for run groups.
+      groupCollapse: {},
+
+    },
   }
 
   setTime(time) {
