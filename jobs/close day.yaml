@@ -1,0 +1,29 @@
+params: [strat, date]
+
+program: |
+  /Users/alex/dev/apsis/jobs/close_day.sh {{ strat }} {{ date }}
+
+schedule:
+  - type: daily
+    args:
+      strat: US
+    calendar: Mon-Fri
+    tz: America/New_York
+    daytime: 16:30:00
+
+  - type: daily
+    args:
+      strat: EU
+    calendar: Mon-Fri
+    tz: Europe/London
+    daytime: 17:00:00
+
+  - type: daily
+    args:
+      strat: AS
+    calendar: Mon-Fri
+    tz: Asia/Tokyo
+    daytime: 18:00:00
+
+
+
