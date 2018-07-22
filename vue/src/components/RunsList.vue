@@ -34,13 +34,7 @@
                   ></a>
               </span>
             </td>
-            <td class="col-state">
-              <span 
-                v-bind:style="'color: ' + color(run.state)" 
-                v-bind:uk-icon="'icon: ' + icon(run.state) + '; ratio: 1.0'"
-                >
-              </span>
-            </td>
+            <td class="col-state"><State v-bind:state="run.state"></State></td>
             <td class="col-schedule-time"><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
             <td class="col-start-time"><Timestamp v-bind:time="run.times.running"></Timestamp></td>
             <td class="col-elapsed">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
@@ -64,16 +58,8 @@ import { formatElapsed } from '../format'
 import Job from './Job'
 import Run from './Run'
 import RunsSocket from '../RunsSocket'
+import State from './State'
 import Timestamp from './Timestamp'
-
-const icons = {
-  'new'            : ['#000000', 'tag'],
-  'scheduled'      : ['#a0a0a0', 'future'],
-  'running'        : ['#a0a000', 'play-circle'],
-  'error'          : ['#a00060', 'warning'],
-  'success'        : ['#00a000', 'check'],
-  'failure'        : ['#a00000', 'close'],
-}
 
 export default { 
   name: 'runs',
@@ -82,6 +68,7 @@ export default {
     ActionButton,
     Job,
     Run,
+    State,
     Timestamp,
   },
 
@@ -115,14 +102,6 @@ export default {
   },
 
   methods: {
-    icon(state) {
-      return icons[state][1]
-    },
-
-    color(state) {
-      return icons[state][0]
-    },
-
     // FIXME: Duplicated.
     arg_str(args) {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')

@@ -9,7 +9,7 @@
       </div>
       <dl>
         <dt>state</dt>
-        <dd>{{ run.state }}</dd>
+        <dd><State v-bind:state="run.state" name="1"></State></dd>
 
         <template v-if="run.message">
           <dt>message</dt>
@@ -52,6 +52,7 @@ import { formatElapsed } from '../format'
 import Job from './Job'
 import Run from './Run'
 import RunsSocket from '../RunsSocket'
+import State from './State'
 import Timestamp from './Timestamp'
 
 export default {
@@ -59,6 +60,7 @@ export default {
   components: { 
     Job,
     Run,
+    State,
     Timestamp,
   },
 
