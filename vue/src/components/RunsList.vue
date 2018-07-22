@@ -1,43 +1,49 @@
 <template>
   <div>
    <br>
-    <table>
+    <table class="uk-table uk-table-divider uk-table-hover uk-table-small uk-table-justify">
       <thead>
         <tr>
-          <th>Job</th>
-          <th>Args</th>
-          <th>ID</th>
-          <th>Schedule</th>
-          <th>Start</th>
-          <th>State</th>
-          <th>Elapsed</th>
+          <th class="col-job">Job</th>
+          <th class="col-args">Args</th>
+          <th class="col-run">Run</th>
+          <th class="col-reruns">Reruns</th>
+          <th class="col-state">State</th>
+          <th class="col-schedule-time">Schedule</th>
+          <th class="col-start-time">Start</th>
+          <th class="col-elapsed">Elapsed</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <template v-for="rerun_group in rerun_groups">
-          <!--
-          <tr class="group" v-bind:key="rerun_group[0].job_id">
-            <td colspan="6">
-              <Job v-bind:job-id="rerun_group[0].job_id"></Job>
-              {{ arg_str(rerun_group[0].args) }}
+        <template v-for="rerunGroup in rerun_groups">
+          <tr 
+              v-for="(run, index) in groupRuns(rerunGroup)" 
+              :key="run.run_id"
+              v-bind:class="{ 'run-group-next': index > 0 }"
+            >
+            <td class="col-job"><Job v-bind:job-id="run.job_id"></Job></td>
+            <td class="col-args"><span>{{ arg_str(run.args) }}</span></td>
+            <td class="col-run"><Run v-bind:run-id="run.run_id"></Run></td>
+            <td class="col-reruns">
+              <span v-show="index == 0 && rerunGroup.length > 1">
+                {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
+                <a 
+                    v-bind:uk-icon="groupIcon(run.rerun)"
+                    v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
+                  ></a>
+              </span>
             </td>
-          </tr>
-          -->
-          <tr v-for="run in rerun_group" :key="run.run_id">
-            <td><Job v-bind:job-id="run.job_id"></Job></td>
-            <td>{{ arg_str(run.args) }}</td>
-            <td><Run v-bind:run-id="run.run_id"></Run></td>
-            <td><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
-            <td><Timestamp v-bind:time="run.times.running"></Timestamp></td>
-            <td>
+            <td class="col-state">
               <span 
                 v-bind:style="'color: ' + color(run.state)" 
                 v-bind:uk-icon="'icon: ' + icon(run.state) + '; ratio: 1.0'"
                 >
               </span>
             </td>
-            <td class="rt">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
+            <td class="col-schedule-time"><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
+            <td class="col-start-time"><Timestamp v-bind:time="run.times.running"></Timestamp></td>
+            <td class="col-elapsed">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
             <td>
               <ActionButton
                 v-for="(url, action) in run.actions" :url="url" :action="action" :key="action">
@@ -62,7 +68,7 @@ import Timestamp from './Timestamp'
 
 const icons = {
   'new'            : ['#000000', 'tag'],
-  'scheduled'      : ['#a0a0a0', 'clock'],
+  'scheduled'      : ['#a0a0a0', 'future'],
   'running'        : ['#a0a000', 'play-circle'],
   'error'          : ['#a00060', 'warning'],
   'success'        : ['#00a000', 'check'],
@@ -83,6 +89,7 @@ export default {
     return { 
       runs_socket: null,
       runs: {},
+      groupCollapse: {},
     } 
   },
 
@@ -121,6 +128,26 @@ export default {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
     },
 
+    getGroupCollapse(runId) {
+      let c = this.groupCollapse[runId]
+      if (c === undefined)
+        this.$set(this.groupCollapse, runId, c = true)
+      return c
+    },
+
+    setGroupCollapse(runId, collapse) {
+      this.$set(this.groupCollapse, runId, collapse)
+    },
+
+    groupRuns(group) {
+      const rerun = group[0].rerun
+      return this.getGroupCollapse(rerun) ? [group[group.length - 1]] : group
+    },
+
+    groupIcon(runId) {
+      return this.getGroupCollapse(runId) ? 'icon: chevron-down' : 'icon: chevron-up'
+    },
+
     formatElapsed,
   },
 
@@ -143,10 +170,6 @@ table {
   width: 100%;
 }
 
-tbody tr.run:hover {
-  background: #f0fff8;
-}
-
 th,
 td {
   padding: 0.1rem;
@@ -154,11 +177,6 @@ td {
 
 td {
   border: none;
-}
-
-.group td {
-  padding-top: 0.5rem;
-  border-top: 1px solid #e0e0e0;
 }
 
 tbody td {
@@ -169,5 +187,25 @@ tbody td {
   font-size: 75%;
 }
 
+tr.run-group-next {
+  border-top: none;
+  
+  .col-job a,
+  .col-args span {
+    visibility: hidden;
+  }
+}
+
+.col-run {
+  text-align: center;
+}
+
+td.col-reruns {
+  text-align: center;
+}
+
+.col-state {
+  text-align: center;
+}
 </style>
 

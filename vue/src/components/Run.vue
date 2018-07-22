@@ -22,8 +22,8 @@ export default {
 .run-badge {
   background-color: white;
   color: $apsis-run-color;
-  border: 2px solid $apsis-run-color;
-  font-weight: 600;
+  border: 1px solid $apsis-run-color;
+//  font-weight: 600;
   padding: 0 0.4rem;
   cursor: default;
 
