@@ -78,7 +78,7 @@ class DailySchedule:
         return {
             "tz"        : str(self.tz),
             "calendar"  : repr(self.calendar),  # FIXME
-            "daytimes"  : [ str(y) for y in self.daytimes ],
+            "daytime"   : [ str(y) for y in self.daytimes ],
             "args"      : self.args,
         }
 
