@@ -18,9 +18,9 @@
           <td class="program">{{ job.program.str || "" }}</td>
           <td>
             <template 
-                v-for="s in job.schedules"
+                v-for="(s, i) in job.schedules"
               >
-              <div v-bind:key="s">{{ s.str }}</div>
+              <div v-bind:key="'schedule:' + i">{{ s.str }}</div>
             </template>
           </td>
         </tr>
