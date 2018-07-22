@@ -1,13 +1,13 @@
 <template>
   <div>
    <br>
-    <table>
+    <table class="uk-table uk-table-divider uk-table-hover uk-table-small uk-table-justify">
       <thead>
         <tr>
           <th>Job</th>
           <th>Args</th>
-          <th>ID</th>
-          <th>State</th>
+          <th class="col-run">Run</th>
+          <th class="col-state">State</th>
           <th>Schedule</th>
           <th>Start</th>
           <th>Elapsed</th>
@@ -27,8 +27,8 @@
           <tr v-for="run in rerun_group" :key="run.run_id">
             <td><Job v-bind:job-id="run.job_id"></Job></td>
             <td>{{ arg_str(run.args) }}</td>
-            <td><Run v-bind:run-id="run.run_id"></Run></td>
-            <td>
+            <td class="col-run"><Run v-bind:run-id="run.run_id"></Run></td>
+            <td class="col-state">
               <span 
                 v-bind:style="'color: ' + color(run.state)" 
                 v-bind:uk-icon="'icon: ' + icon(run.state) + '; ratio: 1.0'"
@@ -169,5 +169,12 @@ tbody td {
   font-size: 75%;
 }
 
+.col-run {
+  text-align: center;
+}
+
+.col-state {
+  text-align: center;
+}
 </style>
 

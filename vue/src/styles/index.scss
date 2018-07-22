@@ -5,6 +5,8 @@ $global-font-family: Roboto, Helvetica, monospace;
 $apsis-run-color: #007030;
 $apsis-job-color: #00a050;
 
+$table-row-active-background: #f8fff8;
+
 // 2. Import default variables and available mixins.
 @import "uikit/src/scss/variables-theme.scss";
 @import "uikit/src/scss/mixins-theme.scss";
