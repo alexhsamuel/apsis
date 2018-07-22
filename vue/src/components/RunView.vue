@@ -9,7 +9,7 @@
       </div>
       <dl>
         <dt>state</dt>
-        <dd>{{ run.state }}</dd>
+        <dd><State v-bind:state="run.state" name="1"></State></dd>
 
         <template v-if="run.message">
           <dt>message</dt>
@@ -25,15 +25,15 @@
         <dd>
           <dl>
             <template v-for="[name, time] in run_times">
-              <dt>{{ name }}</dt>
-              <dd><Timestamp v-bind:time="time"></Timestamp></dd>
+              <dt v-bind:key="name">{{ name }}</dt>
+              <dd v-bind:key="'time:' + name"><Timestamp v-bind:time="time"></Timestamp></dd>
             </template>
           </dl>
         </dd>
 
         <template v-for="(value, key) in run.meta">
-          <dt>{{ key }}</dt>
-          <dd>{{ key == "elapsed" ? formatElapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
+          <dt v-bind:key="key">{{ key }}</dt>
+          <dd v-bind:key="'value:' + key">{{ key == "elapsed" ? formatElapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
         </template>
       </dl>
       <h5>output</h5>
@@ -52,6 +52,7 @@ import { formatElapsed } from '../format'
 import Job from './Job'
 import Run from './Run'
 import RunsSocket from '../RunsSocket'
+import State from './State'
 import Timestamp from './Timestamp'
 
 export default {
@@ -59,6 +60,7 @@ export default {
   components: { 
     Job,
     Run,
+    State,
     Timestamp,
   },
 

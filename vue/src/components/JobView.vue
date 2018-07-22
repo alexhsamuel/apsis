@@ -11,8 +11,8 @@
       <dd>{{ job.program.str }}</dd>
 
       <template v-for="schedule in job.schedules">
-        <dt>Schedule</dt>
-        <dd>{{ schedule.str }}</dd>
+        <dt v-bind:key="'label:' + schedule.str">Schedule</dt>
+        <dd v-bind:key="schedule.str">{{ schedule.str }}</dd>
       </template>
     </dl>
 

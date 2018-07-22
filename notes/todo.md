@@ -3,6 +3,7 @@
 - web UI for showing/hiding reruns
 - search, filtering in RunsList
 - in RunList, if sorted by time, draw a line at now
+- GitHub README
 - search, filtering in JobsList
 - performance test with lots of jobs and runs
 - when starting up, cancel and reschedule all future jobs
