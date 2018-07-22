@@ -9,6 +9,10 @@
 - watch jobs for changes
 - when a job has changed, cancel and reschedule all future runs?
 - search, filtering in JobsList
+- control page
+  - live log
+  - shutdown
+  - restart
 - sanity checker
   - check for unscheduled runs
   - check for late scheduled runs
