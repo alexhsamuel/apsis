@@ -1,14 +1,14 @@
 # Current
 
-- search, filtering in RunsList
-- in RunList, if sorted by time, draw a line at now
+- a good set of demo jobs
 - GitHub README
-- search, filtering in JobsList
 - performance test with lots of jobs and runs
 - when starting up, cancel and reschedule all future jobs
 - add a --since flag, to control how far back to reschedule
+- search, filtering in RunsList
 - watch jobs for changes
 - when a job has changed, cancel and reschedule all future runs?
+- search, filtering in JobsList
 - sanity checker
   - check for unscheduled runs
   - check for late scheduled runs
@@ -17,6 +17,7 @@
 - test restarting apsis
 - define the extension mechanism (program, schedule, etc.)
 - kill button for running run
+- in RunList, if sorted by time, draw a line at now
 - web UI for ad hoc runs
 - document API
 - CLUI for testing jobs repo
