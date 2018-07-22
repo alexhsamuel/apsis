@@ -2,10 +2,14 @@
 
 - a good set of demo jobs
 - GitHub README
+- add action buttons to run view
+- show job in run view
 - performance test with lots of jobs and runs
 - when starting up, cancel and reschedule all future jobs
 - add a --since flag, to control how far back to reschedule
-- search, filtering in RunsList
+- search, filtering in runs list
+- live elapsed time in runs list
+- live output for running jobs in run view
 - watch jobs for changes
 - when a job has changed, cancel and reschedule all future runs?
 - search, filtering in JobsList
