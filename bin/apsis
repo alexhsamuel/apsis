@@ -87,6 +87,8 @@ def parse_at_time(string):
         date, daytime_now = now() @ z
         return (date if daytime_now < daytime else date + 1, daytime) @ z
 
+    # FIXME: Accept expressions like "1 hour".
+
     raise ValueError(f"cannot interpret as time: {string}")
 
 
@@ -283,6 +285,31 @@ def add_command(name, fn, description=None):
     return cmd
 
 
+#--- command: adhoc ------------------------------------------------------------
+
+def cmd_adhoc(client, args):
+    time = parse_at_time(args.time)
+    if args.shell:
+        command = " ".join(args.command)
+        run = client.adhoc_shell_program(time, command)
+    else:
+        run = client.adhoc_program(time, args.command)
+    print_lines(format_run(run))
+
+
+cmd = add_command(
+    "adhoc", cmd_adhoc,
+    description="Creates and schedules an ad hoc run.")
+cmd.add_argument(
+    "time", metavar="TIME",
+    help="time to run [time, daytime, 'now']")
+cmd.add_argument(
+    "command", metavar="CMD...", nargs="+",
+    help="command to run")
+cmd.add_argument(
+    "--shell", action="store_true", default=False,
+    help="treat CMD as shell code (contactenated)")
+
 #--- command: job --------------------------------------------------------------
 
 def cmd_job(client, args):
@@ -418,30 +445,29 @@ grp.add_argument(
 #--- command: schedule ---------------------------------------------------------
 
 def cmd_schedule(client, args):
-    time = parse_at_time(args.time)
-    # FIXME: Accept daytimes.
-    if args.shell:
-        command = " ".join(args.command)
-        run = client.schedule_shell_program(time, command)
-    else:
-        run = client.schedule_program(time, args.command)
+    run = client.schedule(args.job_id, dict(args.args), args.time)
     print_lines(format_run(run))
+
+
+def parse_arg(arg):
+    name, value = arg.split("=", 1)
+    return name, value
 
 
 cmd = add_command(
     "schedule", cmd_schedule,
-    description="Schedules a custom ad hoc run.")
+    description="Creates and schedules a run.")
 cmd.add_argument(
-    "time", metavar="TIME",
-    help="time to run, or NOW")
+    "time", metavar="TIME", type=parse_at_time,
+    help="time to run [time, daytime, 'now']")
 cmd.add_argument(
-    "command", metavar="CMD...", nargs="+",
-    help="command to run")
+    "job_id", metavar="JOB-ID",
+    help="run an instance of JOB-ID")
 cmd.add_argument(
-    "--shell", action="store_true", default=False,
-    help="treat CMD as shell code (contactenated)")
+    "args", metavar="NAME=VAL", type=parse_arg, nargs="*",
+    help="run JOB-ID with NAME=VAL")
 
-# --- test commands ------------------------------------------------------------
+#--- test commands -------------------------------------------------------------
 
 def cmd_test0(client, args):
     time = now()
