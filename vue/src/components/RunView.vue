@@ -1,14 +1,10 @@
 <template>
   <div>
     <br>
-    <div class="title">{{ run_id }}</div>
-    <div v-if="run">
-      <div>
-        <Job v-bind:job-id="run.job_id"></Job>
-        {{ arg_str }}
-      </div>
-
-      <div class="actions">
+    <div>
+      <span class="title">{{ run_id }}</span>
+      <!-- FIXME: Use navbar or similar to organize.  -->
+      <span>
         <ActionButton
             v-for="(url, action) in run.actions" 
             :key="action"
@@ -16,6 +12,12 @@
             :action="action" 
             :button="true"
           ></ActionButton>
+      </span>
+    </div>
+    <div v-if="run">
+      <div>
+        <Job v-bind:job-id="run.job_id"></Job>
+        {{ arg_str }}
       </div>
 
       <dl>
@@ -137,16 +139,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-// FIXME: Use a navbar or similar for the action buttons.
-.actions {
-  > :first-child {
-    margin-left: 0;
-  } 
-  > :last-child {
-    margin-right: 0;
-  }
-}
-
 .output {
   border: 1px solid #c0c0c0;
   padding: 0.5rem;
