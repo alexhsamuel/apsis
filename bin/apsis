@@ -126,7 +126,7 @@ def format_schedule(schedule, indent=0):
 def format_instance(run):
     return (
         f"{JOB}{run['job_id']}{BLK} "
-        + " ".join( f"{k}:{ARG}{v}{BLK}" for k, v in run["args"].items() )
+        + " ".join( f"{k}={ARG}{v}{BLK}" for k, v in run["args"].items() )
     )
 
 
