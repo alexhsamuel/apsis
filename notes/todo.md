@@ -1,6 +1,10 @@
 # Current
 
 - a good set of demo jobs
+- UIkit table for jobs list
+- convert things to Pug
+- prevent the same instance from running more than once... HOW?
+- cache run JSON for REST API
 - GitHub README
 - move schedule time out of times; rename times → timestamps
 - store the program with the run??
@@ -34,6 +38,8 @@
 - CLUI for testing jobs repo
 - tooltip for timestamps with local, UTC, (run-local?), and elapsed times
 - factor args out of schedule classes
+- web UI reconnects web socket automatically
+- indicate in web UI when a job started late
 
 
 # Old
