@@ -32,8 +32,7 @@ class Apsis:
         self.jobs = Jobs(jobs, db.job_db)
 
         # Continue scheduling where we left off.
-        scheduler_stop = db.scheduler_db.get_stop()
-        self.scheduler = Scheduler(self.jobs, scheduler_stop)
+        self.scheduler = Scheduler(self.jobs, db.scheduler_db, self.schedule)
 
         self.runs = Runs(db.run_db)
 
@@ -110,26 +109,6 @@ class Apsis:
         # OK, we can rerun.
         rerun_time = time + job.reruns.delay
         asyncio.ensure_future(self.rerun(run, time=rerun_time))
-
-
-    async def __schedule_runs(self, timestamp: Time):
-        """
-        Schedules instances of jobs until `time`.
-        """
-        log.info("schedling runs")
-        runs = self.scheduler.get_runs(timestamp)
-
-        for time, run in runs:
-            await self.schedule(time, run)
-
-
-    # FIXME: Move this into scheduler.
-    async def scheduler_loop(self, interval=86400):
-        while True:
-            stop = now() + interval
-            await self.__schedule_runs(stop)
-            self.__db.scheduler_db.set_stop(stop)
-            await asyncio.sleep(60)
 
 
     # --- Internal API ---------------------------------------------------------
