@@ -65,15 +65,15 @@ class ScheduledRuns:
         self.__scheduled    = {}
 
         # Get the start loop started.
-        start               = self.__start_loop(loop_time)
+        start               = self.__loop(loop_time)
         self.__start_task   = asyncio.ensure_future(start)
 
-
+                                        
     def __len__(self):
         return len(self.__heap)
 
 
-    async def __start_loop(self, loop_time: float):
+    async def __loop(self, loop_time: float):
         # The start loop sleeps until the time to start the next scheduled job,
         # or for loop_time, whichever comes first.  loop_time comes in to play
         # when the event loop clock wanders from the real time clock, or if a
