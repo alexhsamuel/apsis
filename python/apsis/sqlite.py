@@ -69,46 +69,6 @@ class ClockDB:
 
 #-------------------------------------------------------------------------------
 
-TBL_SCHEDULER = sa.Table(
-    "scheduler", METADATA,
-    sa.Column("stop"        , sa.Float()        , nullable=False),
-)
-
-
-class SchedulerDB:
-    """
-    Stores the stop time: the frontier to which jobs have been scheduled.
-    """
-
-    def __init__(self, engine):
-        self.__engine = engine
-
-
-    def get_stop(self):
-        query = sa.select([TBL_SCHEDULER])
-        with self.__engine.begin() as conn:
-            rows = list(conn.execute(query))
-            assert len(rows) <= 1
-
-            if len(rows) == 0:
-                # No rows yet; assume current time.
-                stop = ora.now()
-                conn.execute(
-                    TBL_SCHEDULER.insert().values(stop=dump_time(stop)))
-            else:
-                stop = load_time(rows[0][0])
-
-        return stop
-
-
-    def set_stop(self, stop):
-        with self.__engine.begin() as conn:
-            conn.execute(TBL_SCHEDULER.update().values(stop=dump_time(stop)))
-
-
-
-#-------------------------------------------------------------------------------
-
 TBL_JOBS = sa.Table(
   "jobs", METADATA,
   sa.Column("job_id"        , sa.String()       , nullable=False),
@@ -175,6 +135,7 @@ TBL_RUNS = sa.Table(
     sa.Column("output"      , sa.LargeBinary()  , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),
+    sa.Column("expected"    , sa.Boolean()      , nullable=False),
 )
 
 
@@ -200,6 +161,7 @@ class RunDB:
             output      =run.output,
             run_state   =json.dumps(run.run_state),
             rerun       =run.rerun,
+            expected    =run.expected,
         )
 
 
@@ -211,10 +173,11 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 run_id, timestamp, job_id, args, state, times, meta, message, 
-                output, run_state, rerun,
+                output, run_state, rerun, expected,
         ) in cursor:
             args            = json.loads(args)
-            run             = Run(Instance(job_id, args), rerun=rerun)
+            inst            = Instance(job_id, args)
+            run             = Run(inst, rerun=rerun, expected=expected)
             times           = json.loads(times)
             times           = { n: ora.Time(t) for n, t in times.items() }
             run.run_id      = run_id
@@ -290,7 +253,6 @@ class SqliteDB:
             pass
 
         self.clock_db       = ClockDB(engine)
-        self.scheduler_db   = SchedulerDB(engine)
         self.job_db         = JobDB(engine)
         self.run_db         = RunDB(engine)
 

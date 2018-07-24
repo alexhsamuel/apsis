@@ -52,13 +52,22 @@ class Run:
 
     # FIXME: Make the attributes read-only.
 
-    def __init__(self, inst, *, rerun=None):
+    def __init__(self, inst, *, rerun=None, expected=False):
+        """
+        :param rerun:
+          The run ID of which this is a rerun, or `None` if this is not a rerun.
+        :param expected:
+          True if this run was scheduled from a job schedule.  A run scheduled
+          from a job schedule is subject to change, as the job's schedules may
+          change.
+        """
         self.inst       = inst
 
         self.run_id     = None
         self.timestamp  = None
 
         self.state      = Run.STATE.new
+        self.expected   = bool(expected)
         # Timestamps for state transitions and other events.
         self.times      = {}
         # Additional run metadata.
