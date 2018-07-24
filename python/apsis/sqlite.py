@@ -61,11 +61,9 @@ class ClockDB:
 
 
     def set_time(self, time):
-        log.info(f"set_time({time})")
         time -= ora.UNIX_EPOCH
-        self.__connection.execute("UPDATE clock SET now = ?", (time, ))
+        self.__connection.execute("UPDATE clock SET time = ?", (time, ))
         self.__connection.commit()
-
 
 
 

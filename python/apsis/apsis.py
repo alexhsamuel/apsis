@@ -36,7 +36,7 @@ class Apsis:
 
         self.runs = Runs(db.run_db)
 
-        self.scheduled = ScheduledRuns(self.__start)
+        self.scheduled = ScheduledRuns(db.clock_db, self.__start)
 
         # Restore scheduled runs from DB.
         # FIXME: No, just reschedule instead.
@@ -119,8 +119,6 @@ class Apsis:
         run._transition(time, state, **kw_args)
         # Store the new state.
         self.runs.update(run, time)
-
-        self.db.clock_db.set_time(time)
 
         if state == run.STATE.failure:
             self.__rerun(run)
