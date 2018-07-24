@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from   ora import Time, now
+from   ora import now
 
 from   .jobs import Jobs
 from   .program import ProgramError, ProgramFailure
