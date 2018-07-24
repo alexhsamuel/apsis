@@ -115,6 +115,14 @@ class Run:
         self.output     = output
         self.run_state  = run_state
 
+        # Compute and add elapsed time.
+        start = self.times.get("running")
+        end = self.times.get("success", self.times.get("failure"))
+        if start is not None and end is not None:
+            elapsed = end - start
+            log.debug(f"elapsed time: {self.run_id}: {elapsed}")
+            self.meta["elapsed"] = elapsed
+       
         # Transition to the new state.
         self.state = state
 

@@ -96,11 +96,6 @@ def run_to_jso(app, run):
         "expected"      : run.expected,
     }
 
-    start   = run.times.get("running", run.times.get("error"))
-    end     = run.times.get("success", run.times.get("failure"))
-    if start is not None and end is not None:
-        jso["meta"]["elapsed"] = end - start
-
     return jso
 
 
