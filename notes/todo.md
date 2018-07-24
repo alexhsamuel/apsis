@@ -3,9 +3,9 @@
 - a good set of demo jobs
 - GitHub README
 - move schedule time out of times; rename times → timestamps
-- show job in run view
-- performance test with lots of jobs and runs
 - store the program with the run??
+- or... show job in run view
+- performance test with lots of jobs and runs
 - store schedule horizon per (job, schedule) ???
 - limit number of runs scheduled per job
 - add a --since flag, to control how far back to reschedule when creating
