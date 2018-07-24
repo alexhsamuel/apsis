@@ -139,16 +139,11 @@ class Apsis:
         Transitions `run` to `state`, updating it with `kw_args`.
         """
         time = now()
+
         # Transition the run object.
         run._transition(time, state, **kw_args)
-
         # Persist the new state.  
-        if run.expected and run.state in {Run.STATE.new, Run.STATE.scheduled}:
-            # Don't persist new or scheduled runs if they are expected; these
-            # runs should be recreated from job schedules.
-            pass
-        else:
-            self.runs.update(run, time)
+        self.runs.update(run, time)
             
         if state == run.STATE.failure:
             self.__rerun(run)

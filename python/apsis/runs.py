@@ -220,18 +220,34 @@ class Runs:
 
         run.timestamp = timestamp
 
-        log.info(f"new run: {run}")
-
-        self.__runs[run.run_id] = run
-        self.__db.insert(run)
-        self.__send(timestamp, run)
+        self.update(run, timestamp, new=True)
 
 
-    def update(self, run, timestamp):
-        # Make sure we know about this run.
-        assert self.__runs[run.run_id] is run
+    def update(self, run, timestamp, *, new=False):
+        """
+        Called when `run` is changed.
+
+        Persists the run if necessary, and sends live update notifications.
+
+        :param insert:
+          If true, this is a new run.
+        """
+        if new:
+            log.info(f"new run: {run}")
+            self.__runs[run.run_id] = run
+        else:
+            # Make sure we know about this run.
+            assert self.__runs[run.run_id] is run
+
         # Persist the changes.
-        self.__db.update(run)
+        if run.expected and run.state in {Run.STATE.new, Run.STATE.scheduled}:
+            # Don't persist new or scheduled runs if they are expected; these
+            # runs should be recreated from job schedules.
+            pass
+        else:
+            log.debug(f"persisting: {run.run_id}")
+            (self.__db.insert if new else self.__db.update)(run)
+
         self.__send(timestamp, run)
 
 
