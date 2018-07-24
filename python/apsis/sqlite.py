@@ -29,6 +29,48 @@ METADATA = sa.MetaData()
 
 #-------------------------------------------------------------------------------
 
+TBL_CLOCK = sa.Table(
+    "clock", METADATA, 
+    sa.Column("time", sa.Float(), nullable=False),
+)
+
+
+class ClockDB:
+    """
+    Stores the most recent application time.
+    """
+
+    # We use a DB-API connection and SQL statements because it's faster than
+    # the SQLAlchemy ORM.
+
+    def __init__(self, engine):
+        self.__connection = engine.connect().connection
+
+        (length, ), = self.__connection.execute("SELECT COUNT(*) FROM clock")
+        if length == 0:
+            time = ora.now() - ora.UNIX_EPOCH
+            self.__connection.execute("INSERT INTO clock VALUES (?)", (time, ))
+            self.__connection.commit()
+        else:
+            assert length == 1
+
+
+    def get_time(self):
+        (time, ), = self.__connection.execute("SELECT time FROM clock")
+        return time + ora.UNIX_EPOCH
+
+
+    def set_time(self, time):
+        log.info(f"set_time({time})")
+        time -= ora.UNIX_EPOCH
+        self.__connection.execute("UPDATE clock SET now = ?", (time, ))
+        self.__connection.commit()
+
+
+
+
+#-------------------------------------------------------------------------------
+
 TBL_SCHEDULER = sa.Table(
     "scheduler", METADATA,
     sa.Column("stop"        , sa.Float()        , nullable=False),
@@ -249,6 +291,7 @@ class SqliteDB:
             # FIXME: Check that tables exist.
             pass
 
+        self.clock_db       = ClockDB(engine)
         self.scheduler_db   = SchedulerDB(engine)
         self.job_db         = JobDB(engine)
         self.run_db         = RunDB(engine)

@@ -120,6 +120,8 @@ class Apsis:
         # Store the new state.
         self.runs.update(run, time)
 
+        self.db.clock_db.set_time(time)
+
         if state == run.STATE.failure:
             self.__rerun(run)
 
