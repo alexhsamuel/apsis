@@ -114,11 +114,11 @@ class Apsis:
     # --- Internal API ---------------------------------------------------------
 
     def _transition(self, run, state, **kw_args):
-        timestamp = now()
+        time = now()
         # Transition the run object.
-        run._transition(timestamp, state, **kw_args)
+        run._transition(time, state, **kw_args)
         # Store the new state.
-        self.runs.update(run, timestamp)
+        self.runs.update(run, time)
 
         if state == run.STATE.failure:
             self.__rerun(run)
