@@ -2,12 +2,13 @@
 
 - a good set of demo jobs
 - GitHub README
-- show job in run view
+- move schedule time out of times; rename times → timestamps
+- store the program with the run??
+- or... show job in run view
 - performance test with lots of jobs and runs
-- when starting up, cancel and reschedule all future jobs
-  - store schedule horizon per (job, schedule) ???
-  - limit number of runs scheduled per job
-- add a --since flag, to control how far back to reschedule
+- store schedule horizon per (job, schedule) ???
+- limit number of runs scheduled per job
+- add a --since flag, to control how far back to reschedule when creating
 - search, filtering in runs list
 - live elapsed time in runs list
 - live output for running jobs in run view
@@ -18,6 +19,7 @@
   - live log
   - shutdown
   - restart
+- split output into its own repo, not sqlite
 - sanity checker
   - check for unscheduled runs
   - check for late scheduled runs

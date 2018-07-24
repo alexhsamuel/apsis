@@ -93,12 +93,8 @@ def run_to_jso(app, run):
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
         "output_len"    :  None if run.output is None else len(run.output),
         "rerun"         : run.rerun,
+        "expected"      : run.expected,
     }
-
-    start   = run.times.get("running", run.times.get("error"))
-    end     = run.times.get("success", run.times.get("failure"))
-    if start is not None and end is not None:
-        jso["meta"]["elapsed"] = end - start
 
     return jso
 

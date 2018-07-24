@@ -174,7 +174,7 @@ def main():
     asyncio.ensure_future(server)
 
     # Set up the scheduler.
-    asyncio.ensure_future(apsis.scheduler_loop())
+    asyncio.ensure_future(apsis.scheduler.loop())
 
     try:
         loop.run_forever()

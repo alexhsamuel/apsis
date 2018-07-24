@@ -1,15 +1,28 @@
+import asyncio
 import itertools
-from   ora import Time
+import logging
+from   ora import Time, now
 
 from   .runs import Instance, Run
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
 class Scheduler:
 
-    def __init__(self, jobs, start: Time):
+    HORIZON = 86400
+
+    def __init__(self, jobs, schedule, stop):
+        """
+        :param jobs:
+          The jobs repo.
+        :param schedule:
+          Function of `time, run` that schedules a run.
+        """
         self.__jobs = jobs
-        self.__stop = start
+        self.__stop = stop
+        self.__schedule = schedule
 
 
     def get_runs(self, stop: Time):
@@ -32,9 +45,33 @@ class Scheduler:
                     args = schedule.bind_args(job.params, sched_time)
                     inst = Instance(job.job_id, args)
                     if schedule.enabled:
-                        yield sched_time, Run(inst)
+                        # Runs instantiated by the scheduler are only expected;
+                        # the job schedule may change before the run is started.
+                        yield sched_time, Run(inst, expected=True)
 
         self.__stop = stop
+
+
+    async def schedule(self, stop):
+        """
+        Schedules runs until `stop`.
+        """
+        assert stop >= self.__stop
+
+        log.info(f"schedling runs until {stop}")
+        for time, run in self.get_runs(stop):
+            await self.__schedule(time, run)
+
+        self.__stop = stop
+
+
+    async def loop(self):
+        """
+        Infinite loop that periodically schedules runs.
+        """
+        while True:
+            await self.schedule(now() + self.HORIZON)
+            await asyncio.sleep(60)
 
 
 
