@@ -25,24 +25,45 @@ def bind_program(program, run):
 class Apsis:
     """
     The gestalt scheduling application.
+
+    Responsible for:
+
+    - Assembling subcomponents:
+      - job repo
+      - persistent database
+      - scheduler
+      - scheduled
+
+    - Managing run transitions:
+      - handing runs from one component to the next
+      - applying and persisting transitions
+
+    - Exposing a high-level API for user run operations
+
     """
 
     def __init__(self, jobs, db):
         self.__db = db
         self.jobs = Jobs(jobs, db.job_db)
 
-        # Continue scheduling where we left off.
-        self.scheduler = Scheduler(self.jobs, db.scheduler_db, self.schedule)
-
         self.runs = Runs(db.run_db)
-
-        self.scheduled = ScheduledRuns(self.__start)
+        self.scheduled = ScheduledRuns(db.clock_db, self.__start)
 
         # Restore scheduled runs from DB.
-        # FIXME: No, just reschedule instead.
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
         for run in scheduled_runs:
-            self.scheduled.schedule(run.times["schedule"], run)
+            if run.expected:
+                # Expected, scheduled runs should not have been persisted.
+                log.error(
+                    f"not rescheduling expected, scheduled run {run.run_id}")
+            else:
+                self.scheduled.schedule(run.times["schedule"], run)
+
+        # Continue scheduling from the last time we handled scheduled jobs.
+        # FIXME: Rename: schedule horizon?
+        stop_time = db.clock_db.get_time()
+        log.info(f"scheduling runs from {stop_time}")
+        self.scheduler = Scheduler(self.jobs, self.schedule, stop_time)
 
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
@@ -114,12 +135,21 @@ class Apsis:
     # --- Internal API ---------------------------------------------------------
 
     def _transition(self, run, state, **kw_args):
-        timestamp = now()
+        """
+        Transitions `run` to `state`, updating it with `kw_args`.
+        """
+        time = now()
         # Transition the run object.
-        run._transition(timestamp, state, **kw_args)
-        # Store the new state.
-        self.runs.update(run, timestamp)
+        run._transition(time, state, **kw_args)
 
+        # Persist the new state.  
+        if run.expected and run.state in {Run.STATE.new, Run.STATE.scheduled}:
+            # Don't persist new or scheduled runs if they are expected; these
+            # runs should be recreated from job schedules.
+            pass
+        else:
+            self.runs.update(run, time)
+            
         if state == run.STATE.failure:
             self.__rerun(run)
 

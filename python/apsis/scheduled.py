@@ -19,6 +19,11 @@ class ScheduledRuns:
     # guarantee that we are scheduling to the real time clock, rather than the
     # event loop's clock.
 
+    # Max delay time.  Generally, a run is started very close to its scheduled
+    # time, but in some cases the run may be delayed as much as this time.
+
+    LOOP_TIME = 0.2
+
     # Entry is the data structure stored in __heap.  It represents a scheduled
     # run.  We also maintain __scheduled, a map from Run to Entry, to find an
     # entry of an already-scheduled job.
@@ -46,15 +51,14 @@ class ScheduledRuns:
 
 
 
-    def __init__(self, start_run, *, loop_time=0.2):
+    def __init__(self, clock_db, start_run):
         """
+        :param clock_db:
+          Persistence for most recent scheduled time.
         :param start_run:
           Async function that starts a run.
-        :param loop_time:
-          Max delay time.  Generally, a run is started very close to its 
-          scheduled time, but in some cases the run may be delayed as much as
-          this time. 
         """
+        self.__clock_db     = clock_db
         self.__start_run    = start_run
 
         # Heap of Entry, ordered by schedule time.  The top entry is the next
@@ -65,31 +69,29 @@ class ScheduledRuns:
         self.__scheduled    = {}
 
         # Get the start loop started.
-        start               = self.__start_loop(loop_time)
-        self.__start_task   = asyncio.ensure_future(start)
+        self.__task = asyncio.ensure_future(self.__loop())
 
 
     def __len__(self):
         return len(self.__heap)
 
 
-    async def __start_loop(self, loop_time: float):
+    async def __loop(self):
         # The start loop sleeps until the time to start the next scheduled job,
-        # or for loop_time, whichever comes first.  loop_time comes in to play
+        # or for LOOP_TIME, whichever comes first.  LOOP_TIME comes in to play
         # when the event loop clock wanders from the real time clock, or if a
         # run is scheduled in the very near future after the start loop has
         # already gone to sleep.
         try:
             while True:
+                time = now()
+
                 if log.isEnabledFor(logging.DEBUG):
                     count = len(self.__heap)
-                    until = (
-                        f"until={self.__heap[0].time - now():.1f}" if count > 0
-                        else ""
-                    )
-                    log.debug(f"start loop: count={count} {until}")
+                    next_time = None if count == 0 else self.__heap[0].time
+                    log.debug(f"start loop: count={count} next={next_time}")
 
-                while len(self.__heap) > 0 and self.__heap[0].time <= now():
+                while len(self.__heap) > 0 and self.__heap[0].time <= time:
                     # The next run is ready.
                     entry = heapq.heappop(self.__heap)
                     if entry.scheduled:
@@ -97,12 +99,14 @@ class ScheduledRuns:
                         assert self.__scheduled.pop(entry.run) is entry
                         # Start the run.
                         await self.__start_run(entry.run)
+                self.__clock_db.set_time(time)
 
                 wait = (
-                    loop_time if len(self.__heap) == 0
-                    else min(loop_time, self.__heap[0].time - now())
+                    self.LOOP_TIME if len(self.__heap) == 0
+                    else min(self.LOOP_TIME, self.__heap[0].time - now())
                 )
-                await asyncio.sleep(wait)
+                if wait > 0:
+                    await asyncio.sleep(wait)
 
         except Exception:
             # FIXME: Instead of this, someone should be awaiting this task.

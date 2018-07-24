@@ -13,18 +13,15 @@ class Scheduler:
 
     HORIZON = 86400
 
-    def __init__(self, jobs, db, schedule):
+    def __init__(self, jobs, schedule, stop):
         """
         :param jobs:
           The jobs repo.
-        :param db:
-          The scheduler DB, for persisting state.
         :param schedule:
           Function of `time, run` that schedules a run.
         """
         self.__jobs = jobs
-        self.__db = db
-        self.__stop = db.get_stop()
+        self.__stop = stop
         self.__schedule = schedule
 
 
@@ -48,7 +45,9 @@ class Scheduler:
                     args = schedule.bind_args(job.params, sched_time)
                     inst = Instance(job.job_id, args)
                     if schedule.enabled:
-                        yield sched_time, Run(inst)
+                        # Runs instantiated by the scheduler are only expected;
+                        # the job schedule may change before the run is started.
+                        yield sched_time, Run(inst, expected=True)
 
         self.__stop = stop
 
@@ -64,7 +63,6 @@ class Scheduler:
             await self.__schedule(time, run)
 
         self.__stop = stop
-        self.__db.set_stop(stop)
 
 
     async def loop(self):
