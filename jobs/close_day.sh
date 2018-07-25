@@ -20,16 +20,16 @@ echo "closing $strat for $today"
 echo "stopping trader"
 sleep 5
 
-echo "starting order manager"
+echo "stopping order manager"
 sleep 10
 
-echo "starting risk service"
+echo "stopping risk service"
 sleep 10
 
-echo "starting position service"
+echo "stopping position service"
 sleep 10
 
-echo "starting secmaster service"
+echo "stopping secmaster service"
 sleep 10
 
 echo "day is closed"
