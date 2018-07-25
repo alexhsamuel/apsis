@@ -23,7 +23,7 @@ class Client:
         return urlunparse((
             "http",
             f"{self.__host}:{self.__port}",
-            "/api/v1/" + "/".join(path),
+            "/".join(("api", "v1", *path)),
             "",
             query,
             "",
