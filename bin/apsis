@@ -177,12 +177,12 @@ def format_run(run):
         yield f"{b} rerun of run {RUN}{run['rerun']}{BLK}"
 
     # Current state and relevant time.
-    time = lambda n: format_time(run["times"].get(n, "?"))
+    fmt_time = lambda n: format_time(run["times"].get(n, "?"))
     state = run["state"]
     if state == "scheduled":
-        time = "for " + time("schedule")
+        time = "for " + fmt_time("schedule")
     elif state == "running":
-        time = "since " + time("running")
+        time = "since " + fmt_time("running")
     else:
         time = "at " + time(state)
     elapsed = run["meta"].get("elapsed")
@@ -245,8 +245,20 @@ def format_elapsed(secs):
 format_elapsed.width = 8
 
 
-def format_time(time):
-    return format(Time(time), "%D %C@")
+def format_time(time, time_now=None):
+    PAST = COLOR(236)
+    if time_now is None:
+        time_now = now()
+
+    time = Time(time)
+    date, _ = time @ "display"
+    date_now, _ = time_now @ "display"
+    if date < date_now:
+        return PAST + format(time, "%D %C@") + BLK
+    elif time < time_now:
+        return format(time, "%D @") + PAST + format(time, "%C") + BLK
+    else:
+        return format(time, "%D %C@")
 
 format_time.width = 19
 
