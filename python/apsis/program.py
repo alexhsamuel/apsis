@@ -235,7 +235,7 @@ class AgentProgram:
 
     @classmethod
     def from_jso(Class, jso):
-        return Class(jso["argv"])
+        return Class(jso.pop("argv"))
 
 
     async def start(self, run):
@@ -340,7 +340,7 @@ class AgentShellProgram(AgentProgram):
 
     @classmethod
     def from_jso(Class, jso):
-        return Class(jso["command"])
+        return Class(jso.pop("command"))
 
 
 
