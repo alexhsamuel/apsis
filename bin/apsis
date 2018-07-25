@@ -291,9 +291,9 @@ def cmd_adhoc(client, args):
     time = parse_at_time(args.time)
     if args.shell:
         command = " ".join(args.command)
-        run = client.adhoc_shell_program(time, command)
+        run = client.schedule_shell_program(time, command)
     else:
-        run = client.adhoc_program(time, args.command)
+        run = client.schedule_program(time, args.command)
     print_lines(format_run(run))
 
 
