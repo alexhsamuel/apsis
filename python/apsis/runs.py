@@ -3,7 +3,7 @@ from   contextlib import contextmanager
 import enum
 import itertools
 import logging
-from   ora import now
+from   ora import now, Time
 
 from   .lib.py import format_ctor
 
@@ -228,10 +228,12 @@ class Runs:
 
         run.timestamp = timestamp
 
-        self.update(run, timestamp, new=True)
+        log.info(f"new run: {run}")
+        self.__runs[run.run_id] = run
+        self.update(run, timestamp)
 
 
-    def update(self, run, timestamp, *, new=False):
+    def update(self, run, timestamp):
         """
         Called when `run` is changed.
 
@@ -240,12 +242,8 @@ class Runs:
         :param insert:
           If true, this is a new run.
         """
-        if new:
-            log.info(f"new run: {run}")
-            self.__runs[run.run_id] = run
-        else:
-            # Make sure we know about this run.
-            assert self.__runs[run.run_id] is run
+        # Make sure we know about this run.
+        assert self.__runs[run.run_id] is run
 
         # Persist the changes.
         if run.expected and run.state in {Run.STATE.new, Run.STATE.scheduled}:
@@ -254,7 +252,7 @@ class Runs:
             pass
         else:
             log.debug(f"persisting: {run.run_id}")
-            (self.__db.insert if new else self.__db.update)(run)
+            self.__db.upsert(run)
 
         self.__send(timestamp, run)
 

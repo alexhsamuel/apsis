@@ -124,6 +124,7 @@ class JobDB:
 
 TBL_RUNS = sa.Table(
     "runs", METADATA,
+    sa.Column("rowid"       , sa.Integer()      , primary_key=True),
     sa.Column("run_id"      , sa.String()       , nullable=False),
     sa.Column("timestamp"   , sa.Float()        , nullable=False),
     sa.Column("job_id"      , sa.String()       , nullable=False),
@@ -141,15 +142,23 @@ TBL_RUNS = sa.Table(
 
 class RunDB:
 
+    # For runs in the database (either inserted into or loaded from), we stash
+    # the sqlite rowid in the Run._rowid attribute.
+
     def __init__(self, engine):
         self.__engine = engine
 
 
     @staticmethod
     def __values(run):
+        assert run.run_id.startswith("r")
+        rowid = int(run.run_id[1 :])
+
         times = { n: str(t) for n, t in run.times.items() }
         times = json.dumps(times)
+        
         return dict(
+            rowid       =rowid,
             run_id      =run.run_id,
             timestamp   =dump_time(run.timestamp),
             job_id      =run.inst.job_id,
@@ -172,8 +181,8 @@ class RunDB:
 
         cursor = conn.execute(query)
         for (
-                run_id, timestamp, job_id, args, state, times, meta, message, 
-                output, run_state, rerun, expected,
+                rowid, run_id, timestamp, job_id, args, state, times, meta,
+                message, output, run_state, rerun, expected,
         ) in cursor:
             args            = json.loads(args)
             inst            = Instance(job_id, args)
@@ -188,22 +197,31 @@ class RunDB:
             run.message     = message
             run.output      = output
             run.run_state   = json.loads(run_state)
+            run._rowid      = rowid
             yield run
 
 
-    def insert(self, run):
-        # FIXME: Check that the run ID doesn't exist already.
-        with self.__engine.begin() as conn:
-            conn.execute(TBL_RUNS.insert().values(self.__values(run)))
+    def upsert(self, run):
+        try:
+            # Get the rowid; if it's missing, this run isn't in the table.
+            rowid = run._rowid
 
+        except AttributeError:
+            # This run isn't in the database yet.
+            values = self.__values(run)
+            statement = TBL_RUNS.insert().values(values)
+            log.debug(statement)
+            with self.__engine.begin() as conn:
+                conn.execute(statement)
+            run._rowid = values["rowid"]
 
-    def update(self, run):
-        with self.__engine.begin() as conn:
-            conn.execute(
-                TBL_RUNS
-                .update().where(TBL_RUNS.c.run_id == run.run_id)
-                .values(self.__values(run))
-            )
+        else:
+            # Update the existing row.
+            statement = TBL_RUNS.update().where(
+                TBL_RUNS.c.rowid == rowid).values(self.__values(run))
+            log.debug(statement)
+            with self.__engine.begin() as conn:
+                conn.execute(statement)
 
 
     def get(self, run_id):
