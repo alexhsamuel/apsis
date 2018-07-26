@@ -1,17 +1,17 @@
 # Current
 
 - a good set of demo jobs
+- move schedule time out of times; rename times → timestamps
+- cache run JSON for REST API
 - UIkit table for jobs list
 - convert things to Pug
 - prevent the same instance from running more than once... HOW?
-- cache run JSON for REST API
 - GitHub README
-- move schedule time out of times; rename times → timestamps
 - store the program with the run??
 - or... show job in run view
 - performance test with lots of jobs and runs
 - store schedule horizon per (job, schedule) ???
-- limit number of runs scheduled per job
+  - limit number of runs scheduled per job
 - add a --since flag, to control how far back to reschedule when creating
 - search, filtering in runs list
 - live elapsed time in runs list
@@ -35,6 +35,7 @@
 - in RunList, if sorted by time, draw a line at now
 - web UI for ad hoc runs
 - document API
+- watch runs live (poll? websocket?) in CLUI
 - CLUI for testing jobs repo
 - tooltip for timestamps with local, UTC, (run-local?), and elapsed times
 - factor args out of schedule classes
