@@ -133,7 +133,6 @@ class ProcessProgram:
         log.info(f"starting program: {join_args(argv)}")
 
         meta = {
-            "command"   : " ".join( shlex.quote(a) for a in argv ),
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
         }
@@ -244,7 +243,6 @@ class AgentProgram:
 
         # FIXME: Factor out, or move to agent.
         meta = {
-            "command"   : " ".join( shlex.quote(a) for a in argv ),
             "hostname"  : socket.gethostname(),
             "username"  : getpass.getuser(),
         }
