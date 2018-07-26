@@ -19,6 +19,7 @@
 - watch jobs for changes
 - when a job has changed, cancel and reschedule all future runs?
 - search, filtering in JobsList
+- web UI for showing run, job as JSON
 - control page
   - live log
   - shutdown
