@@ -1,9 +1,7 @@
 # Current
 
 - a good set of demo jobs
-- move schedule time out of times; rename times → timestamps
 - cache run JSON for REST API
-- UIkit table for jobs list
 - convert things to Pug
 - prevent the same instance from running more than once... HOW?
 - GitHub README
@@ -42,6 +40,7 @@
 - factor args out of schedule classes
 - web UI reconnects web socket automatically
 - indicate in web UI when a job started late
+- move schedule time out of times; rename times → timestamps
 
 
 # Old
