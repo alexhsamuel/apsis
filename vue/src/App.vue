@@ -26,18 +26,5 @@ export default {
   font-family: "Roboto", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-
-/* Global style stuff */
-dt {
-  padding: 0 1em 0 0;
-  margin: 0;
-  float: left;
-  font-weight: 700;
-}
-
-dd {
-  margin: 0 0 0 10rem;
-}
-
 </style>
 

@@ -1,61 +1,50 @@
-<template>
-  <div>
-    <br>
-    <div>
-      <span class="title">{{ run_id }}</span>
-      <!-- FIXME: Use navbar or similar to organize.  -->
-      <span>
-        <ActionButton
+<template lang="pug">
+  div(v-if="run")
+    br
+    div
+      span.title {{ run_id }}
+      //- FIXME: Use navbar or similar to organize.
+      span
+        ActionButton(
             v-for="(url, action) in run.actions" 
             :key="action"
             :url="url" 
             :action="action" 
             :button="true"
-          ></ActionButton>
-      </span>
-    </div>
-    <div v-if="run">
-      <div>
-        <Job v-bind:job-id="run.job_id"></Job>
-        {{ arg_str }}
-      </div>
+          )
+    div
+      div
+        Job(v-bind:job-id="run.job_id")
+        | {{ arg_str }}
 
-      <dl>
-        <dt>state</dt>
-        <dd><State v-bind:state="run.state" name="1"></State></dd>
+      dl.fields
+        dt state
+        dd: State(v-bind:state="run.state" name="1" style="margin-left: -1.6rem;")
 
-        <template v-if="run.message">
-          <dt>message</dt>
-          <dd>{{ run.message }}</dd>
-        </template>
+        template(v-if="run.message")
+          dt message
+          dd {{ run.message }}
 
-        <template v-if="run.rerun != run.run_id">
-          <dt>rerun of</dt>
-          <dd><Run v-bind:run-id="run.rerun"></Run></dd>
-        </template>
+        template(v-if="run.rerun != run.run_id")
+          dt rerun of
+          dd: Run(:run-id="run.rerun")
 
-        <dt>times</dt>
-        <dd>
-          <dl>
-            <template v-for="[name, time] in run_times">
-              <dt v-bind:key="name">{{ name }}</dt>
-              <dd v-bind:key="'time:' + name"><Timestamp v-bind:time="time"></Timestamp></dd>
-            </template>
-          </dl>
-        </dd>
+        dt times
+        dd
+          dl
+            template(v-for="[name, time] in run_times")
+              dt(:key="name") {{ name }}
+              dd(:key="'time:' + name"): Timestamp(:time="time")
 
-        <template v-for="(value, key) in run.meta">
-          <dt v-bind:key="key">{{ key }}</dt>
-          <dd v-bind:key="'value:' + key">{{ key == "elapsed" ? formatElapsed(value) : value }}</dd>  <!-- FIXME: Hack! -->
-        </template>
-      </dl>
-      <h5>output</h5>
-      <a v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()">
-        (load {{ run.output_len }} bytes)
-      </a>
-      <pre class="output" v-if="output !== null">{{ output }}</pre>
-    </div>
-  </div>
+        template(v-for="(value, key) in run.meta")
+          dt(:key="key") {{ key }}
+          //- FIXME: Hack!
+          dd(:key="'value:' + key") {{ key == "elapsed" ? formatElapsed(value) : value }}
+
+      h5 output
+      a(v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()")
+        | (load {{ run.output_len }} bytes)
+      pre.output(v-if="output !== null") {{ output }}
 </template>
 
 <script>

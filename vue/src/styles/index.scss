@@ -1,4 +1,5 @@
 // 1. Your custom variables and variable overwrites.
+$global-color: #444;  // FIXME: Doesn't seem to work.
 $global-link-color: #DA7D02;
 $global-font-family: Roboto, Helvetica, monospace;
 
@@ -16,3 +17,20 @@ $table-row-active-background: #f8fff8;
 
 // 4. Import UIkit.
 @import "uikit/src/scss/uikit-theme.scss";
+
+
+dl.fields {
+  dt {
+    padding: 0 1em 0 0;
+    margin: 0;
+    float: left;
+    // font-size: $global-small-font-size;
+    // line-height: 1.75rem;
+    text-transform: uppercase;
+    color: $global-muted-color;
+  }
+
+  dd {
+    margin: 0 0 0 10rem;
+  }
+}
