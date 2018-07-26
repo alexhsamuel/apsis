@@ -19,7 +19,7 @@
 
       dl.fields
         dt state
-        dd: State(v-bind:state="run.state" name="1" style="margin-left: -1.6rem;")
+        dd: State(:state="run.state" name style="margin-left: -1.6rem;")
 
         template(v-if="run.message")
           dt message
