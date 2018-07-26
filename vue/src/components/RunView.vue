@@ -17,30 +17,31 @@
         Job(v-bind:job-id="run.job_id")
         | {{ arg_str }}
 
-      dl.fields
-        dt state
-        dd: State(:state="run.state" name style="margin-left: -1.6rem;")
+      table.fields
+        tbody
+          tr
+            th state
+            td: State(:state="run.state" name)
 
-        template(v-if="run.message")
-          dt message
-          dd {{ run.message }}
+          tr(v-if="run.message")
+            th message
+            td {{ run.message }}
 
-        template(v-if="run.rerun != run.run_id")
-          dt rerun of
-          dd: Run(:run-id="run.rerun")
+          tr(v-if="run.rerun != run.run_id")
+            th rerun of
+            td: Run(:run-id="run.rerun")
 
-        dt times
-        dd
-          dl
-            template(v-for="[name, time] in run_times")
-              dt(:key="name") {{ name }}
-              dd(:key="'time:' + name"): Timestamp(:time="time")
+          tr
+            th times
+            td(style="padding-top: 0; padding-bottom: 0;"): table.fields: tbody
+              tr(v-for="[name, time] in run_times")
+                th(:key="name") {{ name }}
+                td(:key="'time:' + name"): Timestamp(:time="time")
 
-        template(v-for="(value, key) in run.meta")
-          dt(:key="key") {{ key }}
-          //- FIXME: Hack!
-          dd(:key="'value:' + key") {{ key == "elapsed" ? formatElapsed(value) : value }}
-
+          tr(v-for="(value, key) in run.meta")
+            th(:key="key") {{ key }}
+            td(:key="'value:' + key" v-html="format(key, value)")
+            
       h5 output
       a(v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()")
         | (load {{ run.output_len }} bytes)
@@ -107,7 +108,15 @@ export default {
         .then((response) => { v.output = response })
     },
 
-    formatElapsed,
+    format(key, value) {
+      if (key === 'elapsed')
+        return formatElapsed(value)
+      else if (key === 'command')
+        return '<code>' + value + '</code>'
+      else 
+        return value
+    },
+
   },
 
   mounted() { 
