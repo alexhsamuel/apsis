@@ -44,7 +44,6 @@ def to_state(state):
 def program_to_jso(app, program):
     return {
         "type"  : type(program).__qualname__,
-        "str"   : str(program),
         **program.to_jso()
     }
 
@@ -52,7 +51,6 @@ def program_to_jso(app, program):
 def schedule_to_jso(app, schedule):
     return { 
         "type"  : type(schedule).__qualname__,
-        "str"   : str(schedule),
         **schedule.to_jso()
     }
 
