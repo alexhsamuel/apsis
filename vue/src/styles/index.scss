@@ -54,19 +54,3 @@ table.fields {
     padding-right: 0;
   }
 }
-
-dl.fields {
-  dt {
-    padding: 0 1em 0 0;
-    margin: 0;
-    float: left;
-    // font-size: $global-small-font-size;
-    // line-height: 1.75rem;
-    text-transform: uppercase;
-    color: $global-muted-color;
-  }
-
-  dd {
-    margin: 0 0 0 10rem;
-  }
-}
