@@ -26,6 +26,10 @@
             th message
             td {{ run.message }}
 
+          tr(v-if="run.program")
+            th program
+            td.no-padding: Program(:program="run.program")
+
           tr(v-if="run.rerun != run.run_id")
             th rerun of
             td: Run(:run-id="run.rerun")
@@ -53,6 +57,7 @@ import { join, map, sortBy, toPairs } from 'lodash'
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
 import Job from './Job'
+import Program from './Program'
 import Run from './Run'
 import RunsSocket from '../RunsSocket'
 import State from './State'
@@ -63,6 +68,7 @@ export default {
   components: { 
     ActionButton,
     Job,
+    Program,
     Run,
     State,
     Timestamp,
