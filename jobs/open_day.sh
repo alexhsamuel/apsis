@@ -21,5 +21,5 @@ echo "starting trader"
 sleep 30
 
 echo "day is open"
-echo $date > $(dirname $0)/open_day.$strat
+echo $date > $(dirname $0)/../work/open_day.$strat
 
