@@ -1,23 +1,22 @@
-<template>
-  <div>
-    <br>
-    <h4>{{ job_id }}</h4>
+<template lang="pug">
+  div.uk-margin-top
+    h1 {{ job_id }}
 
-    <dl v-if="job">
-      <dt>Parameters</dt>
-      <dd>{{ params }}</dd>
+    table.fields(v-if="job"): tbody
+      tr
+        th parameters
+        td {{ params }}
 
-      <dt>Program</dt>
-      <dd>{{ job.program.str }}</dd>
+      tr
+        th program
+        td: code {{ job.program.str }}
 
-      <template v-for="schedule in job.schedules">
-        <dt v-bind:key="'label:' + schedule.str">Schedule</dt>
-        <dd v-bind:key="schedule.str">{{ schedule.str }}</dd>
-      </template>
-    </dl>
+      tr(v-for="schedule in job.schedules" :key="schedule.str")
+        th schedule
+        td {{ schedule.str }}
 
-    <RunsList v-bind:job_id="job_id"></RunsList>
-  </div>
+    RunsList(:job_id="job_id")
+
 </template>
 
 <script>
