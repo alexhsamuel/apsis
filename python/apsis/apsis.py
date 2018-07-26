@@ -12,16 +12,6 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-def bind_program(program, run):
-    return program.bind({
-        "run_id": run.run_id,
-        "job_id": run.inst.job_id,
-        **run.inst.args,
-    })
-
-
-#-------------------------------------------------------------------------------
-
 class Apsis:
     """
     The gestalt scheduling application.
@@ -68,19 +58,30 @@ class Apsis:
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
         for run in running_runs:
-            future = self.__get_program(run).reconnect(run)
+            assert run.program is not None
+            future = run.program.reconnect(run)
             self.__wait(run, future)
 
 
     def __get_program(self, run):
+        """
+        Constructs the program for a run, with arguments bound.
+        """
         job = self.jobs.get_job(run.inst.job_id)
-        program = bind_program(job.program, run)
+        program = job.program.bind({
+            "run_id": run.run_id,
+            "job_id": run.inst.job_id,
+            **run.inst.args,
+        })
         return program
 
 
     async def __start(self, run):
+        if run.program is None:
+            run.program = self.__get_program(run)
+
         try:
-            running, coro = await self.__get_program(run).start(run)
+            running, coro = await run.program.start(run)
         except ProgramError as exc:
             self._transition(run, run.STATE.error, **exc.__dict__)
         else:

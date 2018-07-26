@@ -68,6 +68,7 @@ class Run:
 
         self.state      = Run.STATE.new
         self.expected   = bool(expected)
+        self.program    = None
         # Timestamps for state transitions and other events.
         self.times      = {}
         # Additional run metadata.

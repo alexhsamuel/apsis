@@ -79,6 +79,8 @@ def run_to_jso(app, run):
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
+    program = None if run.program is None else program_to_jso(app, run.program)
+
     jso = {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job_id,
@@ -86,6 +88,7 @@ def run_to_jso(app, run):
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state.name,
+        "program"       : program,
         "message"       : run.message,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
         "meta"          : run.meta,

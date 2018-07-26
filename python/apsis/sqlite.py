@@ -10,6 +10,7 @@ import sqlalchemy as sa
 
 from   .jobs import jso_to_job, job_to_jso
 from   .runs import Instance, Run
+from   .program import program_to_jso, program_from_jso
 
 log = logging.getLogger(__name__)
 
@@ -130,6 +131,7 @@ TBL_RUNS = sa.Table(
     sa.Column("job_id"      , sa.String()       , nullable=False),
     sa.Column("args"        , sa.String()       , nullable=False),
     sa.Column("state"       , sa.String()       , nullable=False),
+    sa.Column("program"     , sa.String()       , nullable=True),
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
     sa.Column("message"     , sa.String()       , nullable=True),
@@ -154,6 +156,11 @@ class RunDB:
         assert run.run_id.startswith("r")
         rowid = int(run.run_id[1 :])
 
+        program = (
+            None if run.program is None
+            else json.dumps(program_to_jso(run.program))
+        )
+
         times = { n: str(t) for n, t in run.times.items() }
         times = json.dumps(times)
         
@@ -164,6 +171,7 @@ class RunDB:
             job_id      =run.inst.job_id,
             args        =json.dumps(run.inst.args),
             state       =run.state.name,
+            program     =program,
             times       =times,
             meta        =json.dumps(run.meta),
             message     =run.message,
@@ -181,17 +189,23 @@ class RunDB:
 
         cursor = conn.execute(query)
         for (
-                rowid, run_id, timestamp, job_id, args, state, times, meta,
-                message, output, run_state, rerun, expected,
+                rowid, run_id, timestamp, job_id, args, state, program, times,
+                meta, message, output, run_state, rerun, expected,
         ) in cursor:
+            if program is not None:
+                program     = program_from_jso(json.loads(program))
+
+            times           = json.loads(times)
+            times           = { n: ora.Time(t) for n, t in times.items() }
+
             args            = json.loads(args)
             inst            = Instance(job_id, args)
             run             = Run(inst, rerun=rerun, expected=expected)
-            times           = json.loads(times)
-            times           = { n: ora.Time(t) for n, t in times.items() }
+
             run.run_id      = run_id
             run.timestamp   = load_time(timestamp)
             run.state       = Run.STATE[state]
+            run.program     = program
             run.times       = times
             run.meta        = json.loads(meta)
             run.message     = message
