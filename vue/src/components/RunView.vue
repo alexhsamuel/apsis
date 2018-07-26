@@ -32,7 +32,7 @@
 
           tr
             th times
-            td(style="padding-top: 0; padding-bottom: 0;"): table.fields: tbody
+            td.no-padding: table.fields: tbody
               tr(v-for="[name, time] in run_times" :key="name")
                 th {{ name }}
                 td: Timestamp(:time="time")

@@ -1,32 +1,34 @@
 <template lang="pug">
-  div
-    h1 {{ job_id }}
+div
+  h1 {{ job_id }}
 
-    table.fields(v-if="job"): tbody
-      tr
-        th parameters
-        td {{ params }}
+  table.fields(v-if="job"): tbody
+    tr
+      th parameters
+      td {{ params }}
 
-      tr
-        th program
-        td: code {{ job.program.str }}
+    tr
+      th program
+      td.no-padding: Program(:program="job.program")
 
-      tr
-        th schedule
-        td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+    tr
+      th schedule
+      td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
 
-    RunsList(:job_id="job_id")
+  RunsList(:job_id="job_id")
 
 </template>
 
 <script>
 import { join } from 'lodash'
+import Program from './Program'
 import RunsList from './RunsList'
 
 export default {
   props: ['job_id'],
 
   components: {
+    Program,
     RunsList,
   },
 

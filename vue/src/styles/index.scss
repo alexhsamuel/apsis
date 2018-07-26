@@ -26,6 +26,13 @@ $table-row-active-background: #f8fff8;
 // 4. Import UIkit.
 @import "uikit/src/scss/uikit-theme.scss";
 
+.code {
+  font-family: $base-code-font-family;
+  font-size: $base-code-font-size;
+  letter-spacing: -0.02rem;
+  color: $base-code-color;
+}
+
 code {
   letter-spacing: -0.02rem;
 }
@@ -52,5 +59,10 @@ table.fields {
   td {
     padding-left: 0.5rem;
     padding-right: 0;
+  }
+
+  td.no-padding {
+    padding-top: 0;
+    padding-bottom: 0;
   }
 }
