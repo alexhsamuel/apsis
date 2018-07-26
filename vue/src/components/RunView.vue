@@ -1,6 +1,5 @@
 <template lang="pug">
-  div(v-if="run")
-    br
+  div.uk-margin-top(v-if="run")
     div
       span.title {{ run_id }}
       //- FIXME: Use navbar or similar to organize.
@@ -34,13 +33,13 @@
           tr
             th times
             td(style="padding-top: 0; padding-bottom: 0;"): table.fields: tbody
-              tr(v-for="[name, time] in run_times")
-                th(:key="name") {{ name }}
-                td(:key="'time:' + name"): Timestamp(:time="time")
+              tr(v-for="[name, time] in run_times" :key="name")
+                th {{ name }}
+                td: Timestamp(:time="time")
 
-          tr(v-for="(value, key) in run.meta")
-            th(:key="key") {{ key }}
-            td(:key="'value:' + key" v-html="format(key, value)")
+          tr(v-for="(value, key) in run.meta" :key="key")
+            th {{ key }}
+            td(v-html="format(key, value)")
             
       h5 output
       a(v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()")
