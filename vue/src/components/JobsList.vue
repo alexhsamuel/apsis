@@ -1,32 +1,23 @@
-<template>
-  <div>
-    <br>
-    <table class="joblist">
-      <thead>
-        <tr>
-          <th>Job ID</th>
-          <th>Program</th>
-          <th>Schedule</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="job in jobs" 
-            v-bind:key="job.job_id"
-            v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
-            >
-          <td><Job v-bind:job-id="job.job_id"></Job></td>
-          <td class="program">{{ job.program.str || "" }}</td>
-          <td>
-            <template 
-                v-for="(s, i) in job.schedules"
-              >
-              <div v-bind:key="'schedule:' + i">{{ s.str }}</div>
-            </template>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<template lang="pug">
+  div
+    table.uk-table.uk-table-small.uk-table-divider
+      thead
+        tr
+          th Job ID
+          th Program
+          th Schedule
+
+      tbody
+        tr(
+          v-for="job in jobs" 
+          :key="job.job_id"
+          v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
+        )
+          td.uk-text-nowrap: Job(:job-id="job.job_id")
+          td: code {{ job.program.str || "" }}
+          td: ul
+            li(v-for="(schedule, idx) in job.schedules" :key="idx") {{ schedule.str }}
+
 </template>
 
 <script>
@@ -54,28 +45,5 @@ export default {
 </script>
 
 <style scoped>
-table {
-  width: 100%;
-}
-
-th, td {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  padding-left: 0.5rem;
-}
-
-tbody tr:hover {
-  background: #f0fff8;
-}
-
-tbody td {
-  min-width: 8rem;
-  max-width: 48rem;
-}
-
-.program {
-  font-family: "Roboto mono";
-  font-size: 85%;
-}
 </style>
 

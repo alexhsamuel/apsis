@@ -1,5 +1,5 @@
 <template lang="pug">
-  div.uk-margin-top
+  div
     h1 {{ job_id }}
 
     table.fields(v-if="job"): tbody
@@ -11,9 +11,9 @@
         th program
         td: code {{ job.program.str }}
 
-      tr(v-for="schedule in job.schedules" :key="schedule.str")
+      tr
         th schedule
-        td {{ schedule.str }}
+        td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
 
     RunsList(:job_id="job_id")
 

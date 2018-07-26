@@ -1,6 +1,5 @@
 <template>
   <div>
-   <br>
     <table class="uk-table uk-table-divider uk-table-hover uk-table-small uk-table-justify">
       <thead>
         <tr>

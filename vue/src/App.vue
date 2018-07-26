@@ -1,10 +1,8 @@
-<template>
-  <div id="app">
-    <navbar/>
-    <div class="uk-container uk-container-expand">
-      <router-view/>
-    </div>
-  </div>
+<template lang="pug">
+  #app
+    navbar
+    .uk-container.uk-container-expand.uk-margin-top
+      router-view
 </template>
 
 <script>

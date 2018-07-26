@@ -1,5 +1,5 @@
 <template lang="pug">
-  div.uk-margin-top(v-if="run")
+  div(v-if="run")
     div
       span.title {{ run_id }}
       //- FIXME: Use navbar or similar to organize.
