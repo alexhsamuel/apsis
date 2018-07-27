@@ -5,7 +5,7 @@ import JobView      from '@/views/JobView'
 import JobsList     from '@/components/JobsList'
 import Overview     from '@/views/Overview'
 import RunView      from '@/views/RunView'
-import RunsList     from '@/components/RunsList'
+import RunsView     from '@/views/RunsView'
 
 Vue.use(Router)
 
@@ -37,7 +37,7 @@ export default new Router({
     {
       path: '/runs',
       name: 'runs-list',
-      component: RunsList,
+      component: RunsView,
     },
   ]
 })
