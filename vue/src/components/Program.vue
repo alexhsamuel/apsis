@@ -3,7 +3,7 @@ div
   table.fields
     tr(v-for="(value, key) in program" :key="key")
       th {{ key }}
-      td.no-padding(:class="getClass(key)") {{ value }}
+      td(:class="getClass(key)") {{ value }}
 
 </template>
 
