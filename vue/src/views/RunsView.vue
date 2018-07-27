@@ -1,7 +1,7 @@
 <template lang="pug">
 div
-  input.uk-input
-  RunsList
+  input.uk-input(v-model="argsInput" v-on:change="args = argsInput")
+  RunsList(:args="args")
 </template>
 
 <script>
@@ -12,6 +12,13 @@ export default {
   components: {
     RunsList,
   },
+
+  data() {
+    return {
+      args: '',
+      argsInput: '',
+    }
+  }
 }
 </script>
 
