@@ -1,16 +1,14 @@
 <template lang="pug">
-div
-  input.uk-input
-  RunsList
+JobsList
 </template>
 
 <script>
-import RunsList from '@/components/RunsList'
+import JobsList from '@/components/JobsList'
 
 export default {
-  name: 'RunsView',
+  name: 'JobsView',
   components: {
-    RunsList,
+    JobsList,
   },
 }
 </script>

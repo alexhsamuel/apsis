@@ -2,7 +2,7 @@ import Vue from 'vue'
 import Router from 'vue-router'
 
 import JobView      from '@/views/JobView'
-import JobsList     from '@/components/JobsList'
+import JobsList     from '@/views/JobsView'
 import Overview     from '@/views/Overview'
 import RunView      from '@/views/RunView'
 import RunsView     from '@/views/RunsView'
