@@ -19,7 +19,7 @@ nav.uk-navbar-container.uk-navbar
       li: router-link(to="/runs") Runs
 
   .uk-navbar-right
-    .uk-navbar-item clock
+    .uk-navbar-item 
       clock
       TimeZoneSelect
 
