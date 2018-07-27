@@ -51,6 +51,7 @@ def program_to_jso(app, program):
 def schedule_to_jso(app, schedule):
     return { 
         "type"  : type(schedule).__qualname__,
+        "str"   : str(schedule),
         **schedule.to_jso()
     }
 
