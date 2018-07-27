@@ -1,65 +1,53 @@
-<template>
-  <div>
-    <table class="uk-table uk-table-divider uk-table-hover uk-table-small uk-table-justify">
-      <thead>
-        <tr>
-          <th class="col-job">Job</th>
-          <th class="col-args">Args</th>
-          <th class="col-run">Run</th>
-          <th class="col-reruns">Reruns</th>
-          <th class="col-state">State</th>
-          <th class="col-schedule-time">Schedule</th>
-          <th class="col-start-time">Start</th>
-          <th class="col-elapsed">Elapsed</th>
-          <th class="col-actions">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template v-for="rerunGroup in rerun_groups">
-          <tr 
-              v-for="(run, index) in groupRuns(rerunGroup)" 
-              :key="run.run_id"
-              v-bind:class="{ 'run-group-next': index > 0 }"
-            >
-            <td class="col-job"><Job :job-id="run.job_id"></Job></td>
-            <td class="col-args"><span>{{ arg_str(run.args) }}</span></td>
-            <td class="col-run"><Run :run-id="run.run_id"></Run></td>
-            <td class="col-reruns">
-              <span v-show="index == 0 && rerunGroup.length > 1">
-                {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
-                <a 
-                    v-bind:uk-icon="groupIcon(run.rerun)"
-                    v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
-                  ></a>
-              </span>
-            </td>
-            <td class="col-state"><State v-bind:state="run.state"></State></td>
-            <td class="col-schedule-time"><Timestamp v-bind:time="run.times.schedule"></Timestamp></td>
-            <td class="col-start-time"><Timestamp v-bind:time="run.times.running"></Timestamp></td>
-            <td class="col-elapsed">{{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}</td>
-            <td class="col-actions">
-              <div v-if="Object.keys(run.actions).length > 0" class="uk-inline">
-                <button class="uk-button uk-button-default uk-button-small actions-button" type="button">
-                  <span uk-icon="icon: menu; ratio: 0.75"></span>
-                </button>
-                <div uk-dropdown="pos: left-center">
-                  <ul class="uk-nav uk-dropdown-nav">
-                    <li><ActionButton
-                        v-for="(url, action) in run.actions" 
-                        :key="action"
-                        :url="url" 
-                        :action="action" 
-                        :button="true"
-                      ></ActionButton></li>
-                  </ul>
-                </div>
-              </div>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
-  </div>
+<template lang="pug">
+div
+  table.uk-table.uk-table-divider.uk-table-hover.uk-table-small.uk-table-justify
+    thead
+      tr
+        th.col-job Job
+        th.col-args Args
+        th.col-run Run
+        th.col-reruns Reruns
+        th.col-state State
+        th.col-schedule-time Schedule
+        th.col-start-time Start
+        th.col-elapsed Elapsed
+        th.col-actions Actions
+
+    tbody
+      template(v-for="rerunGroup in rerun_groups")
+        tr( 
+          v-for="(run, index) in groupRuns(rerunGroup)" 
+          :key="run.run_id"
+          :class="{ 'run-group-next': index > 0 }"
+        )
+          td.col-job: Job(:job-id="run.job_id")
+          td.col-args: span {{ arg_str(run.args) }}
+          td.col-run: Run(:run-id="run.run_id")
+          td.col-reruns
+            span(v-show="index == 0 && rerunGroup.length > 1")
+              | {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
+              a(
+                v-bind:uk-icon="groupIcon(run.rerun)"
+                v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
+              )
+          td.col-state: State(:state="run.state")
+          td.col-schedule-time: Timestamp(:time="run.times.schedule")
+          td.col-start-time: Timestamp(:time="run.times.running")
+          td.col-elapsed {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
+          td.col-actions
+            div.uk-inline(v-if="Object.keys(run.actions).length > 0")
+              button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
+                span(uk-icon="icon: menu; ratio: 0.75")
+              div(uk-dropdown="pos: left-center")
+                ul.uk-nav.uk-dropdown-nav
+                  li: ActionButton(
+                    v-for="(url, action) in run.actions" 
+                    :key="action"
+                    :url="url" 
+                    :action="action" 
+                    :button="true"
+                  )
+
 </template>
 
 <script>

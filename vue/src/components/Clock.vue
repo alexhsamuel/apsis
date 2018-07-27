@@ -1,9 +1,7 @@
-<template>
-  <div>
-    <span>
-      {{ formatTime(store.state.time, store.state.timeZone, TIME_FORMAT) }}
-    </span>
-  </div>
+<template lang="pug">
+div
+  span {{ formatTime(store.state.time, store.state.timeZone, TIME_FORMAT) }}
+
 </template>
 
 <script>

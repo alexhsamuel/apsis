@@ -1,7 +1,5 @@
-<template>
-  <span>
-    {{ formatTime(time, store.state.timeZone) }}
-  </span>
+<template lang="pug">
+span {{ formatTime(time, store.state.timeZone) }}
 </template>
 
 <script>

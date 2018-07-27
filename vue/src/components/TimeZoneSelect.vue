@@ -1,7 +1,14 @@
-<template>
-    <select id="timeZone" class="uk-select uk-form-width-small" v-model="timeZone" v-on:change="onTimeZoneChange">
-      <option v-for="tz in timeZones" v-bind:key="tz" v-bind:value="tz">{{ shortTimeZone(tz) }}</option>
-    </select>
+<template lang="pug">
+select#timeZone.uk-select.uk-form-width-small(
+  v-model="timeZone"
+  v-on:change="onTimeZoneChange"
+)
+  option(
+    v-for="tz in timeZones"
+    :key="tz"
+    :value="tz"
+  ) {{ shortTimeZone(tz) }}
+
 </template>
 
 <script>

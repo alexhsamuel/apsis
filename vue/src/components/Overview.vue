@@ -1,7 +1,7 @@
-<template>
-  <div class="uk-section">
-    <h3>Welcome to APSİS.</h3>
-  </div>
+<template lang="pug">
+  div
+    h3 Welcome to APSİS.
+
 </template>
 
 <script>

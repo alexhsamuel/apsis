@@ -1,29 +1,28 @@
-<template>
-  <nav class="uk-navbar-container" uk-navbar>
-    <div class="uk-navbar-left">
-      <div class="uk-navbar-item">
-        <svg width="3em" height="4em" version="1.1" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="1.5em" cy="2.05em" r="20%" stroke="black" fill="transparent" stroke-width="3.1"/>
-          <circle cx="1.5em" cy="1.68em" r="4%" fill="#40c060"/>
-        </svg>
-      </div>
-      <div class="uk-navbar-item title">
-        <router-link to="/">APSİS</router-link>
-      </div>
-      <ul class="uk-navbar-nav">
-        <li><router-link to="/jobs">Jobs</router-link></li>
-        <li><router-link to="/runs">Runs</router-link></li>
-      </ul>
-    </div>
+<template lang="pug">
+nav.uk-navbar-container.uk-navbar
+  .uk-navbar-left
+    .uk-navbar-item
+      svg(
+        width="3em" 
+        height="4em" 
+        version="1.1" 
+        xmlns="http://www.w3.org/2000/svg"
+      )
+        circle(cx="1.5em" cy="2.05em" r="20%" stroke="black" fill="transparent" stroke-width="3.1")
+        circle(cx="1.5em" cy="1.68em" r="4%" fill="#40c060")
 
-    <div class="uk-navbar-right">
-      <div class="uk-navbar-item clock">
-        <clock></clock>
-        <TimeZoneSelect></TimeZoneSelect>
-      </div>
-    </div>
+    .uk-navbar-item.title
+      router-link(to="/") APSİS
 
-  </nav>
+    ul.uk-navbar-nav
+      li: router-link(to="/jobs") Jobs
+      li: router-link(to="/runs") Runs
+
+  .uk-navbar-right
+    .uk-navbar-item clock
+      clock
+      TimeZoneSelect
+
 </template>
 
 <script>

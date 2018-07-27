@@ -1,7 +1,6 @@
-<template>
-  <span class="uk-badge run-badge" v-on:click="go()">
-    {{ runId }}
-  </span>
+<template lang="pug">
+span.uk-badge.run-badge(v-on:click="go()") {{ runId }}
+
 </template>
 
 <script>

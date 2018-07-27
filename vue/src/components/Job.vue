@@ -1,7 +1,6 @@
-<template>
-  <a class="job-link" v-on:click="go()">
-    {{ jobId }}
-  </a>
+<template lang="pug">
+a.job-link(v-on:click="go()") {{ jobId }}
+
 </template>
 
 <script>
