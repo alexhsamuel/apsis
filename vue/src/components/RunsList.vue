@@ -14,7 +14,7 @@ div
         th.col-actions Actions
 
     tbody
-      template(v-for="rerunGroup in rerun_groups")
+      template(v-for="rerunGroup in rerunGroups")
         tr( 
           v-for="(run, index) in groupRuns(rerunGroup)" 
           :key="run.run_id"
@@ -120,9 +120,10 @@ export default {
     },
 
     // Organizes runs by rerun group.
-    rerun_groups() {
+    rerunGroups() {
       const runs = this.filteredRuns
       // Collect reruns of the same run into an object keyed by run ID.
+      // FIXME: Use _.groupBy.
       const reruns = {}
       each(values(runs), r => {
         if (r.rerun)
