@@ -2,11 +2,11 @@
 Persistent state stored in a sqlite file.
 """
 
-import json
 import logging
 import ora
 from   pathlib import Path
 import sqlalchemy as sa
+import ujson
 
 from   .jobs import jso_to_job, job_to_jso
 from   .runs import Instance, Run
@@ -87,7 +87,7 @@ class JobDB:
         with self.__engine.begin() as conn:
             conn.execute(TBL_JOBS.insert().values(
                 job_id  =job.job_id,
-                job     =json.dumps(job_to_jso(job)),
+                job     =ujson.dumps(job_to_jso(job)),
             ))
 
 
@@ -101,14 +101,14 @@ class JobDB:
                 raise LookupError(job_id)
             else:
                 (_, job), = rows
-                return jso_to_job(json.loads(job), job_id)
+                return jso_to_job(ujson.loads(job), job_id)
 
 
     def query(self):
         query = sa.select([TBL_JOBS])
         with self.__engine.begin() as conn:
             for job_id, job in conn.execute(query):
-                yield jso_to_job(json.loads(job), job_id)
+                yield jso_to_job(ujson.loads(job), job_id)
 
 
 
@@ -158,25 +158,25 @@ class RunDB:
 
         program = (
             None if run.program is None
-            else json.dumps(program_to_jso(run.program))
+            else ujson.dumps(program_to_jso(run.program))
         )
 
         times = { n: str(t) for n, t in run.times.items() }
-        times = json.dumps(times)
+        times = ujson.dumps(times)
         
         return dict(
             rowid       =rowid,
             run_id      =run.run_id,
             timestamp   =dump_time(run.timestamp),
             job_id      =run.inst.job_id,
-            args        =json.dumps(run.inst.args),
+            args        =ujson.dumps(run.inst.args),
             state       =run.state.name,
             program     =program,
             times       =times,
-            meta        =json.dumps(run.meta),
+            meta        =ujson.dumps(run.meta),
             message     =run.message,
             output      =run.output,
-            run_state   =json.dumps(run.run_state),
+            run_state   =ujson.dumps(run.run_state),
             rerun       =run.rerun,
             expected    =run.expected,
         )
@@ -193,12 +193,12 @@ class RunDB:
                 meta, message, output, run_state, rerun, expected,
         ) in cursor:
             if program is not None:
-                program     = program_from_jso(json.loads(program))
+                program     = program_from_jso(ujson.loads(program))
 
-            times           = json.loads(times)
+            times           = ujson.loads(times)
             times           = { n: ora.Time(t) for n, t in times.items() }
 
-            args            = json.loads(args)
+            args            = ujson.loads(args)
             inst            = Instance(job_id, args)
             run             = Run(inst, rerun=rerun, expected=expected)
 
@@ -207,10 +207,10 @@ class RunDB:
             run.state       = Run.STATE[state]
             run.program     = program
             run.times       = times
-            run.meta        = json.loads(meta)
+            run.meta        = ujson.loads(meta)
             run.message     = message
             run.output      = output
-            run.run_state   = json.loads(run_state)
+            run.run_state   = ujson.loads(run_state)
             run._rowid      = rowid
             yield run
 

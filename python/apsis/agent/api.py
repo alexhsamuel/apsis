@@ -1,8 +1,8 @@
-import json
 import logging
 from   pathlib import Path
 import sanic
 import traceback
+import ujson
 
 log = logging.getLogger("api")
 
@@ -11,7 +11,7 @@ log = logging.getLogger("api")
 def response(jso, status=200):
     jso["status"] = status
     return sanic.response.raw(
-        json.dumps(jso, indent=2).encode("utf-8"),
+        ujson.dumps(jso, indent=2).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         status=status,
     )

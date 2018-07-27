@@ -1,5 +1,5 @@
 import contextlib
-import json
+import ujson
 
 from   .exc import SchemaError
 
@@ -19,7 +19,7 @@ def no_unexpected_keys(jso):
         keys = ", ".join( f'"{k}"' for k in jso )
         raise SchemaError(
             f"unexpected {keys} in structure:\n"
-            + json.dumps(original, indent=2)
+            + ujson.dumps(original, indent=2)
         )
 
 

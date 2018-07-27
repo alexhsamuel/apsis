@@ -1,7 +1,7 @@
-import json
 import logging
 import ora
 import sanic
+import ujson
 from   urllib.parse import unquote
 import websockets
 
@@ -66,14 +66,24 @@ def job_to_jso(app, job):
     }
 
 
-def run_to_jso(app, run):
-    actions = {}
+_run_jso_cache = {}
 
+def run_to_jso(app, run):
+    # Cache runs' JSO.  The run changes only on a state change, so we only
+    # need to check the state to determine if the cache is valid.
+    try:
+        state, jso = _run_jso_cache[run.run_id]
+    except KeyError:
+        pass
+    else:
+        if state == run.state:
+            return jso
+
+    actions = {}
     # Start a scheduled job now.
     if run.state == run.STATE.scheduled:
         actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
         actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
-
     # Retry is available if the run didn't succeed.
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
@@ -93,11 +103,12 @@ def run_to_jso(app, run):
         "meta"          : run.meta,
         "actions"       : actions,
         "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
-        "output_len"    :  None if run.output is None else len(run.output),
+        "output_len"    : None if run.output is None else len(run.output),
         "rerun"         : run.rerun,
         "expected"      : run.expected,
     }
 
+    _run_jso_cache[run.run_id] = run.state, jso
     return jso
 
 
@@ -229,7 +240,7 @@ async def runs(request):
     state,  = args.pop("state", (None, ))
     since,  = args.pop("since", (None, ))
     until,  = args.pop("until", (None, ))
-    reruns, = args.pop("reruns", (False, ))
+    reruns, = args.pop("reruns", ("False", ))
 
     when, runs = request.app.apsis.runs.query(
         run_ids =run_ids, 
@@ -258,7 +269,7 @@ async def websocket_runs(request, ws):
                 continue
             jso = runs_to_jso(request.app, when, runs)
             try:
-                await ws.send(json.dumps(jso))
+                await ws.send(ujson.dumps(jso))
             except websockets.ConnectionClosed:
                 break
     log.info("live runs disconnect")
