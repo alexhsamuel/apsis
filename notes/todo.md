@@ -5,8 +5,6 @@
 - convert things to Pug
 - prevent the same instance from running more than once... HOW?
 - GitHub README
-- store the program with the run??
-- or... show job in run view
 - performance test with lots of jobs and runs
 - store schedule horizon per (job, schedule) ???
   - limit number of runs scheduled per job
