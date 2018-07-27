@@ -1,7 +1,6 @@
 # Current
 
 - a good set of demo jobs
-- cache run JSON for REST API
 - prevent the same instance from running more than once... HOW?
 - GitHub README
 - performance test with lots of jobs and runs
