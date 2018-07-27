@@ -55,14 +55,14 @@
 <script>
 import { join, map, sortBy, toPairs } from 'lodash'
 
-import ActionButton from './ActionButton'
+import ActionButton from '@/components/ActionButton'
 import { formatElapsed } from '../format'
-import Job from './Job'
-import Program from './Program'
-import Run from './Run'
+import Job from '@/components/Job'
+import Program from '@/components/Program'
+import Run from '@/components/Run'
 import RunsSocket from '../RunsSocket'
-import State from './State'
-import Timestamp from './Timestamp'
+import State from '@/components/State'
+import Timestamp from '@/components/Timestamp'
 
 export default {
   props: ['run_id'],

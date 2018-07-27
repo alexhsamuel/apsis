@@ -21,8 +21,8 @@ div
 
 <script>
 import { join } from 'lodash'
-import Program from './Program'
-import RunsList from './RunsList'
+import Program from '@/components/Program'
+import RunsList from '@/components/RunsList'
 
 export default {
   props: ['job_id'],

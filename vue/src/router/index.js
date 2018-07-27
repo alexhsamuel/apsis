@@ -1,10 +1,10 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
-import JobView      from '@/components/JobView'
+import JobView      from '@/views/JobView'
 import JobsList     from '@/components/JobsList'
-import Overview     from '@/components/Overview'
-import RunView      from '@/components/RunView'
+import Overview     from '@/views/Overview'
+import RunView      from '@/views/RunView'
 import RunsList     from '@/components/RunsList'
 
 Vue.use(Router)
