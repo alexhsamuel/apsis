@@ -41,5 +41,6 @@ module.exports = {
     'operator-linebreak': 'off',
     'space-in-parens': 'off',
     'key-spacing': 'off',
+    'brace-style': 'off',
   }
 }
