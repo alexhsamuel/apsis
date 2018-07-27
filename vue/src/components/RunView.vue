@@ -14,6 +14,7 @@
     div
       div
         Job(v-bind:job-id="run.job_id")
+        |
         | {{ arg_str }}
 
       table.fields

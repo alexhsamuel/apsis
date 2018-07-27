@@ -14,7 +14,7 @@
           v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
         )
           td.uk-text-nowrap: Job(:job-id="job.job_id")
-          td: code {{ job.program.str || "" }}
+          td: Program(:program="job.program")
           td: ul
             li(v-for="(schedule, idx) in job.schedules" :key="idx") {{ schedule.str }}
 
@@ -22,6 +22,7 @@
 
 <script>
 import Job from './Job'
+import Program from './Program'
 
 export default { 
   data() {
@@ -32,6 +33,7 @@ export default {
 
   components: {
     Job,
+    Program,
   },
 
   created() {

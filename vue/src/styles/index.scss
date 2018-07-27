@@ -61,7 +61,7 @@ table.fields {
     padding-right: 0;
   }
 
-  td.no-padding {
+  > tbody > tr > td.no-padding {
     padding-top: 0;
     padding-bottom: 0;
   }

@@ -3,7 +3,7 @@ div
   table.fields
     tr(v-for="(value, key) in program" :key="key")
       th {{ key }}
-      td(:class="getClass(key)") {{ value }}
+      td.no-padding(:class="getClass(key)") {{ value }}
 
 </template>
 
@@ -24,4 +24,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+table {
+  margin-bottom: 0;
+}
 </style>
