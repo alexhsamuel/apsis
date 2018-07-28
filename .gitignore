@@ -1,7 +1,8 @@
 *~
 *.o
+.pytest_cache/
 Makefile.local
-doc
-work/
-env.sh
 apsis.db
+doc
+env.sh
+work/
