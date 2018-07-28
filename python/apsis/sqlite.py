@@ -2,6 +2,7 @@
 Persistent state stored in a sqlite file.
 """
 
+from   contextlib import closing
 import logging
 import ora
 from   pathlib import Path
@@ -263,35 +264,132 @@ class RunDB:
 
 #-------------------------------------------------------------------------------
 
+class OutputDB:
+    """
+    We store even large outputs in the SQLite database, which should generally
+    be efficient.  See https://www.sqlite.org/intern-v-extern-blob.html.
+    """
+
+    TBL_OUTPUT = sa.Table(
+        "output", METADATA,
+        sa.Column("run_id"      , sa.String()   , nullable=False),
+        sa.Column("output_id"   , sa.String()   , nullable=False),
+        sa.Column("name"        , sa.String()   , nullable=False),
+        sa.Column("content_type", sa.String()   , nullable=False),
+        sa.Column("length"      , sa.Integer()  , nullable=False),
+        sa.Column("data"        , sa.Binary()   , nullable=False),
+        sa.PrimaryKeyConstraint("run_id", "output_id")
+    )
+
+    def __init__(self, engine):
+        self.__engine = engine
+
+        
+    def add_data(self, run_id: str, output_id: str, name: str, data: bytes):
+        values = {
+            "run_id"        : run_id,
+            "output_id"     : output_id,
+            "name"          : name,
+            "content_type"  : "application.octet-stream",
+            "length"        : len(data),
+            "data"          : data,
+        }
+        with self.__engine.begin() as conn:
+            conn.execute(self.TBL_OUTPUT.insert().values(**values))
+
+
+    def get_metadata(self, run_id) -> dict:
+        """
+        Returns metadata for run `run_id`.
+
+        The metadata is a dict of the form,
+        ```json
+        {
+          "OUTPUT-ID": {
+            "name": "NAME",
+            "content_type": "CONTENT-TYPE",
+            "length": LENGTH
+          },
+          ...
+        }
+        ```
+
+        If no output is stored for `run_id`, returns an empty dict.
+        """
+        cols    = self.TBL_OUTPUT.c
+        columns = [cols.output_id, cols.name, cols.content_type, cols.length]
+        query   = sa.select(columns).where(cols.run_id == run_id)
+        return {
+            r[0]: {"name": r[1], "content_type": r[2], "length": r[3]}
+            for r in self.__engine.execute(query)
+        }
+
+
+    def get_data(self, run_id, output_id):
+        cols = self.TBL_OUTPUT.c
+        query = sa.select([cols.data])
+        data = self.__engine.execute(query).scalar()
+        if data is None:
+            raise LookupError(f"no output {output_id} for {run_id}")
+        else:
+            return data
+
+
+
+#-------------------------------------------------------------------------------
+
 class SqliteDB:
     """
     A SQLite3 file containing persistent state.
     """
 
-    def __init__(self, path, create=False):
-        path    = Path(path).absolute()
-        if create and path.exists():
-            raise FileExistsError(path)
-        if not create and not path.exists():
-            raise FileNotFoundError(path)
-
-        url     = self.__get_url(path)
-        engine  = sa.create_engine(url)
-
-        if create:
-            METADATA.create_all(engine)
-        else:
-            # FIXME: Check that tables exist.
-            pass
-
-        self.clock_db       = ClockDB(engine)
-        self.job_db         = JobDB(engine)
-        self.run_db         = RunDB(engine)
+    def __init__(self, engine):
+        """
+        :param path:
+          Path to SQLite file.  If `None`, use a memory DB (for testing).
+        """
+        self.clock_db   = ClockDB(engine)
+        self.job_db     = JobDB(engine)
+        self.run_db     = RunDB(engine)
+        self.output_db  = OutputDB(engine)
 
 
     @classmethod
-    def __get_url(Class, path):
-        return f"sqlite:///{path}"
+    def __get_engine(Class, path):
+        url = "sqlite://" if path is None else f"sqlite:///{path}"
+        return sa.create_engine(url)
+
+
+    @classmethod
+    def create(Class, path):
+        """
+        Creates a new database.
+
+        :param path:
+          The database path, which must not already exist.
+        :return:
+          The new database.
+        """
+        if path is not None:
+            path = Path(path).absolute()
+            if path.exists():
+                raise FileExistsError(path)
+        
+        engine  = Class.__get_engine(path)
+        METADATA.create_all(engine)
+        return Class(engine)
+
+
+    @classmethod
+    def open(self, Class, path):
+        if path is not None:
+            path = Path(path).absolute()
+            if not path.exists():
+                raise FileNotFoundError(path)
+
+        engine  = self.__get_engine(path)
+        # FIXME: Check that tables exist.
+        return Class(engine)
 
 
 
