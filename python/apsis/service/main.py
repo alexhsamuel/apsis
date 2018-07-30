@@ -12,7 +12,6 @@ from   . import api
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import JobsDir
-from   ..output_db import OutputDB
 from   ..sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
@@ -160,10 +159,10 @@ def main():
     logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
     if args.create:
-        SqliteDB.create(args.db)
+        SqliteDB.create(args.state_path)
         raise SystemExit(0)
         
-    db      = SqliteDB.open(args.db)
+    db      = SqliteDB.open(args.state_path)
     jobs    = JobsDir(args.jobs)
     apsis   = Apsis(jobs, db)
 

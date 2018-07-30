@@ -107,7 +107,7 @@ export default {
 
     load_output() {
       const v = this
-      const url = '/api/v1/runs/' + this.run.run_id + '/output'  // FIXME
+      const url = this.run.output_url
       fetch(url)
         // FIXME: Handle failure, set error.
         .then((response) => response.text())  // FIXME: Might not be text!

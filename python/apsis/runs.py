@@ -3,7 +3,7 @@ from   contextlib import contextmanager
 import enum
 import itertools
 import logging
-from   ora import now, Time
+from   ora import now
 
 from   .lib.py import format_ctor
 
@@ -75,7 +75,6 @@ class Run:
         self.meta       = {}
         # User message explaining the state.
         self.message    = None
-        self.output     = None
         # State information specific to the program, for a running run.
         self.run_state  = None
 
@@ -100,7 +99,7 @@ class Run:
 
 
     def _transition(self, timestamp, state, *, meta={}, times={}, 
-                    output=None, message=None, run_state=None):
+                    message=None, run_state=None):
         # Check that this is a valid transition.
         if self.state not in self.TRANSITIONS[state]:
             raise TransitionError(self.state, state)
@@ -108,13 +107,12 @@ class Run:
         log.debug(f"transition {self.run_id}: {self.state.name} → {state.name}")
 
         # Update attributes.
-        self.timestamp  = timestamp
-        self.message    = None if message is None else str(message)
+        self.timestamp = timestamp
+        self.message = None if message is None else str(message)
         self.meta.update(meta)
         self.times[state.name] = self.timestamp
         self.times.update(times)
-        self.output     = output
-        self.run_state  = run_state
+        self.run_state = run_state
 
         # Compute and add elapsed time.
         start = self.times.get("running")

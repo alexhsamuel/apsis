@@ -102,11 +102,25 @@ def run_to_jso(app, run):
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
         "meta"          : run.meta,
         "actions"       : actions,
-        "output_url"    : app.url_for("v1.run_output", run_id=run.run_id),
-        "output_len"    : None if run.output is None else len(run.output),
         "rerun"         : run.rerun,
         "expected"      : run.expected,
     }
+
+    # FIXME: For now, include output_id="output" only.
+    OUTPUT_ID = "output"
+    outputs = app.apsis.outputs.get_metadata(run.run_id)
+    try:
+        output = outputs[OUTPUT_ID]
+    except KeyError:
+        # No output.
+        pass
+    else:
+        url = app.url_for(
+            "v1.run_output", run_id=run.run_id, output_id=OUTPUT_ID)
+        jso.update({
+            "output_url": url,
+            "output_len": output.length,
+        })
 
     _run_jso_cache[run.run_id] = run.state, jso
     return jso
@@ -161,13 +175,14 @@ async def run(request, run_id):
     return response_json(jso)
 
 
-@API.route("/runs/<run_id>/output", methods={"GET"})
-async def run_output(request, run_id):
-    when, run = request.app.apsis.runs.get(run_id)
-    if run.output is None:
+@API.route("/runs/<run_id>/output/<output_id>", methods={"GET"})
+async def run_output(request, run_id, output_id):
+    try:
+        data = request.app.apsis.outputs.get_data(run_id, output_id)
+    except LookupError:
         raise sanic.exceptions.NotFound("no output")
     else:
-        return sanic.response.raw(run.output)
+        return sanic.response.raw(data)
 
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
