@@ -2,7 +2,6 @@
 Persistent state stored in a sqlite file.
 """
 
-from   contextlib import closing
 import logging
 import ora
 from   pathlib import Path
@@ -11,7 +10,7 @@ import ujson
 
 from   .jobs import jso_to_job, job_to_jso
 from   .runs import Instance, Run
-from   .program import program_to_jso, program_from_jso
+from   .program import program_to_jso, program_from_jso, Output, OutputMetadata
 
 log = logging.getLogger(__name__)
 
@@ -136,7 +135,6 @@ TBL_RUNS = sa.Table(
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
     sa.Column("message"     , sa.String()       , nullable=True),
-    sa.Column("output"      , sa.LargeBinary()  , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),
     sa.Column("expected"    , sa.Boolean()      , nullable=False),
@@ -176,7 +174,6 @@ class RunDB:
             times       =times,
             meta        =ujson.dumps(run.meta),
             message     =run.message,
-            output      =run.output,
             run_state   =ujson.dumps(run.run_state),
             rerun       =run.rerun,
             expected    =run.expected,
@@ -191,7 +188,7 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, message, output, run_state, rerun, expected,
+                meta, message, run_state, rerun, expected,
         ) in cursor:
             if program is not None:
                 program     = program_from_jso(ujson.loads(program))
@@ -210,7 +207,6 @@ class RunDB:
             run.times       = times
             run.meta        = ujson.loads(meta)
             run.message     = message
-            run.output      = output
             run.run_state   = ujson.loads(run_state)
             run._rowid      = rowid
             yield run
@@ -285,47 +281,37 @@ class OutputDB:
         self.__engine = engine
 
         
-    def add_data(self, run_id: str, output_id: str, name: str, data: bytes):
+    def add(self, run_id: str, output_id: str, output: Output):
         values = {
             "run_id"        : run_id,
             "output_id"     : output_id,
-            "name"          : name,
-            "content_type"  : "application.octet-stream",
-            "length"        : len(data),
-            "data"          : data,
+            "name"          : output.metadata.name,
+            "content_type"  : output.metadata.content_type,
+            "length"        : output.metadata.length,
+            "data"          : output.data,
         }
         with self.__engine.begin() as conn:
             conn.execute(self.TBL_OUTPUT.insert().values(**values))
 
 
-    def get_metadata(self, run_id) -> dict:
+    def get_metadata(self, run_id) -> OutputMetadata:
         """
-        Returns metadata for run `run_id`.
+        Returns all output metadata for run `run_id`.
 
-        The metadata is a dict of the form,
-        ```json
-        {
-          "OUTPUT-ID": {
-            "name": "NAME",
-            "content_type": "CONTENT-TYPE",
-            "length": LENGTH
-          },
-          ...
-        }
-        ```
-
-        If no output is stored for `run_id`, returns an empty dict.
+        :return:
+          A mapping from output ID to `OutputMetadata` instances.  If no output
+          is stored for `run_id`, returns an empty dict.
         """
         cols    = self.TBL_OUTPUT.c
         columns = [cols.output_id, cols.name, cols.content_type, cols.length]
         query   = sa.select(columns).where(cols.run_id == run_id)
         return {
-            r[0]: {"name": r[1], "content_type": r[2], "length": r[3]}
+            r[0]: OutputMetadata(name=r[1], length=r[3], content_type=r[2])
             for r in self.__engine.execute(query)
         }
 
 
-    def get_data(self, run_id, output_id):
+    def get_data(self, run_id, output_id) -> bytes:
         cols = self.TBL_OUTPUT.c
         query = sa.select([cols.data])
         data = self.__engine.execute(query).scalar()
@@ -381,13 +367,13 @@ class SqliteDB:
 
 
     @classmethod
-    def open(self, Class, path):
+    def open(Class, path):
         if path is not None:
             path = Path(path).absolute()
             if not path.exists():
                 raise FileNotFoundError(path)
 
-        engine  = self.__get_engine(path)
+        engine  = Class.__get_engine(path)
         # FIXME: Check that tables exist.
         return Class(engine)
 
