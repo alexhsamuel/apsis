@@ -14,7 +14,7 @@ div
         th.col-actions Actions
 
     tbody
-      template(v-for="rerunGroup in rerun_groups")
+      template(v-for="rerunGroup in rerunGroups")
         tr( 
           v-for="(run, index) in groupRuns(rerunGroup)" 
           :key="run.run_id"
@@ -51,7 +51,7 @@ div
 </template>
 
 <script>
-import { each, join, map, sortBy, toPairs, values } from 'lodash'
+import { each, every, filter, join, map, sortBy, toPairs, trim, values } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
@@ -63,7 +63,7 @@ import Timestamp from './Timestamp'
 
 export default { 
   name: 'runs',
-  props: ['job_id'],
+  props: ['job_id', 'args'],
   components: {
     ActionButton,
     Job,
@@ -81,15 +81,55 @@ export default {
   },
 
   computed: {
+    // Returns the filter function for jobs and args.
+    //
+    // The filter string is made of terms.  Each is
+    // either just a value, which is matched against all
+    // argument values, or a key=value pair.  All terms must
+    // match.
+    //
+    // For example, "foo bar=baz bif=" matches if any job ID
+    // contains 'foo', the value of bar contains 'baz', and any
+    // argument bif is defined.
+    jobFilters() {
+      const parts = filter(map(this.args.split(' '), trim))
+      if (parts.length === 0)
+        return r => true
+
+      // Construct an array of predicates over runs, one for each term.
+      const filters = map(parts, p => {
+        const i = p.indexOf('=')
+        if (i === -1)
+          // Substring search of job IDs.
+          return run => run.job_id.indexOf(p) >= 0
+        else {
+          // Substrings search of values of the named arg.
+          const name = p.substr(0, i)
+          const value = p.substr(i + 1)
+          const find = s => s !== undefined && s.indexOf(value) >= 0
+          return run => find(run.args[name])
+        }
+      })
+
+      // The combined filter function is true if all the filters are.
+      return run => every(map(filters, f => f(run)))
+    },
+
+    filteredRuns() {
+      return filter(this.runs, this.jobFilters)
+    },
+
     // Organizes runs by rerun group.
-    rerun_groups() {
-      const runs = this.runs
+    rerunGroups() {
+      const runs = this.filteredRuns
       // Collect reruns of the same run into an object keyed by run ID.
+      // FIXME: Use _.groupBy.
       const reruns = {}
       each(values(runs), r => {
         if (r.rerun)
           (reruns[r.rerun] || (reruns[r.rerun] = [])).push(r)
         else 
+          // FIXME: Do we need this?
           (reruns[r.run_id] || (reruns[r.run_id] = [])).splice(0, 0, r)
       })
       // Sort original runs.

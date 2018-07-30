@@ -102,7 +102,7 @@ class Agent:
         ).json()["process"]
 
 
-    async def get_process_output(self, proc_id):
+    async def get_process_output(self, proc_id) -> bytes:
         """
         Returns process output.
         """

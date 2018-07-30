@@ -1,12 +1,16 @@
 # Current
 
 - a good set of demo jobs
+- change state select to nice droplist
+- wire up state select
 - run list  pagination
 - prevent the same instance from running more than once... HOW?
 - GitHub README
 - performance test with lots of jobs and runs
 - store schedule horizon per (job, schedule) ???
   - limit number of runs scheduled per job
+- hide ad hoc jobs in web UI, CLUI
+- nicer job output in CLUI
 - add a --since flag, to control how far back to reschedule when creating
 - search, filtering in runs list
 - live elapsed time in runs list
@@ -19,7 +23,8 @@
   - live log
   - shutdown
   - restart
-- split output into its own repo, not sqlite
+- support multiple outputs per run in API/UI
+  - add option to split stdout/stderr
 - sanity checker
   - check for unscheduled runs
   - check for late scheduled runs
