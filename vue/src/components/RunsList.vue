@@ -51,7 +51,7 @@ div
 </template>
 
 <script>
-import { each, every, filter, join, map, some, sortBy, toPairs, trim, values } from 'lodash'
+import { each, every, filter, join, map, sortBy, toPairs, trim, values } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
@@ -81,42 +81,42 @@ export default {
   },
 
   computed: {
-    // Returns the filter function for args.
+    // Returns the filter function for jobs and args.
     //
-    // The arg filter string is made of terms.  Each is
+    // The filter string is made of terms.  Each is
     // either just a value, which is matched against all
     // argument values, or a key=value pair.  All terms must
     // match.
     //
-    // For example, "foo bar=baz bif=" matches if any arg value
+    // For example, "foo bar=baz bif=" matches if any job ID
     // contains 'foo', the value of bar contains 'baz', and any
     // argument bif is defined.
-    argsFilters() {
+    jobFilters() {
       const parts = filter(map(this.args.split(' '), trim))
       if (parts.length === 0)
         return r => true
 
-      // Construct an array of predicates over args, one for each term.
+      // Construct an array of predicates over runs, one for each term.
       const filters = map(parts, p => {
         const i = p.indexOf('=')
         if (i === -1)
-          // Substring search of all arg values.
-          return args => some(map(values(args), a => a.indexOf(p) >= 0))
+          // Substring search of job IDs.
+          return run => run.job_id.indexOf(p) >= 0
         else {
           // Substrings search of values of the named arg.
           const name = p.substr(0, i)
           const value = p.substr(i + 1)
           const find = s => s !== undefined && s.indexOf(value) >= 0
-          return args => find(args[name])
+          return run => find(run.args[name])
         }
       })
 
       // The combined filter function is true if all the filters are.
-      return args => every(map(filters, f => f(args)))
+      return run => every(map(filters, f => f(run)))
     },
 
     filteredRuns() {
-      return filter(this.runs, r => this.argsFilters(r.args))
+      return filter(this.runs, this.jobFilters)
     },
 
     // Organizes runs by rerun group.

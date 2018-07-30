@@ -66,3 +66,11 @@ table.fields {
     padding-bottom: 0;
   }
 }
+
+.field-label {
+  font-size: $table-header-cell-font-size;
+  font-weight: $table-header-cell-font-weight;
+  color: $table-header-cell-color;
+  text-transform: uppercase;
+  padding-right: 0.75em;
+}

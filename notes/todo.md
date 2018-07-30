@@ -1,6 +1,8 @@
 # Current
 
 - a good set of demo jobs
+- change state select to nice droplist
+- wire up state select
 - run list  pagination
 - prevent the same instance from running more than once... HOW?
 - GitHub README
