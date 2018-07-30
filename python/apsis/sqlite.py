@@ -10,7 +10,7 @@ import ujson
 
 from   .jobs import jso_to_job, job_to_jso
 from   .runs import Instance, Run
-from   .program import program_to_jso, program_from_jso
+from   .program import program_to_jso, program_from_jso, Output, OutputMetadata
 
 log = logging.getLogger(__name__)
 
@@ -135,7 +135,6 @@ TBL_RUNS = sa.Table(
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
     sa.Column("message"     , sa.String()       , nullable=True),
-    sa.Column("output"      , sa.LargeBinary()  , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),
     sa.Column("expected"    , sa.Boolean()      , nullable=False),
@@ -175,7 +174,6 @@ class RunDB:
             times       =times,
             meta        =ujson.dumps(run.meta),
             message     =run.message,
-            output      =run.output,
             run_state   =ujson.dumps(run.run_state),
             rerun       =run.rerun,
             expected    =run.expected,
@@ -190,7 +188,7 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, message, output, run_state, rerun, expected,
+                meta, message, run_state, rerun, expected,
         ) in cursor:
             if program is not None:
                 program     = program_from_jso(ujson.loads(program))
@@ -209,7 +207,6 @@ class RunDB:
             run.times       = times
             run.meta        = ujson.loads(meta)
             run.message     = message
-            run.output      = output
             run.run_state   = ujson.loads(run_state)
             run._rowid      = rowid
             yield run
@@ -263,35 +260,122 @@ class RunDB:
 
 #-------------------------------------------------------------------------------
 
+class OutputDB:
+    """
+    We store even large outputs in the SQLite database, which should generally
+    be efficient.  See https://www.sqlite.org/intern-v-extern-blob.html.
+    """
+
+    TBL_OUTPUT = sa.Table(
+        "output", METADATA,
+        sa.Column("run_id"      , sa.String()   , nullable=False),
+        sa.Column("output_id"   , sa.String()   , nullable=False),
+        sa.Column("name"        , sa.String()   , nullable=False),
+        sa.Column("content_type", sa.String()   , nullable=False),
+        sa.Column("length"      , sa.Integer()  , nullable=False),
+        sa.Column("data"        , sa.Binary()   , nullable=False),
+        sa.PrimaryKeyConstraint("run_id", "output_id")
+    )
+
+    def __init__(self, engine):
+        self.__engine = engine
+
+        
+    def add(self, run_id: str, output_id: str, output: Output):
+        values = {
+            "run_id"        : run_id,
+            "output_id"     : output_id,
+            "name"          : output.metadata.name,
+            "content_type"  : output.metadata.content_type,
+            "length"        : output.metadata.length,
+            "data"          : output.data,
+        }
+        with self.__engine.begin() as conn:
+            conn.execute(self.TBL_OUTPUT.insert().values(**values))
+
+
+    def get_metadata(self, run_id) -> OutputMetadata:
+        """
+        Returns all output metadata for run `run_id`.
+
+        :return:
+          A mapping from output ID to `OutputMetadata` instances.  If no output
+          is stored for `run_id`, returns an empty dict.
+        """
+        cols    = self.TBL_OUTPUT.c
+        columns = [cols.output_id, cols.name, cols.content_type, cols.length]
+        query   = sa.select(columns).where(cols.run_id == run_id)
+        return {
+            r[0]: OutputMetadata(name=r[1], length=r[3], content_type=r[2])
+            for r in self.__engine.execute(query)
+        }
+
+
+    def get_data(self, run_id, output_id) -> bytes:
+        cols = self.TBL_OUTPUT.c
+        query = sa.select([cols.data])
+        data = self.__engine.execute(query).scalar()
+        if data is None:
+            raise LookupError(f"no output {output_id} for {run_id}")
+        else:
+            return data
+
+
+
+#-------------------------------------------------------------------------------
+
 class SqliteDB:
     """
     A SQLite3 file containing persistent state.
     """
 
-    def __init__(self, path, create=False):
-        path    = Path(path).absolute()
-        if create and path.exists():
-            raise FileExistsError(path)
-        if not create and not path.exists():
-            raise FileNotFoundError(path)
-
-        url     = self.__get_url(path)
-        engine  = sa.create_engine(url)
-
-        if create:
-            METADATA.create_all(engine)
-        else:
-            # FIXME: Check that tables exist.
-            pass
-
-        self.clock_db       = ClockDB(engine)
-        self.job_db         = JobDB(engine)
-        self.run_db         = RunDB(engine)
+    def __init__(self, engine):
+        """
+        :param path:
+          Path to SQLite file.  If `None`, use a memory DB (for testing).
+        """
+        self.clock_db   = ClockDB(engine)
+        self.job_db     = JobDB(engine)
+        self.run_db     = RunDB(engine)
+        self.output_db  = OutputDB(engine)
 
 
     @classmethod
-    def __get_url(Class, path):
-        return f"sqlite:///{path}"
+    def __get_engine(Class, path):
+        url = "sqlite://" if path is None else f"sqlite:///{path}"
+        return sa.create_engine(url)
+
+
+    @classmethod
+    def create(Class, path):
+        """
+        Creates a new database.
+
+        :param path:
+          The database path, which must not already exist.
+        :return:
+          The new database.
+        """
+        if path is not None:
+            path = Path(path).absolute()
+            if path.exists():
+                raise FileExistsError(path)
+        
+        engine  = Class.__get_engine(path)
+        METADATA.create_all(engine)
+        return Class(engine)
+
+
+    @classmethod
+    def open(Class, path):
+        if path is not None:
+            path = Path(path).absolute()
+            if not path.exists():
+                raise FileNotFoundError(path)
+
+        engine  = Class.__get_engine(path)
+        # FIXME: Check that tables exist.
+        return Class(engine)
 
 
 

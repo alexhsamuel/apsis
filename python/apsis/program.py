@@ -25,6 +25,43 @@ def join_args(argv):
 
 #-------------------------------------------------------------------------------
 
+class OutputMetadata:
+
+    def __init__(self, name: str, length: int, *, 
+                 content_type="application/octet-stream"):
+        """
+        :param name:
+          User-visible output name.
+        :param length:
+          Length in bytes.
+        :param content_type:
+          MIME type of output.
+        """
+        self.name           = str(name)
+        self.length         = len(self.data) if length is None else int(length)
+        self.content_type   = str(content_type)
+
+
+
+class Output:
+
+    def __init__(self, metadata: OutputMetadata, data: bytes):
+        self.metadata       = metadata
+        self.data           = data
+    
+
+
+def program_outputs(output: bytes):
+    return {
+        "output": Output(
+            OutputMetadata("combined stdout & stderr", length=len(output)),
+            output
+        ),
+    }
+
+
+#-------------------------------------------------------------------------------
+
 class ProgramRunning:
 
     def __init__(self, run_state, *, meta={}, times={}):
@@ -36,30 +73,30 @@ class ProgramRunning:
 
 class ProgramError(RuntimeError):
 
-    def __init__(self, message, *, meta={}, times={}, output=None):
+    def __init__(self, message, *, meta={}, times={}, outputs={}):
         self.message    = message
         self.meta       = meta
         self.times      = times
-        self.output     = output
+        self.outputs    = outputs
 
 
 
 class ProgramSuccess:
 
-    def __init__(self, *, meta={}, times={}, output=None):
+    def __init__(self, *, meta={}, times={}, outputs={}):
         self.meta       = meta
         self.times      = times
-        self.output     = output
+        self.outputs    = outputs
     
 
 
 class ProgramFailure(RuntimeError):
 
-    def __init__(self, message, *, meta={}, times={}, output=None):
+    def __init__(self, message, *, meta={}, times={}, outputs={}):
         self.message    = message
         self.meta       = meta
         self.times      = times
-        self.output     = output
+        self.outputs    = outputs
 
 
 
@@ -162,19 +199,20 @@ class ProcessProgram:
         stdout, stderr  = await proc.communicate()
         return_code     = proc.returncode
         log.info(f"complete with return code {return_code}")
-        meta = {
-            "return_code": return_code,
-        }
-
         assert stderr is None
         assert return_code is not None
 
+        meta = {
+            "return_code": return_code,
+        }
+        outputs = program_outputs(stdout)
+
         if return_code == 0:
-            return ProgramSuccess(meta=meta, output=stdout)
+            return ProgramSuccess(meta=meta, outputs=outputs)
 
         else:
             message = f"program failed: status {return_code}"
-            raise ProgramFailure(message, meta=meta, output=stdout)
+            raise ProgramFailure(message, meta=meta, outputs=outputs)
 
 
 
@@ -290,16 +328,17 @@ class AgentProgram:
             "return_code": status,
         }            
         output = await self.__agent.get_process_output(proc_id)
+        outputs = program_outputs(output)
 
         try:
             if status == 0:
                 log.info(f"program success: {run.run_id}")
-                return ProgramSuccess(meta=meta, output=output)
+                return ProgramSuccess(meta=meta, outputs=outputs)
 
             else:
                 message = f"program failed: status {status}"
                 log.info(f"program failed: {run.run_id}: {message}")
-                raise ProgramFailure(message, meta=meta, output=output)
+                raise ProgramFailure(message, meta=meta, outputs=outputs)
 
         finally:
             # Clean up the process from the agent.

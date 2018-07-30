@@ -35,9 +35,10 @@ class Apsis:
     def __init__(self, jobs, db):
         self.__db = db
         self.jobs = Jobs(jobs, db.job_db)
-
         self.runs = Runs(db.run_db)
         self.scheduled = ScheduledRuns(db.clock_db, self.__start)
+        # For now, expose the output database directly.
+        self.outputs = db.output_db
 
         # Restore scheduled runs from DB.
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
@@ -82,9 +83,19 @@ class Apsis:
 
         try:
             running, coro = await run.program.start(run)
+
         except ProgramError as exc:
-            self._transition(run, run.STATE.error, **exc.__dict__)
+            # Program failed to start.
+            self._transition(
+                run, run.STATE.error, 
+                message =exc.message,
+                meta    =exc.meta,
+                times   =exc.times,
+                outputs =exc.outputs,
+            )
+
         else:
+            # Program started successfully.
             self._transition(run, run.STATE.running, **running.__dict__)
             future = asyncio.ensure_future(coro)
             self.__wait(run, future)
@@ -94,12 +105,28 @@ class Apsis:
         def done(future):
             try:
                 success = future.result()
+
             except ProgramFailure as exc:
-                self._transition(run, run.STATE.failure, **exc.__dict__)
+                # Program ran and failed.
+                self._transition(
+                    run, run.STATE.failure, 
+                    message =exc.message,
+                    meta    =exc.meta,
+                    times   =exc.times,
+                    outputs =exc.outputs,
+                )
+
             else:
-                self._transition(run, run.STATE.success, **success.__dict__)
+                # Program ran and completed successfully.
+                self._transition(
+                    run, run.STATE.success,
+                    meta    =success.meta,
+                    times   =success.times,
+                    outputs =success.outputs,
+                )
 
         future.add_done_callback(done)
+        # FIXME: Don't just drop the future?
 
 
     def __rerun(self, run):
@@ -135,7 +162,7 @@ class Apsis:
 
     # --- Internal API ---------------------------------------------------------
 
-    def _transition(self, run, state, **kw_args):
+    def _transition(self, run, state, *, outputs={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
         """
@@ -145,6 +172,10 @@ class Apsis:
         run._transition(time, state, **kw_args)
         # Persist the new state.  
         self.runs.update(run, time)
+
+        # Persist outputs.
+        for output_id, output in outputs.items():
+            self.__db.output_db.add(run.run_id, output_id, output)
             
         if state == run.STATE.failure:
             self.__rerun(run)

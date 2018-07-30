@@ -148,34 +148,39 @@ def main():
         help="server port")
     parser.add_argument(
         "--create", action="store_true", default=False,
-        help="create a new state database")
+        help="create a new state file and exit")
     parser.add_argument(
         "jobs", metavar="JOBS", 
         help="job directory")
     parser.add_argument(
-        "db", metavar="DATABASE",
-        help="database file")
+        "state_path", metavar="PATH",
+        help="state file")
     args = parser.parse_args()
     logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
 
+    if args.create:
+        SqliteDB.create(args.state_path)
+        raise SystemExit(0)
+        
+    db      = SqliteDB.open(args.state_path)
     jobs    = JobsDir(args.jobs)
-    db      = SqliteDB(args.db, args.create)
     apsis   = Apsis(jobs, db)
 
-    loop = asyncio.get_event_loop()
-
-    server = app.create_server(
-        host        =args.host,
-        port        =args.port,
-        debug       =args.debug,
-    )
-    app.apsis = apsis
+    app.apsis   = apsis
     app.running = True
-    asyncio.ensure_future(server)
 
     # Set up the scheduler.
     asyncio.ensure_future(apsis.scheduler.loop())
 
+    # Set up the HTTP server.
+    server  = app.create_server(
+        host        =args.host,
+        port        =args.port,
+        debug       =args.debug,
+    )
+    asyncio.ensure_future(server)
+
+    loop = asyncio.get_event_loop()
     try:
         loop.run_forever()
     except KeyboardInterrupt:

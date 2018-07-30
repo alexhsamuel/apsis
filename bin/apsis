@@ -349,7 +349,8 @@ cmd = add_command(
 #--- command: output -----------------------------------------------------------
 
 def cmd_output(client, args):
-    output = client.get_output(args.run_id)
+    # FIXME: For now, expose output_id=output only.
+    output = client.get_output(args.run_id, "output")
     sys.stdout.buffer.write(output)
 
 

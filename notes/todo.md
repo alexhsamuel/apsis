@@ -1,6 +1,7 @@
 # Current
 
 - a good set of demo jobs
+- run list  pagination
 - prevent the same instance from running more than once... HOW?
 - GitHub README
 - performance test with lots of jobs and runs
