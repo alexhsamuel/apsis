@@ -36,7 +36,7 @@ div
                 State(v-for="state in states" :key="state" :state="state")
               span.label {{ label }} 
 
-  RunsList(:jobFilter="jobFilter" :stateFilter="stateFilter")
+  RunsList(:job-filter="jobFilter" :state-filter="stateFilter")
 </template>
 
 <script>
