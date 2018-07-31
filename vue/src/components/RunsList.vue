@@ -51,7 +51,7 @@ div
 </template>
 
 <script>
-import { each, every, filter, join, map, sortBy, toPairs, trim, values } from 'lodash'
+import { each, every, filter, join, map, some, sortBy, toPairs, trim, values } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
@@ -63,7 +63,7 @@ import Timestamp from './Timestamp'
 
 export default { 
   name: 'runs',
-  props: ['job_id', 'args'],
+  props: ['job_id', 'jobFilter', 'stateFilter'],
   components: {
     ActionButton,
     Job,
@@ -92,7 +92,7 @@ export default {
     // contains 'foo', the value of bar contains 'baz', and any
     // argument bif is defined.
     jobFilters() {
-      const parts = filter(map(this.args.split(' '), trim))
+      const parts = filter(map(this.jobFilter.split(' '), trim))
       if (parts.length === 0)
         return r => true
 
@@ -115,8 +115,15 @@ export default {
       return run => every(map(filters, f => f(run)))
     },
 
+    stateFilters() {
+      if (this.stateFilter.length === 0)
+        return run => true
+      else
+        return run => some(map(this.stateFilter, s => run.state === s))
+    },
+
     filteredRuns() {
-      return filter(this.runs, this.jobFilters)
+      return filter(filter(this.runs, this.stateFilters), this.jobFilters)
     },
 
     // Organizes runs by rerun group.
