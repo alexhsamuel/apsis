@@ -22,7 +22,6 @@ export default {
   background-color: white;
   color: $apsis-run-color;
   border: 1px solid $apsis-run-color;
-//  font-weight: 600;
   padding: 0 0.4rem;
   cursor: default;
 
