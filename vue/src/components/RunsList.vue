@@ -91,7 +91,7 @@ export default {
     // For example, "foo bar=baz bif=" matches if any job ID
     // contains 'foo', the value of bar contains 'baz', and any
     // argument bif is defined.
-    jobFilters() {
+    jobFilterPredicate() {
       const parts = filter(map(this.jobFilter.split(' '), trim))
       if (parts.length === 0)
         return r => true
@@ -115,23 +115,19 @@ export default {
       return run => every(map(filters, f => f(run)))
     },
 
-    stateFilters() {
+    stateFilterPredicate() {
       if (this.stateFilter.length === 0)
         return run => true
       else
         return run => some(map(this.stateFilter, s => run.state === s))
     },
 
-    filteredRuns() {
-      return filter(filter(this.runs, this.stateFilters), this.jobFilters)
-    },
-
     // Organizes runs by rerun group.
     rerunGroups() {
-      const runs = this.filteredRuns
+      const runs = this.runs
       // Collect reruns of the same run into an object keyed by run ID.
       // FIXME: Use _.groupBy.
-      const reruns = {}
+      let reruns = {}
       each(values(runs), r => {
         if (r.rerun)
           (reruns[r.rerun] || (reruns[r.rerun] = [])).push(r)
@@ -139,6 +135,22 @@ export default {
           // FIXME: Do we need this?
           (reruns[r.run_id] || (reruns[r.run_id] = [])).splice(0, 0, r)
       })
+      reruns = values(reruns)
+
+      // Filter groups.
+      reruns = filter(
+        reruns,
+        group => {
+          // Filter by the latest run in the group.
+          const latest = group[group.length - 1]
+          // Apply state and job/arg filters.
+          return (
+            this.stateFilterPredicate(latest) 
+            && this.jobFilterPredicate(latest)
+          )
+        }
+      )
+
       // Sort original runs.
       return sortBy(values(reruns), rr => {
         const r = rr[0]
