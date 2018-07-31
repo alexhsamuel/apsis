@@ -3,12 +3,18 @@ div
   div.controls
     .control
       label.field-label Job &amp; Args
+
       span.uk-inline
         span.uk-form-icon(
           uk-icon="icon: search"
           style="pointer-events: auto"
-          uk-tooltip="title: Filter by JOB-ID and/or ARG=VALUE"
         )
+        div(uk-drop="mode: hover")
+          .uk-card.uk-card-body.uk-card-default 
+            | Filter by JOB-ID
+            br
+            | and/or ARG=VALUE
+
         input.uk-input(
           v-model="argsInput"
           v-on:change="args = argsInput"
