@@ -71,7 +71,7 @@ export default {
   margin: 0 2px;
   padding-left: 10px;
   padding-right: 10px;
-  color: #aaa;
+  color: #444;
   border-radius: 4px;
 
   &:first-child {
