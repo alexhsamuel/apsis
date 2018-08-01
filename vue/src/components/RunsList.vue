@@ -24,9 +24,12 @@ div
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
-          td.col-job: Job(:job-id="run.job_id")
-          td.col-args: span {{ arg_str(run.args) }}
-          td.col-run: Run(:run-id="run.run_id")
+          td.col-job
+            Job(:job-id="run.job_id")
+          td.col-args
+            span {{ arg_str(run.args) }}
+          td.col-run
+            Run(:run-id="run.run_id")
           td.col-reruns
             span(v-show="index == 0 && rerunGroup.length > 1")
               | {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
@@ -34,10 +37,14 @@ div
                 v-bind:uk-icon="groupIcon(run.rerun)"
                 v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
               )
-          td.col-state: State(:state="run.state")
-          td.col-schedule-time: Timestamp(:time="run.times.schedule")
-          td.col-start-time: Timestamp(:time="run.times.running")
-          td.col-elapsed {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
+          td.col-state
+            State(:state="run.state")
+          td.col-schedule-time
+            Timestamp(:time="run.times.schedule")
+          td.col-start-time
+            Timestamp(:time="run.times.running")
+          td.col-elapsed
+            | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
           td.col-actions
             div.uk-inline(v-if="Object.keys(run.actions).length > 0")
               button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
