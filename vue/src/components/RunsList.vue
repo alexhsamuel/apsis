@@ -1,5 +1,9 @@
 <template lang="pug">
 div
+  span(style="width: 10em; display: inline-block").field-label
+    | {{ rerunGroups.length }} runs match
+  Pagination.field-label(style="display: inline-block" :page.sync="page" :num-pages="numPages")
+
   table.uk-table.uk-table-divider.uk-table-hover.uk-table-small.uk-table-justify
     thead
       tr
@@ -14,7 +18,7 @@ div
         th.col-actions Actions
 
     tbody
-      template(v-for="rerunGroup in rerunGroups")
+      template(v-for="rerunGroup in pageRuns")
         tr( 
           v-for="(run, index) in groupRuns(rerunGroup)" 
           :key="run.run_id"
@@ -56,6 +60,7 @@ import { filter, join, map, sortBy, toPairs } from 'lodash'
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../format'
 import Job from './Job'
+import Pagination from './Pagination'
 import Run from './Run'
 import { makeJobPredicate, makeStatePredicate, groupReruns } from '../runs'
 import RunsSocket from '../RunsSocket'
@@ -74,6 +79,7 @@ export default {
   components: {
     ActionButton,
     Job,
+    Pagination,
     Run,
     State,
     Timestamp,
@@ -81,22 +87,32 @@ export default {
 
   data() { 
     return { 
+      groupCollapse: {},
+      page: 0,
       runs_socket: null,
       runs: {},
-      groupCollapse: {},
     } 
   },
 
+  watch: {
+    // When filters change, go back to page 0.
+    jobFilter() { this.page = 0 },
+    stateFilter() { this.page = 0 },
+  },
+
   computed: {
-    jobFilterPredicate() {
+    jobPredicate() {
       return makeJobPredicate(this.jobFilter)
     },
 
-    stateFilterPredicate() {
+    statePredicate() {
       return makeStatePredicate(this.stateFilter)
     },
 
+    // Array of rerun groups, each an array of runs that are reruns of the
+    // same run.  Groups are filtered by current filters, and sorted.
     rerunGroups() {
+      // Group runs together by rerun.
       let reruns = groupReruns(this.runs)
 
       // Filter groups.
@@ -107,8 +123,8 @@ export default {
           const latest = group[group.length - 1]
           // Apply state and job/arg filters.
           return (
-            this.stateFilterPredicate(latest) 
-            && this.jobFilterPredicate(latest)
+            this.statePredicate(latest) 
+            && this.jobPredicate(latest)
           )
         }
       )
@@ -119,6 +135,11 @@ export default {
         return r.times.schedule || r.times.error || r.times.running
       })
     },
+
+    numPages() { return Math.ceil(this.rerunGroups.length / this.pageSize) },
+    pageStart() { return this.page * this.pageSize },
+    pageEnd() { return Math.min(this.pageStart + this.pageSize, this.rerunGroups.length) },
+    pageRuns() { return this.rerunGroups.slice(this.pageStart, this.pageEnd) },
 
   },
 

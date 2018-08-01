@@ -19,7 +19,7 @@ div
         input.uk-input(
           v-model="jobFilterInput"
           v-on:change="jobFilter = jobFilterInput"
-          v-on:keyup.esc="jobFilterInput = ''; jobFilter = jobFilterInput"
+          v-on:keyup.esc="jobFilterInput = jobFilter = ''"
           style="width: auto;"
         )
 

@@ -1,7 +1,6 @@
 # Current
 
 - a good set of demo jobs
-- run list pagination
 - in collapsed run group, show schedule time of original job
 - prevent the same instance from running more than once... HOW?
 - GitHub README
