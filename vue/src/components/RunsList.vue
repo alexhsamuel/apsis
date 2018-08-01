@@ -78,8 +78,8 @@ export default {
   name: 'runs',
   props: {
     job_id: String,
-    jobFilter: String,
-    stateFilter: Array,
+    jobFilter: {type: String, default: ''},
+    stateFilter: {type: Array, default: () => []},
     pageSize: {type: Number, default: 20},
   },
 
