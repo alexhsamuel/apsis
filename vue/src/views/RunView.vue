@@ -56,7 +56,7 @@
 import { join, map, sortBy, toPairs } from 'lodash'
 
 import ActionButton from '@/components/ActionButton'
-import { formatElapsed } from '../format'
+import { formatElapsed } from '../time'
 import Job from '@/components/Job'
 import Program from '@/components/Program'
 import Run from '@/components/Run'

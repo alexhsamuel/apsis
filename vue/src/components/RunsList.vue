@@ -65,7 +65,7 @@ div
 import { filter, join, map, sortBy, toPairs } from 'lodash'
 
 import ActionButton from './ActionButton'
-import { formatElapsed } from '../format'
+import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
 import Run from './Run'

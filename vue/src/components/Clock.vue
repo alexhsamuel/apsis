@@ -5,7 +5,7 @@ div
 </template>
 
 <script>
-import { formatTime } from '../format'
+import { formatTime } from '../time'
 import store from '../store'
 
 export default {
