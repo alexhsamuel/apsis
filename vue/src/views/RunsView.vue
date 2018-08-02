@@ -116,10 +116,6 @@ export default {
     margin-left: 0;
   }
 
-  .field-label {
-    margin-right: 1rem;
-  }
-
   input {
     width: auto;
   }
