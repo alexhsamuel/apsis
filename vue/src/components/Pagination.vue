@@ -73,6 +73,7 @@ export default {
   padding-right: 10px;
   color: #444;
   border-radius: 4px;
+  border: 1px solid white;
 
   &:first-child {
     padding-left: 0;
@@ -83,8 +84,7 @@ export default {
 
   cursor: default;
   &:not(.hidden):hover {
-    background-color: #ccc;
-    color: white;
+    border: 1px solid #aaa;
   }
 }
 
