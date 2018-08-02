@@ -62,6 +62,7 @@ def job_to_jso(app, job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
+        "ad_hoc"        : job.ad_hoc,
         "url"           : app.url_for("v1.job", job_id=job.job_id),
     }
 
@@ -297,6 +298,7 @@ async def run_post(request):
     if "job" in jso:
         # A complete job.
         job = jso_to_job(jso["job"], None)
+        job.ad_hoc = True
         request.app.apsis.jobs.add(job)
         job_id = job.job_id
 

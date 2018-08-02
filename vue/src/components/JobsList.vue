@@ -9,7 +9,8 @@
 
       tbody
         tr(
-          v-for="job in jobs" 
+          v-for="job in jobs"
+          v-if="!job.ad_hoc"
           :key="job.job_id"
           v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
         )

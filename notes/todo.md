@@ -2,7 +2,6 @@
 
 - a good set of demo jobs
 - time range in runs search
-- hide ad hoc jobs in web UI, CLUI
 - indicate a run/job as ad hoc
 - in collapsed run group, show schedule time of original job
 - prevent the same instance from running more than once... HOW?
