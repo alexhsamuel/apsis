@@ -315,7 +315,10 @@ cmd.add_argument(
 def cmd_job(client, args):
     job_id = args.job  # FIXME
     job = client.get_job(job_id)
-    print_lines(format_job(job))
+    if args.json:
+        json.dump(job, sys.stdout, indent=2)
+    else:
+        print_lines(format_job(job))
 
 
 cmd = add_command(
@@ -324,6 +327,9 @@ cmd = add_command(
 cmd.add_argument(
     "job", metavar="JOB-ID",
     help="display job with JOB-ID")
+cmd.add_argument(
+    "--json", action="store_true", default=False,
+    help="dump run as JSON")
 
 #--- command: jobs -------------------------------------------------------------
 
