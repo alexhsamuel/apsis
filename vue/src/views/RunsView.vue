@@ -6,7 +6,7 @@ div
       span.uk-inline
         span.uk-form-icon(
           uk-icon="icon: search"
-          style="pointer-events: auto"
+          style="pointer-events: auto; color: black;"
         )
         div(uk-drop="mode: hover")
           .uk-card.uk-card-body.uk-card-default 
@@ -20,7 +20,6 @@ div
           v-model="jobFilterInput"
           v-on:change="jobFilter = jobFilterInput"
           v-on:keyup.esc="jobFilterInput = jobFilter = ''"
-          style="width: auto;"
         )
 
     .control
@@ -36,12 +35,34 @@ div
                 State(v-for="state in states" :key="state" :state="state")
               span.label {{ label }} 
 
+    .control
+      label.field-label Since
+      span.uk-inline(:class="{error: sinceError}")
+        span.uk-form-icon.uk-form-icon-flip(
+          uk-icon="icon: close"
+        )
+        input.uk-input(
+          v-model="sinceInput"
+          v-on:change="since = parseTime(sinceInput, false)"
+          v-on:keyup.esc="sinceInput = ''; since = parseTime(since, false)"
+        )
+
+    .control
+      label.field-label Until
+      input.uk-input(
+        v-model="untilInput"
+        v-on:change="until = parseTime(untilInput, true)"
+        v-on:keyup.esc="untilInput = ''; until = parseTime(until, true)"
+      )
+
   RunsList(:job-filter="jobFilter" :state-filter="stateFilter")
 </template>
 
 <script>
 import RunsList from '@/components/RunsList'
 import State from '@/components/State'
+import store from '@/store'
+import { parseTime } from '@/time'
 
 export default {
   name: 'RunsView',
@@ -54,7 +75,11 @@ export default {
     return {
       jobFilter: '',
       jobFilterInput: '',
+      since: '',
+      sinceInput: '',
       stateFilter: [],
+      until: '',
+      untilInput: '',
     }
   },
 
@@ -68,6 +93,15 @@ export default {
         ['Unsuccessful', ['failure', 'error']],
         ['Started', ['running', 'success', 'failure', 'error']],
       ]
+    },
+
+    sinceError() { return this.sinceInput !== '' && this.since === null },
+    untilError() { return this.untilInput !== '' && this.until === null },
+  },
+
+  methods: {
+    parseTime(str, end) {
+      return parseTime(str, end, store.state.timeZone)
     }
   },
 }
@@ -85,10 +119,28 @@ export default {
   .field-label {
     margin-right: 1rem;
   }
+
+  input {
+    width: auto;
+  }
 }
 
 .state-filter-select .label {
   text-transform: uppercase;
   margin-right: 3em;
+}
+
+:not(.error) .uk-icon {
+  visibility: hidden;
+}
+
+.error {
+  input {
+    color: red;
+  }
+  .uk-icon {
+    visibility: visible;
+    color: red;
+  }
 }
 </style>
