@@ -84,7 +84,7 @@ export default {
 
   cursor: default;
   &:not(.hidden):hover {
-    border: 1px solid #aaa;
+    border-color: #aaa;
   }
 }
 
@@ -95,6 +95,7 @@ export default {
 
 .link.current {
   background-color: #0a5;
+  border-color: #0a5;
   color: white;
 }
 
