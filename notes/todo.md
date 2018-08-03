@@ -2,29 +2,36 @@
 
 - a good set of demo jobs
 - time range in runs search
-- indicate a run/job as ad hoc
+- in collapsed run group, show schedule time of original job
 - fix column widths
+- release
+  - release build of UI
+  - serve UI from sanic
+  - setup.py
+  - conda recipe
+  - clean up old web UI
+  - GitHub README with intro docs
+  - job docs
 - gzip output
   - in agent
-- in collapsed run group, show schedule time of original job
+- indicate a run/job as ad hoc
 - prevent the same instance from running more than once... HOW?
-- GitHub README
+- control page
+  - live log
+  - shutdown
+  - reload jobs
+  - restart
 - performance test with lots of jobs and runs
 - store schedule horizon per (job, schedule) ???
   - limit number of runs scheduled per job
 - nicer job output in CLUI
 - add a --since flag, to control how far back to reschedule when creating
-- search, filtering in runs list
 - live elapsed time in runs list
 - live output for running jobs in run view
 - watch jobs for changes
 - when a job has changed, cancel and reschedule all future runs?
 - search, filtering in JobsList
 - web UI for showing run, job as JSON
-- control page
-  - live log
-  - shutdown
-  - restart
 - support multiple outputs per run in API/UI
   - add option to split stdout/stderr
 - sanity checker
