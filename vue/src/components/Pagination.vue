@@ -9,10 +9,10 @@ div(v-if="numPages > 1")
   .link(
     v-for="(p, i) in pages" 
     :key="i"
-    :class="{'current': p === currentPage}"
+    :class="{ 'current': p === currentPage, 'hidden': p === ELLIPSIS }"
     v-on:click="setPage(p)"
   )
-    span {{ p === '...' ? p : p + 1 }}
+    span {{ p === ELLIPSIS ? p : p + 1 }}
 
   .link(
     :class="{'hidden': currentPage == numPages - 1}"
@@ -34,6 +34,7 @@ export default {
   data() { 
     return {
       currentPage: this.page,
+      ELLIPSIS: '\u22ef',
     }
   },
 
@@ -50,17 +51,17 @@ export default {
       if (num < 10)
         return range(num)
       else if (page < 5)
-        return concat(range(7), '...', num - 1)
+        return concat(range(7), this.ELLIPSIS, num - 1)
       else if (page >= num - 5)
-        return concat(0, '...', range(num - 7, num))
+        return concat(0, this.ELLIPSIS, range(num - 7, num))
       else
-        return concat(0, '...', range(page - 2, page + 3), '...', num - 1)
+        return concat(0, this.ELLIPSIS, range(page - 2, page + 3), this.ELLIPSIS, num - 1)
     },
   },
 
   methods: {
     setPage(page) {
-      if (page === '...')
+      if (page === this.ELLIPSIS)
         return
       if (page >= 0 && page < this.numPages) {
         this.currentPage = page
@@ -113,6 +114,6 @@ export default {
 }
 
 .hidden {
-  color: #eee;
+  color: #ccc;
 }
 </style>
