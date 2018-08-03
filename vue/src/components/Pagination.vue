@@ -9,10 +9,10 @@ div(v-if="numPages > 1")
   .link(
     v-for="p in pages" 
     :key="p"
-    :class="{'current': p == currentPage}"
+    :class="{'current': p === currentPage}"
     v-on:click="setPage(p)"
   )
-    span {{ p + 1 }}
+    span {{ p === '...' ? p : p + 1 }}
 
   .link(
     :class="{'hidden': currentPage == numPages - 1}"
@@ -23,7 +23,7 @@ div(v-if="numPages > 1")
 </template>
 
 <script>
-import { range } from 'lodash'
+import { concat, range } from 'lodash'
 
 export default {
   props: {
@@ -45,12 +45,23 @@ export default {
 
   computed: {
     pages() {
-      return range(this.numPages)
+      const num = this.numPages
+      const page = this.page
+      if (num < 10)
+        return range(num)
+      else if (page < 5)
+        return concat(range(7), '...', num - 1)
+      else if (page >= num - 5)
+        return concat(0, '...', range(num - 7, num))
+      else
+        return concat(0, '...', range(page - 2, page + 3), '...', num - 1)
     },
   },
 
   methods: {
     setPage(page) {
+      if (page === '...')
+        return
       if (page >= 0 && page < this.numPages) {
         this.currentPage = page
         this.$emit('update:page', this.currentPage)
@@ -69,8 +80,10 @@ export default {
 .link {
   display: inline-block;
   margin: 0 2px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 4px;
+  padding-right: 4px;
+  width: 1.5em;
+  text-align: center;
   color: #444;
   border-radius: 4px;
   border: 1px solid white;
