@@ -170,13 +170,17 @@ class Apsis:
 
         # Transition the run object.
         run._transition(time, state, **kw_args)
-        # Persist the new state.  
-        self.runs.update(run, time)
 
         # Persist outputs.
+        # FIXME: We are persisting runs assuming all are new.  This is only
+        # OK for the time being because outputs are always added on the final
+        # transition.  In general, we have to persist new outputs only.
         for output_id, output in outputs.items():
             self.__db.output_db.add(run.run_id, output_id, output)
             
+        # Persist the new state.  
+        self.runs.update(run, time)
+
         if state == run.STATE.failure:
             self.__rerun(run)
 
