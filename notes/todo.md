@@ -3,6 +3,7 @@
 - a good set of demo jobs
 - time range in runs search
 - indicate a run/job as ad hoc
+- fix column widths
 - in collapsed run group, show schedule time of original job
 - prevent the same instance from running more than once... HOW?
 - GitHub README

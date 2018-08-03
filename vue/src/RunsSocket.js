@@ -1,3 +1,5 @@
+const DEBUG = false
+
 export default class RunsSocket {
   constructor(run_id, job_id) {
     this.url = RunsSocket.get_url(run_id, job_id)
@@ -5,9 +7,18 @@ export default class RunsSocket {
   }
 
   open(callback) {
+    let t0
+    if (DEBUG) {
+      t0 = new Date()
+      console.log('web socket opening:', this.url)
+    }
     this.websocket = new WebSocket(this.url)
     this.websocket.onmessage = (msg) => {
       const jso = JSON.parse(msg.data)
+      if (DEBUG) {
+        let t1 = new Date()
+        console.log('web socket: got', Object.keys(jso.runs).length, 'runs in', (t1 - t0) * 0.001, 'sec')
+      }
       callback(jso)
     }
     this.websocket.onclose = () => {
