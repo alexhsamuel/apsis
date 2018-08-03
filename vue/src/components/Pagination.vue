@@ -7,8 +7,8 @@ div(v-if="numPages > 1")
     span(uk-icon="icon: triangle-left")
 
   .link(
-    v-for="p in pages" 
-    :key="p"
+    v-for="(p, i) in pages" 
+    :key="i"
     :class="{'current': p === currentPage}"
     v-on:click="setPage(p)"
   )
