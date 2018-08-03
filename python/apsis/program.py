@@ -45,9 +45,18 @@ class OutputMetadata:
 
 class Output:
 
-    def __init__(self, metadata: OutputMetadata, data: bytes):
+    def __init__(self, metadata: OutputMetadata, data: bytes, compression=None):
+        """
+        :param metadata:
+          Information about the data.
+        :param data:
+          The data bytes.
+        :pamam compression:
+          The compresison type, or `None` for uncompressed.
+        """
         self.metadata       = metadata
         self.data           = data
+        self.compression    = None
     
 
 

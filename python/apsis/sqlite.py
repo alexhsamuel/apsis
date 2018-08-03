@@ -273,6 +273,7 @@ class OutputDB:
         sa.Column("name"        , sa.String()   , nullable=False),
         sa.Column("content_type", sa.String()   , nullable=False),
         sa.Column("length"      , sa.Integer()  , nullable=False),
+        sa.Column("compression" , sa.String()   , nullable=True),
         sa.Column("data"        , sa.Binary()   , nullable=False),
         sa.PrimaryKeyConstraint("run_id", "output_id")
     )
@@ -288,6 +289,7 @@ class OutputDB:
             "name"          : output.metadata.name,
             "content_type"  : output.metadata.content_type,
             "length"        : output.metadata.length,
+            "compression"   : output.compression,
             "data"          : output.data,
         }
         with self.__engine.begin() as conn:
@@ -313,12 +315,18 @@ class OutputDB:
 
     def get_data(self, run_id, output_id) -> bytes:
         cols = self.TBL_OUTPUT.c
-        query = sa.select([cols.data])
-        data = self.__engine.execute(query).scalar()
+        query = (
+            sa.select([cols.compression, cols.data])
+            .where((cols.run_id == run_id) & ((cols.output_id == output_id)))
+        )
+        (compression, data, ), = self.__engine.execute(query)
         if data is None:
             raise LookupError(f"no output {output_id} for {run_id}")
         else:
-            return data
+            if compression is None:
+                return data
+            else:
+                raise NotImplementedError(f"compression: f{compression}")
 
 
 

@@ -4,6 +4,8 @@
 - time range in runs search
 - indicate a run/job as ad hoc
 - fix column widths
+- gzip output
+  - in agent
 - in collapsed run group, show schedule time of original job
 - prevent the same instance from running more than once... HOW?
 - GitHub README
