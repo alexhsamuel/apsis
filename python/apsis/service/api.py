@@ -272,7 +272,7 @@ async def runs(request):
 
 @API.websocket("/runs-live")  # FIXME: Do we really need this?
 async def websocket_runs(request, ws):
-    since,  = request.args.pop("since", (None, ))
+    since, = request.args.pop("since", (None, ))
 
     log.info("live runs connect")
     with request.app.apsis.runs.query_live(since=since) as queue:
