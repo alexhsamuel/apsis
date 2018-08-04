@@ -25,5 +25,6 @@ export default {
 <style scoped>
 span {
   font-size: 90%;
+  white-space: nowrap;
 }
 </style>
