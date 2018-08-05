@@ -15,6 +15,7 @@ div
     div.head.col-elapsed Elapsed
     div.head.col-actions Actions
 
+    //- FIXME: run-group-next doesn't work because it's not on an element.
     template(
       v-for="rerunGroup in pageRuns"
     ): template(
@@ -261,10 +262,12 @@ export default {
 
 }
 
+// See https://stackoverflow.com/questions/48108879/how-to-make-hover-state-on-row-table-with-css-grid-layout?rq=1
 .row-hover {
   // Prevent the hover background from extending outside the item.
   overflow: hidden;
 
+  // FIXME: Not sure why this is necessary.  It seems to break auto column sizing.
   >* {
     position: relative;
   }
