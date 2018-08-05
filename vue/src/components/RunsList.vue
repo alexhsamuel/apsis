@@ -4,7 +4,7 @@ div
     | {{ rerunGroups.length }} runs match
   Pagination.field-label(style="display: inline-block" :page.sync="page" :num-pages="numPages")
 
-  table.uk-table.uk-table-divider.uk-table-hover.uk-table-small.uk-table-justify
+  table
     colgroup
       col(style="min-width: 10rem; max-width: 12rem;")
       col(style="min-width: 10rem; max-width: 100%;")
@@ -204,25 +204,29 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import 'src/styles/base.scss';
+
 table {
   width: 100%;
+  margin-top: 1rem;
+  border-spacing: 0;
+  border-collapse: collapse;
 }
 
-th,
+th {
+  @extend .field-label;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 0.3rem;
+  font-weight: inherit;
+}
+
+tbody tr {
+  border-top: 1px solid $apsis-grid-color;
+}
+
 td {
-  padding: 0.2rem;
-}
-
-td {
-  border: none;
-}
-
-tbody td {
-  max-width: 48rem;
-}
-
-.args {
-  font-size: 75%;
+  padding-top: 0.35rem;
+  padding-bottom: 0.2rem;
 }
 
 tr.run-group-next {
@@ -234,11 +238,15 @@ tr.run-group-next {
   }
 }
 
+.col-job, .col-args {
+  text-align: left;
+}
+
 .col-run {
   text-align: center;
 }
 
-td.col-reruns {
+.col-reruns {
   text-align: center;
 }
 
@@ -246,12 +254,11 @@ td.col-reruns {
   text-align: center;
 }
 
-th.col-elapsed {
-  text-align: center;
+.col-schedule-time, .col-start-time {
+  text-align: left;
 }
 
-td.col-elapsed {
-  padding-left: 1em;
+.col-elapsed {
   padding-right: 1em;
   text-align: right;
   white-space: nowrap;
@@ -259,11 +266,10 @@ td.col-elapsed {
 
 .col-actions {
   text-align: center;
-}
-
-.actions-button {
-  font-size: 80%;
-  line-height: 1.4;
+  button {
+    font-size: 80%;
+    line-height: 1.4;
+  }
 }
 
 // FIXME
