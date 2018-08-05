@@ -16,7 +16,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import '../styles/index.scss';
+@import '../styles/vars.scss';
 
 .job-link {
   color: $apsis-job-color;

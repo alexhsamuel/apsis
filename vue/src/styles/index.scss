@@ -1,20 +1,5 @@
 // 1. Your custom variables and variable overwrites.
-$global-color: #444;
-$global-link-color: #DA7D02;
-$global-font-family: Roboto, Helvetica, sans-serif;
-
-// Don't be so dramatic with code.
-$base-code-color: $global-color;
-$base-code-background: white;
-$base-code-padding-horizontal: 0;
-$base-code-padding-vertical: 0;
-$base-code-font-family: 'Roboto Mono', monospace;
-$base-code-font-size: 1rem;
-
-$apsis-run-color: #007030;
-$apsis-job-color: #00a050;
-
-$table-row-active-background: #f8fff8;
+@import "src/styles/vars.scss";
 
 // 2. Import default variables and available mixins.
 @import "uikit/src/scss/variables-theme.scss";
@@ -26,51 +11,4 @@ $table-row-active-background: #f8fff8;
 // 4. Import UIkit.
 @import "uikit/src/scss/uikit-theme.scss";
 
-.code {
-  font-family: $base-code-font-family;
-  font-size: $base-code-font-size;
-  letter-spacing: -0.02rem;
-  color: $base-code-color;
-}
-
-code {
-  letter-spacing: -0.02rem;
-}
-
-table.fields {
-  @extend .uk-table;
-  @extend .uk-table-small;
-
-  width: auto;
-
-  th, td {
-    vertical-align: top;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-  }
-
-  th {
-    padding-left: 0;
-    padding-right: 1.5rem;
-    // border-right: 1px solid #ddd;
-    line-height: 1.75rem;
-  }
-
-  td {
-    padding-left: 0.5rem;
-    padding-right: 0;
-  }
-
-  > tbody > tr > td.no-padding {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-}
-
-.field-label {
-  font-size: $table-header-cell-font-size;
-  font-weight: $table-header-cell-font-weight;
-  color: $table-header-cell-color;
-  text-transform: uppercase;
-  padding-right: 0.75em;
-}
+@import "src/styles/base.scss";
