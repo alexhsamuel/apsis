@@ -1,3 +1,5 @@
+@import 'src/styles/vars.scss';
+
 .code {
   font-family: $base-code-font-family;
   font-size: $base-code-font-size;
@@ -9,40 +11,9 @@ code {
   letter-spacing: -0.02rem;
 }
 
-table.fields {
-  @extend .uk-table;
-  @extend .uk-table-small;
-
-  width: auto;
-
-  th, td {
-    vertical-align: top;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-  }
-
-  th {
-    padding-left: 0;
-    padding-right: 1.5rem;
-    // border-right: 1px solid #ddd;
-    line-height: 1.75rem;
-  }
-
-  td {
-    padding-left: 0.5rem;
-    padding-right: 0;
-  }
-
-  > tbody > tr > td.no-padding {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-}
-
 .field-label {
   font-size: $table-header-cell-font-size;
   font-weight: $table-header-cell-font-weight;
   color: $table-header-cell-color;
   text-transform: uppercase;
-  padding-right: 0.75em;
 }
