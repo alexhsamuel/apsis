@@ -37,7 +37,7 @@ div
 
     .control
       label.field-label Since
-      span.uk-inline(:class="{error: sinceError}")
+      span.uk-inline.error(:class="{'is-error': sinceError}")
         span.uk-form-icon.uk-form-icon-flip(
           uk-icon="icon: close"
         )
@@ -49,11 +49,15 @@ div
 
     .control
       label.field-label Until
-      input.uk-input(
-        v-model="untilInput"
-        v-on:change="until = parseTime(untilInput, true)"
-        v-on:keyup.esc="untilInput = ''; until = parseTime(until, true)"
-      )
+      span.uk-inline.error(:class="{'is-error': untilError}")
+        span.uk-form-icon.uk-form-icon-flip.error(
+          uk-icon="icon: close"
+        )
+        input.uk-input(
+          v-model="untilInput"
+          v-on:change="until = parseTime(untilInput, true)"
+          v-on:keyup.esc="untilInput = ''; until = parseTime(until, true)"
+        )
 
   RunsList(:job-filter="jobFilter" :state-filter="stateFilter")
 </template>
@@ -126,11 +130,11 @@ export default {
   margin-right: 3em;
 }
 
-:not(.error) .uk-icon {
+.error:not(.is-error) .uk-icon {
   visibility: hidden;
 }
 
-.error {
+.is-error {
   input {
     color: red;
   }
