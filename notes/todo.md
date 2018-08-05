@@ -12,9 +12,11 @@
   - clean up old web UI
   - GitHub README with intro docs
   - job docs
+- use flex layout for run list selection controls
 - gzip output
   - in agent
 - indicate a run/job as ad hoc
+- load live runs in the background for the whole app
 - prevent the same instance from running more than once... HOW?
 - control page
   - live log
