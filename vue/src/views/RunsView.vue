@@ -77,9 +77,14 @@ export default {
 .control {
   display: inline-block;
   margin: 1em;
-}
-.control:first-child {
-  margin-left: 0;
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  .field-label {
+    margin-right: 1rem;
+  }
 }
 
 .state-filter-select .label {

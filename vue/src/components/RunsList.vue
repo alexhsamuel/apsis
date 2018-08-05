@@ -5,6 +5,17 @@ div
   Pagination.field-label(style="display: inline-block" :page.sync="page" :num-pages="numPages")
 
   table.uk-table.uk-table-divider.uk-table-hover.uk-table-small.uk-table-justify
+    colgroup
+      col(style="min-width: 10rem; max-width: 12rem;")
+      col(style="min-width: 10rem; max-width: 100%;")
+      col(style="width: 4rem")
+      col(style="width: 4rem")
+      col(style="width: 4rem")
+      col(style="width: 10rem")
+      col(style="width: 10rem")
+      col(style="width: 6rem")
+      col(style="width: 4rem")
+
     thead
       tr
         th.col-job Job
@@ -193,14 +204,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 table {
   width: 100%;
 }
 
 th,
 td {
-  padding: 0.1rem;
+  padding: 0.2rem;
 }
 
 td {
@@ -244,6 +254,7 @@ td.col-elapsed {
   padding-left: 1em;
   padding-right: 1em;
   text-align: right;
+  white-space: nowrap;
 }
 
 .col-actions {

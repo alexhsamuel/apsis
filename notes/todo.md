@@ -3,7 +3,6 @@
 - a good set of demo jobs
 - time range in runs search
 - in collapsed run group, show schedule time of original job
-- fix column widths
 - release
   - release build of UI
   - serve UI from sanic
