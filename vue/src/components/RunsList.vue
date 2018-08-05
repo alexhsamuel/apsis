@@ -4,60 +4,57 @@ div
     | {{ rerunGroups.length }} runs match
   Pagination.field-label(style="display: inline-block" :page.sync="page" :num-pages="numPages")
 
-  table.uk-table.uk-table-divider.uk-table-hover.uk-table-small.uk-table-justify
-    thead
-      tr
-        th.col-job Job
-        th.col-args Args
-        th.col-run Run
-        th.col-reruns Reruns
-        th.col-state State
-        th.col-schedule-time Schedule
-        th.col-start-time Start
-        th.col-elapsed Elapsed
-        th.col-actions Actions
+  div.runs-list.row-hover
+    div.head.col-job Job
+    div.head.col-args Args
+    div.head.col-run Run
+    div.head.col-reruns Reruns
+    div.head.col-state State
+    div.head.col-schedule-time Schedule
+    div.head.col-start-time Start
+    div.head.col-elapsed Elapsed
+    div.head.col-actions Actions
 
-    tbody
-      template(v-for="rerunGroup in pageRuns")
-        tr( 
-          v-for="(run, index) in groupRuns(rerunGroup)" 
-          :key="run.run_id"
-          :class="{ 'run-group-next': index > 0 }"
-        )
-          td.col-job
-            Job(:job-id="run.job_id")
-          td.col-args
-            span {{ arg_str(run.args) }}
-          td.col-run
-            Run(:run-id="run.run_id")
-          td.col-reruns
-            span(v-show="index == 0 && rerunGroup.length > 1")
-              | {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
-              a(
-                v-bind:uk-icon="groupIcon(run.rerun)"
-                v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
+    template(
+      v-for="rerunGroup in pageRuns"
+    ): template(
+      v-for="(run, index) in groupRuns(rerunGroup)" 
+      :class="{ 'run-group-next': index > 0 }"
+    )
+      div.row.col-job
+        Job(:job-id="run.job_id")
+      div.row.col-args
+        span {{ arg_str(run.args) }}
+      div.row.col-run
+        Run(:run-id="run.run_id")
+      div.row.col-reruns
+        span(v-show="index == 0 && rerunGroup.length > 1")
+          | {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
+          a(
+            v-bind:uk-icon="groupIcon(run.rerun)"
+            v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
+          )
+      div.row.col-state
+        State(:state="run.state")
+      div.row.col-schedule-time
+        Timestamp(:time="run.times.schedule")
+      div.row.col-start-time
+        Timestamp(:time="run.times.running")
+      div.row.col-elapsed
+        | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
+      div.row.col-actions
+        div.uk-inline(v-if="Object.keys(run.actions).length > 0")
+          button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
+            span(uk-icon="icon: menu; ratio: 0.75")
+          div(uk-dropdown="pos: left-center")
+            ul.uk-nav.uk-dropdown-nav
+              li: ActionButton(
+                v-for="(url, action) in run.actions" 
+                :key="action"
+                :url="url" 
+                :action="action" 
+                :button="true"
               )
-          td.col-state
-            State(:state="run.state")
-          td.col-schedule-time
-            Timestamp(:time="run.times.schedule")
-          td.col-start-time
-            Timestamp(:time="run.times.running")
-          td.col-elapsed
-            | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
-          td.col-actions
-            div.uk-inline(v-if="Object.keys(run.actions).length > 0")
-              button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
-                span(uk-icon="icon: menu; ratio: 0.75")
-              div(uk-dropdown="pos: left-center")
-                ul.uk-nav.uk-dropdown-nav
-                  li: ActionButton(
-                    v-for="(url, action) in run.actions" 
-                    :key="action"
-                    :url="url" 
-                    :action="action" 
-                    :button="true"
-                  )
 
 </template>
 
@@ -193,42 +190,17 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
-table {
-  width: 100%;
-}
-
-th,
-td {
-  padding: 0.1rem;
-}
-
-td {
-  border: none;
-}
-
-tbody td {
-  max-width: 48rem;
-}
+@import '../styles/base.scss';
 
 .args {
   font-size: 75%;
-}
-
-tr.run-group-next {
-  border-top: none;
-  
-  .col-job a,
-  .col-args span {
-    visibility: hidden;
-  }
 }
 
 .col-run {
   text-align: center;
 }
 
-td.col-reruns {
+.col-reruns {
   text-align: center;
 }
 
@@ -236,11 +208,7 @@ td.col-reruns {
   text-align: center;
 }
 
-th.col-elapsed {
-  text-align: center;
-}
-
-td.col-elapsed {
+.col-elapsed {
   padding-left: 1em;
   padding-right: 1em;
   text-align: right;
@@ -255,10 +223,68 @@ td.col-elapsed {
   line-height: 1.4;
 }
 
+.run-group-next {
+  border-bottom: 2px solid red;
+}
+
 // FIXME
 .uk-dropdown {
   padding: 12px;
   min-width: 0;
+}
+
+.runs-list {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: 
+     1fr   // job
+     2fr   // args
+     4rem  // run
+     4rem  // reruns
+     4rem  // state
+    10rem  // schedule
+    10rem  // start
+     6rem  // elapsed
+     4rem  // actions
+    ;
+  grid-auto-rows: 1.9rem;
+
+  .head {
+    @extend .field-label;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .row {
+    padding-top: 0.2rem;
+    border-bottom: 1px solid #f6f6f6;
+  }
+
+}
+
+.row-hover {
+  // Prevent the hover background from extending outside the item.
+  overflow: hidden;
+
+  >* {
+    position: relative;
+  }
+
+  .row::before {
+    content: "";
+    // Occupy the entire row, from far left to far right.
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -1000%;
+    left: -1000%;
+    // Place it behind the grid.
+    z-index: -1;
+  }
+
+  .row:hover::before {
+    background-color: #f8fff8;
+  }
+
 }
 </style>
 
