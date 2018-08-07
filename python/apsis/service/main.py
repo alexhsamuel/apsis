@@ -90,12 +90,14 @@ class Router(sanic.router.Router):
     Extended router that supports a catch-all path for missing pages.
     """
 
-    CATCH_ALL_PATH = "/static/index.html"
+    CATCH_ALL_PATH = "/index.html"
 
     def get(self, request):
+        logging.info(request.url)
         try:
             return super().get(request)
         except sanic.router.NotFound:
+            logging.info("CATCHALL")
             return self._get(self.CATCH_ALL_PATH, request.method, "")
 
 
@@ -106,7 +108,10 @@ app.config.LOGO = None
 top_dir = Path(__file__).parents[3]
 
 app.blueprint(api.API, url_prefix="/api/v1")
-app.static("/static", str(top_dir / "web"))
+# The SPA.
+app.static("/index.html", str(top_dir / "vue" / "dist" / "index.html"))
+# Web assets.
+app.static("/static", str(top_dir / "vue" / "dist" / "static"))
 
 @app.websocket("/log")
 async def websocket_log(request, ws):
@@ -120,7 +125,6 @@ async def websocket_log(request, ws):
     finally:
         WS_HANDLER.unregister(queue)
 
-app.static("/.*", str(top_dir / "web" / "index.html"))
 
 #-------------------------------------------------------------------------------
 
