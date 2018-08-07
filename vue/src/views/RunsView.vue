@@ -64,8 +64,8 @@ export default {
         ['All', []],
         ['Scheduled', ['scheduled']],
         ['Running', ['running']],
-        ['Success', ['success']],
-        ['Problem', ['failure', 'error']],
+        ['Successful', ['success']],
+        ['Unsuccessful', ['failure', 'error']],
         ['Started', ['running', 'success', 'failure', 'error']],
       ]
     }
