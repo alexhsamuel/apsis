@@ -4,13 +4,12 @@
 - time range in runs search
 - in collapsed run group, show schedule time of original job
 - release
-  - release build of UI
-  - serve UI from sanic
   - setup.py
   - conda recipe
   - clean up old web UI
-  - GitHub README with intro docs
+  - intro docs in README
   - job docs
+- favicon
 - use flex layout for run list selection controls
 - gzip output
   - in agent
