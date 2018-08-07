@@ -8,14 +8,14 @@ hour, or 4:00 PM US/Eastern on the day before every US holiday.
 
 The components of Apsis are,
 
-- A Python 3 async scheduling library, suitable for embedding in other
-  applications that require task scheduling.
-
 - A service that schedules tasks and exposes its state via a REST API.
 
 - A web UI for interacting with the service.
 
 - A command line UI for interacting with the service.
+
+The service is built on a a Python 3 async scheduling library, which is suitable
+for embedding in other applications that require task scheduling.
 
 
 ### Dependencies
