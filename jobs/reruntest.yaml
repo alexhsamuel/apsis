@@ -1,3 +1,13 @@
+meta:
+  description: |
+    Test job for testing automatic rerun functionality.
+
+    Each run has a 75% change of failure, but a failed run is retried
+    automatically, after a 10 s pause, up to 3 times per original run.
+
+  owner: alex
+  priority: low
+
 params: [id]
 
 schedule:

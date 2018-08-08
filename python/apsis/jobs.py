@@ -32,19 +32,22 @@ class Reruns:
 class Job:
 
     def __init__(self, job_id, params, schedules, program, reruns=Reruns(), 
-                 *, ad_hoc=False):
+                 *, meta={}, ad_hoc=False):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
           dict.
         :param ad_hoc:
           True if this is an ad hoc job.
+        :param meta:
+          Dict of metadata.  Must be JSON-serlializable.
         """
         self.job_id     = None if job_id is None else str(job_id)
         self.params     = frozenset( str(p) for p in tupleize(params) )
         self.schedules  = tupleize(schedules)
         self.program    = program
         self.reruns     = reruns
+        self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
 
 
@@ -86,11 +89,12 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("missing program")
     program = program_from_jso(program)
 
-    reruns = jso_to_reruns(jso.get("reruns", {}))
-    ad_hoc = jso.get("ad_hoc", False)
-
     return Job(
-        job_id, params, schedules, program, reruns=reruns, ad_hoc=ad_hoc)
+        job_id, params, schedules, program, 
+        reruns  =jso_to_reruns(jso.get("reruns", {})), 
+        meta    =jso.get("meta", {}), 
+        ad_hoc  =jso.get("ad_hoc", False)
+    )
 
 
 def job_to_jso(job):
@@ -99,6 +103,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
+        "meta"          : job.meta,
         "ad_hoc"        : job.ad_hoc,
     }
 

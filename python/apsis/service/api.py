@@ -56,30 +56,32 @@ def schedule_to_jso(app, schedule):
     }
 
 
-def job_to_jso(app, job):
+def _job_to_jso(app, job):
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
+        "meta"          : job.meta,
         "ad_hoc"        : job.ad_hoc,
         "url"           : app.url_for("v1.job", job_id=job.job_id),
     }
 
 
-_run_jso_cache = {}
+# FIXME: Attach to the apsis object?
+_job_jso_cache = {}
 
-def run_to_jso(app, run):
-    # Cache runs' JSO.  The run changes only on a state change, so we only
-    # need to check the state to determine if the cache is valid.
+def job_to_jso(app, job):
+    # Cache jobs' JSO.  Jobs don't change for the lifetime of a process.
     try:
-        state, jso = _run_jso_cache[run.run_id]
+        return _job_jso_cache[job.job_id]
     except KeyError:
         pass
-    else:
-        if state == run.state:
-            return jso
+    _job_jso_cache[job.job_id] = jso = _job_to_jso(app, job)
+    return jso
 
+
+def _run_to_jso(app, run):
     actions = {}
     # Start a scheduled job now.
     if run.state == run.STATE.scheduled:
@@ -122,6 +124,25 @@ def run_to_jso(app, run):
             "output_url": url,
             "output_len": output.length,
         })
+
+    return jso
+
+
+# FIXME: Attach to the apsis object?
+_run_jso_cache = {}
+
+def run_to_jso(app, run):
+    # Cache runs' JSO.  The run changes only on a state change, so we only
+    # need to check the state to determine if the cache is valid.
+    try:
+        state, jso = _run_jso_cache[run.run_id]
+    except KeyError:
+        pass
+    else:
+        if state == run.state:
+            return jso
+
+    jso = _run_to_jso(app, run)
 
     _run_jso_cache[run.run_id] = run.state, jso
     return jso
