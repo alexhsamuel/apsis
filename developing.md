@@ -5,6 +5,9 @@ To run the back end,
 $ python -m apsis.service.main jobs
 ```
 
+The Vue front end was set up with the [webpack vuejs
+template](https://vuejs-templates.github.io/webpack/) (an older version).
+
 To run the front end in dev mode,
 ```
 $ cd vue
