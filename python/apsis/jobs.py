@@ -92,7 +92,7 @@ def jso_to_job(jso, job_id):
     return Job(
         job_id, params, schedules, program, 
         reruns  =jso_to_reruns(jso.get("reruns", {})), 
-        meta    =jso.get("meta", {}), 
+        meta    =jso.get("metadata", {}), 
         ad_hoc  =jso.get("ad_hoc", False)
     )
 
@@ -103,7 +103,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
-        "meta"          : job.meta,
+        "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
     }
 

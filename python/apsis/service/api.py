@@ -62,7 +62,7 @@ def _job_to_jso(app, job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
-        "meta"          : job.meta,
+        "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
         "url"           : app.url_for("v1.job", job_id=job.job_id),
     }
@@ -103,6 +103,7 @@ def _run_to_jso(app, run):
         "program"       : program,
         "message"       : run.message,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
+        # FIXME: Rename to metadata.
         "meta"          : run.meta,
         "actions"       : actions,
         "rerun"         : run.rerun,

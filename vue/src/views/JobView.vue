@@ -2,6 +2,8 @@
 div
   h1 {{ job_id }}
 
+  p(v-if="job && job.metadata.description") {{ job.metadata.description }}
+
   table.fields(v-if="job"): tbody
     tr
       th parameters
@@ -14,6 +16,17 @@ div
     tr
       th schedule
       td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+
+    tr
+      th metadata
+      td.no-padding: table.fields
+        tr(
+          v-for="(value, key) in job.metadata" 
+          v-if="key !== 'description'" 
+          :key="key"
+        )
+          th {{ key }}
+          td {{ value }}
 
   RunsList(:job_id="job_id")
 

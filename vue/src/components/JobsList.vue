@@ -4,6 +4,7 @@
       thead
         tr
           th Job ID
+          th Description
           th Program
           th Schedule
 
@@ -15,6 +16,7 @@
           v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
         )
           td.uk-text-nowrap: Job(:job-id="job.job_id")
+          td {{ job.metadata.description || ' ' }}
           td: Program(:program="job.program")
           td: ul
             li(v-for="(schedule, idx) in job.schedules" :key="idx") {{ schedule.str }}
