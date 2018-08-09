@@ -1,6 +1,5 @@
 # Current
 
-- render job description as markdown
 - time range in runs search
 - a good set of demo jobs
 - in collapsed run group, show schedule time of original job

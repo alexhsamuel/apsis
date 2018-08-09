@@ -16,7 +16,7 @@
           v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
         )
           td.uk-text-nowrap: Job(:job-id="job.job_id")
-          td {{ job.metadata.description || ' ' }}
+          td(v-html="markdown(job.metadata.description || ' ')")
           td: Program(:program="job.program")
           td: ul
             li(v-for="(schedule, idx) in job.schedules" :key="idx") {{ schedule.str }}
@@ -25,7 +25,10 @@
 
 <script>
 import Job from './Job'
+import MarkdownIt from 'markdown-it'
 import Program from './Program'
+
+const markdownit = new MarkdownIt()
 
 export default { 
   data() {
@@ -45,6 +48,10 @@ export default {
     fetch(url)
       .then((response) => response.json())
       .then((response) => response.forEach((j) => v.jobs.push(j)))
+  },
+
+  methods: {
+    markdown(src) { return markdownit.renderInline(src) },
   },
 }
 </script>

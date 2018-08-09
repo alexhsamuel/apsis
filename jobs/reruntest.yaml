@@ -2,7 +2,7 @@ metadata:
   description: |
     Test job for testing automatic rerun functionality.
 
-    Each run has a 75% change of failure, but a failed run is retried
+    Each run has a _75% chance of failure_, but a failed run is **retried**
     automatically, after a 10 s pause, up to 3 times per original run.
 
   owner: alex

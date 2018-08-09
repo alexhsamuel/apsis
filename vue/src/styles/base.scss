@@ -1,5 +1,9 @@
 @import 'src/styles/vars.scss';
 
+em {
+  color: #633;
+}
+
 .code {
   font-family: $base-code-font-family;
   font-size: $base-code-font-size;

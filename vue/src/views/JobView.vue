@@ -2,7 +2,7 @@
 div
   h1 {{ job_id }}
 
-  p(v-if="job && job.metadata.description") {{ job.metadata.description }}
+  p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)")
 
   table.fields(v-if="job"): tbody
     tr
@@ -34,8 +34,11 @@ div
 
 <script>
 import { join } from 'lodash'
+import MarkdownIt from 'markdown-it'
 import Program from '@/components/Program'
 import RunsList from '@/components/RunsList'
+
+const markdownit = new MarkdownIt()
 
 export default {
   props: ['job_id'],
@@ -65,9 +68,12 @@ export default {
       .then((response) => { v.job = response })
   },
 
+  methods: {
+    markdown(src) { return markdownit.render(src) },
+  },
+
 }
 </script>
 
 <style scoped>
 </style>
-
