@@ -15,6 +15,7 @@
   - intro docs in README
   - job docs
 - favicon
+- better rerun model
 - use flex layout for run list selection controls
 - gzip output
   - in agent
