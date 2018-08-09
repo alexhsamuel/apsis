@@ -5,7 +5,7 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
-from   ..jobs import jso_to_job
+from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run
 
 log = logging.getLogger(__name__)
@@ -62,6 +62,7 @@ def _job_to_jso(app, job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
+        "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
         "url"           : app.url_for("v1.job", job_id=job.job_id),

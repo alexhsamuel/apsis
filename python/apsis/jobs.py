@@ -68,6 +68,14 @@ def jso_to_reruns(jso):
     )
 
 
+def reruns_to_jso(reruns):
+    return {
+        "count"     : reruns.count,
+        "delay"     : reruns.delay,
+        "max_delay" : reruns.max_delay,
+    }
+
+
 def jso_to_job(jso, job_id):
     params = jso.get("params", "date")
     params = [params] if isinstance(params, str) else params
@@ -103,6 +111,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
+        "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
     }

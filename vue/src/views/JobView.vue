@@ -17,6 +17,17 @@ div
       th schedule
       td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
 
+    tr(v-if="job.reruns")
+      th reruns
+      td.no-padding: table.fields
+        tr(
+          v-for="(value, key) in job.reruns" 
+          v-if="key !== 'description'" 
+          :key="key"
+        )
+          th {{ key }}
+          td {{ value }}
+
     tr
       th metadata
       td.no-padding: table.fields
@@ -56,7 +67,9 @@ export default {
 
   computed: {
     params() {
-      return join(this.job.params, ', ')
+      return this.job.params
+        ? '(' + join(this.job.params, ', ') + ')'
+        : ''
     },
   },
 
