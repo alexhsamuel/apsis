@@ -88,5 +88,10 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '../styles/vars.scss';
+
+h1 {
+  color: $apsis-job-color;
+}
 </style>
