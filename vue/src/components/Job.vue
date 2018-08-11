@@ -21,6 +21,7 @@ export default {
 .job-link {
   color: $apsis-job-color;
   cursor: default;
+  white-space: nowrap;
 
   &:hover {
     color: $apsis-job-color;

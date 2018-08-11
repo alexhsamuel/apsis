@@ -3,8 +3,7 @@
     table.uk-table.uk-table-small.uk-table-divider
       thead
         tr
-          th Job ID
-          th Description
+          th Job
           th Program
           th Schedule
 
@@ -15,8 +14,14 @@
           :key="job.job_id"
           v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
         )
-          td.uk-text-nowrap: Job(:job-id="job.job_id")
-          td(v-html="markdown(job.metadata.description || ' ')")
+          td
+            div
+              Job(:job-id="job.job_id")
+              span.params(v-if="job.params")
+                | (
+                span {{ join(job.params, ', ') }}
+                | )
+            div(v-html="markdown(job.metadata.description || ' ')")
           td: Program(:program="job.program")
           td: ul
             li(v-for="(schedule, idx) in job.schedules" :key="idx") {{ schedule.str }}
@@ -25,6 +30,7 @@
 
 <script>
 import Job from './Job'
+import { join } from 'lodash'
 import MarkdownIt from 'markdown-it'
 import Program from './Program'
 
@@ -52,10 +58,16 @@ export default {
 
   methods: {
     markdown(src) { return markdownit.renderInline(src) },
+    join,
   },
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+.params {
+  padding-left: 0.2rem;
+  span {
+    padding: 0 0.2rem;
+  }
+}
 </style>
-
