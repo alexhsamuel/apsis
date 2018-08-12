@@ -43,8 +43,8 @@ div
         )
         input.uk-input(
           v-model="sinceInput"
-          v-on:change="since = parseTime(sinceInput, false)"
-          v-on:keyup.esc="sinceInput = ''; since = parseTime(since, false)"
+          v-on:change="since = sinceInput"
+          v-on:keyup.esc="since = sinceInput = ''"
         )
 
     .control
@@ -55,11 +55,17 @@ div
         )
         input.uk-input(
           v-model="untilInput"
-          v-on:change="until = parseTime(untilInput, true)"
-          v-on:keyup.esc="untilInput = ''; until = parseTime(until, true)"
+          v-on:change="until = untilInput"
+          v-on:keyup.esc="until = untilInput = ''"
         )
 
-  RunsList(:job-filter="jobFilter" :state-filter="stateFilter")
+  RunsList(
+    :job-filter="jobFilter"
+    :state-filter="stateFilter"
+    :start-time="startTime"
+    :end-time="endTime"
+  )
+
 </template>
 
 <script>
@@ -79,8 +85,8 @@ export default {
     return {
       jobFilter: '',
       jobFilterInput: '',
-      since: '',
-      sinceInput: '',
+      since: 'yesterday',
+      sinceInput: 'yesterday',
       stateFilter: [],
       until: '',
       untilInput: '',
@@ -99,15 +105,14 @@ export default {
       ]
     },
 
-    sinceError() { return this.sinceInput !== '' && this.since === null },
-    untilError() { return this.untilInput !== '' && this.until === null },
+    startTime() { return parseTime(this.since, false, store.state.timeZone) },
+    endTime() { return parseTime(this.until, true, store.state.timeZone) },
+
+    sinceError() { return this.sinceInput !== '' && this.startTime === null },
+    untilError() { return this.untilInput !== '' && this.endTime === null },
+  
   },
 
-  methods: {
-    parseTime(str, end) {
-      return parseTime(str, end, store.state.timeZone)
-    }
-  },
 }
 </script>
 
