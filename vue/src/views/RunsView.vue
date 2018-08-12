@@ -120,6 +120,10 @@ export default {
     margin-left: 0;
   }
 
+  .field-label {
+    margin-right: 0.5rem;
+  }
+
   input {
     width: auto;
   }
