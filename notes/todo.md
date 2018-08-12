@@ -1,6 +1,13 @@
 # Current
 
+- release
+  - setup.py
+  - conda recipe
+  - clean up old web UI
+  - intro docs in README
+  - job docs
 - time range in runs search
+- load live runs in the background for the whole app
 - a good set of demo jobs
 - in collapsed run group, show schedule time of original job
 - control page
@@ -8,20 +15,13 @@
   - shutdown
   - reload jobs
   - restart
-- release
-  - setup.py
-  - conda recipe
-  - clean up old web UI
-  - intro docs in README
-  - job docs
 - favicon
 - better rerun model
-- use flex layout for run list selection controls
+- indicate a run/job as ad hoc
+- prevent the same instance from running more than once... HOW?
 - gzip output
   - in agent
-- indicate a run/job as ad hoc
-- load live runs in the background for the whole app
-- prevent the same instance from running more than once... HOW?
+- use flex layout for run list selection controls
 - performance test with lots of jobs and runs
 - store schedule horizon per (job, schedule) ???
   - limit number of runs scheduled per job
