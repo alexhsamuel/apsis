@@ -6,7 +6,7 @@ div
       span.uk-inline
         span.uk-form-icon(
           uk-icon="icon: search"
-          style="pointer-events: auto"
+          style="pointer-events: auto; color: black;"
         )
         div(uk-drop="mode: hover")
           .uk-card.uk-card-body.uk-card-default 
@@ -20,7 +20,6 @@ div
           v-model="jobFilterInput"
           v-on:change="jobFilter = jobFilterInput"
           v-on:keyup.esc="jobFilterInput = jobFilter = ''"
-          style="width: auto;"
         )
 
     .control
@@ -36,12 +35,44 @@ div
                 State(v-for="state in states" :key="state" :state="state")
               span.label {{ label }} 
 
-  RunsList(:job-filter="jobFilter" :state-filter="stateFilter")
+    .control
+      label.field-label Since
+      span.uk-inline.error(:class="{'is-error': sinceError}")
+        span.uk-form-icon.uk-form-icon-flip(
+          uk-icon="icon: close"
+        )
+        input.uk-input(
+          v-model="sinceInput"
+          v-on:change="since = sinceInput"
+          v-on:keyup.esc="since = sinceInput = ''"
+        )
+
+    .control
+      label.field-label Until
+      span.uk-inline.error(:class="{'is-error': untilError}")
+        span.uk-form-icon.uk-form-icon-flip.error(
+          uk-icon="icon: close"
+        )
+        input.uk-input(
+          v-model="untilInput"
+          v-on:change="until = untilInput"
+          v-on:keyup.esc="until = untilInput = ''"
+        )
+
+  RunsList(
+    :job-filter="jobFilter"
+    :state-filter="stateFilter"
+    :start-time="startTime"
+    :end-time="endTime"
+  )
+
 </template>
 
 <script>
 import RunsList from '@/components/RunsList'
 import State from '@/components/State'
+import store from '@/store'
+import { parseTime } from '@/time'
 
 export default {
   name: 'RunsView',
@@ -54,7 +85,11 @@ export default {
     return {
       jobFilter: '',
       jobFilterInput: '',
+      since: 'yesterday',
+      sinceInput: 'yesterday',
       stateFilter: [],
+      until: '',
+      untilInput: '',
     }
   },
 
@@ -68,8 +103,16 @@ export default {
         ['Unsuccessful', ['failure', 'error']],
         ['Started', ['running', 'success', 'failure', 'error']],
       ]
-    }
+    },
+
+    startTime() { return parseTime(this.since, false, store.state.timeZone) },
+    endTime() { return parseTime(this.until, true, store.state.timeZone) },
+
+    sinceError() { return this.sinceInput !== '' && this.startTime === null },
+    untilError() { return this.untilInput !== '' && this.endTime === null },
+  
   },
+
 }
 </script>
 
@@ -83,12 +126,30 @@ export default {
   }
 
   .field-label {
-    margin-right: 1rem;
+    margin-right: 0.5rem;
+  }
+
+  input {
+    width: auto;
   }
 }
 
 .state-filter-select .label {
   text-transform: uppercase;
   margin-right: 3em;
+}
+
+.error:not(.is-error) .uk-icon {
+  visibility: hidden;
+}
+
+.is-error {
+  input {
+    color: red;
+  }
+  .uk-icon {
+    visibility: visible;
+    color: red;
+  }
 }
 </style>

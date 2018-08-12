@@ -1,6 +1,7 @@
 {
     "editor.tabSize": 2,
     "files.exclude": {
-        "**/__pycache__": true
+        "**/__pycache__": true,
+        "work/": true
     }
 }

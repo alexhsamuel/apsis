@@ -73,7 +73,8 @@ div
 </template>
 
 <script>
-import { filter, join, map, sortBy, toPairs } from 'lodash'
+import _, { filter, join, map, sortBy, toPairs } from 'lodash'
+import moment from 'moment-timezone'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
@@ -85,12 +86,31 @@ import RunsSocket from '../RunsSocket'
 import State from './State'
 import Timestamp from './Timestamp'
 
+function minTime(run) {
+  return moment(_.min(_.filter([ 
+    run.times.schedule,
+    run.times.running,
+  ])))
+}
+
+function maxTime(run) {
+  return moment(_.max(_.filter([
+    run.times.schedule,
+    run.times.running,
+    run.times.error,
+    run.times.success,
+    run.times.failure,
+  ])))
+}
+
 export default { 
   name: 'runs',
   props: {
     job_id: String,
     jobFilter: {type: String, default: ''},
     stateFilter: {type: Array, default: () => []},
+    startTime: {default: null},
+    endTime: {default: null},
     pageSize: {type: Number, default: 20},
   },
 
@@ -127,6 +147,19 @@ export default {
       return makeStatePredicate(this.stateFilter)
     },
 
+    timePredicate() {
+      const start = this.startTime
+      const end = this.endTime
+      if (start !== null && end !== null)
+        return r => start <= maxTime(r) && minTime(r) < end
+      else if (start !== null)
+        return r => start <= maxTime(r)
+      else if (end !== null)
+        return r => minTime(r) < end
+      else
+        return r => true
+    },
+
     // Array of rerun groups, each an array of runs that are reruns of the
     // same run.  Groups are filtered by current filters, and sorted.
     rerunGroups() {
@@ -143,6 +176,7 @@ export default {
           return (
             this.statePredicate(latest) 
             && this.jobPredicate(latest)
+            && _.some(_.map(group, this.timePredicate))
           )
         }
       )
