@@ -40,11 +40,11 @@ export function parseDate(str, timeZone) {
 
   let match = str.match(/^(\d\d\d\d)-(\d\d)-(\d\d)$/)
   if (match !== null)
-    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
+    return [parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3])]
 
   match = str.match(/^(\d\d\d\d)(\d\d)(\d\d)$/)
   if (match !== null)
-    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])]
+    return [parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3])]
 
   return null
 }
@@ -67,13 +67,11 @@ export function parseDaytime(str) {
 
 export function parseTime(str, end, timeZone) {
   const parts = str.trim().split(/ +/)
-  console.log('parts', parts)
 
   if (parts.length === 0 || parts.length > 2)
     return null
 
   let date = parseDate(parts[0], timeZone)
-  console.log('date', date)
   if (date === null) 
     return null
 
