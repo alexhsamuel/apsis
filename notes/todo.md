@@ -2,6 +2,7 @@
 
 - release
   - setup.py
+  - add bin/aspis to setup.py
   - conda recipe
   - clean up old web UI
   - intro docs in README
