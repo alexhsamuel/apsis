@@ -97,7 +97,6 @@ class Router(sanic.router.Router):
         try:
             return super().get(request)
         except sanic.router.NotFound:
-            logging.info("CATCHALL")
             return self._get(self.CATCH_ALL_PATH, request.method, "")
 
 
