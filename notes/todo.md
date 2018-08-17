@@ -15,6 +15,7 @@
   - shutdown
   - reload jobs
   - restart
+- job YAML template
 - favicon
 - better rerun model
 - indicate a run/job as ad hoc
