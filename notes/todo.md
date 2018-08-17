@@ -15,6 +15,7 @@
   - shutdown
   - reload jobs
   - restart
+- change --host, --port to --bind
 - job YAML template
 - favicon
 - better rerun model
