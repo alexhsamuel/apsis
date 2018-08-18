@@ -99,7 +99,7 @@ class DailySchedule:
             daytimes = jso.pop("daytime")
         except KeyError:
             raise SchemaError("missing daytime")
-        daytimes = [daytimes] if isinstance(daytimes, str) else daytimes
+        daytimes = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
         daytimes = [ Daytime(d) for d in daytimes ]
 
         return Class(tz, calendar, daytimes, args)

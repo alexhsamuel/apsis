@@ -2,8 +2,8 @@ from   contextlib import suppress
 import os
 from   pathlib import Path
 import random
-import ruamel_yaml as yaml
 import string
+import yaml
 
 from   .lib.py import tupleize
 from   .program import program_from_jso, program_to_jso
@@ -118,7 +118,7 @@ def job_to_jso(job):
 
 
 def load_yaml(file, job_id):
-    jso = yaml.YAML(typ="safe").load(file)
+    jso = yaml.load(file)
     return jso_to_job(jso, job_id)
 
 
