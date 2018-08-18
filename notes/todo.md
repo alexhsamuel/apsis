@@ -20,6 +20,8 @@
 - time range in runs search: design it better
 - a good set of demo jobs
 - in collapsed run group, show schedule time of original job
+- change --host, --port to --bind
+- job YAML template
 - favicon
 - better rerun model
 - indicate a run/job as ad hoc
