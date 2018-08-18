@@ -1,10 +1,8 @@
 # Current
 
 - release
-  - make pip installable
   - update web UI
   - conda recipe
-  - clean up old web UI
   - intro docs in README
   - job docs
 - sudo support in programs
