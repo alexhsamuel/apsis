@@ -1,20 +1,23 @@
 # Current
 
 - release
-  - setup.py
+  - make pip installable
+  - update web UI
   - conda recipe
   - clean up old web UI
   - intro docs in README
   - job docs
-- time range in runs search
-- load live runs in the background for the whole app
-- a good set of demo jobs
-- in collapsed run group, show schedule time of original job
+- sudo support in programs
+- remote/ssh support in programs
 - control page
   - live log
   - shutdown
   - reload jobs
   - restart
+- load live runs in the background for the whole app
+- time range in runs search: design it better
+- a good set of demo jobs
+- in collapsed run group, show schedule time of original job
 - change --host, --port to --bind
 - job YAML template
 - favicon
