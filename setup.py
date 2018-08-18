@@ -45,6 +45,8 @@ setuptools.setup(
     package_data    ={"": ["test/*"]},
     data_files      =[],
     entry_points    ={},
-    # FIXME: bin/apsis
+    scripts         =[
+        "bin/apsis",
+    ],
 )
 

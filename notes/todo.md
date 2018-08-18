@@ -1,8 +1,6 @@
 # Current
 
 - release
-  - setup.py
-  - add bin/aspis to setup.py
   - make pip installable
   - update web UI
   - conda recipe
