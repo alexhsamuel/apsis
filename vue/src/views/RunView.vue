@@ -42,9 +42,17 @@
                 th {{ name }}
                 td: Timestamp(:time="time")
 
-          tr(v-for="(value, key) in run.meta" :key="key")
-            th {{ key }}
-            td(v-html="format(key, value)")
+          tr
+            th: div(style="white-space: nowrap;")
+              | metadata 
+              span(
+                v-bind:uk-icon="metadataCollapsed ? 'chevron-down' : 'chevron-right'"
+                v-on:click="metadataCollapsed = !metadataCollapsed")              
+            td.no-padding(v-show="metadataCollapsed")
+              table.fields: tbody
+                tr(v-for="(value, key) in run.meta" :key="key")
+                  th {{ key }}
+                  td(v-html="format(key, value)")
             
       h5 output
       a(v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()")
@@ -80,6 +88,7 @@ export default {
       runs_socket: null,
       run: null,
       output: null,
+      metadataCollapsed: true,
     }
   },
 
