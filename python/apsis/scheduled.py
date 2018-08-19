@@ -106,7 +106,11 @@ class ScheduledRuns:
                     else min(self.LOOP_TIME, self.__heap[0].time - now())
                 )
                 if wait > 0:
-                    await asyncio.sleep(wait)
+                    try:
+                        await asyncio.sleep(wait)
+                    except asyncio.CancelledError:
+                        log.info("scheduled loop cancelled")
+                        break
 
         except Exception:
             # FIXME: Instead of this, someone should be awaiting this task.
