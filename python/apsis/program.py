@@ -301,9 +301,13 @@ class AgentProgram:
             log.info(f"program running: {run.run_id} as {proc['proc_id']}")
 
             run_state = {
-                "proc_id"   : proc["proc_id"],
-                "pid"       : proc["pid"],
+                "proc_id"       : proc["proc_id"],
+                "pid"           : proc["pid"],
             }
+            meta.update({
+                "agent_proc_id" : proc["proc_id"],
+                "pid"           : proc["pid"],
+            })
             # FIXME: Propagate times from agent.
             # FIXME: Do this asynchronously from the agent instead.
             done = self.wait(run)
@@ -338,7 +342,10 @@ class AgentProgram:
         # FIXME: Is it "status" or is it "return code"?
         status = proc["status"]
         meta = {
-            "return_code": status,
+            "return_code"       : status,
+            "rusage"            : proc["rusage"],
+            "agent_start_time"  : proc["start_time"],
+            "agent_end_time"    : proc["end_time"],
         }            
         output = await self.__agent.get_process_output(proc_id)
         outputs = program_outputs(output)
