@@ -474,6 +474,16 @@ cmd.add_argument(
     "args", metavar="NAME=VAL", type=parse_arg, nargs="*",
     help="run JOB-ID with NAME=VAL")
 
+#--- command: shut_down --------------------------------------------------------
+
+def cmd_shut_down(client, args):
+    client.shut_down()
+
+
+cmd = add_command(
+    "shut_down", cmd_shut_down,
+    description="Shuts down the Apsis service.")
+
 #--- test commands -------------------------------------------------------------
 
 def cmd_test0(client, args):

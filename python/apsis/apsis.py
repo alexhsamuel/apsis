@@ -39,6 +39,8 @@ class Apsis:
         self.scheduled = ScheduledRuns(db.clock_db, self.__start)
         # For now, expose the output database directly.
         self.outputs = db.output_db
+        # Tasks for running jobs currently awaited.
+        self.__running_tasks = {}
 
         # Restore scheduled runs from DB.
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
@@ -55,6 +57,9 @@ class Apsis:
         stop_time = db.clock_db.get_time()
         log.info(f"scheduling runs from {stop_time}")
         self.scheduler = Scheduler(self.jobs, self.schedule, stop_time)
+
+        # Set up the scheduler.
+        self.__scheduler_task = asyncio.ensure_future(self.scheduler.loop())
 
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
@@ -104,7 +109,12 @@ class Apsis:
     def __wait(self, run, future):
         def done(future):
             try:
-                success = future.result()
+                try:
+                    success = future.result()
+                except asyncio.CancelledError:
+                    log.info(
+                        f"canceled waiting for run to complete: {run.run_id}")
+                    return
 
             except ProgramFailure as exc:
                 # Program ran and failed.
@@ -135,6 +145,9 @@ class Apsis:
                     outputs =success.outputs,
                 )
 
+            del self.__running_tasks[run.run_id]
+
+        self.__running_tasks[run.run_id] = future
         future.add_done_callback(done)
         # FIXME: Don't just drop the future?
 
@@ -247,5 +260,29 @@ class Apsis:
         await self.schedule(time, new_run)
         return new_run
 
+
+    async def shut_down(self):
+        log.info("shutting down")
+
+        for run_id, task in self.__running_tasks.items():
+            if task.cancelled():
+                log.info(f"task for {run_id} already cancelled")
+            else:
+                log.info(f"canceling task for {run_id}")
+                task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                log.info(f"task for {run_id} canceled successfully")
+
+        self.__scheduler_task.cancel()
+        try:
+            await self.__scheduler_task
+        except asyncio.CancelledError:
+            log.info("scheduler canceled")
+
+        log.info("done shutting down")
+        asyncio.get_event_loop().stop()
+        
 
 

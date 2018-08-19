@@ -8,7 +8,7 @@ import sanic.router
 import time
 import websockets
 
-from   . import api
+from   . import api, control
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import JobsDir
@@ -107,6 +107,8 @@ app.config.LOGO = None
 top_dir = Path(__file__).parents[3]
 
 app.blueprint(api.API, url_prefix="/api/v1")
+app.blueprint(control.API, url_prefix="/control")
+
 # The SPA.
 app.static("/index.html", str(top_dir / "vue" / "dist" / "index.html"))
 # Web assets.
@@ -171,9 +173,6 @@ def main():
 
     app.apsis   = apsis
     app.running = True
-
-    # Set up the scheduler.
-    asyncio.ensure_future(apsis.scheduler.loop())
 
     # Set up the HTTP server.
     server  = app.create_server(
