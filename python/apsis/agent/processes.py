@@ -94,8 +94,6 @@ def start(argv, cwd, env, stdin_fd, out_fd):
         try:
             exit_pid, status = os.waitpid(pid, 0)
             assert exit_pid == pid
-            # FIXME: Do we care about the status?
-            # return_code = convert_status(status)
         except ChildProcessError:
             # FIXME: Log something?
             pass

@@ -23,6 +23,25 @@ def join_args(argv):
     return " ".join( shlex.quote(a) for a in argv )
 
 
+def convert_status(status):
+    """
+    Converts a status value from POSIX `wait()` and friends to a Python-style
+    return code.
+
+    :param status:
+      A process status, of the form `(return_code << 8) | signum`.
+    :return:
+      Python-style return code, with -signum if terminated by a signal.
+    """
+    signum = status & 0xff
+    return_code = status >> 8
+    if signum == 0:
+        return return_code
+    else:
+        assert return_code == 0
+        return -signum
+
+
 #-------------------------------------------------------------------------------
 
 class OutputMetadata:
@@ -220,7 +239,7 @@ class ProcessProgram:
             return ProgramSuccess(meta=meta, outputs=outputs)
 
         else:
-            message = f"program failed: status {return_code}"
+            message = f"program failed: return code {return_code}"
             raise ProgramFailure(message, meta=meta, outputs=outputs)
 
 
@@ -339,10 +358,9 @@ class AgentProgram:
             else:
                 break
 
-        # FIXME: Is it "status" or is it "return code"?
-        status = proc["status"]
+        return_code = convert_status(proc["status"])
         meta = {
-            "return_code"       : status,
+            "return_code"       : return_code,
             "rusage"            : proc["rusage"],
             "agent_start_time"  : proc["start_time"],
             "agent_end_time"    : proc["end_time"],
@@ -351,12 +369,12 @@ class AgentProgram:
         outputs = program_outputs(output)
 
         try:
-            if status == 0:
+            if return_code == 0:
                 log.info(f"program success: {run.run_id}")
                 return ProgramSuccess(meta=meta, outputs=outputs)
 
             else:
-                message = f"program failed: status {status}"
+                message = f"program failed: return code {return_code}"
                 log.info(f"program failed: {run.run_id}: {message}")
                 raise ProgramFailure(message, meta=meta, outputs=outputs)
 
