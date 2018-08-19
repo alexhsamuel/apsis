@@ -42,18 +42,19 @@
                 th {{ name }}
                 td: Timestamp(:time="time")
 
-          tr
+          tr(
+            v-on:click="metadataCollapsed = !metadataCollapsed"
+          )
             th: div(style="white-space: nowrap;")
               | metadata 
-              span(
-                v-bind:uk-icon="metadataCollapsed ? 'chevron-down' : 'chevron-right'"
-                v-on:click="metadataCollapsed = !metadataCollapsed")              
-            td.no-padding(v-show="metadataCollapsed")
+            td(v-if="metadataCollapsed")
+              div(uk-icon="chevron-right")
+            td.no-padding(v-else)
               table.fields: tbody
                 tr(v-for="(value, key) in run.meta" :key="key")
                   th {{ key }}
                   td(v-html="format(key, value)")
-            
+
       h5 output
       a(v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()")
         | (load {{ run.output_len }} bytes)
