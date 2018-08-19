@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
+import ControlView  from '@/views/ControlView'
 import JobView      from '@/views/JobView'
 import JobsList     from '@/views/JobsView'
 import Overview     from '@/views/Overview'
@@ -16,6 +17,12 @@ export default new Router({
       path: '/',
       name: 'Overvue',
       component: Overview,
+    },
+    {
+      path: '/control',
+      props: false,
+      name: 'control',
+      component: ControlView,
     },
     {
       path: '/jobs/:job_id',

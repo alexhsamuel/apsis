@@ -17,6 +17,7 @@ nav.uk-navbar-container.uk-navbar
     ul.uk-navbar-nav
       li: router-link(to="/jobs") Jobs
       li: router-link(to="/runs") Runs
+      li: router-link(to="/control") Control
 
   .uk-navbar-right
     .uk-navbar-item 
