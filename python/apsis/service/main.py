@@ -174,9 +174,6 @@ def main():
     app.apsis   = apsis
     app.running = True
 
-    # Set up the scheduler.
-    asyncio.ensure_future(apsis.scheduler.loop())
-
     # Set up the HTTP server.
     server  = app.create_server(
         host        =args.host,

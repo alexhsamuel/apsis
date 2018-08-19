@@ -58,6 +58,9 @@ class Apsis:
         log.info(f"scheduling runs from {stop_time}")
         self.scheduler = Scheduler(self.jobs, self.schedule, stop_time)
 
+        # Set up the scheduler.
+        self.__scheduler_task = asyncio.ensure_future(self.scheduler.loop())
+
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
         for run in running_runs:
@@ -260,10 +263,16 @@ class Apsis:
             try:
                 await task
             except asyncio.CancelledError:
-                log.info(f"task for {run_id} cancelled successfully")
+                log.info(f"task for {run_id} canceled successfully")
 
-        # FIXME: Cancel scheduler task.
+        self.__scheduler_task.cancel()
+        try:
+            await self.__scheduler_task
+        except asyncio.CancelledError:
+            log.info("scheduler canceled")
 
         log.info("done shutting down")
         asyncio.get_event_loop().stop()
         
+
+

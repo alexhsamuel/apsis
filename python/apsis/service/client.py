@@ -23,7 +23,7 @@ class Client:
         return urlunparse((
             "http",
             f"{self.__host}:{self.__port}",
-            "/".join(("api", "v1", *path)),
+            "/".join(path),
             "",
             query,
             "",
@@ -47,19 +47,19 @@ class Client:
 
 
     def get_job(self, job_id):
-        return self.__get("jobs", job_id)
+        return self.__get("/api/v1/jobs", job_id)
 
 
     def get_job_runs(self, job_id):
-        return self.__get("jobs", job_id, "runs")["runs"]
+        return self.__get("/api/v1/jobs", job_id, "runs")["runs"]
 
 
     def get_jobs(self):
-        return self.__get("jobs")
+        return self.__get("/api/v1/jobs")
 
 
     def get_output(self, run_id, output_id) -> bytes:
-        url = self.__url("runs", run_id, "output", output_id)
+        url = self.__url("/api/v1/runs", run_id, "output", output_id)
         logging.debug(f"GET {url}")
         resp = requests.get(url)
         resp.raise_for_status()
@@ -69,7 +69,7 @@ class Client:
     def get_runs(self, *, job_id=None, state=None, reruns=False,
                  since=None, until=None):
         return self.__get(
-            "runs",
+            "/api/v1/runs",
             job_id  =job_id,
             state   =state,
             reruns  =reruns,
@@ -77,11 +77,11 @@ class Client:
 
 
     def get_run(self, run_id):
-        return self.__get("runs", run_id)["runs"][run_id]
+        return self.__get("/api/v1/runs", run_id)["runs"][run_id]
 
 
     def rerun(self, run_id):
-        run, = self.__post("runs", run_id, "rerun", data={})["runs"].values()
+        run, = self.__post("/api/v1/runs", run_id, "rerun", data={})["runs"].values()
         return run
 
 
@@ -100,7 +100,7 @@ class Client:
                 "schedule": time,
             }
         }
-        runs = self.__post("runs", data=data)["runs"]
+        runs = self.__post("/api/v1/runs", data=data)["runs"]
         return next(iter(runs.values()))
 
 
@@ -112,7 +112,7 @@ class Client:
                 "schedule": time,
             },
         }
-        runs = self.__post("runs", data=data)["runs"]
+        runs = self.__post("/api/v1/runs", data=data)["runs"]
         return next(iter(runs.values()))
 
 
@@ -137,5 +137,9 @@ class Client:
         """
         return self.__schedule(time, {"program": str(command)})
         
+
+    def shut_down(self):
+        self.__post("/control/shut_down", data={})
+
 
 
