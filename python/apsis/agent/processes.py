@@ -18,6 +18,15 @@ log = logging.getLogger("processes")
 
 MAX_EXC_SIZE = 1048576
 
+class NoSuchProcessError(LookupError):
+
+    def __init__(self, proc_id):
+        super().__init__(f"no such process: {proc_id}")
+
+
+
+#-------------------------------------------------------------------------------
+
 def start(argv, cwd, env, stdin_fd, out_fd):
     """
     Starts a program in a subprocess.
@@ -341,14 +350,14 @@ class Processes:
         try:
             return self.__procs[proc_id]
         except KeyError:
-            raise LookupError(f"proc_id not found: {proc_id}")
+            raise NoSuchProcessError(proc_id)
 
 
     def __delitem__(self, proc_id):
         try:
             proc = self.__procs[proc_id]
         except KeyError:
-            raise LookupError(f"proc_id not found: {proc_id}")
+            raise NoSuchProcessError(proc_id)
 
         if proc.state == "run":
             raise RuntimeError(f"process is running: {proc_id}")

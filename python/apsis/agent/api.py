@@ -4,6 +4,8 @@ import sanic
 import traceback
 import ujson
 
+from   .processes import NoSuchProcessError
+
 log = logging.getLogger("api")
 
 #-------------------------------------------------------------------------------
@@ -15,6 +17,16 @@ def response(jso, status=200):
         headers={"Content-Type": "application/json"},
         status=status,
     )
+
+
+def error(msg, status):
+    return response({"error": str(msg)}, status=status)
+
+
+def exc_error(exc, status, log=None):
+    if log is not None:
+        log(traceback.format_exc().rstrip())
+    return error(str(exc), status)
 
 
 def rusage_to_jso(rusage):
@@ -48,16 +60,19 @@ def proc_to_jso(proc):
 
 API = sanic.Blueprint("v1")
 
+@API.exception(NoSuchProcessError)
+def no_such_process_error(request, exception):
+    return exc_error(exception, 404)
+
+
 @API.exception(RuntimeError)
 def runtime_error(request, exception):
-    log.error("exception:\n" + traceback.format_exc().rstrip())
-    return response({"error": str(exception)}, 400)
+    return exc_error(exception, 400, log=log.error)
 
 
 @API.exception(Exception)
-def exception(request, exception):
-    log.error("exception:\n" + traceback.format_exc().rstrip())
-    return response({"error": str(exception)}, 500)
+def exception_(request, exception):
+    return exc_error(exception, 500, log=log.error)
 
 
 @API.route("/processes", methods={"GET"})
