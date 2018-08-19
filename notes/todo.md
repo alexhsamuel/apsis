@@ -56,6 +56,7 @@
 - web UI reconnects web socket automatically
 - indicate in web UI when a job started late
 - move schedule time out of times; rename times → timestamps
+- have agent attempt to recover orphaned processes
 
 
 # Old

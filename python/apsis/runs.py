@@ -45,7 +45,7 @@ class Run:
         STATE.new       : set(),
         STATE.scheduled : {STATE.new},
         STATE.running   : {STATE.new, STATE.scheduled},
-        STATE.error     : {STATE.new, STATE.scheduled},
+        STATE.error     : {STATE.new, STATE.scheduled, STATE.running},
         STATE.success   : {STATE.running},
         STATE.failure   : {STATE.running},
     }

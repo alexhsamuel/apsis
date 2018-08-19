@@ -6,7 +6,7 @@ from   pathlib import Path
 import shlex
 import socket
 
-from   .agent.client import Agent
+from   .agent.client import Agent, NoSuchProcessError
 from   .lib.json import Typed, no_unexpected_keys
 
 log = logging.getLogger(__name__)
@@ -325,7 +325,11 @@ class AgentProgram:
         POLL_INTERVAL = 1
         while True:
             log.debug(f"polling proc: {proc_id}")
-            proc = await self.__agent.get_process(proc_id)
+            try:
+                proc = await self.__agent.get_process(proc_id)
+            except NoSuchProcessError:
+                # Agent doens't know about this process anymore.
+                raise ProgramError(f"program lost: {run.run_id}")
             if proc["state"] == "run":
                 await asyncio.sleep(POLL_INTERVAL)
             else:

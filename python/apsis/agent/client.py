@@ -9,6 +9,15 @@ log = logging.getLogger("agent.client")
 
 #-------------------------------------------------------------------------------
 
+class NoSuchProcessError(LookupError):
+
+    def __init__(self, proc_id):
+        super().__init__(f"no such process: {proc_id}")
+
+
+
+#-------------------------------------------------------------------------------
+
 class Agent:
 
     # Number of attempts to start the agent, if a request fails.
@@ -43,6 +52,8 @@ class Agent:
           API endpoint path fragment.
         :param data:
           Payload data, to send as JSON.
+        :return:
+          The response, if the status code is 2xx or 4xx.
         """
         url = self.url + endpoint
         log.debug(f"{method} {url}")
@@ -62,16 +73,16 @@ class Agent:
                 break
 
         log.debug(f"{method} {url} -> {rsp.status_code}")
-        if 400 <= rsp.status_code < 500:
-            raise RuntimeError(rsp.json()["error"])
+        if 200 <= rsp.status_code < 300 or 400 <= rsp.status_code < 500:
+            return rsp
         else:
             rsp.raise_for_status()
 
-        return rsp
-
 
     async def get_processes(self):
-        return (await self.request("GET", "/processes")).json()["processes"]
+        rsp = await self.request("GET", "/processes")
+        rsp.raise_for_status()
+        return rsp.json()["processes"]
 
 
     async def start_process(self, argv, cwd="/", env=None, stdin=None):
@@ -81,7 +92,7 @@ class Agent:
         :return:
           The new process, which will either be in state "rub" or "err".
         """
-        return (await self.request(
+        rsp = await self.request(
             "POST", "/processes", data={
                 "program": {
                     "argv"  : [ str(a) for a in argv ],
@@ -89,44 +100,52 @@ class Agent:
                     "env"   : env,
                     "stdin" : stdin,
                 },
-            })
-        ).json()["process"]
+            }
+        )
+        rsp.raise_for_status()
+        return rsp.json()["process"]
 
 
     async def get_process(self, proc_id):
         """
         Returns inuformation about a process.
         """
-        return (
-            await self.request("GET", f"/processes/{proc_id}")
-        ).json()["process"]
+        rsp = await self.request("GET", f"/processes/{proc_id}")
+        if rsp.status_code == 404:
+            raise NoSuchProcessError(proc_id)
+        rsp.raise_for_status()
+        return rsp.json()["process"]
 
 
     async def get_process_output(self, proc_id) -> bytes:
         """
         Returns process output.
         """
-        return (
-            await self.request("GET", f"/processes/{proc_id}/output")
-        ).content
+        rsp = await self.request("GET", f"/processes/{proc_id}/output")
+        if rsp.status_code == 404:
+            raise NoSuchProcessError(proc_id)
+        rsp.raise_for_status()
+        return rsp.content
 
 
     async def del_process(self, proc_id):
         """
         Deltes a process.  The process may not be running.
         """
-        return (
-            await self.request("DELETE", f"/processes/{proc_id}")
-        ).json()["shutdown"]
+        rsp = await self.request("DELETE", f"/processes/{proc_id}")
+        if rsp.status_code == 404:
+            raise NoSuchProcessError(proc_id)
+        rsp.raise_for_status()
+        return rsp.json()["shutdown"]
 
 
     async def shut_down(self):
         """
         Shuts down an agent, if there are no remaining processes.
         """
-        return (
-            await self.request("POST", f"/shutdown")
-        ).json()["shutdown"]
+        rsp = await self.request("POST", f"/shutdown")
+        rsp.raise_for_status()
+        return rsp.json()["shutdown"]
 
 
 

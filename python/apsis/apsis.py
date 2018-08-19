@@ -116,6 +116,16 @@ class Apsis:
                     outputs =exc.outputs,
                 )
 
+            except ProgramError as exc:
+                # Program failed to start.
+                self._transition(
+                    run, run.STATE.error, 
+                    message =exc.message,
+                    meta    =exc.meta,
+                    times   =exc.times,
+                    outputs =exc.outputs,
+                )
+
             else:
                 # Program ran and completed successfully.
                 self._transition(
