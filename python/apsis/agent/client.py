@@ -26,8 +26,14 @@ class Agent:
     # Delay after starting the agent before a request is sent.
     START_DELAY = 0.25
 
-    def __init__(self, host="localhost", port=DEFAULT_PORT):
+    def __init__(self, host="localhost", port=DEFAULT_PORT, start=True):
+        """
+        :param start:
+          If true, the client will attempt to start an agent automatically
+          whenever the agent cannot be reached.
+        """
         self.url = f"http://{host}:{port}/api/v1"
+        self.__start = bool(start)
 
 
     async def start(self):
@@ -64,8 +70,10 @@ class Agent:
             try:
                 rsp = requests.request(method, url, json=data)
             except requests.ConnectionError:
-                if i == self.START_TRIES:
-                    break
+                if not self.__start:
+                    raise RuntimeError("no agent")
+                elif i == self.START_TRIES:
+                    raise RuntimeError(f"failed to start agent in {i} tries")
                 else:
                     await self.start()
                     await asyncio.sleep(self.START_DELAY)
