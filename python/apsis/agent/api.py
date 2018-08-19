@@ -50,6 +50,8 @@ def proc_to_jso(proc):
         "pid"       : proc.pid,
         "exception" : str(proc.exception),
         "status"    : proc.status,
+        "return_code": proc.return_code,
+        "signal"    : proc.signal,
         "rusage"    : None if proc.rusage is None else rusage_to_jso(proc.rusage),
         "start_time": None if proc.start_time is None else str(proc.start_time),
         "end_time"  : None if proc.end_time is None else str(proc.end_time),

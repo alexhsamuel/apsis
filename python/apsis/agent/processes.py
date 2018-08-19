@@ -235,6 +235,29 @@ class Processes:
             self.end_time   = None
 
 
+        @property
+        def return_code(self):
+            """
+            The process's return code, or `None`.
+            """
+            return (
+                None if self.status is None
+                else os.WEXITSTATUS(self.status) if os.WIFEXITED(self.status) 
+                else None
+            )
+
+
+        @property
+        def signal(self):
+            return (
+                None if self.status is None
+                else signal.Signals(os.WTERMSIG(self.status)).name 
+                if os.WIFSIGNALED(self.status)
+                else None
+            )
+
+
+
     def __init__(self, dir_path: Path):
         # FIXME: mkdir here?
         self.__dir_path = dir_path
