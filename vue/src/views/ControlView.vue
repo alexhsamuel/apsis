@@ -14,21 +14,19 @@ div
 import _ from 'lodash'
 import uikit from 'uikit'
 
-import LiveLog from '@/LiveLog.js'
+import store from '@/store.js'
 
 export default {
   props: [],
 
   data() {
     return {
-      liveLog: null,
-      logLines: [],
-      MAX_LOG_LINES: 1000,
+      store,
     }
   },
 
   computed: {
-    log() { return _.join(this.logLines, '\n') + '\n' },
+    log() { return _.join(this.store.state.logLines, '\n') + '\n' },
   },
 
   methods: {
@@ -45,24 +43,8 @@ export default {
         }, 
         () => null)
     },
-
-    join: _.join,
   },
 
-  created() {
-    const t = this
-    this.liveLog = new LiveLog()
-    console.log(this.liveLog)
-    try {
-      this.liveLog.open((line) => { 
-        t.logLines.push(line)
-        if (t.logLines.length > t.MAX_LOG_LINES)
-          t.logLines.splice(0, 1)
-      })
-    } catch (exc) {
-      console.log('error opening log socket:', exc)
-    }
-  },
 }
 </script>
 

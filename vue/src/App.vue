@@ -6,13 +6,31 @@
 </template>
 
 <script>
-import navbar from './components/navbar'
+import navbar from '@/components/navbar'
+import LiveLog from '@/LiveLog.js'
+import store from '@/store.js'
 
 export default {
   name: 'App',
   components: {
     navbar,
-  }
+  },
+
+  data() {
+    return {
+      liveLog: null,
+      store,
+    }
+  },
+
+  created() {
+    this.liveLog = new LiveLog(this.store.state.logLines, 1000)
+  },
+
+  destroyed() {
+    this.liveLog.close()
+  },
+
 }
 </script>
 

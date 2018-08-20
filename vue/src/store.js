@@ -2,6 +2,7 @@ class Store {
   state = {
     time: new Date(),
     timeZone: 'UTC',
+    logLines: [],
   }
 
   setTime(time) {
