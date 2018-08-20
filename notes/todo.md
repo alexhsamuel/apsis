@@ -11,6 +11,9 @@
   - live log
   - reload jobs
   - restart
+  - auto-scroll to bottom of log
+  - reconnect live log when disconnected
+  - show toast when live log disconnected
 - load live runs in the background for the whole app
 - time range in runs search: design it better
 - a good set of demo jobs
