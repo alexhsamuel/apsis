@@ -20,6 +20,7 @@
 - favicon
 - better rerun model
 - indicate a run/job as ad hoc
+- in runs list, break out args into columns if showing only one job, or if runs have mostly the same params
 - prevent the same instance from running more than once... HOW?
 - gzip output
   - in agent
