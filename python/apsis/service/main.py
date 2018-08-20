@@ -114,7 +114,7 @@ app.static("/index.html", str(top_dir / "vue" / "dist" / "index.html"))
 # Web assets.
 app.static("/static", str(top_dir / "vue" / "dist" / "static"))
 
-@app.websocket("/log")
+@app.websocket("/api/log")
 async def websocket_log(request, ws):
     queue = WS_HANDLER.register()
     try:
