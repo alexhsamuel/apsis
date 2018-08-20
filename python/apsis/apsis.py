@@ -33,6 +33,7 @@ class Apsis:
     """
 
     def __init__(self, jobs, db):
+        log.info("creating Apsis instance")
         self.__db = db
         self.jobs = Jobs(jobs, db.job_db)
         self.runs = Runs(db.run_db)
@@ -43,6 +44,7 @@ class Apsis:
         self.__running_tasks = {}
 
         # Restore scheduled runs from DB.
+        log.info("restoring scheduled runs")
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
         for run in scheduled_runs:
             if run.expected:
@@ -59,14 +61,18 @@ class Apsis:
         self.scheduler = Scheduler(self.jobs, self.schedule, stop_time)
 
         # Set up the scheduler.
+        log.info("starting scheduler task")
         self.__scheduler_task = asyncio.ensure_future(self.scheduler.loop())
 
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
+        log.info(f"reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
             future = run.program.reconnect(run)
             self.__wait(run, future)
+
+        log.info("Apsis instance ready")
 
 
     def __get_program(self, run):

@@ -183,7 +183,7 @@ class RunDB:
     @staticmethod
     def __query_runs(conn, expr):
         query = sa.select([TBL_RUNS]).where(expr)
-        log.info(str(query).replace("\n", " "))
+        log.debug(str(query).replace("\n", " "))
 
         cursor = conn.execute(query)
         for (

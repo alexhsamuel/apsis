@@ -1,5 +1,9 @@
 <template lang="pug">
 div
+  div
+    div.field-label Server log
+    pre.log {{ log }}
+
   div.buttons
     p.uk-margin
       button.uk-button.uk-button-danger(v-on:click="shutDown()") Shut Down
@@ -7,10 +11,23 @@ div
 </template>
 
 <script>
+import _ from 'lodash'
 import uikit from 'uikit'
+
+import store from '@/store.js'
 
 export default {
   props: [],
+
+  data() {
+    return {
+      store,
+    }
+  },
+
+  computed: {
+    log() { return _.join(this.store.state.logLines, '\n') + '\n' },
+  },
 
   methods: {
     shutDown() {
@@ -27,8 +44,14 @@ export default {
         () => null)
     },
   },
+
 }
 </script>
 
 <style lang="scss" scoped>
+.log {
+  height: 32em;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
 </style>
