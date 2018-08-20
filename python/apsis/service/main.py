@@ -107,7 +107,7 @@ app.config.LOGO = None
 top_dir = Path(__file__).parents[3]
 
 app.blueprint(api.API, url_prefix="/api/v1")
-app.blueprint(control.API, url_prefix="/control")
+app.blueprint(control.API, url_prefix="/api/control")
 
 # The SPA.
 app.static("/index.html", str(top_dir / "vue" / "dist" / "index.html"))

@@ -139,7 +139,7 @@ class Client:
         
 
     def shut_down(self):
-        self.__post("/control/shut_down", data={})
+        self.__post("/api/control/shut_down", data={})
 
 
 

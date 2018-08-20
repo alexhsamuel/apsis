@@ -7,15 +7,24 @@ div
 </template>
 
 <script>
+import uikit from 'uikit'
+
 export default {
   props: [],
 
   methods: {
     shutDown() {
-      const url = '/control/shut_down'
-      fetch(url, {method: 'POST', body: '{}'})
-        .then((response) => response.json() )
-        .then((response) => { console.log('response!') })
+      const url = '/api/control/shut_down'
+      uikit.modal.confirm('Shut down the Apsis server?').then(
+        () => { 
+          fetch(url, {method: 'POST', body: '{}'})
+            .then((response) => response.json() )
+            .then((response) => {
+              // FIXME: Do something reasonable here.
+              console.log('shut down') 
+            })
+        }, 
+        () => null)
     },
   },
 }

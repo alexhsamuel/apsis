@@ -20,10 +20,6 @@ module.exports = {
          target: 'ws://localhost:5000',
          ws: true
       },
-      '/control': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
     },
 
     // Various Dev Server settings

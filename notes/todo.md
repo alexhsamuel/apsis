@@ -9,7 +9,6 @@
 - remote/ssh support in programs
 - control page
   - live log
-  - shutdown
   - reload jobs
   - restart
 - load live runs in the background for the whole app
