@@ -6,6 +6,7 @@ import sanic
 import sanic.response
 import sanic.router
 import time
+import ujson as json
 import websockets
 
 from   . import api, control
@@ -29,21 +30,30 @@ class QueueHandler(logging.Handler):
     Publishes formatted log messages to registered async queues.
     """
 
-    def __init__(self, formatter=None):
+    def __init__(self, length=1000, formatter=None):
         if formatter is None:
             formatter = logging.Formatter()
 
         super().__init__()
         self.__formatter = formatter
+        self.__length = length
+        self.__buffer = []
         self.__queues = []
 
 
-    def register(self) -> asyncio.Queue:
+    def register(self, length=None) -> asyncio.Queue:
         """
         Returns a new queue, to which log records will be published.
         """
+        length = self.__length if length is None else min(self.__length, length)
+
         queue = asyncio.Queue()
         self.__queues.append(queue)
+
+        # Send old messages.
+        lines = self.__buffer[-length :]
+        queue.put_nowait(lines)
+
         return queue
 
 
@@ -55,15 +65,21 @@ class QueueHandler(logging.Handler):
 
 
     def emit(self, record):
-        data = self.__formatter.format(record)
+        line = self.__formatter.format(record)
+
+        # Store the log line in the buffer, for later connections.
+        self.__buffer.append(line)
+        if len(self.__buffer) > self.__length:
+            del self.__buffer[: -self.__length]
+
         for queue in list(self.__queues):
             try:
-                queue.put_nowait(data)
+                queue.put_nowait([line])
             except asyncio.QueueFull:
                 pass
 
 
-WS_HANDLER = QueueHandler(LOG_FORMATTER)
+WS_HANDLER = QueueHandler(10000, LOG_FORMATTER)
 
 #-------------------------------------------------------------------------------
 
@@ -119,8 +135,10 @@ async def websocket_log(request, ws):
     queue = WS_HANDLER.register()
     try:
         while True:
+            lines = await queue.get()
+            data = json.dumps(lines)
             try:
-                await ws.send(await queue.get())
+                await ws.send(data)
             except websockets.ConnectionClosed:
                 break
     finally:
