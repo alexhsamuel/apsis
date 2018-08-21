@@ -11,6 +11,8 @@
   - reload jobs
   - restart
   - auto-scroll live logs to bottom
+  - reconnect live log when disconnected
+  - show toast when live log disconnected
 - load live runs in the background for the whole app
 - time range in runs search: design it better
 - a good set of demo jobs
@@ -20,6 +22,7 @@
 - favicon
 - better rerun model
 - indicate a run/job as ad hoc
+- in runs list, break out args into columns if showing only one job, or if runs have mostly the same params
 - prevent the same instance from running more than once... HOW?
 - gzip output
   - in agent

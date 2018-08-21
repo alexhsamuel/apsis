@@ -100,17 +100,22 @@ export default {
   &:not(.hidden):hover {
     border-color: #aaa;
   }
+
+  &.current {
+    background-color: #0a5;
+    border-color: #0a5;
+    color: white;
+
+    &:hover {
+      border-color: #0a5;
+    }
+  }
+
 }
 
 // Adjust vertical positioning of icons.
 .uk-icon svg {
   padding-bottom: 0.2rem;
-}
-
-.link.current {
-  background-color: #0a5;
-  border-color: #0a5;
-  color: white;
 }
 
 .hidden {
