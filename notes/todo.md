@@ -10,6 +10,7 @@
 - control page
   - reload jobs
   - restart
+  - clear live logs when reconnecting
   - auto-scroll live logs to bottom
   - reconnect live log when disconnected
   - show toast when live log disconnected
