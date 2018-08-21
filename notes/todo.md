@@ -8,9 +8,9 @@
 - sudo support in programs
 - remote/ssh support in programs
 - control page
-  - live log
   - reload jobs
   - restart
+  - auto-scroll live logs to bottom
 - load live runs in the background for the whole app
 - time range in runs search: design it better
 - a good set of demo jobs
