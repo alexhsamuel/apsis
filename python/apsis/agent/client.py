@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import requests
 import sys
 
@@ -26,22 +27,36 @@ class Agent:
     # Delay after starting the agent before a request is sent.
     START_DELAY = 0.25
 
-    def __init__(self, host="localhost", port=DEFAULT_PORT, start=True):
+    # FIXME: This is not the best.
+    REMOTE_AGENT = f"env PYTHONPATH={os.environ.get('PYTHONPATH', '')} {sys.executable} -m apsis.agent.main"
+
+    def __init__(self, host=None, port=DEFAULT_PORT, start=True):
         """
+        :param host:
+          Host to run on, or `None` for local.
         :param start:
           If true, the client will attempt to start an agent automatically
           whenever the agent cannot be reached.
         """
-        self.url = f"http://{host}:{port}/api/v1"
+        self.__host = host
+        self.__port = port
         self.__start = bool(start)
+
+        url_host = "localhost" if host is None else host
+        self.url = f"http://{url_host}:{port}/api/v1"
 
 
     async def start(self):
         """
         Attempts to start the agent.
         """
-        log.info("starting agent")
-        argv = [sys.executable, "-m", "apsis.agent.main"]
+        log.info(f"starting agent on {self.__host}")
+
+        if self.__host is None:
+            argv = [sys.executable, "-m", "apsis.agent.main"]
+        else:
+            argv = ["/usr/bin/ssh", "-q", self.__host, self.REMOTE_AGENT]
+
         proc = await asyncio.create_subprocess_exec(*argv)
         await proc.communicate()
         if proc.returncode != 0:

@@ -3,12 +3,13 @@ params: [host]
 program: ping -n -c 1 {{ host }}
 
 schedule:
-  - enabled: True
+  - enabled: False
     type: interval
     args: {host: "google.com"}
     interval: 7200
 
-  - type: interval
+  - enabled: False
+    type: interval
     args: {host: "tudor.com"}
     interval: 3600
 
