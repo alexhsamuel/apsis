@@ -1,0 +1,18 @@
+params: [message, host]
+
+metadata:
+  description: Test job that runs a program on a remote host.
+
+schedule:
+- args: {message: "Hello from purslane.", host: purslane.local}
+  tz: US/Eastern
+  daytime:
+  - 12:00:00
+
+program: 
+  type: program
+  argv: 
+  - /Users/alex/dev/apsis/jobs/test0 
+  - "{{ message }}"
+  host: "{{ host }}"
+
