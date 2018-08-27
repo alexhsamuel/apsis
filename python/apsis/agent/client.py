@@ -65,7 +65,7 @@ class Agent:
     # Delay after starting the agent before a request is sent.
     START_DELAY = 0.25
 
-    def __init__(self, host=None, port=DEFAULT_PORT, start=True):
+    def __init__(self, host=None, user=None, port=DEFAULT_PORT, start=True):
         """
         :param host:
           Host to run on, or `None` for local.
@@ -74,6 +74,7 @@ class Agent:
           whenever the agent cannot be reached.
         """
         self.__host = host
+        self.__user = user
         self.__port = port
         self.__start = bool(start)
 

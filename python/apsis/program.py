@@ -260,11 +260,12 @@ class ShellCommandProgram(ProcessProgram):
 
 class AgentProgram:
 
-    def __init__(self, argv, *, host=None):
+    def __init__(self, argv, *, host=None, user=None):
         self.__argv = tuple( str(a) for a in argv )
         self.__host = or_none(str)(host)
+        self.__user = or_none(str)(user)
         # FIXME: Take agents from a pool rather than one per program.
-        self.__agent = Agent(host=self.__host)
+        self.__agent = Agent(host=self.__host, user=self.__user)
 
 
     def __str__(self):
@@ -273,20 +274,26 @@ class AgentProgram:
 
     def bind(self, args):
         argv = tuple( template_expand(a, args) for a in self.__argv )
-        host = template_expand(self.__host, args)
-        return type(self)(argv, host=host)
+        host = or_none(template_expand)(self.__host, args)
+        user = or_none(template_expand)(self.__user, args)
+        return type(self)(argv, host=host, user=user)
 
 
     def to_jso(self):
         return {
             "argv"      : list(self.__argv),
             "host"      : self.__host,
+            "user"      : self.__user,
         }
 
 
     @classmethod
     def from_jso(Class, jso):
-        return Class(jso.pop("argv"), host=jso.pop("host", None))
+        return Class(
+            jso.pop("argv"), 
+            host=jso.pop("host", None),
+            user=jso.pop("user", None),
+        )
 
 
     async def start(self, run):
@@ -382,17 +389,18 @@ class AgentProgram:
                                         
 class AgentShellProgram(AgentProgram):
 
-    def __init__(self, command, *, host=None):
+    def __init__(self, command, **kw_args):
         command = str(command)
         argv = ["/bin/bash", "-c", command]
-        super().__init__(argv, host=host)
+        super().__init__(argv, **kw_args)
         self.__command = command
 
 
     def bind(self, args):
         command = template_expand(self.__command, args)
         host = or_none(template_expand)(self._AgentProgram__host, args)
-        return type(self)(command, host=host)
+        user = or_none(template_expand)(self._AgentProgram__user, args)
+        return type(self)(command, host=host, user=user)
 
 
     def __str__(self):
@@ -400,15 +408,19 @@ class AgentShellProgram(AgentProgram):
 
 
     def to_jso(self):
-        return {
-            "command"   : self.__command,
-            "host"      : self._AgentProgram__host,
-        }
+        jso = super().to_jso()
+        del jso["argv"]
+        jso["command"] = self.__command
+        return jso
 
 
     @classmethod
     def from_jso(Class, jso):
-        return Class(jso.pop("command"), host=jso.pop("host", None))
+        return Class(
+            jso.pop("command"),
+            host=jso.pop("host", None),
+            user=jso.pop("user", None),
+        )
 
 
 

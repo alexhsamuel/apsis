@@ -116,7 +116,7 @@ def main():
     # until we pick up this Sanic fix:
     # https://github.com/channelcat/sanic/pull/1053
     parser.add_argument(
-        "--host", metavar="HOST", default="127.0.0.1",
+        "--host", metavar="HOST", default="0.0.0.0",
         help="server host address")
     parser.add_argument(
         "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
