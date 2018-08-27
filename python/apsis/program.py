@@ -8,6 +8,7 @@ import socket
 
 from   .agent.client import Agent, NoSuchProcessError
 from   .lib.json import Typed, no_unexpected_keys
+from   .lib.py import or_none
 
 log = logging.getLogger(__name__)
 
@@ -259,9 +260,11 @@ class ShellCommandProgram(ProcessProgram):
 
 class AgentProgram:
 
-    def __init__(self, argv):
+    def __init__(self, argv, *, host=None):
         self.__argv = tuple( str(a) for a in argv )
-        self.__agent = Agent()
+        self.__host = or_none(str)(host)
+        # FIXME: Take agents from a pool rather than one per program.
+        self.__agent = Agent(host=self.__host)
 
 
     def __str__(self):
@@ -270,18 +273,20 @@ class AgentProgram:
 
     def bind(self, args):
         argv = tuple( template_expand(a, args) for a in self.__argv )
-        return type(self)(argv)
+        host = template_expand(self.__host, args)
+        return type(self)(argv, host=host)
 
 
     def to_jso(self):
         return {
             "argv"      : list(self.__argv),
+            "host"      : self.__host,
         }
 
 
     @classmethod
     def from_jso(Class, jso):
-        return Class(jso.pop("argv"))
+        return Class(jso.pop("argv"), host=jso.pop("host", None))
 
 
     async def start(self, run):
@@ -374,16 +379,17 @@ class AgentProgram:
                                         
 class AgentShellProgram(AgentProgram):
 
-    def __init__(self, command):
+    def __init__(self, command, *, host=None):
         command = str(command)
         argv = ["/bin/bash", "-c", command]
-        super().__init__(argv)
+        super().__init__(argv, host=host)
         self.__command = command
 
 
     def bind(self, args):
         command = template_expand(self.__command, args)
-        return type(self)(command)
+        host = or_none(template_expand)(self._AgentProgram__host, args)
+        return type(self)(command, host=host)
 
 
     def __str__(self):
@@ -392,13 +398,14 @@ class AgentShellProgram(AgentProgram):
 
     def to_jso(self):
         return {
-            "command": self.__command,
+            "command"   : self.__command,
+            "host"      : self._AgentProgram__host,
         }
 
 
     @classmethod
     def from_jso(Class, jso):
-        return Class(jso.pop("command"))
+        return Class(jso.pop("command"), host=jso.pop("host", None))
 
 
 

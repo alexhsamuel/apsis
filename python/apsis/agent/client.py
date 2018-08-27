@@ -2,9 +2,11 @@ import asyncio
 import logging
 import os
 import requests
+import shlex
 import sys
 
 from   . import DEFAULT_PORT
+from   apsis.lib.py import if_none
 
 log = logging.getLogger("agent.client")
 
@@ -42,7 +44,7 @@ class Agent:
         self.__port = port
         self.__start = bool(start)
 
-        url_host = "localhost" if host is None else host
+        url_host = if_none(host, "localhost")
         self.url = f"http://{url_host}:{port}/api/v1"
 
 
@@ -55,7 +57,11 @@ class Agent:
         if self.__host is None:
             argv = [sys.executable, "-m", "apsis.agent.main"]
         else:
-            argv = ["/usr/bin/ssh", "-q", self.__host, self.REMOTE_AGENT]
+            argv = [
+                "/usr/bin/ssh", "-q", self.__host, 
+                "/bin/bash", "-lc", 
+                shlex.quote(self.REMOTE_AGENT),
+            ]
 
         proc = await asyncio.create_subprocess_exec(*argv)
         await proc.communicate()

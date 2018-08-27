@@ -319,10 +319,11 @@ class OutputDB:
             sa.select([cols.compression, cols.data])
             .where((cols.run_id == run_id) & ((cols.output_id == output_id)))
         )
-        (compression, data, ), = self.__engine.execute(query)
-        if data is None:
+        rows = list(self.__engine.execute(query))
+        if len(rows) == 0:
             raise LookupError(f"no output {output_id} for {run_id}")
         else:
+            (compression, data), = rows
             if compression is None:
                 return data
             else:
