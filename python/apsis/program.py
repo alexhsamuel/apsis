@@ -321,6 +321,9 @@ class AgentProgram:
         elif state == "err":
             message = proc.get("exception", "program error")
             log.info(f"program error: {run.run_id}: {message}")
+            # Clean up the process from the agent.
+            await self.__agent.del_process(proc["proc_id"])
+
             raise ProgramError(message)
 
         else:
