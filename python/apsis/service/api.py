@@ -203,8 +203,8 @@ async def run(request, run_id):
 async def run_output(request, run_id, output_id):
     try:
         data = request.app.apsis.outputs.get_data(run_id, output_id)
-    except LookupError:
-        raise sanic.exceptions.NotFound("no output")
+    except LookupError as exc:
+        return error(exc, 404)
     else:
         return sanic.response.raw(data)
 
