@@ -214,6 +214,21 @@ class Apsis:
             self.__rerun(run)
 
 
+    def _validate_run(self, run):
+        # The job ID must be valid.
+        job = self.jobs.get_job(run.inst.job_id)
+
+        # Args must match job params.
+        args = frozenset(run.inst.args)
+        missing, extra = job.params - args, args - job.params
+        if missing:
+            raise RuntimeError(
+                f"missing args for {job.job_id}: {', '.join(missing)}")
+        if extra:
+            raise RuntimeError(
+                f"extra args for {job.job_id}: {', '.join(extra)}")
+
+
     # --- API ------------------------------------------------------------------
 
     async def schedule(self, time, run):
@@ -224,6 +239,7 @@ class Apsis:
           The schedule time at which to run the run.  If `None`, the run
           is run now, instead of scheduled.
         """
+        self._validate_run(run)
         self.runs.add(run)
         if time is None:
             await self.__start(run)
