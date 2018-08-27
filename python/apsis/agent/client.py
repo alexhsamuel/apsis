@@ -21,6 +21,42 @@ class NoSuchProcessError(LookupError):
 
 #-------------------------------------------------------------------------------
 
+def get_agent_argv(*, host=None, user=None):
+    """
+    Returns the argument vector to start the agent on `host` as `user`.
+    """
+    argv = [sys.executable, "-m", "apsis.agent.main"]
+
+    if host is not None:
+        command = " ".join(argv)
+        try:
+            pythonpath = os.environ.get("PYTHONPATH", "")
+            command = f"/usr/bin/env PYTHONPATH={pythonpath} {command}"
+        except KeyError:
+            pass
+        argv = [
+            "/usr/bin/ssh", "-q", host, 
+            "exec", "/bin/bash", "-lc", 
+            shlex.quote(command),
+        ]
+
+    return argv
+
+
+async def start_agent(*, host=None, user=None):
+    """
+    Starts the agent on `hsot` as `user`.
+    """
+    log.info(f"starting agent on {host}")
+    argv = get_agent_argv(host=host, user=user)
+    proc = await asyncio.create_subprocess_exec(*argv)
+    await proc.communicate()
+    if proc.returncode != 0:
+        raise RuntimeError("agent start failed")
+
+
+#-------------------------------------------------------------------------------
+
 class Agent:
 
     # Number of attempts to start the agent, if a request fails.
@@ -28,9 +64,6 @@ class Agent:
 
     # Delay after starting the agent before a request is sent.
     START_DELAY = 0.25
-
-    # FIXME: This is not the best.
-    REMOTE_AGENT = f"env PYTHONPATH={os.environ.get('PYTHONPATH', '')} {sys.executable} -m apsis.agent.main"
 
     def __init__(self, host=None, port=DEFAULT_PORT, start=True):
         """
@@ -52,21 +85,7 @@ class Agent:
         """
         Attempts to start the agent.
         """
-        log.info(f"starting agent on {self.__host}")
-
-        if self.__host is None:
-            argv = [sys.executable, "-m", "apsis.agent.main"]
-        else:
-            argv = [
-                "/usr/bin/ssh", "-q", self.__host, 
-                "/bin/bash", "-lc", 
-                shlex.quote(self.REMOTE_AGENT),
-            ]
-
-        proc = await asyncio.create_subprocess_exec(*argv)
-        await proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError("agent start failed")
+        await start_agent(host=self.__host)
 
 
     async def request(self, method, endpoint, data=None):
