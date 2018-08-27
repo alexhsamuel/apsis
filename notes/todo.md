@@ -6,7 +6,6 @@
   - intro docs in README
   - job docs
 - sudo support in programs
-- remote/ssh support in programs
 - control page
   - reload jobs
   - restart
