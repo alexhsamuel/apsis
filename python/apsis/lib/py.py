@@ -1,4 +1,5 @@
 import inspect
+import functools
 import shutil
 import sys
 import types
@@ -38,10 +39,30 @@ def if_none(obj, default):
       >>> if_none(42, "Hello!")
       42
       >>> if_none(None, "Hello!")
-      'Hello'
+      'Hello!'
 
     """
     return default if obj is None else obj
+
+
+def or_none(fn):
+    """
+    Wraps `fn` to return `None` if its first argument is `None`.
+
+      >>> @or_none
+      ... def myfunc(x):
+      ...     return 2 * x + 3
+
+      >>> myfunc(4)
+      11
+      >>> myfunc(None)
+
+    """
+    @functools.wraps(fn)
+    def wrapped(arg, *args, **kw_args):
+        return None if arg is None else fn(arg, *args, **kw_args)
+
+    return wrapped
 
 
 def is_seq(obj):
