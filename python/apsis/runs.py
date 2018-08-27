@@ -3,7 +3,7 @@ from   contextlib import contextmanager
 import enum
 import itertools
 import logging
-from   ora import now
+from   ora import now, Time
 
 from   .lib.py import format_ctor
 
@@ -291,7 +291,7 @@ class Runs:
             for run in runs:
                 groups.setdefault(run.rerun, []).append(run)
             runs = ( 
-                max(g, key=lambda r: max(r.times.values()))
+                max(g, key=lambda r: max(r.times.values(), default=Time.EPOCH))
                 for g in groups.values()
             )
 
