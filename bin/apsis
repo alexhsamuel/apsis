@@ -246,7 +246,7 @@ format_elapsed.width = 8
 
 
 def format_time(time):
-    return format(Time(time), "%D %C@")
+    return "" if time is "" else format(Time(time), "%D %C@")
 
 format_time.width = 19
 
