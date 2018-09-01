@@ -121,7 +121,7 @@ class Agent:
             else:
                 break
 
-        log.debug(f"{method} {url} -> {rsp.status_code}")
+        log.debug(f"{method} {url} → {rsp.status_code}")
         if 200 <= rsp.status_code < 300 or 400 <= rsp.status_code < 500:
             return rsp
         else:
