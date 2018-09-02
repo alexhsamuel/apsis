@@ -3,9 +3,9 @@ import logging
 import os
 import requests
 import shlex
+import subprocess
 import sys
 
-from   . import DEFAULT_PORT
 from   apsis.lib.py import if_none
 
 log = logging.getLogger("agent.client")
@@ -58,13 +58,24 @@ def get_agent_argv(*, host=None, user=None):
 
 async def start_agent(*, host=None, user=None):
     """
-    Starts the agent on `hsot` as `user`.
+    Starts the agent on `host` as `user`.
+
+    :return:
+      The agent port and secret.
     """
     log.info(f"starting agent on {host}")
     argv = get_agent_argv(host=host, user=user)
-    proc = await asyncio.create_subprocess_exec(*argv)
-    await proc.communicate()
-    if proc.returncode != 0:
+    proc = await asyncio.create_subprocess_exec(*argv, stdout=subprocess.PIPE)
+    out, err = await proc.communicate()
+
+    if proc.returncode == 0:
+        # The agent is running.  Whether it just started or not, it prints
+        # out its port and secret token.
+        data, = out.decode().splitlines()
+        port, secret = data.split()
+        return int(port), secret
+
+    else:
         raise RuntimeError("agent start failed")
 
 
@@ -78,31 +89,36 @@ class Agent:
     # Delay after starting the agent before a request is sent.
     START_DELAY = 0.25
 
-    def __init__(self, host=None, user=None, port=DEFAULT_PORT, start=True):
+    def __init__(self, host=None, user=None, *, restart=False):
         """
         :param host:
           Host to run on, or `None` for local.
-        :param start:
+        :param restart:
           If true, the client will attempt to start an agent automatically
           whenever the agent cannot be reached.
         """
-        self.__host = host
-        self.__user = user
-        self.__port = port
-        self.__start = bool(start)
+        self.__host     = host
+        self.__user     = user
+        self.__restart  = bool(restart)
 
-        url_host = if_none(host, "localhost")
-        self.url = f"http://{url_host}:{port}/api/v1"
+        self.__port     = None
+        self.__token    = None
+
+
+    def __str__(self):
+        return f"agent {self.__user}@{self.__host} on port {self.__port}"
 
 
     async def start(self):
         """
         Attempts to start the agent.
         """
-        await start_agent(host=self.__host)
+        self.__port, self.__token = await start_agent(host=self.__host)
+        log.info(f"agent started: port={self.__port}")
+        return self.__port
 
 
-    async def request(self, method, endpoint, data=None, start=False):
+    async def request(self, method, endpoint, data=None):
         """
         Performs an HTTP request to the agent.
 
@@ -113,9 +129,16 @@ class Agent:
         :param data:
           Payload data, to send as JSON.
         :return:
-          The response, if the status code is 2xx or 4xx.
+          The response.
         """
-        url = self.url + endpoint
+        if self.__port is None or self.__token is None:
+            if self.__restart:
+                await self.start()
+            else:
+                raise NoAgentError(self.__host, self.__user)
+
+        url_host = if_none(self.__host, "localhost")
+        url = f"http://{url_host}:{self.__port}/api/v1" + endpoint
         log.debug(f"{method} {url}")
         
         # FIXME: Use async requests.
@@ -124,14 +147,17 @@ class Agent:
             try:
                 rsp = requests.request(method, url, json=data)
             except requests.ConnectionError:
-                if not (start and self.__start):
-                    raise NoAgentError(self.__host, self.__user)
-                elif i == self.START_TRIES:
-                    raise RuntimeError(f"failed to start agent in {i} tries")
+                if self.__restart:
+                    if i == self.START_TRIES:
+                        raise RuntimeError(
+                            f"failed to start agent in {i} tries")
+                    else:
+                        await self.start()
+                        await asyncio.sleep(self.START_DELAY)
                 else:
-                    await self.start()
-                    await asyncio.sleep(self.START_DELAY)
+                    raise NoAgentError(self.__host, self.__user)
             else:
+                # Request submitted successfully.
                 break
 
         log.debug(f"{method} {url} → {rsp.status_code}")
@@ -170,7 +196,6 @@ class Agent:
                     "stdin" : stdin,
                 },
             },
-            start=True,
         )
         rsp.raise_for_status()
         return rsp.json()["process"]

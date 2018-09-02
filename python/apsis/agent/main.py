@@ -1,11 +1,13 @@
 import argparse
 from   contextlib import suppress
+import errno
 import getpass
 import logging
 import os
 from   pathlib import Path
 import sanic
 import sanic.response
+import secrets
 import signal
 import socket
 import sys
@@ -113,14 +115,11 @@ def main():
     parser.add_argument(
         "--debug", action="store_true", default=False,
         help="run in debug mode")
-    # FIXME: Can't use localhost on OSX, where it resolves to an IPV6 address,
-    # until we pick up this Sanic fix:
-    # https://github.com/channelcat/sanic/pull/1053
     parser.add_argument(
         "--host", metavar="HOST", default="0.0.0.0",
         help="server host address")
     parser.add_argument(
-        "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
+        "--port", metavar="PORT", type=int, default=None,
         help="server port")
     parser.add_argument(
         "--no-daemon", action="store_true", default=False,
@@ -140,18 +139,39 @@ def main():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-    logging.info(f"binding {args.port}")
-    sock.bind((args.host, args.port))
 
     try:
         with PidFile(state_dir / "pid") as pid_file:
             app.processes = Processes(state_dir)
             signal.signal(signal.SIGCHLD, app.processes.sigchld)
 
+            ports = (
+                range(DEFAULT_PORT, DEFAULT_PORT + 100) if args.port is None 
+                else args.port
+            )
+            for port in ports:
+                try:
+                    sock.bind((args.host, port))
+                except OSError as exc:
+                    if exc.errno == errno.EADDRINUSE:
+                        continue
+                    else:
+                        raise
+                break
+            else:
+                logging.critical(f"can't bind")
+                raise SystemExit(1)
+
+            token = secrets.token_urlsafe()
+
+            pid_data = f"{port} {token}"
+            print(pid_data)
+            sys.stdout.flush()
+
             if not args.no_daemon:
                 daemonize(state_dir / "log")
 
-            pid_file.write()
+            pid_file.write(data=pid_data)
 
             # FIXME: auto_reload added to sanic after 0.7.
             logging.info("running app")
@@ -165,6 +185,8 @@ def main():
         if args.no_daemon:
             logging.critical(exc)
             raise SystemExit(2)
+        else:
+            print(exc.data)
 
 
 if __name__ == "__main__":

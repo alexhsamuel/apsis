@@ -11,11 +11,13 @@ def go(coro):
 
 
 def test_start_stop():
-    client = apsis.agent.client.Agent()
-    proc_id = go(client.start_process(["/bin/echo", "Hello, world!"]))["proc_id"]
+    agent = apsis.agent.client.Agent()
+    go(agent.start())
+
+    proc_id = go(agent.start_process(["/bin/echo", "Hello, world!"]))["proc_id"]
     # FIXME: Do something better than poll.
     for _ in range(10):
-        proc = go(client.get_process(proc_id))
+        proc = go(agent.get_process(proc_id))
         if proc["state"] == "run":
             time.sleep(0.1)
         else:
@@ -26,12 +28,12 @@ def test_start_stop():
     assert proc["return_code"] == 0
     assert proc["signal"] is None
 
-    output = go(client.get_process_output(proc_id))
+    output = go(agent.get_process_output(proc_id))
     assert output == b"Hello, world!\n"
 
-    shutdown = go(client.del_process(proc_id))
+    shutdown = go(agent.del_process(proc_id))
     assert shutdown
 
-    assert not go(client.is_running())
+    assert not go(agent.is_running())
 
 

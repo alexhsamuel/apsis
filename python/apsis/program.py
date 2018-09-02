@@ -258,14 +258,25 @@ class ShellCommandProgram(ProcessProgram):
 
 #-------------------------------------------------------------------------------
 
+_agents = {}
+
+async def _get_agent(host, user):
+    try:
+        agent = _agents[host, user]
+    except KeyError:
+        agent = _agents[host, user] = Agent(host=host, user=user, restart=True)
+        # FIXME: Return a future, in case the same agent is requested while the
+        # agent is starting.
+        await agent.start()
+    return agent
+
+
 class AgentProgram:
 
     def __init__(self, argv, *, host=None, user=None):
         self.__argv = tuple( str(a) for a in argv )
         self.__host = or_none(str)(host)
         self.__user = or_none(str)(user)
-        # FIXME: Take agents from a pool rather than one per program.
-        self.__agent = Agent(host=self.__host, user=self.__user)
 
 
     def __str__(self):
@@ -296,6 +307,10 @@ class AgentProgram:
         )
 
 
+    def __get_agent(self):
+        return _get_agent(self.__host, self.__user)
+
+
     async def start(self, run):
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
@@ -306,7 +321,8 @@ class AgentProgram:
             "username"  : getpass.getuser(),
         }
 
-        proc = await self.__agent.start_process(argv)
+        agent = await self.__get_agent()
+        proc = await agent.start_process(argv)
 
         state = proc["state"]
         if state == "run":
@@ -329,7 +345,7 @@ class AgentProgram:
             message = proc.get("exception", "program error")
             log.info(f"program error: {run.run_id}: {message}")
             # Clean up the process from the agent.
-            await self.__agent.del_process(proc["proc_id"])
+            await agent.del_process(proc["proc_id"])
 
             raise ProgramError(message)
 
@@ -339,13 +355,14 @@ class AgentProgram:
 
     async def wait(self, run):
         proc_id = run.run_state["proc_id"]
+        agent = await self.__get_agent()
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
         while True:
             log.debug(f"polling proc: {proc_id}")
             try:
-                proc = await self.__agent.get_process(proc_id)
+                proc = await agent.get_process(proc_id)
             except NoSuchProcessError:
                 # Agent doens't know about this process anymore.
                 raise ProgramError(f"program lost: {run.run_id}")
@@ -363,7 +380,7 @@ class AgentProgram:
             "agent_start_time"  : proc["start_time"],
             "agent_end_time"    : proc["end_time"],
         }            
-        output = await self.__agent.get_process_output(proc_id)
+        output = await agent.get_process_output(proc_id)
         outputs = program_outputs(output)
 
         try:
@@ -378,7 +395,7 @@ class AgentProgram:
 
         finally:
             # Clean up the process from the agent.
-            await self.__agent.del_process(proc_id)
+            await agent.del_process(proc_id)
 
 
     def reconnect(self, run):
@@ -386,7 +403,7 @@ class AgentProgram:
         return asyncio.ensure_future(self.wait(run))
 
 
-                                        
+
 class AgentShellProgram(AgentProgram):
 
     def __init__(self, command, **kw_args):

@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import logging
 import sys
 
 from   apsis.agent.client import Agent
@@ -14,9 +15,14 @@ def sync(coro):
 
 
 def main():
+    logging.basicConfig(level="INFO")
+
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(title="commands")
     parser.set_defaults(cmd=None)
+
+    cmd = commands.add_parser("start")
+    cmd.set_defaults(cmd="start")
 
     cmd = commands.add_parser("list")
     cmd.set_defaults(cmd="list")
@@ -33,10 +39,13 @@ def main():
     cmd.set_defaults(cmd="shut_down")
 
     args = parser.parse_args()
-    agent = Agent(start=False)  # FIXME: Who, where?
+    agent = Agent(restart=False)  # FIXME: Who, where?
+    sync(agent.start())
 
     if args.cmd is None:
-        parser.error("no command given")
+        raise SystemExit(0)
+    elif args.cmd == "start":
+        result = agent.start()
     elif args.cmd == "list":
         result = agent.get_processes()
     elif args.cmd == "get":

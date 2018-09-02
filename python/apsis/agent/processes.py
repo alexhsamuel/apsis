@@ -291,6 +291,7 @@ class Processes:
             log.info(f"started: pid={proc.pid}")
 
             proc.state = "run"
+            # FIXME: SIGCHLD may be handled asynchronously before we get here.
             self.__pids[proc.pid] = proc
 
         except Exception as exc:

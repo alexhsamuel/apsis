@@ -15,6 +15,7 @@ def test_run_localhost(tmpdir):
     assert not path.is_file()
 
     agent = Agent(host="localhost")
+    go(agent.start())
 
     async def run():
         process = await agent.start_process(

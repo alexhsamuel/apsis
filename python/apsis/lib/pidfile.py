@@ -11,9 +11,10 @@ class PidExistsError(RuntimeError):
     The pid file indicates a running process.
     """
 
-    def __init__(self, pid):
+    def __init__(self, pid, data):
         super().__init__(f"process already running: {pid}")
         self.pid = pid
+        self.data = data
 
 
 
@@ -28,36 +29,41 @@ class PidFile:
 
     def get_pid(self):
         """
-        Returns the pid of the running process, or `None` otherwise.
+        Checks if the process is running.
+
+        :return:
+          The pid and associated data of the running process, if any, or 
+          `None, None` otherwise.
         """
         # Try to read a pid from the pid file.
         try:
             with open(self.path, "rt") as file:
                 pid = int(next(file).strip())
+                data = file.read()
         except Exception as exc:
             log.debug(f"can't read pidfile: {self.path}: {exc}")
-            return None
+            return None, None
         # Check if the process exists.
         try:
             os.kill(pid, 0)
         except PermissionError:
             # Not our process, but that's OK.
-            return pid
+            return pid, data
         except ProcessLookupError:
             # No such process.  
             self.remove()
-            return None
+            return None, None
         else:
-            return pid
+            return pid, data
 
 
-    def write(self, pid=None):
+    def write(self, pid=None, data=""):
         """
         Writes the pid file.
         """
         if pid is None:
             pid = os.getpid()
-        contents = (str(pid) + "\n").encode("ascii")
+        contents = (str(pid) + "\n" + data).encode()
 
         try:
             fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -82,11 +88,11 @@ class PidFile:
         """
         Does not write the pid file.
         """
-        pid = self.get_pid()
+        pid, data = self.get_pid()
         if pid is None:
             pass
         else:
-            raise PidExistsError(f"process alread running: {pid}")
+            raise PidExistsError(pid, data)
         return self
 
 
