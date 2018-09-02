@@ -77,6 +77,11 @@ def exception_(request, exception):
     return exc_error(exception, 500, log=log.error)
 
 
+@API.route("/running", methods={"GET"})
+async def process_running(req):
+    return response({"running": True})
+
+
 @API.route("/processes", methods={"GET"})
 async def processes_get(req):
     procs = req.app.processes

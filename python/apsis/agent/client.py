@@ -12,7 +12,20 @@ log = logging.getLogger("agent.client")
 
 #-------------------------------------------------------------------------------
 
+class NoAgentError(RuntimeError):
+    """
+    The agent is not running.
+    """
+
+    def __init__(self, host, user):
+        super().__init__(f"no agent: {user} @ {host}")
+
+
+
 class NoSuchProcessError(LookupError):
+    """
+    No process with the given proc_id.
+    """
 
     def __init__(self, proc_id):
         super().__init__(f"no such process: {proc_id}")
@@ -89,7 +102,7 @@ class Agent:
         await start_agent(host=self.__host)
 
 
-    async def request(self, method, endpoint, data=None):
+    async def request(self, method, endpoint, data=None, start=False):
         """
         Performs an HTTP request to the agent.
 
@@ -111,8 +124,8 @@ class Agent:
             try:
                 rsp = requests.request(method, url, json=data)
             except requests.ConnectionError:
-                if not self.__start:
-                    raise RuntimeError("no agent")
+                if not (start and self.__start):
+                    raise NoAgentError(self.__host, self.__user)
                 elif i == self.START_TRIES:
                     raise RuntimeError(f"failed to start agent in {i} tries")
                 else:
@@ -122,10 +135,17 @@ class Agent:
                 break
 
         log.debug(f"{method} {url} → {rsp.status_code}")
-        if 200 <= rsp.status_code < 300 or 400 <= rsp.status_code < 500:
-            return rsp
+        return rsp
+
+
+    async def is_running(self):
+        try:
+            rsp = await self.request("GET", "/running")
+        except NoAgentError:
+            return False
         else:
             rsp.raise_for_status()
+            return True
 
 
     async def get_processes(self):
@@ -149,7 +169,8 @@ class Agent:
                     "env"   : env,
                     "stdin" : stdin,
                 },
-            }
+            },
+            start=True,
         )
         rsp.raise_for_status()
         return rsp.json()["process"]
