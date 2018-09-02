@@ -7,6 +7,7 @@ from   pathlib import Path
 import sanic
 import sanic.response
 import signal
+import socket
 import sys
 import tempfile
 import time
@@ -137,6 +138,11 @@ def main():
     app.config.auto_shutdown = not args.no_shutdown
     app.blueprint(API, url_prefix="/api/v1")
 
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+    logging.info(f"binding {args.port}")
+    sock.bind((args.host, args.port))
+
     try:
         with PidFile(state_dir / "pid") as pid_file:
             app.processes = Processes(state_dir)
@@ -150,8 +156,7 @@ def main():
             # FIXME: auto_reload added to sanic after 0.7.
             logging.info("running app")
             app.run(
-                host    =args.host,
-                port    =args.port,
+                sock    =sock,
                 debug   =args.debug,
             )
             # FIXME: Kill and clean up procs on shutdown.
