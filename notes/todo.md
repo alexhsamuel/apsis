@@ -2,6 +2,8 @@
 
 - add agent options to start only, reconnect only
 - in agent, SIGCHLD may show up before pid is registered
+- use token to authenticate with agent
+- use SSH connection to agent
 - don't require run in Program API
 - release
   - update web UI
