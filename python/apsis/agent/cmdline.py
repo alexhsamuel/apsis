@@ -14,6 +14,12 @@ def sync(coro):
     return task.result()
 
 
+async def clean(agent):
+    processes = await agent.get_processes()
+    return await asyncio.gather(*(
+        agent.del_process(p["proc_id"]) for p in processes ))
+
+
 def main():
     logging.basicConfig(level="INFO")
 
@@ -38,6 +44,9 @@ def main():
     cmd = commands.add_parser("shut_down")
     cmd.set_defaults(cmd="shut_down")
 
+    cmd = commands.add_parser("clean")
+    cmd.set_defaults(cmd="clean")
+
     args = parser.parse_args()
     agent = Agent(restart=False)  # FIXME: Who, where?
     sync(agent.start())
@@ -54,6 +63,8 @@ def main():
         result = agent.del_process(args.proc_id)
     elif args.cmd == "shut_down":
         result = agent.shut_down()
+    elif args.cmd == "clean":
+        result = clean(agent)
 
     try:
         result = sync(result)
