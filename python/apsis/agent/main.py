@@ -16,7 +16,7 @@ import time
 
 from   . import DEFAULT_PORT
 from   ..lib.daemon import daemonize
-from   ..lib.pidfile import PidFile, PidExistsError
+from   ..lib.pidfile import PidFile
 from   .api import API
 from   .processes import Processes
 
@@ -104,6 +104,34 @@ def get_state_dir():
 
 #-------------------------------------------------------------------------------
 
+def make_server_socket(host, ports):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+
+    for port in range(DEFAULT_PORT, DEFAULT_PORT + 100):
+        try:
+            sock.bind((host, port))
+        except OSError as exc:
+            if exc.errno == errno.EADDRINUSE:
+                continue
+            else:
+                raise
+        else:
+            return port, sock
+    else:
+        print("can't bind", file=sys.stderr)
+        raise SystemExit(1)
+
+
+def encode_pid_data(port, token):
+    return f"{port} {token}"
+
+
+def decode_pid_data(pid_data):
+    port, token = pid_data.split()
+    return int(port), token
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -118,6 +146,13 @@ def main():
     parser.add_argument(
         "--bind", metavar="ADDR", default="0.0.0.0",
         help="bind server to interface ADDR [def: all]")
+    excl = parser.add_mutually_exclusive_group()
+    excl.add_argument(
+        "--no-connect", action="store_true", default=False,
+        help="start only; fail if already running")
+    excl.add_argument(
+        "--connect", action="store_true", default=False,
+        help="reconnect only; fail if not running")
     parser.add_argument(
         "--no-daemon", action="store_true", default=False,
         help="don't daemonize; run in foreground")
@@ -129,35 +164,31 @@ def main():
     state_dir = get_state_dir()
     logging.debug(f"using dir: {state_dir}")
 
-    app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
-    app.config.LOGO = None
-    app.config.auto_stop = not args.no_stop
-    app.blueprint(API, url_prefix="/api/v1")
+    pid_file = PidFile(state_dir / "pid")
+    pid, pid_data = pid_file.get_pid()
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+    if pid is None:
+        # No agent runnong.
+        if args.connect:
+            print("agent not running", file=sys.stderr)
+            raise SystemExit(1)
 
-    try:
-        with PidFile(state_dir / "pid") as pid_file:
+        # Start the agent.
+        try:
+            app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
+            app.config.LOGO = None
+            app.config.auto_stop = not args.no_stop
+            app.blueprint(API, url_prefix="/api/v1")
+
             app.processes = Processes(state_dir)
             signal.signal(signal.SIGCHLD, app.processes.sigchld)
 
-            for port in range(DEFAULT_PORT, DEFAULT_PORT + 100):
-                try:
-                    sock.bind((args.host, port))
-                except OSError as exc:
-                    if exc.errno == errno.EADDRINUSE:
-                        continue
-                    else:
-                        raise
-                break
-            else:
-                logging.critical(f"can't bind")
-                raise SystemExit(1)
+            port, sock = make_server_socket(
+                args.bind, range(DEFAULT_PORT, DEFAULT_PORT + 100))
 
             token = secrets.token_urlsafe()
 
-            pid_data = f"{port} {token}"
+            pid_data = encode_pid_data(port, token)
             print(pid_data)
             sys.stdout.flush()
 
@@ -174,12 +205,18 @@ def main():
             )
             # FIXME: Kill and clean up procs on stop.
 
-    except PidExistsError as exc:
-        if args.no_daemon:
-            logging.critical(exc)
-            raise SystemExit(2)
-        else:
-            print(exc.data)
+        finally:
+            pid_file.remove()
+
+    else:
+        # Found a running agent.
+        port, token = decode_pid_data(pid_data)
+
+        if args.no_connect:
+            print(f"agent running; pid {pid} port {port}", file=sys.stderr)
+            raise SystemExit(1)
+
+        print(pid_data)
 
 
 if __name__ == "__main__":

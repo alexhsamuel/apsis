@@ -34,11 +34,15 @@ class NoSuchProcessError(LookupError):
 
 #-------------------------------------------------------------------------------
 
-def get_agent_argv(*, host=None, user=None):
+def _get_agent_argv(*, host=None, user=None, connect=None):
     """
     Returns the argument vector to start the agent on `host` as `user`.
     """
     argv = [sys.executable, "-m", "apsis.agent.main"]
+    if connect is True:
+        argv.append("--connect")
+    elif connect is False:
+        argv.append("--no-connect")
 
     if host is not None:
         command = " ".join(argv)
@@ -56,24 +60,27 @@ def get_agent_argv(*, host=None, user=None):
     return argv
 
 
-async def start_agent(*, host=None, user=None):
+async def start_agent(*, host=None, user=None, connect=None):
     """
     Starts the agent on `host` as `user`.
 
+    :param connect:
+      If true, connect to a running instance only.  If false, fail if an 
+      instance is already running.
     :return:
-      The agent port and secret.
+      The agent port and token.
     """
     log.info(f"starting agent on {host}")
-    argv = get_agent_argv(host=host, user=user)
+    argv = _get_agent_argv(host=host, user=user, connect=connect)
     proc = await asyncio.create_subprocess_exec(*argv, stdout=subprocess.PIPE)
-    out, err = await proc.communicate()
+    out, _ = await proc.communicate()
 
     if proc.returncode == 0:
         # The agent is running.  Whether it just started or not, it prints
         # out its port and secret token.
         data, = out.decode().splitlines()
-        port, secret = data.split()
-        return int(port), secret
+        port, token = data.split()
+        return int(port), token
 
     else:
         raise RuntimeError("agent start failed")
@@ -89,16 +96,20 @@ class Agent:
     # Delay after starting the agent before a request is sent.
     START_DELAY = 0.25
 
-    def __init__(self, host=None, user=None, *, restart=False):
+    def __init__(self, host=None, user=None, *, connect=None, restart=False):
         """
         :param host:
           Host to run on, or `None` for local.
+        :param connect:
+          If true, connect to a running instance only.  If false, fail if an 
+          instance is already running.
         :param restart:
           If true, the client will attempt to start an agent automatically
           whenever the agent cannot be reached.
         """
         self.__host     = host
         self.__user     = user
+        self.__connect  = connect
         self.__restart  = bool(restart)
 
         self.__port     = None
@@ -113,7 +124,9 @@ class Agent:
         """
         Attempts to start the agent.
         """
-        self.__port, self.__token = await start_agent(host=self.__host)
+        self.__port, self.__token = await start_agent(
+            host=self.__host, user=self.__user, connect=self.__connect)
+
         log.info(f"agent started: port={self.__port}")
         return self
 
