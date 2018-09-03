@@ -116,11 +116,8 @@ def main():
         "--debug", action="store_true", default=False,
         help="run in debug mode")
     parser.add_argument(
-        "--host", metavar="HOST", default="0.0.0.0",
-        help="server host address")
-    parser.add_argument(
-        "--port", metavar="PORT", type=int, default=None,
-        help="server port")
+        "--bind", metavar="ADDR", default="0.0.0.0",
+        help="bind server to interface ADDR [def: all]")
     parser.add_argument(
         "--no-daemon", action="store_true", default=False,
         help="don't daemonize; run in foreground")
@@ -145,11 +142,7 @@ def main():
             app.processes = Processes(state_dir)
             signal.signal(signal.SIGCHLD, app.processes.sigchld)
 
-            ports = (
-                range(DEFAULT_PORT, DEFAULT_PORT + 100) if args.port is None 
-                else args.port
-            )
-            for port in ports:
+            for port in range(DEFAULT_PORT, DEFAULT_PORT + 100):
                 try:
                     sock.bind((args.host, port))
                 except OSError as exc:
