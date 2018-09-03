@@ -125,8 +125,8 @@ def main():
         "--no-daemon", action="store_true", default=False,
         help="don't daemonize; run in foreground")
     parser.add_argument(
-        "--no-shutdown", action="store_true", default=False,
-        help="don't shut down automatically after last process")
+        "--no-stop", action="store_true", default=False,
+        help="don't stop automatically after last process")
     args = parser.parse_args()
 
     state_dir = get_state_dir()
@@ -134,7 +134,7 @@ def main():
 
     app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
     app.config.LOGO = None
-    app.config.auto_shutdown = not args.no_shutdown
+    app.config.auto_stop = not args.no_stop
     app.blueprint(API, url_prefix="/api/v1")
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -179,7 +179,7 @@ def main():
                 sock    =sock,
                 debug   =args.debug,
             )
-            # FIXME: Kill and clean up procs on shutdown.
+            # FIXME: Kill and clean up procs on stop.
 
     except PidExistsError as exc:
         if args.no_daemon:

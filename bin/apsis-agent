@@ -54,8 +54,8 @@ cmd = commands.add_parser("del")
 cmd.add_argument("proc_id")
 cmd.set_defaults(cmd="del")
 
-cmd = commands.add_parser("shut_down")
-cmd.set_defaults(cmd="shut_down")
+cmd = commands.add_parser("stop")
+cmd.set_defaults(cmd="stop")
 
 cmd = commands.add_parser("clean")
 cmd.set_defaults(cmd="clean")
@@ -75,8 +75,8 @@ elif args.cmd == "get":
     result = agent.get_process(args.proc_id)
 elif args.cmd == "del":
     result = agent.del_process(args.proc_id)
-elif args.cmd == "shut_down":
-    result = agent.shut_down()
+elif args.cmd == "stop":
+    result = agent.stop()
 elif args.cmd == "clean":
     result = clean(agent)
 

@@ -124,18 +124,18 @@ async def process_signal(req, proc_id, signum):
 @API.route("/processes/<proc_id>", methods={"DELETE"})
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
-    shutdown = req.app.config.auto_shutdown and len(req.app.processes) == 0
-    if shutdown:
+    stop = req.app.config.auto_stop and len(req.app.processes) == 0
+    if stop:
         req.app.add_task(req.app.stop())
-    return response({"shutdown": shutdown})
+    return response({"stop": stop})
 
 
-@API.route("/shutdown", methods={"POST"})
-async def process_shutdown(req):
-    # FIXME: Add a query option to kill and shut down, or another endpoint.
-    shutdown = len(req.app.processes) == 0
-    if shutdown:
+@API.route("/stop", methods={"POST"})
+async def process_stop(req):
+    # FIXME: Add a query option to kill and stop, or another endpoint.
+    stop = len(req.app.processes) == 0
+    if stop:
         req.app.add_task(req.app.stop())
-    return response({"shutdown": shutdown})
+    return response({"stop": stop})
 
 

@@ -231,16 +231,16 @@ class Agent:
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
         rsp.raise_for_status()
-        return rsp.json()["shutdown"]
+        return rsp.json()["stop"]
 
 
-    async def shut_down(self):
+    async def stop(self):
         """
         Shuts down an agent, if there are no remaining processes.
         """
-        rsp = await self.request("POST", f"/shutdown")
+        rsp = await self.request("POST", f"/stop")
         rsp.raise_for_status()
-        return rsp.json()["shutdown"]
+        return rsp.json()["stop"]
 
 
 
