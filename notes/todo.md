@@ -1,6 +1,7 @@
 # Current
 
 - add agent options to start only, reconnect only
+- in agent, SIGCHLD may show up before pid is registered
 - release
   - update web UI
   - conda recipe
