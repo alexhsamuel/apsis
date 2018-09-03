@@ -1,5 +1,6 @@
 # Current
 
+- add agent options to start only, reconnect only
 - release
   - update web UI
   - conda recipe

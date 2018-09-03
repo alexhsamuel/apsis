@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import getpass
 import jinja2
 import logging
@@ -97,7 +98,7 @@ class ProgramSuccess:
         self.meta       = meta
         self.times      = times
         self.outputs    = outputs
-    
+
 
 
 class ProgramFailure(RuntimeError):
@@ -258,16 +259,10 @@ class ShellCommandProgram(ProcessProgram):
 
 #-------------------------------------------------------------------------------
 
-_agents = {}
-
-async def _get_agent(host, user):
-    try:
-        agent = _agents[host, user]
-    except KeyError:
-        agent = _agents[host, user] = Agent(host=host, user=user, restart=True)
-        # FIXME: Return a future, in case the same agent is requested while the
-        # agent is starting.
-        await agent.start()
+@functools.lru_cache(maxsize=None)
+def _get_agent(host, user):
+    agent = Agent(host=host, user=user, restart=True)
+    agent = asyncio.ensure_future(agent.start())
     return agent
 
 

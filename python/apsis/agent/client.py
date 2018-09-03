@@ -115,7 +115,7 @@ class Agent:
         """
         self.__port, self.__token = await start_agent(host=self.__host)
         log.info(f"agent started: port={self.__port}")
-        return self.__port
+        return self
 
 
     async def request(self, method, endpoint, data=None):
