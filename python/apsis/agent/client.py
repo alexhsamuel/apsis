@@ -34,11 +34,20 @@ class NoSuchProcessError(LookupError):
 
 #-------------------------------------------------------------------------------
 
+# FIXME: Configure how we become other users and log in to other hosts.
+
 def _get_agent_argv(*, host=None, user=None, connect=None):
     """
     Returns the argument vector to start the agent on `host` as `user`.
     """
     argv = [sys.executable, "-m", "apsis.agent.main"]
+
+    try:
+        pythonpath = os.environ.get("PYTHONPATH", "")
+        argv = ["/usr/bin/env", "PYTHONPATH=" + pythonpath, *argv]
+    except KeyError:
+        pass
+
     if connect is True:
         argv.append("--connect")
     elif connect is False:
@@ -46,16 +55,16 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
 
     if host is not None:
         command = " ".join(argv)
-        try:
-            pythonpath = os.environ.get("PYTHONPATH", "")
-            command = f"/usr/bin/env PYTHONPATH={pythonpath} {command}"
-        except KeyError:
-            pass
-        argv = [
-            "/usr/bin/ssh", "-q", host, 
-            "exec", "/bin/bash", "-lc", 
-            shlex.quote(command),
-        ]
+        argv = ["/usr/bin/ssh", "-q"]
+        if user is not None:
+            argv.extend(["-l", user])
+        argv.extend([
+            host, 
+            "exec", "/bin/bash", "-lc", shlex.quote(command),
+        ])
+
+    elif user is not None:
+        argv = ["/usr/bin/sudo", "--user", user, *argv]
 
     return argv
 
@@ -72,6 +81,7 @@ async def start_agent(*, host=None, user=None, connect=None):
     """
     log.info(f"starting agent on {host}")
     argv = _get_agent_argv(host=host, user=user, connect=connect)
+    log.info(" ".join(argv))
     proc = await asyncio.create_subprocess_exec(*argv, stdout=subprocess.PIPE)
     out, _ = await proc.communicate()
 

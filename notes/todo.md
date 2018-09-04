@@ -1,7 +1,6 @@
 # Current
 
 - in agent, SIGCHLD may show up before pid is registered
-- wire up agent user option
 - don't require run in Program API
 - use token to authenticate with agent
 - use SSH connection to agent

@@ -1,0 +1,17 @@
+params: [message, user]
+
+metadata:
+  description: Test job that runs as another user.
+
+program:
+  type: shell
+  command: |
+    echo whoami=$(whoami)
+    echo "message: '{{ message }}'"
+  user: "{{ user }}"
+
+schedule:
+- args: {message: "Hello from testuser.", user: "testuser"}
+  tz: US/Eastern
+  daytime: 11:00:00
+
