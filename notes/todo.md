@@ -1,9 +1,10 @@
 # Current
 
 - in agent, SIGCHLD may show up before pid is registered
+- normalize environment for another user, locally and by ssh
 - don't require run in Program API
 - use token to authenticate with agent
-- use SSH connection to agent
+- use SSL connection to agent
 - configuration
 - release
   - update web UI
