@@ -1,7 +1,6 @@
 import asyncio
 
 import apsis.program
-import apsis.runs
 
 #-------------------------------------------------------------------------------
 
@@ -14,13 +13,10 @@ def go(coro):
 
 
 async def _run():
-    # FIXME: We shouldn't need a run to test a program!
-    run = apsis.runs.Run(apsis.runs.Instance("rtest", {}))
     prog = apsis.program.AgentProgram(["/bin/sleep", "0.1"])
 
     # Start the program.
-    running, coro = await prog.start(run)
-    run.__dict__.update(running.__dict__)
+    running, coro = await prog.start("testrun")
 
     # Wait for it to finish.
     result = await coro

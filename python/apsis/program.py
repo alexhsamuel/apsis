@@ -119,14 +119,16 @@ class Program:
         """
 
 
-    async def start(self, run):
+    # FIXME: Find a better way to get run_id into logging without passing it in.
+
+    async def start(self, run_id):
         """
         Starts the run.
 
         Updates `run` in place.
 
-        :param run:
-          The run to run.
+        :param run_id:
+          The run ID; used for logging only.
         :raise ProgramError:
           The program failed to start.
         :return:
@@ -136,10 +138,14 @@ class Program:
         """
 
 
-    def reconnect(self, run):
+    def reconnect(self, run_id, run_state):
         """
         Reconnects to an already running run.
 
+        :param run_id:
+          The run ID; used for logging only.
+        :param run_state:
+          State information for the running program.
         :return:
           A coroutine or future for the program completion, as `start`.
         """
@@ -176,7 +182,7 @@ class ProcessProgram:
         return Class(jso["argv"])
 
 
-    async def start(self, run):
+    async def start(self, run_id):
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
@@ -202,11 +208,11 @@ class ProcessProgram:
 
         else:
             # Started successfully.
-            done = self.wait(run, proc)
+            done = self.wait(run_id, proc)
             return ProgramRunning({"pid": proc.pid}, meta=meta), done
 
 
-    async def wait(self, run, proc):
+    async def wait(self, run_id, proc):
         stdout, stderr  = await proc.communicate()
         return_code     = proc.returncode
         log.info(f"complete with return code {return_code}")
@@ -306,7 +312,7 @@ class AgentProgram:
         return _get_agent(self.__host, self.__user)
 
 
-    async def start(self, run):
+    async def start(self, run_id):
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
@@ -321,7 +327,7 @@ class AgentProgram:
 
         state = proc["state"]
         if state == "run":
-            log.info(f"program running: {run.run_id} as {proc['proc_id']}")
+            log.info(f"program running: {run_id} as {proc['proc_id']}")
 
             run_state = {
                 "proc_id"       : proc["proc_id"],
@@ -333,12 +339,12 @@ class AgentProgram:
             })
             # FIXME: Propagate times from agent.
             # FIXME: Do this asynchronously from the agent instead.
-            done = self.wait(run)
+            done = self.wait(run_id, run_state)
             return ProgramRunning(run_state, meta=meta), done
 
         elif state == "err":
             message = proc.get("exception", "program error")
-            log.info(f"program error: {run.run_id}: {message}")
+            log.info(f"program error: {run_id}: {message}")
             # Clean up the process from the agent.
             await agent.del_process(proc["proc_id"])
 
@@ -348,8 +354,8 @@ class AgentProgram:
             assert False, f"unknown state: {state}"
 
 
-    async def wait(self, run):
-        proc_id = run.run_state["proc_id"]
+    async def wait(self, run_id, run_state):
+        proc_id = run_state["proc_id"]
         agent = await self.__get_agent()
 
         # FIXME: This is so embarrassing.
@@ -360,7 +366,7 @@ class AgentProgram:
                 proc = await agent.get_process(proc_id)
             except NoSuchProcessError:
                 # Agent doens't know about this process anymore.
-                raise ProgramError(f"program lost: {run.run_id}")
+                raise ProgramError(f"program lost: {run_id}")
             if proc["state"] == "run":
                 await asyncio.sleep(POLL_INTERVAL)
             else:
@@ -380,12 +386,12 @@ class AgentProgram:
 
         try:
             if status == 0:
-                log.info(f"program success: {run.run_id}")
+                log.info(f"program success: {run_id}")
                 return ProgramSuccess(meta=meta, outputs=outputs)
 
             else:
                 message = f"program failed: status {status}"
-                log.info(f"program failed: {run.run_id}: {message}")
+                log.info(f"program failed: {run_id}: {message}")
                 raise ProgramFailure(message, meta=meta, outputs=outputs)
 
         finally:
@@ -393,9 +399,9 @@ class AgentProgram:
             await agent.del_process(proc_id)
 
 
-    def reconnect(self, run):
-        log.info(f"reconnect: {run.run_id}")
-        return asyncio.ensure_future(self.wait(run))
+    def reconnect(self, run_id, run_state):
+        log.info(f"reconnect: {run_id}")
+        return asyncio.ensure_future(self.wait(run_id, run_state))
 
 
 
