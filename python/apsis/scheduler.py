@@ -70,7 +70,12 @@ class Scheduler:
         Infinite loop that periodically schedules runs.
         """
         while True:
-            await self.schedule(now() + self.HORIZON)
+            try:
+                await self.schedule(now() + self.HORIZON)
+            except Exception:
+                log.critical("scheduler loop failed", exc_info=True)
+                raise SystemExit(1)
+
             await asyncio.sleep(60)
 
 
