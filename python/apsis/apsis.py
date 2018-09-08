@@ -69,7 +69,7 @@ class Apsis:
         log.info(f"reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
-            future = run.program.reconnect(run)
+            future = run.program.reconnect(run.run_id, run.run_state)
             self.__wait(run, future)
 
         log.info("Apsis instance ready")
