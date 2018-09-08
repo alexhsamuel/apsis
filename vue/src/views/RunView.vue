@@ -57,7 +57,7 @@ div(v-if="run")
                 td(v-html="format(key, value)")
 
     h5 output
-    a(v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()")
+    a(v-if="run !== null && run.output_len && output === null" v-on:click="load_output()")
       | (load {{ run.output_len }} bytes)
     pre.output(v-if="output !== null") {{ output }}
 
@@ -110,7 +110,7 @@ export default {
       const v = this
       this.runs_socket = new RunsSocket(this.run_id, undefined)
       this.runs_socket.open((msg) => { 
-        v.run = msg.runs[v.run_id] 
+        v.run = msg.runs[v.run_id]
         // Immediately load the output too, unless it's quite large.
         if (v.run.output_len !== null && v.run.output_len < 32768)
           v.load_output()
