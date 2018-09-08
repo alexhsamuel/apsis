@@ -52,7 +52,8 @@ class Apsis:
                 log.error(
                     f"not rescheduling expected, scheduled run {run.run_id}")
             else:
-                self.scheduled.schedule(run.times["schedule"], run)
+                asyncio.ensure_future(
+                    self.scheduled.schedule(run.times["schedule"], run))
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -215,6 +216,10 @@ class Apsis:
 
 
     def _validate_run(self, run):
+        """
+        :raise RuntimeError:
+          `run` is invalid.
+        """
         # The job ID must be valid.
         job = self.jobs.get_job(run.inst.job_id)
 
@@ -223,10 +228,10 @@ class Apsis:
         missing, extra = job.params - args, args - job.params
         if missing:
             raise RuntimeError(
-                f"missing args for {job.job_id}: {', '.join(missing)}")
+                f"missing args ({', '.join(missing)}) for job {job.job_id}")
         if extra:
             raise RuntimeError(
-                f"extra args for {job.job_id}: {', '.join(extra)}")
+                f"extra args ({', '.join(extra)}) for job {job.job_id}")
 
 
     # --- API ------------------------------------------------------------------
@@ -239,8 +244,20 @@ class Apsis:
           The schedule time at which to run the run.  If `None`, the run
           is run now, instead of scheduled.
         """
-        self._validate_run(run)
         self.runs.add(run)
+
+        try:
+            self._validate_run(run)
+        except RuntimeError as exc:
+            log.error("invalid run", exc_info=True)
+            self._transition(
+                run, run.STATE.error,
+                message =str(exc),
+                times   ={"schedule": time, "error": time},
+            )
+            log.error("transitioned")
+            return
+
         if time is None:
             await self.__start(run)
         else:
