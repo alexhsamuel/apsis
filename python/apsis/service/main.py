@@ -184,7 +184,7 @@ def main():
     if args.create:
         SqliteDB.create(args.state_path)
         raise SystemExit(0)
-        
+
     db      = SqliteDB.open(args.state_path)
     jobs    = JobsDir(args.jobs)
     apsis   = Apsis(jobs, db)
