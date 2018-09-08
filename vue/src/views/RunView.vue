@@ -43,6 +43,7 @@ div(v-if="run")
               td: Timestamp(:time="time")
 
         tr(
+          v-if="Object.keys(run.meta).length"
           v-on:click="metadataCollapsed = !metadataCollapsed"
         )
           th: div(style="white-space: nowrap;")
@@ -59,6 +60,7 @@ div(v-if="run")
     a(v-if="run !== null && run.output_len !== null && output === null" v-on:click="load_output()")
       | (load {{ run.output_len }} bytes)
     pre.output(v-if="output !== null") {{ output }}
+
 </template>
 
 <script>
