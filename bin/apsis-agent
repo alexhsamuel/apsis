@@ -27,7 +27,11 @@ async def clean(agent):
         agent.del_process(p["proc_id"]) for p in processes ))
 
 
-logging.basicConfig(level="INFO")
+logging.basicConfig(
+    level="INFO",
+    format="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
+    datefmt="%H:%M:%S",
+)    
 
 parser = argparse.ArgumentParser(description=__doc__)
 commands = parser.add_subparsers(title="commands")
