@@ -5,8 +5,11 @@ import requests
 import shlex
 import subprocess
 import sys
+import urllib3
+import warnings
 
 from   apsis.lib.py import if_none
+from   . import SSL_CERT
 
 log = logging.getLogger("agent.client")
 
@@ -161,14 +164,26 @@ class Agent:
                 raise NoAgentError(self.__host, self.__user)
 
         url_host = if_none(self.__host, "localhost")
-        url = f"http://{url_host}:{self.__port}/api/v1" + endpoint
+        url = f"https://{url_host}:{self.__port}/api/v1" + endpoint
         log.debug(f"{method} {url}")
         
         # FIXME: Use async requests.
 
         for i in range(self.START_TRIES + 1):
             try:
-                rsp = requests.request(method, url, json=data)
+                # FIXME: For now, we use no server verification when
+                # establishing the TLS connection to the agent.  The agent uses
+                # a generic SSL cert with no real host name, so host
+                # verification cannot work; we'd have to generate a certificate
+                # for each agent host.  For now at least we have connection
+                # encryption.
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", 
+                        category=urllib3.exceptions.InsecureRequestWarning
+                    )
+                    rsp = requests.request(method, url, json=data, verify=False)
+
             except requests.ConnectionError:
                 if self.__restart:
                     if i == self.START_TRIES:

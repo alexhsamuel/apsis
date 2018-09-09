@@ -3,7 +3,6 @@
 - in agent, SIGCHLD may show up before pid is registered
 - normalize environment for another user, locally and by ssh
 - use token to authenticate with agent
-- use SSL connection to agent
 - configuration
 - release
   - update web UI
@@ -64,6 +63,9 @@
 - indicate in web UI when a job started late
 - move schedule time out of times; rename times → timestamps
 - have agent attempt to recover orphaned processes
+
+- Change agent so that client-initiated commands are always via SSL.  Implement
+  webhook for return notications, like process completion.  See [[ssl.md]].
 
 
 # Old

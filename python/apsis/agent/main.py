@@ -10,11 +10,12 @@ import sanic.response
 import secrets
 import signal
 import socket
+import ssl
 import sys
 import tempfile
 import time
 
-from   . import DEFAULT_PORT
+from   . import DEFAULT_PORT, SSL_CERT, SSL_KEY
 from   ..lib.daemon import daemonize
 from   ..lib.pidfile import PidFile
 from   .api import API
@@ -189,6 +190,8 @@ def main():
             token = secrets.token_urlsafe()
 
             pid_data = encode_pid_data(port, token)
+
+            # Print the port and token for the client to grab.
             print(pid_data)
             sys.stdout.flush()
 
@@ -197,10 +200,16 @@ def main():
 
             pid_file.write(data=pid_data)
 
+            # SSL certificates are stored in this directory.
+            ssl_context = ssl.create_default_context(
+                purpose=ssl.Purpose.CLIENT_AUTH)
+            ssl_context.load_cert_chain(SSL_CERT, keyfile=SSL_KEY)
+
             # FIXME: auto_reload added to sanic after 0.7.
             logging.info("running app")
             app.run(
                 sock    =sock,
+                ssl     =ssl_context,
                 debug   =args.debug,
             )
             # FIXME: Kill and clean up procs on stop.
@@ -216,6 +225,7 @@ def main():
             print(f"agent running; pid {pid} port {port}", file=sys.stderr)
             raise SystemExit(1)
 
+        # Print the pid and token for the client to grab.
         print(pid_data)
 
 
