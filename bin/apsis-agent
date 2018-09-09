@@ -83,9 +83,12 @@ elif args.cmd == "clean":
 try:
     result = sync(result)
 except RuntimeError as exc:
-    print(exc, file=sys.stderr)
+    logging.error(f"{args.cmd} failed", exc_info=True)
 else:
-    json.dump(result, sys.stdout, indent=2)
-    print()
+    try:
+        json.dump(result, sys.stdout, indent=2)
+        print()
+    except TypeError:
+        print(result)
 
 
