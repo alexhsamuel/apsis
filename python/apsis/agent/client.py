@@ -95,7 +95,7 @@ async def start_agent(*, host=None, user=None, connect=None):
         return int(port), token
 
     else:
-        raise RuntimeError("agent start failed")
+        raise RuntimeError(f"agent start failed; return code {proc.returncode}")
 
 
 #-------------------------------------------------------------------------------

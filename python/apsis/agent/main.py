@@ -169,7 +169,7 @@ def main():
     pid, pid_data = pid_file.get_pid()
 
     if pid is None:
-        # No agent runnong.
+        # No agent running.
         if args.connect:
             print("agent not running", file=sys.stderr)
             raise SystemExit(1)
@@ -222,7 +222,9 @@ def main():
         port, token = decode_pid_data(pid_data)
 
         if args.no_connect:
-            print(f"agent running; pid {pid} port {port}", file=sys.stderr)
+            print(
+                f"agent already running; pid {pid} port {port}", 
+                file=sys.stderr)
             raise SystemExit(1)
 
         # Print the pid and token for the client to grab.

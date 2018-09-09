@@ -44,6 +44,15 @@ parser.add_argument(
     "--user", metavar="USER", default=None,
     help="run agent as USER [def: this user]")
 
+parser.set_defaults(connect=None)
+excl = parser.add_mutually_exclusive_group()
+excl.add_argument(
+    "--no-connect", action="store_false", dest="connect",
+    help="start only; fail if already running")
+excl.add_argument(
+    "--connect", action="store_true", dest="connect",
+    help="reconnect only; fail if not running")
+
 cmd = commands.add_parser("start")
 cmd.set_defaults(cmd="start")
 
@@ -65,8 +74,13 @@ cmd = commands.add_parser("clean")
 cmd.set_defaults(cmd="clean")
 
 args = parser.parse_args()
-agent = Agent(host=args.host, user=args.user, restart=False)
-sync(agent.start())
+agent = Agent(
+    host=args.host, user=args.user, restart=False, connect=args.connect)
+try:
+    sync(agent.start())
+except RuntimeError as exc:
+    logging.critical(exc)
+    raise SystemExit(1)
 
 if args.cmd is None:
     # Nothing to do.
