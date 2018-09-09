@@ -72,7 +72,7 @@ if args.cmd is None:
     # Nothing to do.
     raise SystemExit(0)
 elif args.cmd == "start":
-    result = agent.start()
+    result = agent.is_running()
 elif args.cmd == "list":
     result = agent.get_processes()
 elif args.cmd == "get":
