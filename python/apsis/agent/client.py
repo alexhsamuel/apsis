@@ -178,7 +178,7 @@ class Agent:
                         await self.start()
                         await asyncio.sleep(self.START_DELAY)
                 else:
-                    raise NoAgentError(self.__host, self.__user)
+                    raise
             else:
                 # Request submitted successfully.
                 break
