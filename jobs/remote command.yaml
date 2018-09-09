@@ -4,7 +4,7 @@ metadata:
   description: Test job that runs a program on a remote host.
 
 schedule:
-- args: {message: "Hello from purslane.", host: purslane.local}
+- args: {message: "Hello from purslane.", host: purslane.local, user: alex}
   tz: US/Eastern
   daytime:
   - 12:00:00
