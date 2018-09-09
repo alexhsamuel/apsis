@@ -9,7 +9,6 @@ import urllib3
 import warnings
 
 from   apsis.lib.py import if_none
-from   . import SSL_CERT
 
 log = logging.getLogger("agent.client")
 
