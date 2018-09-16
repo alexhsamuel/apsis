@@ -82,8 +82,8 @@ import Job from './Job'
 import Pagination from './Pagination'
 import Run from './Run'
 import { makeJobPredicate, makeStatePredicate, groupReruns } from '../runs'
-import RunsSocket from '../RunsSocket'
 import State from './State'
+import store from '@/store.js'
 import Timestamp from './Timestamp'
 
 function minTime(run) {
@@ -127,8 +127,7 @@ export default {
     return { 
       groupCollapse: {},
       page: 0,
-      runs_socket: null,
-      runs: {},
+      store,
     } 
   },
 
@@ -164,7 +163,7 @@ export default {
     // same run.  Groups are filtered by current filters, and sorted.
     rerunGroups() {
       // Group runs together by rerun.
-      let reruns = groupReruns(this.runs)
+      let reruns = groupReruns(this.store.state.runs)
 
       // Filter groups.
       reruns = filter(
@@ -224,16 +223,6 @@ export default {
     formatElapsed,
   },
 
-  created() {
-    const v = this
-    this.runs_socket = new RunsSocket(undefined, this.job_id)
-    this.runs_socket.open(
-      (msg) => { v.runs = Object.assign({}, v.runs, msg.runs) })
-  },
-
-  destroyed() {
-    this.runs_socket.close()
-  },
 }
 </script>
 

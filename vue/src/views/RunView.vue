@@ -71,8 +71,8 @@ import { formatElapsed } from '../time'
 import Job from '@/components/Job'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import RunsSocket from '../RunsSocket'
 import State from '@/components/State'
+import store from '@/store'
 import Timestamp from '@/components/Timestamp'
 
 export default {
@@ -88,14 +88,23 @@ export default {
 
   data() {
     return {
-      runs_socket: null,
-      run: null,
-      output: null,
       metadataCollapsed: true,
+      output: null,
+      store,
     }
   },
 
   computed: {
+    run() {
+      const run = this.store.state.runs[this.run_id]
+
+      // Immediately load the output too, unless it's quite large.
+      if (this.output === null && run.output_len !== null && run.output_len < 65536)
+        this.load_output(run)
+
+      return run
+    },
+
     arg_str() {
       return join(map(toPairs(this.run.args), ([k, v]) => k + '=' + v), ' ')
     },
@@ -106,20 +115,9 @@ export default {
   },
 
   methods: {
-    load() {
+    load_output(run) {
       const v = this
-      this.runs_socket = new RunsSocket(this.run_id, undefined)
-      this.runs_socket.open((msg) => { 
-        v.run = msg.runs[v.run_id]
-        // Immediately load the output too, unless it's quite large.
-        if (v.run.output_len !== null && v.run.output_len < 32768)
-          v.load_output()
-      })
-    },
-
-    load_output() {
-      const v = this
-      const url = this.run.output_url
+      const url = run.output_url
       fetch(url)
         // FIXME: Handle failure, set error.
         .then((response) => response.text())  // FIXME: Might not be text!
@@ -137,18 +135,10 @@ export default {
 
   },
 
-  mounted() { 
-    this.load()
-  },
-
-  destroyed() {
-    this.runs_socket.close()
-  },
-
   watch: {
-    '$route'(to, from) {
-      this.load()
-    },
+    // '$route'(to, from) {
+    //   this.load()
+    // },
   },
 
 }

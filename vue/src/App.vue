@@ -8,6 +8,7 @@
 <script>
 import navbar from '@/components/navbar'
 import LiveLog from '@/LiveLog.js'
+import RunsSocket from '@/RunsSocket'
 import store from '@/store.js'
 
 export default {
@@ -19,16 +20,23 @@ export default {
   data() {
     return {
       liveLog: null,
+      runsSocket: null,
       store,
     }
   },
 
   created() {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
+    this.runsSocket = new RunsSocket()
+    this.runsSocket.open((msg) => { 
+      this.store.state.runs = Object.assign({}, this.store.state.runs, msg.runs)
+      console.log('got', Object.keys(msg.runs).length, 'runs')
+    })
   },
 
   destroyed() {
     this.liveLog.close()
+    this.runsSocket.close()
   },
 
 }

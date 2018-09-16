@@ -3,6 +3,7 @@ class Store {
     time: new Date(),
     timeZone: 'UTC',
     logLines: [],
+    runs: {},
   }
 
   setTime(time) {
@@ -16,7 +17,7 @@ class Store {
   _tick() {
     this.setTime()
     // Update every second, on the second.
-    window.setTimeout(() => this._tick(), 1000 - this.state.time % 1000)
+    window.setTimeout(() => this._tick(), 1000 - this.state.time % 1000) 
   }
 
   constructor() {

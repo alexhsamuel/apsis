@@ -3,6 +3,7 @@
 - in agent, SIGCHLD may show up before pid is registered
 - normalize environment for another user, locally and by ssh
 - use token to authenticate with agent
+
 - configuration
 - release
   - update web UI
@@ -17,7 +18,6 @@
   - auto-scroll live logs to bottom
   - reconnect live log when disconnected
   - show toast when live log disconnected
-- load live runs in the background for the whole app
 - time range in runs search: design it better
 - a good set of demo jobs
 - in collapsed run group, show schedule time of original job
