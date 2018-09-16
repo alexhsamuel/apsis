@@ -113,9 +113,9 @@ class ScheduledRuns:
                         break
 
         except Exception:
-            # FIXME: Instead of this, someone should be awaiting this task.
-            log.error(traceback.format_exc())
-            raise
+            # FIXME: Someone should be awaiting this task.
+            log.critical("scheduled loop failed", exc_info=True)
+            raise SystemExit(1)
 
 
     def schedule(self, time: Time, run: Run):

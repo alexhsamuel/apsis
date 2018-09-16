@@ -52,8 +52,7 @@ class Apsis:
                 log.error(
                     f"not rescheduling expected, scheduled run {run.run_id}")
             else:
-                asyncio.ensure_future(
-                    self.scheduled.schedule(run.times["schedule"], run))
+                self.scheduled.schedule(run.times["schedule"], run)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?

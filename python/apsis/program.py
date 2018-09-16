@@ -323,7 +323,11 @@ class AgentProgram:
         }
 
         agent = await self.__get_agent()
-        proc = await agent.start_process(argv)
+        try:
+            proc = await agent.start_process(argv)
+        except Exception as exc:
+            log.error("failed to start process", exc_info=True)
+            raise ProgramError(message=str(exc))
 
         state = proc["state"]
         if state == "run":

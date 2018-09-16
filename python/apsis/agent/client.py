@@ -165,7 +165,7 @@ class Agent:
         url_host = if_none(self.__host, "localhost")
         url = f"https://{url_host}:{self.__port}/api/v1" + endpoint
         log.debug(f"{method} {url}")
-        
+
         # FIXME: Use async requests.
 
         for i in range(self.START_TRIES + 1):
