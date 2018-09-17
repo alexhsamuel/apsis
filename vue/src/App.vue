@@ -27,8 +27,7 @@ export default {
 
   created() {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
-    this.runsSocket = new RunsSocket()
-    this.runsSocket.open((msg) => { 
+    this.runsSocket = new RunsSocket((msg) => { 
       this.store.state.runs = Object.assign({}, this.store.state.runs, msg.runs)
       console.log('got', Object.keys(msg.runs).length, 'runs')
     })

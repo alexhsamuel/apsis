@@ -1,29 +1,36 @@
-const DEBUG = false
-
 export default class RunsSocket {
-  constructor(run_id, job_id) {
+  constructor(callback, run_id, job_id) {
     this.url = RunsSocket.get_url(run_id, job_id)
     this.websocket = null
+    this.callback = callback
+    this.open()
   }
 
-  open(callback) {
-    let t0
-    if (DEBUG) {
-      t0 = new Date()
-      console.log('web socket opening:', this.url)
-    }
+  open() {
+    if (this.websocket)
+      return
+
+    console.log('web socket: opening ' + this.url)
     this.websocket = new WebSocket(this.url)
+
+    this.websocket.onopen = () => {
+      console.log('run web socket: connected')
+    }
+
+    this.websocket.onerror = (event) => {
+      console.log('run web socket: error: ' + event)
+      this.websocket.close()
+    }
+
     this.websocket.onmessage = (msg) => {
       const jso = JSON.parse(msg.data)
-      if (DEBUG) {
-        let t1 = new Date()
-        console.log('web socket: got', Object.keys(jso.runs).length, 'runs in', (t1 - t0) * 0.001, 'sec')
-      }
-      callback(jso)
+      this.callback(jso)
     }
+
     this.websocket.onclose = () => {
-      console.log('web socket closed: ' + this.url)
+      console.log('run web socket: closed')
       this.websocket = null
+      setTimeout(() => this.open(), 1000)
     }
   }
 
