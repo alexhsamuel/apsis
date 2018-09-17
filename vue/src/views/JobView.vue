@@ -39,7 +39,7 @@ div
           th {{ key }}
           td {{ value }}
 
-  RunsList(:job_id="job_id")
+  RunsList(:jobFilter="job_id")
 
 </template>
 

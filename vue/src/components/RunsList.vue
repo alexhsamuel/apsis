@@ -106,7 +106,6 @@ function maxTime(run) {
 export default { 
   name: 'runs',
   props: {
-    job_id: String,
     jobFilter: {type: String, default: ''},
     stateFilter: {type: Array, default: () => []},
     startTime: {default: null},
