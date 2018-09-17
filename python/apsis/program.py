@@ -6,6 +6,7 @@ import logging
 from   pathlib import Path
 import shlex
 import socket
+import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
 from   .lib.json import Typed, no_unexpected_keys
@@ -322,12 +323,17 @@ class AgentProgram:
             "username"  : getpass.getuser(),
         }
 
-        agent = await self.__get_agent()
         try:
+            agent = await self.__get_agent()
             proc = await agent.start_process(argv)
+
         except Exception as exc:
             log.error("failed to start process", exc_info=True)
-            raise ProgramError(message=str(exc))
+            output = traceback.format_exc().encode()
+            # FIXME: Use a different "traceback" output, once the UI can
+            # understand it.
+            raise ProgramError(
+                message=str(exc), outputs=program_outputs(output))
 
         state = proc["state"]
         if state == "run":
