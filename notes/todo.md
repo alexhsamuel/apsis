@@ -1,5 +1,7 @@
 # Current
 
+- run list in job view is no longer filtered
+
 - in agent, SIGCHLD may show up before pid is registered
 - normalize environment for another user, locally and by ssh
 - use token to authenticate with agent
