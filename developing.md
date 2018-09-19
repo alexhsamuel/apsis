@@ -20,6 +20,11 @@ To produce a prod front end,
 $ cd vue
 $ npm run build
 ```
-and commit the results.  The Python back end service will serve the prod front
-end.
+then
+```
+$ git add --all .
+$ git commit ...
+```
+
+The Python back end service will serve the prod front end.
 
