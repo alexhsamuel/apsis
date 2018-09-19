@@ -101,6 +101,7 @@ async def start_agent(*, host=None, user=None, connect=None):
         return int(port), token
 
     else:
+        log.error(f"agent start failed\n{out}")
         # FIXME: Return out, and include it in the error state info.
         raise RuntimeError(f"agent start failed; return code {proc.returncode}")
 
