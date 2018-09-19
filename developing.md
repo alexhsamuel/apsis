@@ -23,7 +23,7 @@ $ npm run build
 then
 ```
 $ git add --all .
-$ git commit ...
+$ git commit -m "Rebuild front end."
 ```
 
 The Python back end service will serve the prod front end.
