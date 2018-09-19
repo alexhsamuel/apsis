@@ -5,10 +5,16 @@ import requests
 import shlex
 import subprocess
 import sys
-import urllib3
 import warnings
 
 from   apsis.lib.py import if_none
+
+try:
+    # Older requests vendor urllib3.
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+except ImportError:
+    # Newer requests uses the proper package.
+    from urllib3.exceptions import InsecureRequestWarning
 
 log = logging.getLogger("agent.client")
 
@@ -95,6 +101,7 @@ async def start_agent(*, host=None, user=None, connect=None):
         return int(port), token
 
     else:
+        # FIXME: Return out, and include it in the error state info.
         raise RuntimeError(f"agent start failed; return code {proc.returncode}")
 
 
@@ -178,9 +185,7 @@ class Agent:
                 # encryption.
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
-                        "ignore", 
-                        category=urllib3.exceptions.InsecureRequestWarning
-                    )
+                        "ignore", category=InsecureRequestWarning)
                     rsp = requests.request(method, url, json=data, verify=False)
 
             except requests.ConnectionError:
