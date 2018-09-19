@@ -72,7 +72,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
         ])
 
     elif user is not None:
-        argv = ["/usr/bin/sudo", "--user", user, *argv]
+        argv = ["/usr/bin/sudo", "-u", user, *argv]
 
     return argv
 
