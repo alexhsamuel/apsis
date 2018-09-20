@@ -40,6 +40,17 @@ class NoSuchProcessError(LookupError):
 
 
 
+class AgentStartError(RuntimeError):
+    """
+    The agent failed to start.
+    """
+
+    def __init__(self, returncode, err):
+        super().__init__(
+            f"agent start failed with returncode={returncode}: {err.decode()}")
+
+
+
 #-------------------------------------------------------------------------------
 
 # FIXME: Configure how we become other users and log in to other hosts.
@@ -90,8 +101,9 @@ async def start_agent(*, host=None, user=None, connect=None):
     log.info(f"starting agent on {host}")
     argv = _get_agent_argv(host=host, user=user, connect=connect)
     log.info(" ".join(argv))
-    proc = await asyncio.create_subprocess_exec(*argv, stdout=subprocess.PIPE)
-    out, _ = await proc.communicate()
+    proc = await asyncio.create_subprocess_exec(
+        *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = await proc.communicate()
 
     if proc.returncode == 0:
         # The agent is running.  Whether it just started or not, it prints
@@ -101,9 +113,7 @@ async def start_agent(*, host=None, user=None, connect=None):
         return int(port), token
 
     else:
-        log.error(f"agent start failed\n{out}")
-        # FIXME: Return out, and include it in the error state info.
-        raise RuntimeError(f"agent start failed; return code {proc.returncode}")
+        raise AgentStartError(proc.returncode, err)
 
 
 #-------------------------------------------------------------------------------

@@ -6,7 +6,7 @@ from   urllib.parse import unquote
 import websockets
 
 from   ..jobs import jso_to_job, reruns_to_jso
-from   ..runs import Instance, Run
+from   ..runs import Instance, Run, RunError
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +20,11 @@ def response_json(jso, status=200):
 
 def error(message, status=400, **kw_args):
     return response_json({"error": str(message), **kw_args}, status=status)
+
+
+@API.exception(RunError)
+def no_such_process_error(request, exception):
+    return error(exception, status=400)
 
 
 def time_to_jso(time):
@@ -333,6 +338,8 @@ async def run_post(request):
         return error("missing job_id or job")
 
     run = Run(Instance(job_id, jso.get("args", {})))
+    request.app.apsis._validate_run(run)
+
     time = jso.get("times", {}).get("schedule", "now")
     time = None if time == "now" else ora.Time(time)
     await request.app.apsis.schedule(time, run)

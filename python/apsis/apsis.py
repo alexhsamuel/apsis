@@ -1,10 +1,10 @@
 import asyncio
 import logging
-from   ora import now
+from   ora import now, Time
 
 from   .jobs import Jobs
 from   .program import ProgramError, ProgramFailure
-from   .runs import Run, Runs
+from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler
 
@@ -226,11 +226,9 @@ class Apsis:
         args = frozenset(run.inst.args)
         missing, extra = job.params - args, args - job.params
         if missing:
-            raise RuntimeError(
-                f"missing args ({', '.join(missing)}) for job {job.job_id}")
+            raise MissingArgumentError(run, *missing)
         if extra:
-            raise RuntimeError(
-                f"extra args ({', '.join(extra)}) for job {job.job_id}")
+            raise ExtraArgumentError(run, *extra)
 
 
     # --- API ------------------------------------------------------------------
@@ -245,14 +243,18 @@ class Apsis:
         """
         self.runs.add(run)
 
+        time = None if time is None else Time(time)
+        times = {} if time is None else {"schedule": time}
+
         try:
             self._validate_run(run)
         except RuntimeError as exc:
             log.error("invalid run", exc_info=True)
+            times["error"] = now()
             self._transition(
                 run, run.STATE.error,
                 message =str(exc),
-                times   ={"schedule": time, "error": time},
+                times   =times,
             )
             log.error("transitioned")
             return
@@ -261,7 +263,7 @@ class Apsis:
             await self.__start(run)
         else:
             self.scheduled.schedule(time, run)
-            self._transition(run, run.STATE.scheduled, times={"schedule": time})
+            self._transition(run, run.STATE.scheduled, times=times)
 
 
     async def cancel(self, run):

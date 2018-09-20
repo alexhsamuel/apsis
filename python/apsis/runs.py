@@ -18,6 +18,28 @@ class TransitionError(RuntimeError):
 
 
 
+class RunError(RuntimeError):
+
+    pass
+
+
+
+class MissingArgumentError(RunError):
+
+    def __init__(self, run, *args):
+        super().__init__(
+            f"missing args ({', '.join(args)}) for job {run.inst.job_id}")
+
+
+
+class ExtraArgumentError(RunError):
+
+    def __init__(self, run, *args):
+        super().__init__(
+            f"extra args ({', '.join(args)}) for job {run.inst.job_id}")
+
+
+
 #-------------------------------------------------------------------------------
 
 class Run:
@@ -103,6 +125,8 @@ class Run:
         # Check that this is a valid transition.
         if self.state not in self.TRANSITIONS[state]:
             raise TransitionError(self.state, state)
+
+        assert all( isinstance(t, Time) and t.valid for t in times.values() )
 
         log.debug(f"transition {self.run_id}: {self.state.name} → {state.name}")
 
