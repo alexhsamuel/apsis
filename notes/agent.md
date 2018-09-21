@@ -1,3 +1,38 @@
+# Local chaperone
+
+- Can write outputs to spool files and then exit.
+- But needs to hold an ssh connection open for the life of the remote process.
+- We can "reconnect" by watching for outputs in spool files.
+  - Note that this is not async, unless we use inotify.
+- All sudo + ssh is orthogonal.
+
+API:
+
+```py
+def build_program(argv, options={}):
+    """
+    Constructs a shell command to run `argv`.
+    """
+    command = "exec " + " ".join( shlex.quote(a) for a in argv )
+    return build_command(command, host=host, user=user, options=options)
+
+
+def build_command(command, host=None, user=None, options={}):
+    """
+    Constructs an argv to run shell `command` as `user` on `host`.
+
+    `options` may include,
+    - `host`
+    - `port`
+    - mode (ssh-as, sudo-then-ssh, ssh-then-sudo, etc.)
+    - ssh options
+    """
+
+```
+
+
+
+# Remote-style agent
 
 ```
 agent.py < program.json
