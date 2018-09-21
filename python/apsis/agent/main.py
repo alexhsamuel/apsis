@@ -1,10 +1,10 @@
 import argparse
 from   contextlib import suppress
 import errno
-import getpass
 import logging
 import os
 from   pathlib import Path
+import pwd
 import sanic
 import sanic.response
 import secrets
@@ -95,7 +95,7 @@ def get_state_dir():
     """
     Returns the state directory path, creating it if necessary.
     """
-    user = getpass.getuser()
+    user = pwd.getpwuid(os.getuid()).pw_name
     path = Path(tempfile.gettempdir()) / f"apsis-agent-{user}"
     with suppress(FileExistsError):
         os.mkdir(path, mode=0o700)
