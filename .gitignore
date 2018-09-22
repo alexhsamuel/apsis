@@ -6,3 +6,4 @@ apsis.db
 doc
 env.sh
 work/
+.cache/
