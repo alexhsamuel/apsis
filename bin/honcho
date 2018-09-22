@@ -21,6 +21,8 @@ Exactly one of "argv" or "cmd" must be specified.
 # - specify prog dir location
 # - specify env whitelist
 # - stdin support
+# - push result to webhook
+# - clean up the prog dir
 
 
 import _posixsubprocess
@@ -251,9 +253,9 @@ def wait(state):
     pid, status, rusage = os.wait4(state["pid"], 0)
     assert pid == state["pid"]
 
-    # Split the exit status into return code or signal number.
+    # Split the exit status into return code or signal name.
     return_code = os.WEXITSTATUS(status) if os.WIFEXITED(status) else None
-    signum = (
+    signal_name = (
         signal.Signals(os.WTERMSIG(status)).name if os.WIFSIGNALED(status) 
         else None
     )
@@ -261,7 +263,7 @@ def wait(state):
     state.update({
         "status"        : status,
         "return_code"   : return_code,
-        "signal"        : signum,
+        "signal"        : signal_name,
         "rusage"        : rusage_to_dict(rusage),
     })
 
