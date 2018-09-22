@@ -13,6 +13,14 @@
 - "combine_stderr": If true, merge stderr with stdout.  Otherwise, capture
   stderr separately.
 
+
+- "host": The name of the host to run on.  If `None`, runs on the current host.
+
+- "user": The user to run as.  If `None`, runs as the current user.
+
+- "strategy": 
+
+
 Exactly one of "argv" or "cmd" must be specified.
 """
 
