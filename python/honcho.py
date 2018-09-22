@@ -87,6 +87,10 @@ def start(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd):
       Process initial CWD.
     :param env:
       Process environment, or `None` for current.
+    :raise FileNotFoundError:
+      The executable was not found.
+    :raise PermissionError:
+      The executable could not be run.
     """
     logging.info(f"start(argv={argv}, cwd={cwd}, env={env})")
 
