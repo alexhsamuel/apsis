@@ -115,7 +115,7 @@ def start(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd):
                     k = os.fsencode(k)
                     if b'=' in k:
                         raise ValueError("illegal environment variable name")
-                    env_list.append(k + b'=' + os.fsencode(v))
+                    env_list.append(k + b'=' + os.fsencode(str(v)))
             else:
                 # FIXME: What should the "default" environment be?
                 env_list = None  # Use execv instead of execve.
