@@ -42,6 +42,7 @@ import logging
 import os
 import pathlib
 import shlex
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -62,6 +63,20 @@ class ProgramSpecError(RuntimeError):
 
     pass
 
+
+
+def interpret_status(status):
+    """
+    Splits the exit status into return code or signal name.
+
+    :return:
+      Return code, signal name.
+    """
+    return (
+        os.WEXITSTATUS(status) if os.WIFEXITED(status) else None,
+        signal.Signals(os.WTERMSIG(status)).name if os.WIFSIGNALED(status) 
+        else None
+    )
 
 
 def rusage_to_dict(rusage):
@@ -237,25 +252,55 @@ def set_up(prog):
     return argv, cwd, env
 
 
-def start(prog):
-    argv, cwd, env = set_up(prog)
+class ProgDir:
 
-    prog_dir        = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
-    stdout_path     = str(prog_dir / "stdout")
+    def __init__(self, combine_stderr):
+        self.path       = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
+        self.stdout     = str(self.path / "stdout")
+        self.stderr     = None if combine_stderr else str(self.path / "stderr")
+
+
+    def clean(self):
+        """
+        Cleans up.
+        """
+        shutil.rmtree(self.path)
+        self.path = None
+        self.stdout = None
+        self.stderr = None
+
+
+    def get_stdout(self) -> bytes:
+        with open(self.stdout, "rb") as file:
+            return file.read()
+
+
+    def get_stderr(self) -> bytes:
+        with open(self.stderr, "rb") as file:
+            return file.read()
+
+
+
+
+def start(prog):
+    argv, cwd, env  = set_up(prog)
     combine_stderr  = bool(prog.get("combine_stderr", False))
-    stderr_path     = None if combine_stderr else str(prog_dir / "stderr")
+    prog_dir        = ProgDir(combine_stderr)
 
     stdin_fd  = os.open("/dev/null", os.O_RDONLY)
     assert stdin_fd >= 0
-    stdout_fd = os.open(stdout_path, os.O_CREAT | os.O_WRONLY, mode=0o600)
+
+    stdout_fd = os.open(prog_dir.stdout, os.O_CREAT | os.O_WRONLY, mode=0o600)
     assert stdout_fd >= 0
     stderr_fd = (
         stdout_fd if combine_stderr
-        else os.open(stderr_path, os.O_CREAT | os.O_WRONLY, mode=0o600)
+        else os.open(prog_dir.stderr, os.O_CREAT | os.O_WRONLY, mode=0o600)
     )
     assert stderr_fd >= 0
 
     pid = fork_exec(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd)
+    os.close(stdout_fd)
+    os.close(stderr_fd)
 
     return {
         "pid"           : pid,
@@ -263,37 +308,65 @@ def start(prog):
         "env"           : env,
         "argv"          : argv,
         "combine_stderr": combine_stderr,
-        "stdout_path"   : stdout_path,
-        "stdout_fd"     : stdout_fd,
-        "stderr_path"   : stderr_path,
-        "stderr_fd"     : stderr_fd,
+        "prog_dir"      : prog_dir,
     }
 
 
-def wait(state):
+class Result:
+    """
+    Result of a terminated process.
+    """
+
+    def __init__(self, argv, env, cwd, prog_dir, pid, status, rusage):
+        # Decode system things here, as they may be different on other hosts.
+        return_code, signal_name = interpret_status(status)
+        rusage = rusage_to_dict(rusage)
+
+        self.argv           = argv
+        self.env            = env
+        self.cwd            = cwd
+        self.prog_dir       = prog_dir
+        self.pid            = pid
+        self.status         = status
+        self.return_code    = return_code
+        self.signal_name    = signal_name
+        self.rusage         = rusage
+
+
+    def __enter__(self):
+        return self
+
+
+    def __exit__(self, exc_type, exc, exc_tb):
+        self.clean()
+
+
+    def clean(self):
+        self.prog_dir.clean()
+
+
+    def get_stdout(self) -> bytes:
+        return self.prog_dir.get_stdout()
+
+
+    def get_stderr(self) -> bytes:
+        return self.prog_dir.get_stderr()
+        
+
+
+
+def wait(state) -> Result:
     # Block until the process terminates.
     pid, status, rusage = os.wait4(state["pid"], 0)
     assert pid == state["pid"]
 
-    # Split the exit status into return code or signal name.
-    return_code = os.WEXITSTATUS(status) if os.WIFEXITED(status) else None
-    signal_name = (
-        signal.Signals(os.WTERMSIG(status)).name if os.WIFSIGNALED(status) 
-        else None
-    )
-
-    state.update({
-        "status"        : status,
-        "return_code"   : return_code,
-        "signal"        : signal_name,
-        "rusage"        : rusage_to_dict(rusage),
-    })
+    return Result(
+        state["argv"], state["env"], state["cwd"], state["prog_dir"],
+        pid, status, rusage)
 
 
-def run(prog):
-    state = start(prog)
-    wait(state)
-    return state
+def run(prog) -> Result:
+    return wait(start(prog))
 
 
 #-------------------------------------------------------------------------------
