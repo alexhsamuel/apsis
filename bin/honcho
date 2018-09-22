@@ -278,23 +278,26 @@ def wait(state):
 
 #-------------------------------------------------------------------------------
 
-logging.basicConfig(
-    level   =logging.INFO,
-    format  ="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
-    datefmt ="%H:%M:%S",
-)
+def main():
+    logging.basicConfig(
+        level   =logging.INFO,
+        format  ="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
+        datefmt ="%H:%M:%S",
+    )
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "path", metavar="PROG.JSON",
-    help="specification of program to run")
-args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "path", metavar="PROG.JSON",
+        help="specification of program to run")
+    args = parser.parse_args()
 
-with open(args.path, "r") as file:
-    prog = json.load(file)
+    with open(args.path, "r") as file:
+        prog = json.load(file)
+    state = run(prog)
+    wait(state)
+    print(json.dumps(state, indent=2))
 
-state = run(prog)
-wait(state)
 
-print(json.dumps(state, indent=2))
+if __name__ == "__main__":
+    main()
 
