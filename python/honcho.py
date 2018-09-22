@@ -237,7 +237,7 @@ def set_up(prog):
     return argv, cwd, env
 
 
-def run(prog):
+def start(prog):
     argv, cwd, env = set_up(prog)
 
     prog_dir        = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
@@ -290,6 +290,12 @@ def wait(state):
     })
 
 
+def run(prog):
+    state = start(prog)
+    wait(state)
+    return state
+
+
 #-------------------------------------------------------------------------------
 
 def main():
@@ -308,7 +314,6 @@ def main():
     with open(args.path, "r") as file:
         prog = json.load(file)
     state = run(prog)
-    wait(state)
     print(json.dumps(state, indent=2))
 
 
