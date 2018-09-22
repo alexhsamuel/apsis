@@ -79,7 +79,7 @@ def rusage_to_dict(rusage):
 
 #-------------------------------------------------------------------------------
 
-def start(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd):
+def fork_exec(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd):
     """
     Starts a program in a subprocess.
 
@@ -92,7 +92,7 @@ def start(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd):
     :raise PermissionError:
       The executable could not be run.
     """
-    logging.info(f"start(argv={argv}, cwd={cwd}, env={env})")
+    logging.info(f"fork_exec(argv={argv}, cwd={cwd}, env={env})")
 
     MAX_EXC_SIZE = 1048576
 
@@ -255,7 +255,7 @@ def run(prog):
     )
     assert stderr_fd >= 0
 
-    pid = start(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd)
+    pid = fork_exec(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd)
 
     return {
         "pid"           : pid,
