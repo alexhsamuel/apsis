@@ -57,6 +57,7 @@ program.json:
   },
   callback: {
     url: 'https://agenthost:8050/api/v1/agent/PROG-ID',
+    method: 'GET',
     token: 'kHJBeIu1r0Xhb9y0FGeDU-sVPPfmoqaMlNSAw0L9ipU'
   },
   config: {
