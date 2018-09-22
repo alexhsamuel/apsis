@@ -196,7 +196,7 @@ def start(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd):
         return pid
 
 
-def run(prog):
+def set_up(prog):
     try:
         # The shell command to run.
         cmd = prog["cmd"]
@@ -211,7 +211,11 @@ def run(prog):
         if "argv" in prog:
             raise ProgramSpecError("both cmd and argv given")
 
+    user = prog.get("user", None)
     host = prog.get("host", None)
+
+    if user is not None:
+        raise NotImplemented("other user")
 
     if host is None:
         # Invoke the command in a fresh login shell.
@@ -229,6 +233,12 @@ def run(prog):
         raise NotImplemented("remote host")
 
     cwd = str(prog.get("cwd", "/"))
+
+    return argv, cwd, env
+
+
+def run(prog):
+    argv, cwd, env = set_up(prog)
 
     prog_dir        = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
     stdout_path     = str(prog_dir / "stdout")
