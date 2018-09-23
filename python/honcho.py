@@ -259,6 +259,7 @@ class ProgDir:
         self.stderr_path    = None if combine_stderr else self.path / "stderr"
         self.prog_path      = self.path / "prog.json"
         self.log_path       = self.path / "log"
+        self.result_path    = self.path / "result.json"
 
         with open(self.prog_path, "w") as file:
             json.dump(prog, file, indent=2)
@@ -274,6 +275,7 @@ class ProgDir:
             "stderr_path"   : str(self.stderr_path),
             "prog_path"     : str(self.prog_path),
             "log_path"      : str(self.log_path),
+            "result_path"   : str(self.result_path),
         }
 
 
@@ -396,7 +398,12 @@ def wait(running: Running, prog_dir) -> Result:
     pid, status, rusage = os.wait4(running.pid, 0)
     prog_dir.log(f"process terminated with status {status}")
     assert pid == running.pid
-    return Result(running, status, rusage)
+
+    result = Result(running, status, rusage)
+    with open(prog_dir.result_path, "w") as file:
+        json.dump(result.to_jso(), file, indent=2)
+
+    return result
 
 
 def run(prog, prog_dir) -> Result:
