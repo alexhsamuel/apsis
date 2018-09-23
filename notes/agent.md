@@ -83,7 +83,7 @@
     Additional:
     - Hosts must be able to connect back to agent.
     - Poor visibility.  If agent malfunctions or can't connect back, no one
-      knows.  Scheduler cannot requrest status from agent.
+      knows.  Scheduler cannot request status from agent.
 
 
 1. Long-running agent
