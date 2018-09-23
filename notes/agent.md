@@ -25,6 +25,21 @@
       or may not be killed.
 
 
+1. Local chaperone
+
+    The scheduler invokes a chaperone to manage a single program.  For remote
+    programs, the scheduler invokes the chaperone remotely via ssh and holds an
+    ssh connection open.  When the program terminates, the chaperone reports the
+    outcome back to the parent and shuts down.
+
+    - ✗ Reconnectable.  [but status can be recovered with files]
+    - ✓ No external setup per host.
+    - ✗ No remote code.
+    - ✗ Async program updates.
+    - ✗ No ssh required.
+    - ✓ No orphan processes.
+
+
 1. Ephemeral agent, single program
 
     The scheduler runs an agent on the remote host to manage a single program.
