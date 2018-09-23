@@ -7,15 +7,15 @@ def test_argv_echo():
         "argv": ["/bin/echo", "Hello,", "world!", "This is a test."],
     }
 
-    prog_dir = ProgDir(prog)
-    with prog_dir:
+    with ProgDir(prog) as prog_dir:
         result = run(prog, prog_dir)
         assert result.status == 0
         assert result.return_code == 0
         assert result.signal_name is None
         assert prog_dir.get_stdout() == b"Hello, world! This is a test.\n"
+        prog_dir_path = prog_dir.path
 
-    assert prog_dir.path is None
+    assert not prog_dir_path.exists()
 
 
 def test_cmd_echo():
