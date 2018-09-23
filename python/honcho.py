@@ -254,7 +254,8 @@ def set_up(prog):
 
 class ProgDir:
 
-    def __init__(self, combine_stderr):
+    def __init__(self, prog):
+        combine_stderr  = prog.get("combine_stderr", False)
         self.path       = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
         self.stdout     = str(self.path / "stdout")
         self.stderr     = None if combine_stderr else str(self.path / "stderr")
@@ -268,7 +269,15 @@ class ProgDir:
         }
 
 
-    def close(self):
+    def __enter__(self):
+        return self
+
+
+    def __exit__(self, exc_type, exc, exc_tb):
+        self.clean()
+
+
+    def clean(self):
         """
         Cleans up.
         """
@@ -290,10 +299,29 @@ class ProgDir:
 
 
 
-def start(prog):
+class Running:
+
+    def __init__(self, argv, env, cwd, pid):
+        self.argv           = argv
+        self.env            = env
+        self.cwd            = cwd
+        self.pid            = pid
+
+
+    def to_jso(self):
+        return {
+            "argv"          : self.argv,
+            "env"           : self.env,
+            "cwd"           : self.cwd,
+            "honcho_pid"    : os.getpid(),
+            "pid"           : self.pid,
+        }
+
+
+
+def start(prog, prog_dir) -> Running:
     argv, cwd, env  = set_up(prog)
     combine_stderr  = bool(prog.get("combine_stderr", False))
-    prog_dir        = ProgDir(combine_stderr)
 
     stdin_fd  = os.open("/dev/null", os.O_RDONLY)
     assert stdin_fd >= 0
@@ -310,14 +338,7 @@ def start(prog):
     os.close(stdout_fd)
     os.close(stderr_fd)
 
-    return {
-        "pid"           : pid,
-        "cwd"           : cwd,
-        "env"           : env,
-        "argv"          : argv,
-        "combine_stderr": combine_stderr,
-        "prog_dir"      : prog_dir,
-    }
+    return Running(argv, env, cwd, pid)
 
 
 class Result:
@@ -325,16 +346,15 @@ class Result:
     Result of a terminated process.
     """
 
-    def __init__(self, argv, env, cwd, prog_dir, pid, status, rusage):
+    def __init__(self, running, status, rusage):
         # Decode system things here, as they may be different on other hosts.
         return_code, signal_name = interpret_status(status)
         rusage = rusage_to_dict(rusage)
 
-        self.argv           = argv
-        self.env            = env
-        self.cwd            = cwd
-        self.prog_dir       = prog_dir
-        self.pid            = pid
+        self.argv           = running.argv
+        self.env            = running.env
+        self.cwd            = running.cwd
+        self.pid            = running.pid
         self.status         = status
         self.return_code    = return_code
         self.signal_name    = signal_name
@@ -346,7 +366,6 @@ class Result:
             "argv"          : self.argv,
             "env"           : self.env,
             "cwd"           : self.cwd,
-            "prog_dir"      : self.prog_dir.to_jso(),
             "honcho_pid"    : os.getpid(),
             "pid"           : self.pid,
             "status"        : self.status,
@@ -356,32 +375,16 @@ class Result:
         }
 
 
-    def close(self):
-        self.prog_dir.close()
 
-
-    def get_stdout(self) -> bytes:
-        return self.prog_dir.get_stdout()
-
-
-    def get_stderr(self) -> bytes:
-        return self.prog_dir.get_stderr()
-        
-
-
-
-def wait(state) -> Result:
+def wait(running: Running) -> Result:
     # Block until the process terminates.
-    pid, status, rusage = os.wait4(state["pid"], 0)
-    assert pid == state["pid"]
-
-    return Result(
-        state["argv"], state["env"], state["cwd"], state["prog_dir"],
-        pid, status, rusage)
+    pid, status, rusage = os.wait4(running.pid, 0)
+    assert pid == running.pid
+    return Result(running, status, rusage)
 
 
-def run(prog) -> Result:
-    return wait(start(prog))
+def run(prog, prog_dir) -> Result:
+    return wait(start(prog, prog_dir))
 
 
 #-------------------------------------------------------------------------------
@@ -414,12 +417,23 @@ def main():
     with open(args.path, "r") as file:
         prog = json.load(file)
 
+    prog_dir = ProgDir(prog)
     try:
-        result = run(prog)
-        print(json.dumps(result.to_jso(), indent=2))
+        running = start(prog, prog_dir)
+        if args.print:
+            jso = running.to_jso()
+            jso["prog_dir"] = prog_dir.to_jso()
+            print(json.dumps(jso, indent=2))
+
+        result = wait(running)
+        if args.print:
+            jso = result.to_jso()
+            jso["prog_dir"] = prog_dir.to_jso()
+            print(json.dumps(jso, indent=2))
+
     finally:
         if args.clean:
-            result.close()
+            prog_dir.clean()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,4 @@
-from   contextlib import closing
-
-from   honcho import run
+from   honcho import run, ProgDir
 
 #-------------------------------------------------------------------------------
 
@@ -9,15 +7,15 @@ def test_argv_echo():
         "argv": ["/bin/echo", "Hello,", "world!", "This is a test."],
     }
 
-    result = run(prog)
-    with closing(result):
+    prog_dir = ProgDir(prog)
+    with prog_dir:
+        result = run(prog, prog_dir)
         assert result.status == 0
         assert result.return_code == 0
         assert result.signal_name is None
-        assert result.get_stdout() == b"Hello, world! This is a test.\n"
-        prog_dir_path = result.prog_dir.path
+        assert prog_dir.get_stdout() == b"Hello, world! This is a test.\n"
 
-    assert not prog_dir_path.exists()
+    assert prog_dir.path is None
 
 
 def test_cmd_echo():
@@ -25,11 +23,11 @@ def test_cmd_echo():
         "cmd": "echo 'Hello, world!'; echo This is a test.",
     }
 
-    result = run(prog)
-    with closing(result):
+    with ProgDir(prog) as prog_dir:
+        result = run(prog, prog_dir)
         assert result.status == 0
         assert result.return_code == 0
         assert result.signal_name is None
-        assert result.get_stdout() == b"Hello, world!\nThis is a test.\n"
+        assert prog_dir.get_stdout() == b"Hello, world!\nThis is a test.\n"
 
 
