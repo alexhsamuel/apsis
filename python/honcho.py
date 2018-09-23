@@ -260,6 +260,14 @@ class ProgDir:
         self.stderr     = None if combine_stderr else str(self.path / "stderr")
 
 
+    def to_jso(self):
+        return {
+            "path"          : str(self.path),
+            "stdout_path"   : str(self.stdout),
+            "stderr_path"   : str(self.stderr),
+        }
+
+
     def close(self):
         """
         Cleans up.
@@ -333,6 +341,21 @@ class Result:
         self.rusage         = rusage
 
 
+    def to_jso(self):
+        return {
+            "argv"          : self.argv,
+            "env"           : self.env,
+            "cwd"           : self.cwd,
+            "prog_dir"      : self.prog_dir.to_jso(),
+            "honcho_pid"    : os.getpid(),
+            "pid"           : self.pid,
+            "status"        : self.status,
+            "return_code"   : self.return_code,
+            "signal_name"   : self.signal_name,
+            "rusage"        : self.rusage,
+        }
+
+
     def close(self):
         self.prog_dir.close()
 
@@ -383,15 +406,20 @@ def main():
     parser.add_argument(
         "--print", default=False, action="store_true",
         help="print messages to stdout")
-    parser.add_arguemnt(
+    parser.add_argument(
         "--no-clean", dest="clean", default=True, action="store_false",
         help="don't clean up program directory")
     args = parser.parse_args()
 
     with open(args.path, "r") as file:
         prog = json.load(file)
-    state = run(prog)
-    print(json.dumps(state, indent=2))
+
+    try:
+        result = run(prog)
+        print(json.dumps(result.to_jso(), indent=2))
+    finally:
+        if args.clean:
+            result.close()
 
 
 if __name__ == "__main__":
