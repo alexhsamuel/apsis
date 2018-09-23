@@ -260,7 +260,7 @@ class ProgDir:
         self.stderr     = None if combine_stderr else str(self.path / "stderr")
 
 
-    def clean(self):
+    def close(self):
         """
         Cleans up.
         """
@@ -333,16 +333,8 @@ class Result:
         self.rusage         = rusage
 
 
-    def __enter__(self):
-        return self
-
-
-    def __exit__(self, exc_type, exc, exc_tb):
-        self.clean()
-
-
-    def clean(self):
-        self.prog_dir.clean()
+    def close(self):
+        self.prog_dir.close()
 
 
     def get_stdout(self) -> bytes:
@@ -382,6 +374,18 @@ def main():
     parser.add_argument(
         "path", metavar="PROG.JSON",
         help="specification of program to run")
+    parser.add_argument(
+        "--background", default=False, action="store_true",
+        help="go into background and after starting program")
+    parser.add_argument(
+        "--callback", metavar="URL",
+        help="callback URL")
+    parser.add_argument(
+        "--print", default=False, action="store_true",
+        help="print messages to stdout")
+    parser.add_arguemnt(
+        "--no-clean", dest="clean", default=True, action="store_false",
+        help="don't clean up program directory")
     args = parser.parse_args()
 
     with open(args.path, "r") as file:

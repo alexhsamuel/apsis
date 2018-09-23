@@ -1,3 +1,5 @@
+from   contextlib import closing
+
 from   honcho import run
 
 #-------------------------------------------------------------------------------
@@ -7,7 +9,8 @@ def test_argv_echo():
         "argv": ["/bin/echo", "Hello,", "world!", "This is a test."],
     }
 
-    with run(prog) as result:
+    result = run(prog)
+    with closing(result):
         assert result.status == 0
         assert result.return_code == 0
         assert result.signal_name is None
@@ -22,7 +25,8 @@ def test_cmd_echo():
         "cmd": "echo 'Hello, world!'; echo This is a test.",
     }
 
-    with run(prog) as result:
+    result = run(prog)
+    with closing(result):
         assert result.status == 0
         assert result.return_code == 0
         assert result.signal_name is None
