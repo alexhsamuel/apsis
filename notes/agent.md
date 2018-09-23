@@ -220,7 +220,23 @@ callbacks:
 
 signals:
 
+- SIGUR1: send status now
 - SIGTERM: send SIGTERM to program
+
+
+# Lifecycle
+
+1. parse JSON spec
+1. start program
+1. print or post JSON started message
+1. background and exit, unless --foreground
+1. print or post JSON heartbeat messages
+1. post incremental outputs
+1. on termination:
+1. post final outputs
+1. print or post JSON result message
+1. clean up
+1. shut down
 
 
 # Questions
