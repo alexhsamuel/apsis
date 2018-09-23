@@ -257,8 +257,12 @@ class ProgDir:
     def __init__(self, prog):
         combine_stderr  = prog.get("combine_stderr", False)
         self.path       = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
-        self.stdout     = str(self.path / "stdout")
-        self.stderr     = None if combine_stderr else str(self.path / "stderr")
+        self.stdout     = self.path / "stdout"
+        self.stderr     = None if combine_stderr else self.path / "stderr"
+        self.prog_path  = self.path / "prog.json"
+
+        with open(self.prog_path, "w") as file:
+            json.dump(prog, file, indent=2)
 
 
     def to_jso(self):
