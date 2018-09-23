@@ -16,6 +16,7 @@
     - ✗ Reconnectable.
     - ✓ No external setup per host.
     - ✓ No remote code.
+    - ✓ Async program updates.
     - ✗ No ssh required.
     - ✓ No orphan processes.  [if ssh configured correctly]
 
@@ -35,6 +36,7 @@
     - ✓ Reconnectable.
     - ✓ No external setup per host.
     - ✗ No remote code.
+    - ✗ Async program updates.
     - ✗ No ssh required.
     - ✗ No orphan processes.  [but agent may time out]
     - ✗ Valid TLS cert.
@@ -54,6 +56,7 @@
     - ✓ Reconnectable.
     - ✓ No external setup per host.
     - ✗ No remote code.
+    - ✗ Async program updates.
     - ✗ No ssh required.
     - ✗ No orphan processes.  [but agent may time out]
     - ✗ Valid TLS cert.
@@ -72,6 +75,7 @@
     - ✓ Reconnectable.  [automatic!]
     - ✓ No external setup per host.
     - ✗ No remote code.
+    - ✓ Async program updates.
     - ✗ No ssh required.
     - ✗ No orphan processes.  [but agent may time out]
     - ✓ Valid TLS cert.
@@ -91,6 +95,7 @@
     - ✓ Reconnectable.
     - ✗ No external setup per host.
     - ✗ No remote code.
+    - ✗ Async program updates. 
     - ✓ No ssh required.
     - ✓ No orphan processes.
     - ✓ Valid TLS cert.
