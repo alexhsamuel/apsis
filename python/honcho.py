@@ -36,9 +36,9 @@ Exactly one of "argv" or "cmd" must be specified.
 import _posixsubprocess
 import argparse
 import builtins
+import datetime
 import errno
 import json
-import logging
 import os
 import pathlib
 import shlex
@@ -107,8 +107,6 @@ def fork_exec(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd):
     :raise PermissionError:
       The executable could not be run.
     """
-    logging.info(f"fork_exec(argv={argv}, cwd={cwd}, env={env})")
-
     MAX_EXC_SIZE = 1048576
 
     argv = [ str(a) for a in argv ]
@@ -265,13 +263,24 @@ class ProgDir:
         with open(self.prog_path, "w") as file:
             json.dump(prog, file, indent=2)
 
+        self.__log_file = open(self.log_path, "w")
+        self.log("created")
+
 
     def to_jso(self):
         return {
             "path"          : str(self.path),
             "stdout_path"   : str(self.stdout_path),
             "stderr_path"   : str(self.stderr_path),
+            "prog_path"     : str(self.prog_path),
+            "log_path"      : str(self.log_path),
         }
+
+
+    def log(self, message):
+        timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        print(f"{timestamp} {message}", file=self.__log_file)
+        self.__log_file.flush()
 
 
     def __enter__(self):
@@ -286,6 +295,7 @@ class ProgDir:
         """
         Cleans up.
         """
+        self.__log_file.close()
         shutil.rmtree(self.path)
 
 
@@ -340,6 +350,7 @@ def start(prog, prog_dir) -> Running:
     pid = fork_exec(argv, cwd, env, stdin_fd, stdout_fd, stderr_fd)
     os.close(stdout_fd)
     os.close(stderr_fd)
+    prog_dir.log(f"started with pid {pid}")
 
     return Running(argv, env, cwd, pid)
 
@@ -379,26 +390,22 @@ class Result:
 
 
 
-def wait(running: Running) -> Result:
+def wait(running: Running, prog_dir) -> Result:
     # Block until the process terminates.
+    prog_dir.log(f"waiting for pid {running.pid}")
     pid, status, rusage = os.wait4(running.pid, 0)
+    prog_dir.log(f"process terminated with status {status}")
     assert pid == running.pid
     return Result(running, status, rusage)
 
 
 def run(prog, prog_dir) -> Result:
-    return wait(start(prog, prog_dir))
+    return wait(start(prog, prog_dir), prog_dir)
 
 
 #-------------------------------------------------------------------------------
 
 def main():
-    logging.basicConfig(
-        level   =logging.INFO,
-        format  ="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
-        datefmt ="%H:%M:%S",
-    )
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "path", metavar="PROG.JSON",
@@ -428,7 +435,7 @@ def main():
             jso["prog_dir"] = prog_dir.to_jso()
             print(json.dumps(jso, indent=2))
 
-        result = wait(running)
+        result = wait(running, prog_dir)
         if args.print:
             jso = result.to_jso()
             jso["prog_dir"] = prog_dir.to_jso()
