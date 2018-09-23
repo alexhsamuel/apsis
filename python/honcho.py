@@ -255,11 +255,12 @@ def set_up(prog):
 class ProgDir:
 
     def __init__(self, prog):
-        combine_stderr  = prog.get("combine_stderr", False)
-        self.path       = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
-        self.stdout     = self.path / "stdout"
-        self.stderr     = None if combine_stderr else self.path / "stderr"
-        self.prog_path  = self.path / "prog.json"
+        combine_stderr      = prog.get("combine_stderr", False)
+        self.path           = pathlib.Path(tempfile.mkdtemp(prefix="honcho-"))
+        self.stdout_path    = self.path / "stdout"
+        self.stderr_path    = None if combine_stderr else self.path / "stderr"
+        self.prog_path      = self.path / "prog.json"
+        self.log_path       = self.path / "log"
 
         with open(self.prog_path, "w") as file:
             json.dump(prog, file, indent=2)
@@ -268,8 +269,8 @@ class ProgDir:
     def to_jso(self):
         return {
             "path"          : str(self.path),
-            "stdout_path"   : str(self.stdout),
-            "stderr_path"   : str(self.stderr),
+            "stdout_path"   : str(self.stdout_path),
+            "stderr_path"   : str(self.stderr_path),
         }
 
 
@@ -286,18 +287,15 @@ class ProgDir:
         Cleans up.
         """
         shutil.rmtree(self.path)
-        self.path = None
-        self.stdout = None
-        self.stderr = None
 
 
     def get_stdout(self) -> bytes:
-        with open(self.stdout, "rb") as file:
+        with open(self.stdout_path, "rb") as file:
             return file.read()
 
 
     def get_stderr(self) -> bytes:
-        with open(self.stderr, "rb") as file:
+        with open(self.stderr_path, "rb") as file:
             return file.read()
 
 
@@ -330,11 +328,12 @@ def start(prog, prog_dir) -> Running:
     stdin_fd  = os.open("/dev/null", os.O_RDONLY)
     assert stdin_fd >= 0
 
-    stdout_fd = os.open(prog_dir.stdout, os.O_CREAT | os.O_WRONLY, mode=0o600)
+    stdout_fd = os.open(
+        prog_dir.stdout_path, os.O_CREAT | os.O_WRONLY, mode=0o600)
     assert stdout_fd >= 0
     stderr_fd = (
         stdout_fd if combine_stderr
-        else os.open(prog_dir.stderr, os.O_CREAT | os.O_WRONLY, mode=0o600)
+        else os.open(prog_dir.stderr_path, os.O_CREAT | os.O_WRONLY, mode=0o600)
     )
     assert stderr_fd >= 0
 
