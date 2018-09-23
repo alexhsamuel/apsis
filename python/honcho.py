@@ -30,7 +30,6 @@ Exactly one of "argv" or "cmd" must be specified.
 # - specify env whitelist
 # - stdin support
 # - push result to webhook
-# - clean up the prog dir
 
 
 import _posixsubprocess
@@ -46,6 +45,7 @@ import shutil
 import signal
 import subprocess
 import tempfile
+import traceback
 
 #-------------------------------------------------------------------------------
 
@@ -90,6 +90,20 @@ def rusage_to_dict(rusage):
         n: round(v, 9) if isinstance(v, float) else v
         for n, v in usage.items()
     }
+
+
+def to_background():
+    # Close stdin, stdout, stderr.
+    os.close(0)
+    os.close(1)
+    os.close(2)
+
+    # Double-fork to detach.
+    if os.fork() > 0:
+        os._exit(0)
+    os.setsid()
+    if os.fork() > 0:
+        os._exit(0)
 
 
 #-------------------------------------------------------------------------------
@@ -324,6 +338,7 @@ class Running:
 
     def to_jso(self):
         return {
+            "state"         : "running",
             "argv"          : self.argv,
             "env"           : self.env,
             "cwd"           : self.cwd,
@@ -379,6 +394,7 @@ class Result:
 
     def to_jso(self):
         return {
+            "state"         : "terminated",
             "argv"          : self.argv,
             "env"           : self.env,
             "cwd"           : self.cwd,
@@ -407,10 +423,41 @@ def wait(running: Running, prog_dir) -> Result:
 
 
 def run(prog, prog_dir) -> Result:
-    return wait(start(prog, prog_dir), prog_dir)
+    running = start(prog, prog_dir)
+    result = wait(running, prog_dir)
+    return result
 
 
 #-------------------------------------------------------------------------------
+
+def run_prog(prog, prog_dir, *, do_print=False, background=False):
+    try:
+        running = start(prog, prog_dir)
+        if do_print:
+            jso = running.to_jso()
+            jso["prog_dir"] = prog_dir.to_jso()
+            print(json.dumps(jso, indent=2))
+
+        if background:
+            to_background()
+            do_print = False
+
+        result = wait(running, prog_dir)
+        if do_print:
+            jso = result.to_jso()
+            jso["prog_dir"] = prog_dir.to_jso()
+            print(json.dumps(jso, indent=2))
+
+    except Exception:
+        exc = traceback.format_exc()
+        prog_dir.log(exc)
+        jso = {
+            "state": "error",
+            "exception": exc,
+        }
+        if do_print:
+            print(json.dumps(jso, indent=2))
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -436,18 +483,11 @@ def main():
 
     prog_dir = ProgDir(prog)
     try:
-        running = start(prog, prog_dir)
-        if args.print:
-            jso = running.to_jso()
-            jso["prog_dir"] = prog_dir.to_jso()
-            print(json.dumps(jso, indent=2))
-
-        result = wait(running, prog_dir)
-        if args.print:
-            jso = result.to_jso()
-            jso["prog_dir"] = prog_dir.to_jso()
-            print(json.dumps(jso, indent=2))
-
+        run_prog(
+            prog, prog_dir, 
+            do_print    =args.print, 
+            background  =args.background
+        )
     finally:
         if args.clean:
             prog_dir.clean()
