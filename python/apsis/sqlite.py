@@ -71,9 +71,9 @@ class ClockDB:
 #-------------------------------------------------------------------------------
 
 TBL_JOBS = sa.Table(
-  "jobs", METADATA,
-  sa.Column("job_id"        , sa.String()       , nullable=False),
-  sa.Column("job"           , sa.String()       , nullable=False),
+    "jobs", METADATA,
+    sa.Column("job_id"        , sa.String()       , nullable=False),
+    sa.Column("job"           , sa.String()       , nullable=False),
 )
 
 class JobDB:
