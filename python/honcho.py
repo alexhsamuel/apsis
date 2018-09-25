@@ -13,24 +13,27 @@
 - "combine_stderr": If true, merge stderr with stdout.  Otherwise, capture
   stderr separately.
 
-
-- "host": The name of the host to run on.  If `None`, runs on the current host.
-
-- "user": The user to run as.  If `None`, runs as the current user.
-
-- "strategy": 
-
-
 Exactly one of "argv" or "cmd" must be specified.
 """
 
-
 # TODO:
-# - specify prog dir location
-# - specify env whitelist
-# - stdin support
 # - push result to webhook
-
+#   - result
+#   - output
+#   - hearbeat
+#   - incremental output
+# - additional configuration:
+#   - specify prog dir location
+#   - specify env whitelist
+#   - stdin support
+# - recover option to load from prog dir
+#   - check pid
+#   - load from files
+# - apsis program class for honcho
+#   - sudo support
+#   - ssh support
+#   - reconnect
+#   - recovery after timeout
 
 import _posixsubprocess
 import argparse
@@ -101,6 +104,7 @@ def to_background():
     # Double-fork to detach.
     if os.fork() > 0:
         os._exit(0)
+    # Create a new session.
     os.setsid()
     if os.fork() > 0:
         os._exit(0)
