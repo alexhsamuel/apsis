@@ -4,6 +4,8 @@
 - normalize environment for another user, locally and by ssh
 - use token to authenticate with agent
 
+- SSL for Apsis.
+- Convert `run.times` to log, with schema (timestamp, message, state).
 - configuration
 - release
   - update web UI
