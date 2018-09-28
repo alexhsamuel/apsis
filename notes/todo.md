@@ -18,6 +18,7 @@
   - auto-scroll live logs to bottom
   - reconnect live log when disconnected
   - show toast when live log disconnected
+- integrate [ansi-to-html](https://www.npmjs.com/package/ansi-to-html) for run output
 - time range in runs search: design it better
 - a good set of demo jobs
 - in collapsed run group, show schedule time of original job
