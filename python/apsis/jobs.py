@@ -77,7 +77,7 @@ def reruns_to_jso(reruns):
 
 
 def jso_to_job(jso, job_id):
-    params = jso.get("params", "date")
+    params = jso.get("params", [])
     params = [params] if isinstance(params, str) else params
 
     try:
