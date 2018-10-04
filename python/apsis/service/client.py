@@ -7,6 +7,14 @@ import apsis.service
 
 #-------------------------------------------------------------------------------
 
+class APIError(RuntimeError):
+
+    def __init__(self, status, error):
+        super().__init__(f"{error} (status {status})")
+        self.status = status
+
+
+
 class Client:
 
     def __init__(self, host, port=apsis.service.DEFAULT_PORT):
@@ -30,20 +38,26 @@ class Client:
         ))
 
 
+    def __request(self, method, *path, data=None, **query):
+        url = self.__url(*path)
+        logging.debug(f"{method} {url}")
+        resp = requests.request(method, url, json=data)
+        if 200 <= resp.status_code < 300:
+            return resp.json()
+        else:
+            try:
+                error = resp.json()["error"]
+            except Exception:
+                error = "unknown error"
+            raise APIError(resp.status_code, error)
+
+
     def __get(self, *path, **query):
-        url = self.__url(*path, **query)
-        logging.debug(f"GET {url}")
-        resp = requests.get(url)
-        resp.raise_for_status()
-        return resp.json()
+        return self.__request("GET", *path, **query)
 
 
     def __post(self, *path, data):
-        url = self.__url(*path)
-        logging.debug(f"POST {url}")
-        resp = requests.post(url, json=data)
-        resp.raise_for_status()
-        return resp.json()
+        return self.__request("POST", *path, data=data)
 
 
     def get_job(self, job_id):
