@@ -40,7 +40,7 @@ class Client:
 
     def __request(self, method, *path, data=None, **query):
         url = self.__url(*path)
-        logging.debug(f"{method} {url}")
+        logging.debug(f"{method} {url} data={data}")
         resp = requests.request(method, url, json=data)
         if 200 <= resp.status_code < 300:
             return resp.json()
