@@ -508,6 +508,9 @@ client = apsis.service.client.Client(host=args.host, port=args.port)
 
 try:
     args.cmd(client, args)
+except apsis.service.client.APIError as err:
+    print(err, file=sys.stderr)
+    raise SystemExit(1)
 except (KeyboardInterrupt, BrokenPipeError):
     pass
 
