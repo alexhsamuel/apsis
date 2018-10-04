@@ -10,7 +10,7 @@ import apsis.service
 class APIError(RuntimeError):
 
     def __init__(self, status, error):
-        super().__init__(f"{error} (status {status})")
+        super().__init__(f"{error} [API status {status}]")
         self.status = status
 
 
