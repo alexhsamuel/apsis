@@ -117,10 +117,12 @@ export default {
   methods: {
     load_output(run) {
       const v = this
-      const url = run.output_url
+      const url = this.run.output_url
       fetch(url)
         // FIXME: Handle failure, set error.
-        .then((response) => response.text())  // FIXME: Might not be text!
+        // FIXME: Might not be text!
+        // FIXME: Don't murder the browser with huge output or long lines.
+        .then((response) => response.text())
         .then((response) => { v.output = response })
     },
 
