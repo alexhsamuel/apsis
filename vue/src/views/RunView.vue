@@ -57,7 +57,7 @@ div(v-if="run")
                 td(v-html="format(key, value)")
 
     h5 output
-    a(v-if="run !== null && run.output_len && output === null" v-on:click="load_output()")
+    a(v-if="run && run.output_len && output === null" v-on:click="load_output()")
       | (load {{ run.output_len }} bytes)
     pre.output(v-if="output !== null") {{ output }}
 
