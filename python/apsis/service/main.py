@@ -86,7 +86,8 @@ SANIC_LOG_CONFIG = {
             "class": "apsis.lib.logging.Formatter",
         },
         "access": {
-            "class": "apsis.lib.logging.Formatter",
+            "class": "apsis.lib.logging.AccessFormatter",
+            "propagate": False,
         },
     }
 }    
