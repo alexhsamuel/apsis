@@ -159,8 +159,8 @@ class Instance:
     """
 
     def __init__(self, job_id, args):
-        self.job_id     = job_id
-        self.args       = { str(k): str(v) for k, v in args.items() }
+        self.job_id = job_id
+        self.args   = dict(sorted( (str(k), str(v)) for k, v in args.items() ))
 
 
     def __repr__(self):
