@@ -75,7 +75,10 @@ class QueueHandler(logging.Handler):
                 pass
 
 
-WS_HANDLER = QueueHandler(10000, LOG_FORMATTER)
+WS_HANDLER = QueueHandler(10000, logging.Formatter(
+    fmt="%(asctime)s.%(msecs)03d %(name)-20s [%(levelname)-7s] %(message)s",
+    datefmt="%H:%M:%S",
+))
 
 #-------------------------------------------------------------------------------
 
