@@ -190,6 +190,7 @@ class Jobs:
 
     def get_jobs(self):
         yield from self.__job_dir.get_jobs()
+        # FIXME: Yield only job ids we haven't seen.
         yield from self.__job_db.query()
 
 
