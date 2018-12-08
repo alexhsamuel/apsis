@@ -5,7 +5,6 @@ from   pathlib import Path
 import sanic
 import sanic.response
 import sanic.router
-import time
 import ujson as json
 import websockets
 
@@ -14,14 +13,11 @@ from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import JobsDir
 from   ..sqlite import SqliteDB
+import apsis.lib.logging
 
 #-------------------------------------------------------------------------------
 
-LOG_FORMATTER = logging.Formatter(
-    fmt="%(asctime)s %(name)-24s [%(levelname)-7s] %(message)s",
-    datefmt="%H:%M:%S",
-)
-LOG_FORMATTER.converter = time.gmtime  # FIXME: Use cron.Time?
+LOG_FORMATTER = apsis.lib.logging.Formatter()
 
 #-------------------------------------------------------------------------------
 
@@ -87,14 +83,10 @@ SANIC_LOG_CONFIG = {
     **sanic.log.LOGGING_CONFIG_DEFAULTS,
     "formatters": {
         "generic": {
-            "class": "logging.Formatter",
-            "format": "%(asctime)s %(name)-24s [%(levelname)-7s] %(message)s",
-            "datefmt": LOG_FORMATTER.datefmt,
+            "class": "apsis.lib.logging.Formatter",
         },
         "access": {
-            "class": "logging.Formatter",
-            "format": "%(asctime)s %(name)-24s [%(levelname)-7s] [%(host)s %(request)s %(status)d %(byte)d] %(message)s",
-            "datefmt": LOG_FORMATTER.datefmt,
+            "class": "apsis.lib.logging.Formatter",
         },
     }
 }    
