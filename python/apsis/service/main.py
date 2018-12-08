@@ -152,6 +152,7 @@ def main():
     logging.getLogger().handlers[0].formatter = LOG_FORMATTER
     logging.getLogger().handlers.append(WS_HANDLER)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
+    log = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -185,14 +186,18 @@ def main():
         SqliteDB.create(args.state_path)
         raise SystemExit(0)
 
+    log.info(f"opening state file {args.state_path}")
     db      = SqliteDB.open(args.state_path)
+    log.info(f"opening jobs dir {args.jobs}")
     jobs    = JobsDir(args.jobs)
+    log.info("creating scheduler instance")
     apsis   = Apsis(jobs, db)
 
     app.apsis   = apsis
     app.running = True
 
     # Set up the HTTP server.
+    log.info("creating HTTP service")
     server  = app.create_server(
         host        =args.host,
         port        =args.port,
@@ -200,6 +205,7 @@ def main():
     )
     asyncio.ensure_future(server)
 
+    log.info("scheduler ready to run")
     loop = asyncio.get_event_loop()
     try:
         loop.run_forever()

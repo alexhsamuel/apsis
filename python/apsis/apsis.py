@@ -37,6 +37,7 @@ class Apsis:
         self.__db = db
         self.jobs = Jobs(jobs, db.job_db)
         self.runs = Runs(db.run_db)
+        log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__start)
         # For now, expose the output database directly.
         self.outputs = db.output_db
