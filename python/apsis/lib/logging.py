@@ -18,9 +18,9 @@ NAME_COLOR = COLOR(0x11)
 class Formatter(logging.Formatter):
 
     def formatMessage(self, record):
-        r = record
-        time = ora.UNIX_EPOCH + r.created
-        level = LEVEL_NAMES[r.levelname]
-        return f"{time:%.3C} {NAME_COLOR}{r.name:20s}{BLK} {level} {r.message}"
+        time = ora.UNIX_EPOCH + record.created
+        level = LEVEL_NAMES[record.levelname]
+        return f"{time:%.3C} {NAME_COLOR}{record.name:20s}{BLK} {level} {record.message}"
+
 
 
