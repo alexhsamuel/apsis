@@ -90,6 +90,7 @@ export default {
     return {
       metadataCollapsed: true,
       output: null,
+      outputRequested: false,
       store,
     }
   },
@@ -99,8 +100,8 @@ export default {
       const run = this.store.state.runs[this.run_id]
 
       // Immediately load the output too, unless it's quite large.
-      if (this.output === null && run.output_len !== null && run.output_len < 65536)
-        this.load_output(run)
+      if (run && this.output === null && run.output_len !== null && run.output_len < 65536)
+         this.load_output(run)
 
       return run
     },
@@ -116,6 +117,11 @@ export default {
 
   methods: {
     load_output(run) {
+      // Don't request output more than once.
+      if (this.outputRequested)
+        return
+      this.outputRequested = true
+
       const v = this
       const url = this.run.output_url
       fetch(url)
