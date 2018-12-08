@@ -5,6 +5,7 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
+from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run, RunError
 
@@ -14,37 +15,16 @@ log = logging.getLogger(__name__)
 
 API = sanic.Blueprint("v1")
 
-def response_json(jso, status=200):
-    return sanic.response.json(jso, status=status, indent=1, sort_keys=True)
-
-
-def error(message, status=400, **kw_args):
-    return response_json({"error": str(message), **kw_args}, status=status)
-
-
 @API.exception(RunError)
 def no_such_process_error(request, exception):
     return error(exception, status=400)
 
 
-def time_to_jso(time):
-    return format(time, "%.i")
-
-
-def to_bool(string):
-    if string in {"True", "true", "T", "t"}:
-        return True
-    elif string in {"False", "false", "F", "f"}:
-        return False
-    else:
-        raise ValueError(f"unknown bool: {string}")
-
+#-------------------------------------------------------------------------------
 
 def to_state(state):
     return None if state is None else Run.STATE[state]
 
-
-#-------------------------------------------------------------------------------
 
 def program_to_jso(app, program):
     return {
