@@ -1,6 +1,8 @@
-import asyncio
 import logging
 import sanic
+
+from   apsis.lib.api import response_json
+
 
 log = logging.getLogger(__name__)
 
@@ -12,7 +14,7 @@ API = sanic.Blueprint("control")
 async def shutdown(request):
     request.json  # FIXME: Ignored.
     await request.app.apsis.shut_down()
-    return sanic.response.json({})  # FIXME: Use response_json().
+    return response_json({})
 
 
 # ws /control/log
