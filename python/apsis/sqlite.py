@@ -242,6 +242,7 @@ class RunDB:
 
 
     def query(self, *, job_id=None, since=None, until=None):
+        log.debug(f"query job_id={job_id} since={since} until={until}")
         where = []
         if job_id is not None:
             where.append(TBL_RUNS.c.job_id == job_id)
@@ -254,6 +255,7 @@ class RunDB:
             # FIMXE: Return only the last record for each run_id?
             runs = list(self.__query_runs(conn, sa.and_(*where)))
         
+        log.debug(f"query returned {len(runs)} runs")
         return runs
 
 
