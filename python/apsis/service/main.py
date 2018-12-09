@@ -177,6 +177,7 @@ def main():
         help="state file")
     args = parser.parse_args()
     logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
+    logging.getLogger("websockets.protocol").setLevel(logging.INFO)
 
     if args.create:
         SqliteDB.create(args.state_path)

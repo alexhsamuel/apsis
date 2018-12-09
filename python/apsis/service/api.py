@@ -116,6 +116,8 @@ def _run_to_jso(app, run):
 
 
 # FIXME: Attach to the apsis object?
+# FIXME: Attach these to the Run objects?
+# FIXME: Cache JSON instead of JSO?
 _run_jso_cache = {}
 
 def run_to_jso(app, run):
@@ -291,9 +293,14 @@ async def websocket_runs(request, ws):
             runs = list(_filter_runs(runs, request.args))
             if len(runs) == 0:
                 continue
+            log.debug(f"converting {len(runs)} runs to JSO")
             jso = runs_to_jso(request.app, when, runs)
+            log.debug(f"converting {len(runs)} runs to JSON")
+            json = ujson.dumps(jso)
+            log.debug(f"sending {len(runs)} runs to live connection")
             try:
-                await ws.send(ujson.dumps(jso))
+                await ws.send(json)
+                log.debug(f"sent {len(runs)} runs")
             except websockets.ConnectionClosed:
                 break
     log.info("live runs disconnect")

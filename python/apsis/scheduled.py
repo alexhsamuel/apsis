@@ -2,7 +2,6 @@ import asyncio
 import heapq
 import logging
 from   ora import now, Time
-import traceback
 
 from   .runs import Run
 
@@ -22,7 +21,7 @@ class ScheduledRuns:
     # Max delay time.  Generally, a run is started very close to its scheduled
     # time, but in some cases the run may be delayed as much as this time.
 
-    LOOP_TIME = 0.2
+    LOOP_TIME = 1
 
     # Entry is the data structure stored in __heap.  It represents a scheduled
     # run.  We also maintain __scheduled, a map from Run to Entry, to find an
@@ -89,7 +88,7 @@ class ScheduledRuns:
                 if log.isEnabledFor(logging.DEBUG):
                     count = len(self.__heap)
                     next_time = None if count == 0 else self.__heap[0].time
-                    log.debug(f"start loop: count={count} next={next_time}")
+                    log.debug(f"loop: {count} scheduled runs; next at {next_time}")
 
                 while len(self.__heap) > 0 and self.__heap[0].time <= time:
                     # The next run is ready.
