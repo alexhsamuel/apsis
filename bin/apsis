@@ -178,6 +178,24 @@ def format_run(run):
     yield ""
 
 
+RUNS_CFG = fixfmt.table.update_cfg(fixfmt.table.RowTable.DEFAULT_CFG, {
+    "header": {
+        "separator": {
+            "between": " ",
+        },
+    },
+    "underline": {
+        "separator": {
+            "between": " ",
+        },
+    },
+    "row": {
+        "separator": {
+            "between": " ",
+        },
+    },
+})
+
 def format_runs(runs, *, reruns=False):
     # FIXME: Does this really make sense?
     def start_time(run):
@@ -188,7 +206,7 @@ def format_runs(runs, *, reruns=False):
     if reruns:
         runs = sorted(runs, key=lambda r: r["rerun"])
 
-    table = fixfmt.table.RowTable()
+    table = fixfmt.table.RowTable(RUNS_CFG)
     for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
         row = {
             "run_id"    : RUN + run["run_id"] + BLK,
