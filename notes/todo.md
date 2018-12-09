@@ -4,7 +4,6 @@
 - normalize environment for another user, locally and by ssh
 - use token to authenticate with agent
 
-- SSH options.
 - sudo support in programs
 - control page
   - reload jobs
@@ -13,7 +12,8 @@
   - auto-scroll live logs to bottom
   - reconnect live log when disconnected
   - show toast when live log disconnected
-- Convert `run.times` to log, with schema (timestamp, message, state).
+- implement `apsis runs --times`
+- convert `run.times` to log, with schema (timestamp, message, state)
 - configuration
 - release
   - update web UI
