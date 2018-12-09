@@ -23,7 +23,7 @@ LOG_FORMATTER = apsis.lib.logging.Formatter()
 WS_HANDLER = apsis.lib.logging.QueueHandler(
     10000, 
     logging.Formatter(
-        fmt="%(asctime)s.%(msecs)03d %(name)-20s [%(levelname)-7s] %(message)s",
+        fmt="%(asctime)s.%(msecs)03d %(name)-24s [%(levelname)-7s] %(message)s",
         datefmt="%H:%M:%S",
     )
 )

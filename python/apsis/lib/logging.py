@@ -24,7 +24,7 @@ class Formatter(logging.Formatter):
         time = ora.UNIX_EPOCH + record.created
         level = LEVEL_NAMES[record.levelname]
         return (
-            f"{time:%.3C} {NAME_COLOR}{record.name:20s}{BLK} {level} "
+            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{BLK} {level} "
             f"{record.message}"
         )
 
@@ -36,7 +36,7 @@ class AccessFormatter(logging.Formatter):
         time = ora.UNIX_EPOCH + record.created
         level = LEVEL_NAMES[record.levelname]
         return (
-            f"{time:%.3C} {NAME_COLOR}{record.name:20s}{BLK} {level} "
+            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{BLK} {level} "
             f"{record.status} {ACCESS_COLOR}{record.request}{BLK} ({record.host})"
         )
 
