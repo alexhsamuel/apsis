@@ -4,14 +4,7 @@
 - normalize environment for another user, locally and by ssh
 - use token to authenticate with agent
 
-- sudo support in programs
-- control page
-  - reload jobs
-  - restart
-  - clear live logs when reconnecting
-  - auto-scroll live logs to bottom
-  - reconnect live log when disconnected
-  - show toast when live log disconnected
+- restart
 - implement `apsis runs --times`
 - convert `run.times` to log, with schema (timestamp, message, state)
 - configuration
@@ -20,7 +13,15 @@
   - conda recipe
   - intro docs in README
   - job docs
+- sudo support in programs
 - SSL for Apsis.
+- control page
+  - reload jobs
+  - restart
+  - clear live logs when reconnecting
+  - auto-scroll live logs to bottom
+  - reconnect live log when disconnected
+  - show toast when live log disconnected
 - factor out Vue API client code into module
   - error handling
 - integrate [ansi-to-html](https://www.npmjs.com/package/ansi-to-html) for run output
