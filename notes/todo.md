@@ -20,6 +20,8 @@
   - auto-scroll live logs to bottom
   - reconnect live log when disconnected
   - show toast when live log disconnected
+- factor out Vue API client code into module
+  - error handling
 - integrate [ansi-to-html](https://www.npmjs.com/package/ansi-to-html) for run output
 - time range in runs search: design it better
 - a good set of demo jobs
