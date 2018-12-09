@@ -19,71 +19,14 @@ import apsis.lib.logging
 
 LOG_FORMATTER = apsis.lib.logging.Formatter()
 
-#-------------------------------------------------------------------------------
-
-class QueueHandler(logging.Handler):
-    """
-    Publishes formatted log messages to registered async queues.
-    """
-
-    def __init__(self, length=1000, formatter=None):
-        if formatter is None:
-            formatter = logging.Formatter()
-
-        super().__init__()
-        self.__formatter = formatter
-        self.__length = length
-        self.__buffer = []
-        self.__queues = []
-
-
-    def register(self, length=None) -> asyncio.Queue:
-        """
-        Returns a new queue, to which log records will be published.
-        """
-        length = self.__length if length is None else min(self.__length, length)
-
-        queue = asyncio.Queue()
-        self.__queues.append(queue)
-
-        # Send old messages.
-        lines = self.__buffer[-length :]
-        queue.put_nowait(lines)
-
-        return queue
-
-
-    def unregister(self, queue):
-        """
-        Removes a previously registered queue.
-        """
-        self.__queues.remove(queue)
-
-
-    def emit(self, record):
-        line = self.__formatter.format(record)
-
-        # Store the log line in the buffer, for later connections.
-        self.__buffer.append(line)
-        if len(self.__buffer) > self.__length:
-            del self.__buffer[: -self.__length]
-
-        for queue in list(self.__queues):
-            try:
-                queue.put_nowait([line])
-            except asyncio.QueueFull:
-                pass
-
-
-WS_HANDLER = QueueHandler(
+# Logging handler that queues up log messages for serving to clients.
+WS_HANDLER = apsis.lib.logging.QueueHandler(
     10000, 
     logging.Formatter(
         fmt="%(asctime)s.%(msecs)03d %(name)-20s [%(levelname)-7s] %(message)s",
         datefmt="%H:%M:%S",
     )
 )
-
-#-------------------------------------------------------------------------------
 
 SANIC_LOG_CONFIG = {
     **sanic.log.LOGGING_CONFIG_DEFAULTS,
@@ -98,8 +41,6 @@ SANIC_LOG_CONFIG = {
     }
 }    
     
-#-------------------------------------------------------------------------------
-
 class Router(sanic.router.Router):
     """
     Extended router that supports a catch-all path for missing pages.
