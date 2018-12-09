@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import logging
 import os
 import requests
@@ -53,7 +54,16 @@ class AgentStartError(RuntimeError):
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Configure how we become other users and log in to other hosts.
+# FIXME-CONFIG: Configure how we become other users and log in to other hosts.
+
+# FIXME-CONFIG: Make configurable.
+SSH_OPTIONS = dict(
+    CheckHostIP="no",
+    ClearAllForwardings="yes",
+    ForwardAgent="no",
+    ForwardX11="no",
+    StrictHostKeyChecking="no",
+)
 
 def _get_agent_argv(*, host=None, user=None, connect=None):
     """
@@ -74,7 +84,14 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
 
     if host is not None:
         command = " ".join(argv)
-        argv = ["/usr/bin/ssh", "-q"]
+        argv = [
+            "/usr/bin/ssh",
+            "-o", "BatchMode=yes",
+            *itertools.chain.from_iterable(
+                ["-o", f"{k}={v}"]
+                for k, v in SSH_OPTIONS.items()
+            )
+        ]
         if user is not None:
             argv.extend(["-l", user])
         argv.extend([
