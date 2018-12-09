@@ -29,12 +29,12 @@ STATE_COLOR = {
 }
 
 STATE_SYMBOL = {
-    "new"       : "\u25ef",
-    "scheduled" : "\u25f7",
-    "running"   : "\u25b6",
-    "success"   : "\u2714",
-    "failure"   : "\u2716",
-    "error"     : "\u2757",
+    "new"       : ".",
+    "scheduled" : "O",
+    "running"   : ">",
+    "success"   : "+",
+    "failure"   : "X",
+    "error"     : "!",
 }
 
 RUN = COLOR( 36)
@@ -196,7 +196,8 @@ def format_runs(runs, *, reruns=False):
             "start"     : start_time(run),
             "elapsed"   : run["meta"].get("elapsed"),
             "job_id"    : JOB + run["job_id"] + BLK,
-            **run["args"],
+            "args"      : " ".join( f"{k}={v}" for k, v in run["args"].items() ),
+          # **run["args"],
         }
         table.append(**row)
         if reruns and pos in "lo":
