@@ -1,11 +1,13 @@
 <template lang="pug">
   #app
     navbar
+    ErrorToast
     .uk-container.uk-container-expand.uk-margin-top
       router-view
 </template>
 
 <script>
+import ErrorToast from '@/components/ErrorToast'
 import navbar from '@/components/navbar'
 import LiveLog from '@/LiveLog.js'
 import RunsSocket from '@/RunsSocket'
@@ -14,6 +16,7 @@ import store from '@/store.js'
 export default {
   name: 'App',
   components: {
+    ErrorToast,
     navbar,
   },
 

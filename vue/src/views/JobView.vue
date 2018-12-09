@@ -49,6 +49,7 @@ import { join } from 'lodash'
 import MarkdownIt from 'markdown-it'
 import Program from '@/components/Program'
 import RunsList from '@/components/RunsList'
+import store from '@/store'
 
 const markdownit = new MarkdownIt()
 
@@ -84,8 +85,7 @@ export default {
         else if (response.status === 404)
           this.job = null
         else
-          // FIXME: Error.
-          ;
+          store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
       })
   },
 
