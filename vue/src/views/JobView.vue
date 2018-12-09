@@ -70,9 +70,7 @@ export default {
 
   computed: {
     params() {
-      return this.job.params
-        ? '(' + join(this.job.params, ', ') + ')'
-        : ''
+      return join(this.job.params, ', ')
     },
   },
 
