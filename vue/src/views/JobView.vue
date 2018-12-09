@@ -2,6 +2,7 @@
 div
   h1 {{ job_id }}
 
+  div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
   p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)")
 
   table.fields(v-if="job"): tbody
@@ -61,7 +62,8 @@ export default {
 
   data() {
     return {
-      job: null,
+      // Undefined before the job has loaded; null if the job doesn't exist.
+      job: undefined,
     }
   },
 
@@ -74,11 +76,17 @@ export default {
   },
 
   created() {
-    const v = this
     const url = '/api/v1/jobs/' + this.job_id  // FIXME
     fetch(url)
-      .then((response) => response.json())
-      .then((response) => { v.job = response })
+      .then(async (response) => {
+        if (response.ok)
+          this.job = await response.json()
+        else if (response.status === 404)
+          this.job = null
+        else
+          // FIXME: Error.
+          ;
+      })
   },
 
   methods: {

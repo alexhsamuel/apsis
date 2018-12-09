@@ -150,7 +150,7 @@ async def job(request, job_id):
     try:
         job = request.app.apsis.jobs.get_job(unquote(job_id))
     except LookupError as exc:
-        sanic.exceptions.abort(404, f"job_id: {job_id}")
+        return error(f"no job_id {job_id}", status=404)
     return response_json(job_to_jso(request.app, job))
 
 

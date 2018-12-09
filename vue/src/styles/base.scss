@@ -21,3 +21,10 @@ code {
   color: $table-header-cell-color;
   text-transform: uppercase;
 }
+
+.error-message {
+  color: #802;
+  font-weight: 500;
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
