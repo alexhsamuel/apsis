@@ -330,8 +330,4 @@ class Apsis:
         asyncio.get_event_loop().stop()
         
 
-    async def update_jobs(self, jobs):
-        # figure out added, removed, changed jobs
-        pass
-
 

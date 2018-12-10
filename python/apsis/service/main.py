@@ -1,10 +1,12 @@
 import asyncio
 import argparse
 import logging
+import os
 from   pathlib import Path
 import sanic
 import sanic.response
 import sanic.router
+import sys
 import ujson as json
 import websockets
 
@@ -135,6 +137,8 @@ def main():
     apsis   = Apsis(jobs, db)
 
     app.apsis   = apsis
+    # Flag to indicate whether to restart after shutting down.
+    app.restart = False
     app.running = True  # FIXME: ??  Remove?
 
     # Set up the HTTP server.
@@ -156,6 +160,16 @@ def main():
         loop.run_until_complete(asyncio.ensure_future(apsis.shut_down()))
     finally:
         loop.close()
+
+    if app.restart:
+        # Start all over.
+        # FIXME: We don't have access to the unmodified process argv; see
+        # https://bugs.python.org/issue29857.  So fake something, assuming we
+        # were invoked with python -m.  If we are invoked some other way, we'll
+        # have to modify this.
+        argv = [sys.executable, "-m", __spec__.name, *sys.argv[1 :]]
+        log.info(f"restarting: {' '.join(argv)}")
+        os.execv(sys.executable, argv)
 
 
 if __name__ == "__main__":
