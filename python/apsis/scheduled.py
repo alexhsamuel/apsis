@@ -67,15 +67,12 @@ class ScheduledRuns:
         # Mapping from Run to Entry.  Values satisfy entry.scheduled==True.
         self.__scheduled    = {}
 
-        # Get the start loop started.
-        self.__task = asyncio.ensure_future(self.__loop())
-
 
     def __len__(self):
         return len(self.__heap)
 
 
-    async def __loop(self):
+    async def loop(self):
         # The start loop sleeps until the time to start the next scheduled job,
         # or for LOOP_TIME, whichever comes first.  LOOP_TIME comes in to play
         # when the event loop clock wanders from the real time clock, or if a
