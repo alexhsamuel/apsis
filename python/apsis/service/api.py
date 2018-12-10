@@ -289,7 +289,13 @@ async def websocket_runs(request, ws):
         while True:
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.
-            when, runs = await queue.get()
+            next_runs = await queue.get()
+            if next_runs is None:
+                # Signalled to shut down.
+                await ws.close()
+                break
+
+            when, runs = next_runs
             runs = list(_filter_runs(runs, request.args))
             if len(runs) == 0:
                 continue
@@ -303,6 +309,7 @@ async def websocket_runs(request, ws):
                 log.debug(f"sent {len(runs)} runs")
             except websockets.ConnectionClosed:
                 break
+
     log.info("live runs disconnect")
 
 

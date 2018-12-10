@@ -336,4 +336,23 @@ class Runs:
             self.__queues.remove(queue)
 
 
+    async def shut_down(self):
+        """
+        Terminates any live queries.
+        """
+        while True:
+            try:
+                queue = next(iter(self.__queues))
+            except StopIteration:
+                break
+
+            log.info("shutting down live query queue")
+            # Indicate that this queue is shutting down.
+            queue.put_nowait(None)
+            # FIXME: Join doesn't seem to work.
+            # await queue.join()
+            await asyncio.sleep(0.5)
+            log.info("live query queue shut down")
+
+
 

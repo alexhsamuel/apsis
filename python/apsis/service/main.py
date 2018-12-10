@@ -135,7 +135,7 @@ def main():
     apsis   = Apsis(jobs, db)
 
     app.apsis   = apsis
-    app.running = True
+    app.running = True  # FIXME: ??  Remove?
 
     # Set up the HTTP server.
     log.info("creating HTTP service")
