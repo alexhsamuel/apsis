@@ -152,6 +152,8 @@ def main():
         loop.run_forever()
     except KeyboardInterrupt:
         print()
+        log.error("keyboard interrupt")
+        loop.run_until_complete(asyncio.ensure_future(apsis.shut_down()))
     finally:
         loop.close()
 
