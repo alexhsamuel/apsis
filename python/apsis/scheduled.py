@@ -102,13 +102,14 @@ class ScheduledRuns:
                     else min(self.LOOP_TIME, self.__heap[0].time - now())
                 )
                 if wait > 0:
-                    try:
-                        await asyncio.sleep(wait)
-                    except asyncio.CancelledError:
-                        log.info("scheduled loop cancelled")
-                        break
+                    await asyncio.sleep(wait)
+
+        except asyncio.CancelledError:
+            # Let this through.
+            raise
 
         except Exception:
+            # FIXME: Do this in Apsis.
             # FIXME: Someone should be awaiting this task.
             log.critical("scheduled loop failed", exc_info=True)
             raise SystemExit(1)
