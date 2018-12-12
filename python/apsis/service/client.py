@@ -1,11 +1,32 @@
 import logging
 from   ora import Time
+import os
 import requests
 from   urllib.parse import quote, urlunparse
 
 import apsis.service
 
 #-------------------------------------------------------------------------------
+
+def get_host() -> (str, int):
+    """
+    Returns the configured host and port where Apsis runs.
+    """
+    try:
+        loc = os.environ["APSIS_HOST"]
+    except KeyError:
+        host, port = "localhost", apsis.service.DEFAULT_PORT
+    else:
+        try:
+            host, port = loc.split(":", 1)
+            port = int(port)
+        except ValueError:
+            host, port = loc, apsis.service.DEFAULT_PORT
+        else:
+            port = int(port)
+    return host, port
+
+
 
 class APIError(RuntimeError):
 

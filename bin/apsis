@@ -259,16 +259,18 @@ logging.basicConfig(
     level   =logging.WARNING,
 )
 
+default_host, default_port = apsis.service.client.get_host()
+
 parser = argparse.ArgumentParser(
     usage="%(prog)s [ OPTIONS ] COMMAND ...",
     formatter_class=HelpFormatter,
 )
 parser.add_argument(
-    "--host", metavar="HOST", default="localhost",
-    help="connect to HOST [def: localhost]")
+    "--host", metavar="HOST", default=default_host,
+    help=f"connect to HOST [def: {default_host}]")
 parser.add_argument(
-    "--port", metavar="PORT", default=apsis.service.DEFAULT_PORT,
-    help=f"connect to PORT [def: {apsis.service.DEFAULT_PORT}]")
+    "--port", metavar="PORT", default=default_port,
+    help=f"connect to PORT [def: {default_port}]")
 parser.add_argument(
     "--log-level", metavar="LEVEL", default="WARNING",
     choices={"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
