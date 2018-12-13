@@ -36,6 +36,8 @@ class APIError(RuntimeError):
 
 
 
+NO_ARG = object()
+
 class Client:
 
     def __init__(self, host, port=apsis.service.DEFAULT_PORT):
@@ -45,7 +47,7 @@ class Client:
 
     def __url(self, *path, **query):
         query = "&".join(
-            f"{k}={quote(str(v))}"
+            str(k) if v is NO_ARG else f"{k}={quote(str(v))}"
             for k, v in query.items()
             if v is not None
         )
@@ -77,8 +79,8 @@ class Client:
         return self.__request("GET", *path, **query)
 
 
-    def __post(self, *path, data):
-        return self.__request("POST", *path, data=data)
+    def __post(self, *path, data, **query):
+        return self.__request("POST", *path, data=data, **query)
 
 
     def get_job(self, job_id):
@@ -173,8 +175,9 @@ class Client:
         return self.__schedule(time, {"program": str(command)})
         
 
-    def shut_down(self):
-        self.__post("/api/control/shut_down", data={})
+    def shut_down(self, restart=False):
+        query = {"restart": NO_ARG} if restart else {}
+        self.__post("/api/control/shut_down", data={}, **query)
 
 
 

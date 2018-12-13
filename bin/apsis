@@ -387,6 +387,16 @@ cmd.add_argument(
     "--json", action="store_true", default=False,
     help="dump run as JSON")
 
+#--- command: restart --------------------------------------------------------
+
+def cmd_restart(client, args):
+    client.shut_down(restart=True)
+
+
+cmd = add_command(
+    "restart", cmd_restart,
+    description="Restarts the Apsis service.")
+
 #--- command: run --------------------------------------------------------------
 
 def cmd_run(client, args):
