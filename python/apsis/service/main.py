@@ -149,9 +149,9 @@ def main():
 
     signal.signal(signal.SIGTERM, terminate)
 
-   # Set up the HTTP server.
+    # Set up the HTTP server.
     log.info("creating HTTP service")
-    server  = app.create_server(
+    server = app.create_server(
         host        =args.host,
         port        =args.port,
         debug       =args.debug,
