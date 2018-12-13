@@ -6,6 +6,7 @@ from   pathlib import Path
 import sanic
 import sanic.response
 import sanic.router
+import signal
 import sys
 import ujson as json
 import websockets
@@ -140,8 +141,15 @@ def main():
     # Flag to indicate whether to restart after shutting down.
     app.restart = False
     app.running = True  # FIXME: ??  Remove?
+ 
+    # Shut down on SIGTERM.
+    def terminate(signum, stack_frame):
+        log.error("terminated")
+        asyncio.ensure_future(apsis.shut_down())
 
-    # Set up the HTTP server.
+    signal.signal(signal.SIGTERM, terminate)
+
+   # Set up the HTTP server.
     log.info("creating HTTP service")
     server  = app.create_server(
         host        =args.host,
