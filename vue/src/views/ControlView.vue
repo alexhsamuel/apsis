@@ -4,9 +4,9 @@ div
     div.field-label Server log
     pre.log {{ log }}
 
-  div.buttons
-    p.uk-margin
-      button.uk-button.uk-button-danger(v-on:click="shutDown()") Shut Down
+  div.buttons.uk-margin
+    button.uk-button.uk-button-danger(v-on:click="shutDown(true)") Restart
+    button.uk-button.uk-button-danger(v-on:click="shutDown(false)") Shut Down
 
 </template>
 
@@ -30,9 +30,10 @@ export default {
   },
 
   methods: {
-    shutDown() {
-      const url = '/api/control/shut_down'
-      uikit.modal.confirm('Shut down the Apsis server?').then(
+    shutDown(restart) {
+      const url = '/api/control/shut_down' + (restart ? '?restart' : '')
+      const msg = (restart ? 'Restart' : 'Shut down') + ' the Apsis server?'
+      uikit.modal.confirm(msg).then(
         () => { 
           fetch(url, {method: 'POST', body: '{}'})
             .then((response) => response.json() )
@@ -53,5 +54,17 @@ export default {
   height: 32em;
   overflow-x: hidden;
   overflow-y: scroll;
+}
+
+.buttons {
+  button {
+    margin: 0 8px;
+  }
+  button:first-child {
+    margin-left: 0;
+  }
+  button:last-child {
+    margin-right: 0;
+  }
 }
 </style>
