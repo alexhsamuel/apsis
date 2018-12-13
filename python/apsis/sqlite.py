@@ -332,7 +332,7 @@ class OutputDB:
             if compression is None:
                 return data
             else:
-                raise NotImplementedError(f"compression: f{compression}")
+                raise NotImplementedError(f"compression: {compression}")
 
 
 
