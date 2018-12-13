@@ -79,7 +79,7 @@ def _run_to_jso(app, run):
 
     program = None if run.program is None else program_to_jso(app, run.program)
 
-    jso = {
+    return {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job_id,
         "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
@@ -94,25 +94,20 @@ def _run_to_jso(app, run):
         "actions"       : actions,
         "rerun"         : run.rerun,
         "expected"      : run.expected,
+        "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
     }
 
-    # FIXME: For now, include output_id="output" only.
-    OUTPUT_ID = "output"
-    outputs = app.apsis.outputs.get_metadata(run.run_id)
-    try:
-        output = outputs[OUTPUT_ID]
-    except KeyError:
-        # No output.
-        pass
-    else:
-        url = app.url_for(
-            "v1.run_output", run_id=run.run_id, output_id=OUTPUT_ID)
-        jso.update({
-            "output_url": url,
-            "output_len": output.length,
-        })
 
-    return jso
+def _output_metadata_to_jso(app, run_id, outputs):
+    return [
+        {
+            "output_id": output_id,
+            "output_url": app.url_for(
+                "v1.run_output", run_id=run_id, output_id=output_id),
+            "output_len": output.length,
+        }
+        for output_id, output in outputs.items()
+    ]
 
 
 # FIXME: Attach to the apsis object?
@@ -186,6 +181,17 @@ async def run(request, run_id):
         return error(f"unknown run {run_id}", 404)
             
     jso = runs_to_jso(request.app, when, [run])
+    return response_json(jso)
+
+
+@API.route("/runs/<run_id>/output", methods={"GET"})
+async def run_output_meta(request, run_id):
+    try:
+        outputs = request.app.apsis.outputs.get_metadata(run_id)
+    except KeyError:
+        return error(f"unknown run {run_id}", 404)
+
+    jso = _output_metadata_to_jso(request.app, run_id, outputs)
     return response_json(jso)
 
 

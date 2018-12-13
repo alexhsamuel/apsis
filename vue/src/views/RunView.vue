@@ -56,15 +56,17 @@ div(v-if="run")
                 th {{ key }}
                 td(v-html="format(key, value)")
 
-    h5 output
-    a(v-if="run && run.output_len && output === null" v-on:click="load_output()")
-      | (load {{ run.output_len }} bytes)
-    pre.output(v-if="output !== null") {{ output }}
+    .field-label output
+    button.uk-button(
+      v-if="output && output.output_len && !outputData"
+      v-on:click="fetchOutputData(output.output_url)"
+    ) load {{ output.output_len }} bytes
+    pre.output(v-if="outputData !== null") {{ outputData }}
 
 </template>
 
 <script>
-import { join, map, sortBy, toPairs } from 'lodash'
+import { forEach, join, map, sortBy, toPairs } from 'lodash'
 
 import ActionButton from '@/components/ActionButton'
 import { formatElapsed } from '../time'
@@ -90,20 +92,15 @@ export default {
     return {
       metadataCollapsed: true,
       output: null,
-      outputRequested: false,
+      outputRequested: false,  // FIXME: Remove?
+      outputData: null,
       store,
     }
   },
 
   computed: {
     run() {
-      const run = this.store.state.runs[this.run_id]
-
-      // Immediately load the output too, unless it's quite large.
-      if (run && this.output === null && run.output_len !== null && run.output_len < 65536)
-         this.load_output(run)
-
-      return run
+      return this.store.state.runs[this.run_id]
     },
 
     arg_str() {
@@ -116,20 +113,40 @@ export default {
   },
 
   methods: {
-    load_output(run) {
+    fetchOutputMetadata(run) {
+      if (run && run.output_url)
+        fetch(run.output_url)
+          .then(async rsp => {
+            const outputs = await rsp.json()
+
+            // FIXME: For now we only show output_id = 'output'.
+            forEach(outputs, output => {
+              if (output.output_id === 'output')
+                this.output = output
+
+                // If the output isn't too big, fetch it immediately.
+                if (this.output.output_len <= 65536)
+                  this.fetchOutputData(this.output.output_url)
+            })
+          })
+          // FIXME: Handle error.
+          .catch(err => { console.log(err) })
+    },
+
+    fetchOutputData(url) {
       // Don't request output more than once.
       if (this.outputRequested)
         return
       this.outputRequested = true
 
-      const v = this
-      const url = this.run.output_url
       fetch(url)
-        // FIXME: Handle failure, set error.
         // FIXME: Might not be text!
         // FIXME: Don't murder the browser with huge output or long lines.
-        .then((response) => response.text())
-        .then((response) => { v.output = response })
+        .then(async rsp => {
+          this.outputData = await rsp.text()
+        })
+        // FIXME: Handle error.
+        .catch(err => { console.log(err) })
     },
 
     format(key, value) {
@@ -143,7 +160,17 @@ export default {
 
   },
 
+  mounted() {
+    // Fetch output metadata immediately.
+    this.fetchOutputMetadata(this.run)
+  },
+
   watch: {
+    run(run) {
+      // Reload output metadata when the run chnages.
+      this.fetchOutputMetadata(run)
+    },
+
     // '$route'(to, from) {
     //   this.load()
     // },
