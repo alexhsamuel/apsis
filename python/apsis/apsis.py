@@ -323,7 +323,7 @@ class Apsis:
         await cancel_task(self.__scheduler_task, "scheduler")
         await cancel_task(self.__scheduled_task, "scheduled")
         for run_id, task in self.__running_tasks.items():
-            cancel_task(task, f"run {run_id}")
+            await cancel_task(task, f"run {run_id}")
         await self.runs.shut_down()
 
         log.info("done shutting down")
