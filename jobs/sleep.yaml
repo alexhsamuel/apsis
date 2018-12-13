@@ -1,0 +1,14 @@
+params: [time]
+
+metadata:
+  description: Sleeps for a while.
+
+program:
+  type: program
+  argv:
+  - /bin/sleep
+  - "{{ time }}"
+
+
+
+  
