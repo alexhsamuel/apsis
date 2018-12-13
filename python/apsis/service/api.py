@@ -165,9 +165,12 @@ async def job_runs(request, job_id):
 
 @API.route("/jobs")
 async def jobs(request):
+    """
+    Returns (non ad-hoc) jobs.
+    """
     jso = [ 
         job_to_jso(request.app, j) 
-        for j in request.app.apsis.jobs.get_jobs() 
+        for j in request.app.apsis.jobs.get_jobs(ad_hoc=False)
     ]
     return response_json(jso)
 

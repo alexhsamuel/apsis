@@ -104,11 +104,14 @@ class JobDB:
                 return jso_to_job(ujson.loads(job), job_id)
 
 
-    def query(self):
+    def query(self, *, ad_hoc=None):
         query = sa.select([TBL_JOBS])
         with self.__engine.begin() as conn:
             for job_id, job in conn.execute(query):
-                yield jso_to_job(ujson.loads(job), job_id)
+                # FIXME: Filter ad hoc jobs in the query.
+                job = jso_to_job(ujson.loads(job), job_id)
+                if ad_hoc is None or job.ad_hoc == ad_hoc:
+                    yield job
 
 
 

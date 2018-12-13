@@ -163,8 +163,11 @@ class JobsDir:
             raise LookupError(job_id)
 
 
-    def get_jobs(self):
-        return self.__jobs.values()
+    def get_jobs(self, *, ad_hoc=None):
+        jobs = self.__jobs.values()
+        if ad_hoc is not None:
+            jobs = ( j for j in jobs if j.ad_hoc == ad_hoc )
+        return jobs
 
 
 
@@ -188,10 +191,16 @@ class Jobs:
         return self.__job_db.get(job_id)
 
 
-    def get_jobs(self):
-        yield from self.__job_dir.get_jobs()
+    def get_jobs(self, *, ad_hoc=None):
+        """
+        :param ad_hoc:
+          If true, return ad hoc jobs only; if false, return normal jobs only;
+          if none, return all jobs.
+        """
+        if ad_hoc is None or not ad_hoc:
+            yield from self.__job_dir.get_jobs()
         # FIXME: Yield only job ids we haven't seen.
-        yield from self.__job_db.query()
+        yield from self.__job_db.query(ad_hoc=ad_hoc)
 
 
     def __get_job_id(self):
