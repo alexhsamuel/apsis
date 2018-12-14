@@ -14,7 +14,7 @@ export default {
   methods: {
     getClass(key) {
       if (key === 'command')
-        return 'code'
+        return ['code', 'multiline']
       else
         return ''
     },
@@ -26,5 +26,8 @@ export default {
 <style lang="scss" scoped>
 table {
   margin-bottom: 0;
+}
+.multiline {
+  white-space: pre;
 }
 </style>
