@@ -1,9 +1,9 @@
 from   contextlib import suppress
-import logging
 import os
 from   pathlib import Path
 import random
 import string
+import sys
 import yaml
 
 from   .lib.py import tupleize
@@ -61,6 +61,8 @@ class JobSpecificationError(Exception):
 
 
 
+# FIXME: Do much better at handling errors when converting JSO.
+
 def jso_to_reruns(jso):
     return Reruns(
         count       =jso.get("count", 0),
@@ -78,13 +80,11 @@ def reruns_to_jso(reruns):
 
 
 def jso_to_job(jso, job_id):
-    params = jso.get("params", [])
+    jso = dict(jso)
+    params = jso.pop("params", [])
     params = [params] if isinstance(params, str) else params
 
-    try:
-        schedules = jso["schedule"]
-    except KeyError:
-        schedules = ()
+    schedules = jso.pop("schedule", ())
     schedules = (
         [schedules] if isinstance(schedules, dict) 
         else [] if schedules is None
@@ -93,16 +93,23 @@ def jso_to_job(jso, job_id):
     schedules = [ schedule_from_jso(s) for s in schedules ]
 
     try:
-        program = jso["program"]
+        program = jso.pop("program")
     except KeyError:
         raise JobSpecificationError("missing program")
     program = program_from_jso(program)
 
+    reruns      = jso_to_reruns(jso.pop("reruns", {}))
+    metadata    = jso.pop("metadata", {})
+    ad_hoc      = jso.pop("ad_hoc", False)
+
+    if len(jso) > 0:
+        raise JobSpecificationError("unknown keys: " + ", ".join(jso))
+
     return Job(
         job_id, params, schedules, program, 
-        reruns  =jso_to_reruns(jso.get("reruns", {})), 
-        meta    =jso.get("metadata", {}), 
-        ad_hoc  =jso.get("ad_hoc", False)
+        reruns  =reruns, 
+        meta    =metadata,
+        ad_hoc  =ad_hoc,
     )
 
 
@@ -144,17 +151,19 @@ def check_job_file(path):
     """
     path = Path(path)
     job_id = path.with_suffix("").name
+
+    error = lambda msg: print(msg, file=sys.stdout)
     with open(path) as file:
         try:
             jso = yaml.load(file)
-        except yaml.YAMLError:
-            logging.error("failed to parse YAML", exc_info=True)
+        except yaml.YAMLError as exc:
+            error(f"failed to parse YAML: {exc}")
             return None
 
         try:
             job = jso_to_job(jso, job_id)
-        except JobSpecificationError:
-            logging.error("failed to load job", exc_info=True)
+        except JobSpecificationError as exc:
+            error(f"failed to parse job: {exc}")
             return None
 
         # FIXME: Additional checks here?
