@@ -8,7 +8,7 @@ from   pathlib import Path
 import sqlalchemy as sa
 import ujson
 
-from   .jobs import jso_to_job, job_to_jso
+from   .jobs import jso_to_job, job_to_jso, JobSpecificationError
 from   .runs import Instance, Run
 from   .program import program_to_jso, program_from_jso, Output, OutputMetadata
 
@@ -109,13 +109,17 @@ class JobDB:
         with self.__engine.begin() as conn:
             for job_id, job in conn.execute(query):
                 # FIXME: Filter ad hoc jobs in the query.
-                job = jso_to_job(ujson.loads(job), job_id)
+                try:
+                    job = jso_to_job(ujson.loads(job), job_id)
+                except JobSpecificationError as exc:
+                    logging.error(f"failed to load job from DB: {exc}")
+                    continue
                 if ad_hoc is None or job.ad_hoc == ad_hoc:
                     yield job
 
 
 
-#-------------------------------------------------------------------------------
+#----------------------------:--------------------------------------------------
 
 # FIXME: For now, we store times and meta as JSON.  To make these searchable,
 # we'll need to break them out into tables.
