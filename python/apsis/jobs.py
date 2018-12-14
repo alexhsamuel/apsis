@@ -1,4 +1,5 @@
 from   contextlib import suppress
+import logging
 import os
 from   pathlib import Path
 import random
@@ -132,6 +133,33 @@ def load_yaml_files(dir_path):
             name = path.with_suffix("").relative_to(dir_path)
             with open(path) as file:
                 yield load_yaml(file, name)
+
+
+def check_job_file(path):
+    """
+    Parses job file at `path`, checks validity, and logs errors.
+
+    :return:
+      The job, if successfully loaded and checked, or none.
+    """
+    path = Path(path)
+    job_id = path.with_suffix("").name
+    with open(path) as file:
+        try:
+            jso = yaml.load(file)
+        except yaml.YAMLError:
+            logging.error("failed to parse YAML", exc_info=True)
+            return None
+
+        try:
+            job = jso_to_job(jso, job_id)
+        except JobSpecificationError:
+            logging.error("failed to load job", exc_info=True)
+            return None
+
+        # FIXME: Additional checks here?
+
+        return job
 
 
 #-------------------------------------------------------------------------------

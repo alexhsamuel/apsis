@@ -9,6 +9,7 @@ from   ora import Time, Daytime, now, get_display_time_zone
 import random
 import sys
 
+import apsis.jobs
 from   apsis.lib.argparse import HelpFormatter
 import apsis.lib.itr
 from   apsis.lib.terminal import COLOR, BLK, WHT, RED, BLD, NBL
@@ -311,6 +312,25 @@ cmd.add_argument(
 cmd.add_argument(
     "--shell", action="store_true", default=False,
     help="treat CMD as shell code (contactenated)")
+
+#--- command: check-job --------------------------------------------------------
+
+# FIXME: This doesn't really belong here; this script is for client functions
+# only.  Instead it should go in apsis-svc or similar.
+
+def cmd_check_job(client, args):
+    path = args.path
+    job = apsis.jobs.check_job_file(path)
+    if job is not None:
+        print_lines(format_job(apsis.jobs.job_to_jso(job)))
+
+
+cmd = add_command(
+    "check-job", cmd_check_job,
+    description="Checks a job file.")
+cmd.add_argument(
+    "path", metavar="PATH",
+    help="check the job file PATH")
 
 #--- command: job --------------------------------------------------------------
 
