@@ -81,10 +81,14 @@ def reruns_to_jso(reruns):
 
 def jso_to_job(jso, job_id):
     jso = dict(jso)
+
+    assert jso.pop("job_id", job_id) == job_id, f"JSON job_id mismatch {job_id}"
+
     params = jso.pop("params", [])
     params = [params] if isinstance(params, str) else params
 
-    schedules = jso.pop("schedule", ())
+    # FIXME: 'schedules' for backward copmatibility; remove in a while.
+    schedules = jso.pop("schedule", jso.pop("schedules", ()))
     schedules = (
         [schedules] if isinstance(schedules, dict) 
         else [] if schedules is None
@@ -117,7 +121,7 @@ def job_to_jso(job):
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
-        "schedules"     : [ schedule_to_jso(s) for s in job.schedules ],
+        "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
