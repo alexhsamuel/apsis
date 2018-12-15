@@ -4,9 +4,11 @@
 - normalize environment for another user, locally and by ssh
 - use token to authenticate with agent
 
-- restart
 - implement `apsis runs --times`
 - convert `run.times` to log, with schema (timestamp, message, state)
+- `apsisctl` script 
+  - service main
+  - check job file/dir
 - configuration
 - release
   - update web UI
@@ -14,7 +16,7 @@
   - intro docs in README
   - job docs
 - sudo support in programs
-- SSL for Apsis.
+- SSL for Apsis
 - control page
   - reload jobs
   - restart
