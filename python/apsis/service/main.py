@@ -186,7 +186,13 @@ def main():
     signal.signal(signal.SIGTERM, on_shutdown)
 
     log.info("service ready to run")
-    asyncio.get_event_loop().run_forever()
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_forever()
+    finally:
+        # Explicitly close the loop, so we find out about any pending tasks
+        # we have incorrectly left behind.
+        loop.close()
     log.info("service done")
 
     if app.restart:
