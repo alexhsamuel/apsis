@@ -15,6 +15,7 @@ from   . import api, control
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import JobsDir
+from   ..lib.async import cancel_task
 from   ..sqlite import SqliteDB
 import apsis.lib.logging
 
@@ -149,7 +150,7 @@ def main():
         port        =args.port,
         debug       =args.debug,
     )
-    asyncio.ensure_future(server)
+    server_task = asyncio.ensure_future(server)
 
     loop = asyncio.get_event_loop()
 
@@ -161,12 +162,16 @@ def main():
             print()
         log.error(f"caught {signal.Signals(signum).name}")
 
-        def stop(fut):
+        async def stop():
+            # Shut down the Sanic web service.
+            await cancel_task(server_task, "Sanic", log)
+            # Shut down Apsis and all its bits.
+            await apsis.shut_down()
+            # Then tell the asyncio event loop to stop.
             log.info("stopping event loop")
             loop.stop()
 
-        # Stop all Apsis tasks, then stop the event loop.
-        asyncio.ensure_future(apsis.shut_down()).add_done_callback(stop)
+        asyncio.ensure_future(stop())
 
     signal.signal(signal.SIGINT , on_signal)  # instead of KeyboardInterrupt
     signal.signal(signal.SIGTERM, on_signal)
