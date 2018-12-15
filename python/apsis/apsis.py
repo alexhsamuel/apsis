@@ -3,6 +3,7 @@ import logging
 from   ora import now, Time
 
 from   .jobs import Jobs
+from   .lib.async import cancel_task
 from   .program import ProgramError, ProgramFailure
 from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
 from   .scheduled import ScheduledRuns
@@ -307,27 +308,13 @@ class Apsis:
 
 
     async def shut_down(self):
-        log.info("shutting down")
-
-        async def cancel_task(task, name):
-            log.info(f"canceling {name} task")
-            if task.cancelled():
-                log.info(f"{name} task already canceled")
-            else:
-                task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                log.info(f"{name} task canceled")
-
-        await cancel_task(self.__scheduler_task, "scheduler")
-        await cancel_task(self.__scheduled_task, "scheduled")
+        log.info("shutting down Apsis")
+        await cancel_task(self.__scheduler_task, "scheduler", log)
+        await cancel_task(self.__scheduled_task, "scheduled", log)
         for run_id, task in self.__running_tasks.items():
-            await cancel_task(task, f"run {run_id}")
+            await cancel_task(task, f"run {run_id}", log)
         await self.runs.shut_down()
-
-        log.info("done shutting down")
-        asyncio.get_event_loop().stop()
+        log.info("Apsis shut down")
         
 
 

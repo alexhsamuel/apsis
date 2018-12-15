@@ -1,5 +1,7 @@
 import logging
+import os
 import sanic
+import signal
 import urllib.parse
 
 from   apsis.lib.api import response_json
@@ -20,8 +22,9 @@ async def shut_down(request):
     log.info(f"shut down starting; restart={restart}")
     request.app.restart = restart
 
-    # Shut down Apsis and the event loop.
-    await request.app.apsis.shut_down()
+    # Shut down the application.
+    os.kill(os.getpid(), signal.SIGTERM)
+
     # shut_down() calls loop.stop(), so no further scheduled callbacks will be
     # invoked.  We need to respond to the request with no further await. (?)
     return response_json({})

@@ -142,13 +142,6 @@ def main():
     app.restart = False
     app.running = True  # FIXME: ??  Remove?
  
-    # Shut down on SIGTERM.
-    def terminate(signum, stack_frame):
-        log.error("terminated")
-        asyncio.ensure_future(apsis.shut_down())
-
-    signal.signal(signal.SIGTERM, terminate)
-
     # Set up the HTTP server.
     log.info("creating HTTP service")
     server = app.create_server(
@@ -158,16 +151,29 @@ def main():
     )
     asyncio.ensure_future(server)
 
-    log.info("scheduler ready to run")
     loop = asyncio.get_event_loop()
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        print()
-        log.error("keyboard interrupt")
-        loop.run_until_complete(asyncio.ensure_future(apsis.shut_down()))
-    finally:
-        loop.close()
+
+    # Shut down on signals; this is the correct way to request shutdown.
+    def on_signal(signum, stack_frame):
+        if signum == signal.SIGINT:
+            # If this was actually from the keyboard, there'll be a ^C to the
+            # console without a newline; add it.
+            print()
+        log.error(f"caught {signal.Signals(signum).name}")
+
+        def stop(fut):
+            log.info("stopping event loop")
+            loop.stop()
+
+        # Stop all Apsis tasks, then stop the event loop.
+        asyncio.ensure_future(apsis.shut_down()).add_done_callback(stop)
+
+    signal.signal(signal.SIGINT , on_signal)  # instead of KeyboardInterrupt
+    signal.signal(signal.SIGTERM, on_signal)
+
+    log.info("service ready to run")
+    loop.run_forever()
+    log.info("service done")
 
     if app.restart:
         # Start all over.
