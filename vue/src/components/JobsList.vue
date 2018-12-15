@@ -17,7 +17,7 @@
           td
             div
               Job(:job-id="job.job_id")
-              span.params(v-if="job.params")
+              span.params(v-if="job.params.length > 0")
                 | (
                 span {{ join(job.params, ', ') }}
                 | )
