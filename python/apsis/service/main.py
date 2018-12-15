@@ -93,9 +93,14 @@ async def websocket_log(request, ws):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    logging.getLogger().handlers[0].formatter = LOG_FORMATTER
-    logging.getLogger().handlers.append(WS_HANDLER)
+
+    root_log = logging.getLogger()
+    root_log.handlers[0].formatter = LOG_FORMATTER
+    root_log.handlers.append(WS_HANDLER)
+
     logging.getLogger("asyncio").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+
     log = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser()
@@ -152,10 +157,8 @@ def main():
     )
     server_task = asyncio.ensure_future(server)
 
-    loop = asyncio.get_event_loop()
-
     # Shut down on signals; this is the correct way to request shutdown.
-    def on_signal(signum, stack_frame):
+    def on_shutdown(signum, stack_frame):
         if signum == signal.SIGINT:
             # If this was actually from the keyboard, there'll be a ^C to the
             # console without a newline; add it.
@@ -165,19 +168,25 @@ def main():
         async def stop():
             # Shut down the Sanic web service.
             await cancel_task(server_task, "Sanic", log)
+
             # Shut down Apsis and all its bits.
             await apsis.shut_down()
+
+            # Stop enqueuing log messages.
+            log.info("removing logging websocket handler")
+            root_log.handlers.remove(WS_HANDLER)
+
             # Then tell the asyncio event loop to stop.
             log.info("stopping event loop")
-            loop.stop()
+            asyncio.get_event_loop().stop()
 
         asyncio.ensure_future(stop())
 
-    signal.signal(signal.SIGINT , on_signal)  # instead of KeyboardInterrupt
-    signal.signal(signal.SIGTERM, on_signal)
+    signal.signal(signal.SIGINT , on_shutdown)  # instead of KeyboardInterrupt
+    signal.signal(signal.SIGTERM, on_shutdown)
 
     log.info("service ready to run")
-    loop.run_forever()
+    asyncio.get_event_loop().run_forever()
     log.info("service done")
 
     if app.restart:
