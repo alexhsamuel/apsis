@@ -7,7 +7,9 @@
 - implement `apsis runs --times`
 - convert `run.times` to log, with schema (timestamp, message, state)
 - `apsisctl` script 
-  - service main
+  - start service main
+  - shut down / restart
+  - create apsis.db
   - check job file/dir
 - configuration
 - release
