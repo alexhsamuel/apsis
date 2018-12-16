@@ -6,6 +6,7 @@
 
 - implement `apsis runs --times`
 - convert `run.times` to log, with schema (timestamp, message, state)
+  - show history in CLUI
   - retire run/transition message
   - retire times in run?  or hide from UI
 - `apsisctl` script 
