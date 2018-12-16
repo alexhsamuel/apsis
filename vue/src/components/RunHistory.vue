@@ -53,5 +53,15 @@ export default {
 
 <style lang="scss" scoped>
 table {
+  tr {
+    td, th {
+      border-bottom: 1px solid #eee;
+    }
+  }
+  tr:last-child > {
+    > td, > th {
+      border-bottom: none;
+    }
+  }
 }
 </style>
