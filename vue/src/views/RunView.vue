@@ -13,7 +13,7 @@ div(v-if="run")
         )
   div
     div
-      Job(v-bind:job-id="run.job_id")
+      Job(:job-id="run.job_id")
       |
       | {{ arg_str }}
 
@@ -41,6 +41,10 @@ div(v-if="run")
             tr(v-for="[name, time] in run_times" :key="name")
               th {{ name }}
               td: Timestamp(:time="time")
+
+        tr
+          th history
+          td.no-padding: RunHistory(:run_id="run_id")
 
         tr(
           v-if="Object.keys(run.meta).length"
@@ -73,6 +77,7 @@ import { formatElapsed } from '../time'
 import Job from '@/components/Job'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
+import RunHistory from '@/components/RunHistory'
 import State from '@/components/State'
 import store from '@/store'
 import Timestamp from '@/components/Timestamp'
@@ -84,6 +89,7 @@ export default {
     Job,
     Program,
     Run,
+    RunHistory,
     State,
     Timestamp,
   },
