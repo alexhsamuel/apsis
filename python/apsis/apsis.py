@@ -54,7 +54,12 @@ class Apsis:
                 log.error(
                     f"not rescheduling expected, scheduled run {run.run_id}")
             else:
-                self.scheduled.schedule(run.times["schedule"], run)
+                sched_time = run.times["schedule"]
+                self._log_run_history(
+                    run.run_id, 
+                    f"at startup, rescheduled {run.run_id} for {sched_time}"
+                )
+                self.scheduled.schedule(sched_time, run)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -75,6 +80,10 @@ class Apsis:
         log.info(f"reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
+            self._log_run_history(
+                run.run_id,
+                f"at startup, reconnecting to running {run.run_id}"
+            )
             future = run.program.reconnect(run.run_id, run.run_state)
             self.__wait(run, future)
 
@@ -300,7 +309,7 @@ class Apsis:
             await self.__start(run)
         else:
             self.scheduled.schedule(time, run)
-            self._log_run_history(run.run_id, "scheduled")
+            self._log_run_history(run.run_id, f"scheduling for {time}")
             self._transition(run, run.STATE.scheduled, times=times)
 
 
