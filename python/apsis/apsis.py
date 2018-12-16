@@ -296,6 +296,7 @@ class Apsis:
             return
 
         if time is None:
+            self._log_run_history(run.run_id, "starting now")
             await self.__start(run)
         else:
             self.scheduled.schedule(time, run)
