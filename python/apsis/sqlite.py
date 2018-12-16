@@ -307,7 +307,7 @@ class RunHistoryDB:
                 "timestamp" : load_time(timestamp),
                 "message"   : message,
             }
-            for run_id, timestamp, message in rows
+            for run_id, timestamp, _, message in rows
         )
 
 

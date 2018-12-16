@@ -323,6 +323,15 @@ class Apsis:
         await self.__start(run)
 
 
+    async def get_run_history(self, run_id):
+        """
+        Returns history log for a run.
+        """
+        # Make sure the run ID is valid.
+        self.runs.get(run_id)
+        return self.__db.run_history_db.query(run_id=run_id)
+
+
     async def rerun(self, run, *, time=None):
         """
         Creates a rerun of `run`.
