@@ -7,6 +7,7 @@
 - implement `apsis runs --times`
 - convert `run.times` to log, with schema (timestamp, message, state)
   - retire run/transition message
+  - retire times in run?  or hide from UI
 - `apsisctl` script 
   - start service main
   - shut down / restart
