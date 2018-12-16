@@ -103,9 +103,12 @@ class Apsis:
 
         except ProgramError as exc:
             # Program failed to start.
+            self._log_run_history(
+                run.run_id,
+                f"program start error: {exc.message}",
+            )
             self._transition(
                 run, run.STATE.error, 
-                message =exc.message,
                 meta    =exc.meta,
                 times   =exc.times,
                 outputs =exc.outputs,
@@ -113,6 +116,10 @@ class Apsis:
 
         else:
             # Program started successfully.
+            self._log_run_history(
+                run.run_id,
+                "program started",
+            )
             self._transition(run, run.STATE.running, **running.__dict__)
             future = asyncio.ensure_future(coro)
             self.__wait(run, future)
@@ -130,9 +137,12 @@ class Apsis:
 
             except ProgramFailure as exc:
                 # Program ran and failed.
+                self._log_run_history(
+                    run.run_id,
+                    f"program failure: {exc.message}",
+                )
                 self._transition(
                     run, run.STATE.failure, 
-                    message =exc.message,
                     meta    =exc.meta,
                     times   =exc.times,
                     outputs =exc.outputs,
@@ -140,9 +150,12 @@ class Apsis:
 
             except ProgramError as exc:
                 # Program failed to start.
+                self._log_run_history(
+                    run.run_id,
+                    f"program error: {exc.message}",
+                )
                 self._transition(
                     run, run.STATE.error, 
-                    message =exc.message,
                     meta    =exc.meta,
                     times   =exc.times,
                     outputs =exc.outputs,
@@ -150,6 +163,10 @@ class Apsis:
 
             else:
                 # Program ran and completed successfully.
+                self._log_run_history(
+                    run.run_id,
+                    f"program success",
+                )
                 self._transition(
                     run, run.STATE.success,
                     meta    =success.meta,
@@ -196,6 +213,17 @@ class Apsis:
 
 
     # --- Internal API ---------------------------------------------------------
+
+    def _log_run_history(self, run_id, message, *, timestamp=None):
+        """
+        Adds a timestamped history record to the history for `run_id`.
+
+        :param timestamp:
+          The time of the event; current time if none.
+        """
+        timestamp = now() if timestamp is None else timestamp
+        self.__db.run_history_db.insert(run_id, timestamp, message)
+
 
     def _transition(self, run, state, *, outputs={}, **kw_args):
         """
@@ -257,18 +285,21 @@ class Apsis:
         except RuntimeError as exc:
             log.error("invalid run", exc_info=True)
             times["error"] = now()
+            self._log_run_history(
+                run.run_id, 
+                f"invalid run: {exc}",
+            )
             self._transition(
                 run, run.STATE.error,
-                message =str(exc),
                 times   =times,
             )
-            log.error("transitioned")
             return
 
         if time is None:
             await self.__start(run)
         else:
             self.scheduled.schedule(time, run)
+            self._log_run_history(run.run_id, "scheduled")
             self._transition(run, run.STATE.scheduled, times=times)
 
 
@@ -279,6 +310,7 @@ class Apsis:
         Unschedules the run and sets it to the error state.
         """
         self.scheduled.unschedule(run)
+        self._log_run_history(run.run_id, "cancelled")
         self._transition(run, run.STATE.error, message="cancelled")
 
 

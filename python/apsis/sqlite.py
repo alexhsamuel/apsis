@@ -269,6 +269,51 @@ class RunDB:
 
 #-------------------------------------------------------------------------------
 
+class RunHistoryDB:
+
+    TABLE = sa.Table(
+        "run_history", METADATA,
+        sa.Column("run_id"      , sa.String()   , nullable=False),
+        sa.Column("timestamp"   , sa.Float      , nullable=False),
+        sa.Column("user"        , sa.String()   , nullable=True),  # unused
+        sa.Column("message"     , sa.String()   , nullable=False),
+        sa.Index("idx_run_id", "run_id"),
+    )
+
+    def __init__(self, engine):
+        self.__engine = engine
+
+
+    def insert(self, run_id: str, timestamp: ora.Time, message: str):
+        values = {
+            "run_id"    : run_id,
+            "timestamp" : dump_time(timestamp),
+            "message"   : str(message),
+        }
+        with self.__engine.begin() as conn:
+            conn.execute(self.TABLE.insert().values(**values))
+
+
+    def query(self, *, run_id: str):
+        log.debug(f"query run history run_id={run_id}")
+        where = self.TABLE.c.run_id == run_id
+
+        with self.__engine.begin() as conn:
+            rows = list(conn.execute(sa.select([self.TABLE]).where(where)))
+
+        return (
+            {
+                "run_id"    : run_id,
+                "timestamp" : load_time(timestamp),
+                "message"   : message,
+            }
+            for run_id, timestamp, message in rows
+        )
+
+
+
+#-------------------------------------------------------------------------------
+
 class OutputDB:
     """
     We store even large outputs in the SQLite database, which should generally
@@ -290,7 +335,7 @@ class OutputDB:
     def __init__(self, engine):
         self.__engine = engine
 
-        
+
     def add(self, run_id: str, output_id: str, output: Output):
         values = {
             "run_id"        : run_id,
@@ -352,10 +397,11 @@ class SqliteDB:
         :param path:
           Path to SQLite file.  If `None`, use a memory DB (for testing).
         """
-        self.clock_db   = ClockDB(engine)
-        self.job_db     = JobDB(engine)
-        self.run_db     = RunDB(engine)
-        self.output_db  = OutputDB(engine)
+        self.clock_db       = ClockDB(engine)
+        self.job_db         = JobDB(engine)
+        self.run_db         = RunDB(engine)
+        self.run_history_db = RunHistoryDB(engine)
+        self.output_db      = OutputDB(engine)
 
 
     @classmethod
@@ -382,6 +428,20 @@ class SqliteDB:
         engine  = Class.__get_engine(path)
         METADATA.create_all(engine)
         return Class(engine)
+
+
+    @classmethod
+    def migrate(Class, path):
+        """
+        (Attempts to) migrate the database at `path`.
+        """
+        assert path is not None
+        path = Path(path).absolute()
+        if not path.exists():
+            raise FileNotFoundError(path)
+
+        engine = Class.__get_engine(path)
+        METADATA.create_all(engine)
 
 
     @classmethod
