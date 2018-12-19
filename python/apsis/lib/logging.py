@@ -42,6 +42,18 @@ class AccessFormatter(logging.Formatter):
 
 
 
+def configure(*, level="WARNING"):
+    if isinstance(level, str):
+        level = getattr(logging, level.upper())
+    logging.basicConfig(level=level)
+
+    # Root logger's formatter.
+    logging.getLogger().handlers[0].formatter = Formatter()
+    # Quiet some noisy stuff.
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+
+
 #-------------------------------------------------------------------------------
 
 class QueueHandler(logging.Handler):

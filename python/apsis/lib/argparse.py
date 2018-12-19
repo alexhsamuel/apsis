@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 #-------------------------------------------------------------------------------
 
@@ -64,6 +65,44 @@ class HelpFormatter(argparse.HelpFormatter):
             )
             + "\n\n"
         )
+
+
+
+#-------------------------------------------------------------------------------
+
+class CommandArgumentParser(argparse.ArgumentParser):
+
+    def __init__(self, *args, **kw_args):
+        kw_args.setdefault("usage", "%(prog)s [ OPTIONS ] COMMAND ...")
+        kw_args.setdefault("formatter_class", HelpFormatter)
+        super().__init__(*args, **kw_args)
+
+        self.add_argument(
+            "--log-level", metavar="LEVEL", default=None,
+            choices={"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
+            help="log at LEVEL")
+
+        self.__commands = self.add_subparsers(
+            title       ="commands",
+            parser_class=argparse.ArgumentParser,
+        )
+
+
+    def add_command(self, name, fn, description=None):
+        cmd = self.__commands.add_parser(
+            name, 
+            formatter_class =self.formatter_class, 
+            description     =description,
+        )
+        cmd.set_defaults(cmd=fn)
+        return cmd
+
+
+    def parse_args(self, *args, **kw_args):
+        pargs = super().parse_args(*args, **kw_args)
+        if pargs.log_level is not None:
+            logging.getLogger().setLevel(getattr(logging, pargs.log_level))
+        return pargs
 
 
 

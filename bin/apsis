@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import fixfmt
 import fixfmt.table
 import json
@@ -10,12 +9,14 @@ import random
 import sys
 
 import apsis.jobs
-from   apsis.lib.argparse import HelpFormatter
+import apsis.lib.argparse
 import apsis.lib.itr
+import apsis.lib.logging
 from   apsis.lib.terminal import COLOR, BLK, WHT, RED, BLD, NBL
 from   apsis.runs import Run
 import apsis.service.client
 
+apsis.lib.logging.configure()
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -253,40 +254,17 @@ format_time.width = 19
 
 
 #-------------------------------------------------------------------------------
-
-logging.basicConfig(
-    format  ="%(asctime)s %(name)-24s [%(levelname)-7s] %(message)s",
-    datefmt ="%H:%M:%S",
-    level   =logging.WARNING,
-)
+# top-level argument parser
 
 default_host, default_port = apsis.service.client.get_host()
 
-parser = argparse.ArgumentParser(
-    usage="%(prog)s [ OPTIONS ] COMMAND ...",
-    formatter_class=HelpFormatter,
-)
+parser = apsis.lib.argparse.CommandArgumentParser()
 parser.add_argument(
     "--host", metavar="HOST", default=default_host,
     help=f"connect to HOST [def: {default_host}]")
 parser.add_argument(
     "--port", metavar="PORT", default=default_port,
     help=f"connect to PORT [def: {default_port}]")
-parser.add_argument(
-    "--log-level", metavar="LEVEL", default="WARNING",
-    choices={"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
-    help="log at LEVEL [def: WARNING]")
-commands = parser.add_subparsers(title="commands")
-
-def add_command(name, fn, description=None):
-    cmd = commands.add_parser(
-        name, 
-        formatter_class =HelpFormatter, 
-        description     =description,
-    )
-    cmd.set_defaults(cmd=fn)
-    return cmd
-
 
 #--- command: adhoc ------------------------------------------------------------
 
@@ -300,7 +278,7 @@ def cmd_adhoc(client, args):
     print_lines(format_run(run))
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "adhoc", cmd_adhoc,
     description="Creates and schedules an ad hoc run.")
 cmd.add_argument(
@@ -325,7 +303,7 @@ def cmd_check_job(client, args):
         print_lines(format_job(apsis.jobs.job_to_jso(job)))
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "check-job", cmd_check_job,
     description="Checks a job file.")
 cmd.add_argument(
@@ -343,7 +321,7 @@ def cmd_job(client, args):
         print_lines(format_job(job))
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "job", cmd_job,
     description="Displays a job.")
 cmd.add_argument(
@@ -370,7 +348,7 @@ def cmd_jobs(client, args):
     print()
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "jobs", cmd_jobs,
     description="Lists all jobs.")
 
@@ -382,7 +360,7 @@ def cmd_output(client, args):
     sys.stdout.buffer.write(output)
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "output", cmd_output,
     description="Dumps the output of a run.")
 cmd.add_argument(
@@ -398,7 +376,7 @@ def cmd_rerun(client, arg):
         print_lines(format_run(run))
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "rerun", cmd_rerun,
     description="Reruns a failed (or error) run.")
 cmd.add_argument(
@@ -413,7 +391,7 @@ def cmd_restart(client, args):
     client.shut_down(restart=True)
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "restart", cmd_restart,
     description="Restarts the Apsis service.")
 
@@ -428,7 +406,7 @@ def cmd_run(client, args):
             print_lines(format_run(run))
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "run", cmd_run,
     description="Displays a run.")
 cmd.add_argument(
@@ -456,7 +434,7 @@ def cmd_runs(client, arg):
         print_lines(format_runs(runs, reruns=args.reruns))
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "runs", cmd_runs,
     description="Queries and displays runs.")
 cmd.add_argument(
@@ -493,7 +471,7 @@ def parse_arg(arg):
     return name, value
 
 
-cmd = add_command(
+cmd = parser.add_command(
     "schedule", cmd_schedule,
     description="Creates and schedules a run.")
 cmd.add_argument(
@@ -506,16 +484,6 @@ cmd.add_argument(
     "args", metavar="NAME=VAL", type=parse_arg, nargs="*",
     help="run JOB-ID with NAME=VAL")
 
-#--- command: shut_down --------------------------------------------------------
-
-def cmd_shut_down(client, args):
-    client.shut_down()
-
-
-cmd = add_command(
-    "shut_down", cmd_shut_down,
-    description="Shuts down the Apsis service.")
-
 #--- test commands -------------------------------------------------------------
 
 def cmd_test0(client, args):
@@ -527,7 +495,9 @@ def cmd_test0(client, args):
         run = client.schedule("reruntest", {"id": i}, time + past + rng * random.random())
         log.info(f"scheduled: {run['run_id']}")
 
-cmd = add_command("test0", cmd_test0, description="[TEST] Schedule reruntest.")
+cmd = parser.add_command(
+    "test0", cmd_test0, 
+    description="[TEST] Schedule reruntest.")
 cmd.add_argument("num", metavar="NUM", type=int, nargs="?", default=1)
 cmd.add_argument("fut", metavar="SECS", type=float, nargs="?", default=60)
 cmd.add_argument("past", metavar="SECS", type=float, nargs="?", default=0)
@@ -535,7 +505,6 @@ cmd.add_argument("past", metavar="SECS", type=float, nargs="?", default=0)
 #-------------------------------------------------------------------------------
 
 args = parser.parse_args()
-logging.getLogger().setLevel(getattr(logging, args.log_level))
 client = apsis.service.client.Client(host=args.host, port=args.port)
 
 try:
