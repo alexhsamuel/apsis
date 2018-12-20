@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
 import logging
+import os
 import sys
 
 import apsis.lib.argparse
 import apsis.lib.logging
 import apsis.service.client
+import apsis.service.main
+from   apsis.sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
 
@@ -28,6 +31,20 @@ def get_client(args):
 
 
 #-------------------------------------------------------------------------------
+# command: create
+
+def cmd_create(args):
+    SqliteDB.create(args.state_path)
+
+
+cmd = parser.add_command(
+    "create", cmd_create,
+    description="Initializes an Apsis instance.")
+cmd.add_argument(
+    "state_path", metavar="PATH",
+    help="state file")
+
+#-------------------------------------------------------------------------------
 # command: restart
 
 def cmd_restart(args):
@@ -37,6 +54,45 @@ def cmd_restart(args):
 cmd = parser.add_command(
     "restart", cmd_restart,
     description="Restarts the Apsis service.")
+
+#-------------------------------------------------------------------------------
+# command: serve
+
+def cmd_serve(args):
+    restart = apsis.service.main.serve(
+        args.jobs, args.state_path,
+        host=args.host, port=args.port, debug=args.debug)
+
+    if restart:
+        # Start all over.
+        log.info(f"restarting: {' '.join(sys.argv)}")
+        os.execv(sys.argv[0], sys.argv)
+
+
+cmd = parser.add_command(
+    "serve", cmd_serve,
+    description="Runs the Apsis service.")
+
+cmd.add_argument(
+    "--debug", action="store_true", default=False,
+    help="run in debug mode")
+# FIXME: Host, port collide with global options.
+# FIXME: Can't use localhost on OSX, where it resolves to an IPV6 address,
+# until we pick up this Sanic fix:
+# https://github.com/channelcat/sanic/pull/1053
+cmd.add_argument(
+    "--host", metavar="HOST", default="127.0.0.1",
+    help="server host address")
+cmd.add_argument(
+    "--port", metavar="PORT", type=int, default=default_port,
+    help="server port")
+cmd.add_argument(
+    "jobs", metavar="JOBS", 
+    help="job directory")
+cmd.add_argument(
+    "state_path", metavar="PATH",
+    help="state file")
+
 
 #-------------------------------------------------------------------------------
 # command: shut_down

@@ -52,6 +52,7 @@ def configure(*, level="WARNING"):
     # Quiet some noisy stuff.
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+    logging.getLogger("websockets.protocol").setLevel(logging.INFO)
 
 
 #-------------------------------------------------------------------------------
@@ -108,5 +109,17 @@ class QueueHandler(logging.Handler):
                 queue.put_nowait([line])
             except asyncio.QueueFull:
                 pass
+
+
+    def shut_down(self):
+        """
+        Signal to listeners to shut down.
+        """
+        for queue in list(self.__queues):
+            try:
+                queue.put_nowait(None)
+            except asyncio.QueueFull:
+                pass
+
 
 

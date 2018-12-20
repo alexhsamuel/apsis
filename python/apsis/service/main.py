@@ -1,13 +1,10 @@
 import asyncio
-import argparse
 import logging
-import os
 from   pathlib import Path
 import sanic
 import sanic.response
 import sanic.router
 import signal
-import sys
 import ujson as json
 import websockets
 
@@ -19,9 +16,9 @@ from   ..lib.async import cancel_task
 from   ..sqlite import SqliteDB
 import apsis.lib.logging
 
-#-------------------------------------------------------------------------------
+log = logging.getLogger(__name__)
 
-LOG_FORMATTER = apsis.lib.logging.Formatter()
+#-------------------------------------------------------------------------------
 
 # Logging handler that queues up log messages for serving to clients.
 WS_HANDLER = apsis.lib.logging.QueueHandler(
@@ -80,10 +77,15 @@ async def websocket_log(request, ws):
     try:
         while True:
             lines = await queue.get()
+            if lines is None:
+                log.info("closing log websocket")
+                await ws.close()
+                break
             data = json.dumps(lines)
             try:
                 await ws.send(data)
             except websockets.ConnectionClosed:
+                log.info("websocket log closed")
                 break
     finally:
         WS_HANDLER.unregister(queue)
@@ -91,59 +93,25 @@ async def websocket_log(request, ws):
 
 #-------------------------------------------------------------------------------
 
-def main():
-    logging.basicConfig(level=logging.INFO)
+def serve(jobs_path, state_path, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
+    """
+    Runs the Apsis service.
 
+    :return:
+      True if the service should be restarted on exit.
+    """
+    # Install the websocket logging handler.
     root_log = logging.getLogger()
-    root_log.handlers[0].formatter = LOG_FORMATTER
     root_log.handlers.append(WS_HANDLER)
 
-    logging.getLogger("asyncio").setLevel(logging.WARNING)
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-
-    log = logging.getLogger(__name__)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--debug", action="store_true", default=False,
-        help="run in debug mode")
-    parser.add_argument(
-        "--log-level", metavar="LEVEL", default="INFO",
-        help="log at LEVEL [def: INFO]")
-    # FIXME: Can't use localhost on OSX, where it resolves to an IPV6 address,
-    # until we pick up this Sanic fix:
-    # https://github.com/channelcat/sanic/pull/1053
-    parser.add_argument(
-        "--host", metavar="HOST", default="127.0.0.1",
-        help="server host address")
-    parser.add_argument(
-        "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
-        help="server port")
-    parser.add_argument(
-        "--create", action="store_true", default=False,
-        help="create a new state file and exit")
-    parser.add_argument(
-        "jobs", metavar="JOBS", 
-        help="job directory")
-    parser.add_argument(
-        "state_path", metavar="PATH",
-        help="state file")
-    args = parser.parse_args()
-    logging.getLogger().setLevel(getattr(logging, args.log_level.upper()))
-    logging.getLogger("websockets.protocol").setLevel(logging.INFO)
-
-    if args.create:
-        SqliteDB.create(args.state_path)
-        raise SystemExit(0)
-
-    log.info(f"opening state file {args.state_path}")
-    db      = SqliteDB.open(args.state_path)
-    log.info(f"opening jobs dir {args.jobs}")
-    jobs    = JobsDir(args.jobs)
+    log.info(f"opening state file {state_path}")
+    db      = SqliteDB.open(state_path)
+    log.info(f"opening jobs dir {jobs_path}")
+    jobs    = JobsDir(jobs_path)
     log.info("creating scheduler instance")
     apsis   = Apsis(jobs, db)
 
-    app.apsis   = apsis
+    app.apsis = apsis
     # Flag to indicate whether to restart after shutting down.
     app.restart = False
     app.running = True  # FIXME: ??  Remove?
@@ -151,9 +119,9 @@ def main():
     # Set up the HTTP server.
     log.info("creating HTTP service")
     server = app.create_server(
-        host        =args.host,
-        port        =args.port,
-        debug       =args.debug,
+        host        =host,
+        port        =port,
+        debug       =debug,
     )
     server_task = asyncio.ensure_future(server)
 
@@ -166,19 +134,24 @@ def main():
         log.error(f"caught {signal.Signals(signum).name}")
 
         async def stop():
-            # Shut down the Sanic web service.
-            await cancel_task(server_task, "Sanic", log)
+            try:
+                # Stop enqueuing log messages.
+                log.info("removing logging websocket handler")
+                root_log.handlers.remove(WS_HANDLER)
 
-            # Shut down Apsis and all its bits.
-            await apsis.shut_down()
+                log.info("shutting down logging websockets")
+                WS_HANDLER.shut_down()
 
-            # Stop enqueuing log messages.
-            log.info("removing logging websocket handler")
-            root_log.handlers.remove(WS_HANDLER)
+                # Shut down Apsis and all its bits.
+                await apsis.shut_down()
 
-            # Then tell the asyncio event loop to stop.
-            log.info("stopping event loop")
-            asyncio.get_event_loop().stop()
+                # Shut down the Sanic web service.
+                await cancel_task(server_task, "Sanic", log)
+
+            finally:
+                # Then tell the asyncio event loop to stop.
+                log.info("stopping event loop")
+                asyncio.get_event_loop().stop()
 
         asyncio.ensure_future(stop())
 
@@ -195,17 +168,6 @@ def main():
         loop.close()
     log.info("service done")
 
-    if app.restart:
-        # Start all over.
-        # FIXME: We don't have access to the unmodified process argv; see
-        # https://bugs.python.org/issue29857.  So fake something, assuming we
-        # were invoked with python -m.  If we are invoked some other way, we'll
-        # have to modify this.
-        argv = [sys.executable, "-m", __spec__.name, *sys.argv[1 :]]
-        log.info(f"restarting: {' '.join(argv)}")
-        os.execv(sys.executable, argv)
+    return app.restart
 
-
-if __name__ == "__main__":
-    main()
 

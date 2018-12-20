@@ -1,8 +1,13 @@
 # Developing
 
+To initialize an instance DB,
+```
+$ apsisctl create apsis.db
+```
+
 To run the back end,
 ```
-$ python -m apsis.service.main jobs
+$ apsisctl serve jobs apsis.db
 ```
 
 The Vue front end was set up with the [webpack vuejs
