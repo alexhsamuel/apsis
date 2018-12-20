@@ -86,6 +86,7 @@ class CommandArgumentParser(argparse.ArgumentParser):
             title       ="commands",
             parser_class=argparse.ArgumentParser,
         )
+        self.set_defaults(cmd=lambda *a, **k: self.error("no command"))
 
 
     def add_command(self, name, fn, description=None):

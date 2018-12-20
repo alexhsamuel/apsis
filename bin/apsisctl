@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 
+from   apsis.cmdline import format_job, print_lines
 import apsis.lib.argparse
 import apsis.lib.logging
 import apsis.service.client
@@ -29,6 +30,23 @@ parser.add_argument(
 def get_client(args):
     return apsis.service.client.Client(host=args.host, port=args.port)
 
+
+#-------------------------------------------------------------------------------
+# command: check-job
+
+def cmd_check_job(args):
+    path = args.path
+    job = apsis.jobs.check_job_file(path)
+    if job is not None:
+        print_lines(format_job(apsis.jobs.job_to_jso(job)))
+
+
+cmd = parser.add_command(
+    "check-job", cmd_check_job,
+    description="Checks a job file.")
+cmd.add_argument(
+    "path", metavar="PATH",
+    help="check the job file PATH")
 
 #-------------------------------------------------------------------------------
 # command: create
