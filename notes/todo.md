@@ -5,12 +5,13 @@
 - use token to authenticate with agent
 
 - implement `apsis runs --times`
+- dependent jobs
 - convert `run.times` to log, with schema (timestamp, message, state)
   - show history in CLUI
   - retire run/transition message
   - retire times in run?  or hide from UI
 - `apsisctl` script 
-  - check job file/dir
+  - check job *dir*
 - configuration
 - release
   - update web UI
