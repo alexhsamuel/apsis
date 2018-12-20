@@ -10,9 +10,6 @@
   - retire run/transition message
   - retire times in run?  or hide from UI
 - `apsisctl` script 
-  - start service main
-  - shut down / restart
-  - create apsis.db
   - check job file/dir
 - configuration
 - release
