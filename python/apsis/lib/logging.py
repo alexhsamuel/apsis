@@ -52,6 +52,7 @@ def configure(*, level="WARNING"):
     # Quiet some noisy stuff.
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+    logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.INFO)
     logging.getLogger("websockets.protocol").setLevel(logging.INFO)
 
 
