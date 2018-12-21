@@ -97,8 +97,10 @@ def cmd_serve(args):
 
     if restart:
         # Start all over.
-        log.info(f"restarting: {' '.join(sys.argv)}")
-        os.execv(sys.argv[0], sys.argv)
+        argv = [sys.executable, *sys.argv]
+        log.info(f"restarting: {' '.join(argv)}")
+        log.info("...")
+        os.execv(argv[0], argv)
 
 
 cmd = parser.add_command(
