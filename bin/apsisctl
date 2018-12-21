@@ -57,7 +57,21 @@ def cmd_create(args):
 
 cmd = parser.add_command(
     "create", cmd_create,
-    description="Initializes an Apsis instance.")
+    description="Initializes an Apsis state file.")
+cmd.add_argument(
+    "state_path", metavar="PATH",
+    help="state file")
+
+#-------------------------------------------------------------------------------
+# command: migrate
+
+def cmd_migrate(args):
+    SqliteDB.migrate(args.state_path)
+
+
+cmd = parser.add_command(
+    "migrate", cmd_migrate,
+    description="Migrates an Apsis state file.")
 cmd.add_argument(
     "state_path", metavar="PATH",
     help="state file")
