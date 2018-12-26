@@ -1,6 +1,7 @@
 import logging
 from   ora import Time
 import os
+from   collections import namedtuple
 import requests
 from   urllib.parse import quote, urlunparse
 
@@ -8,7 +9,9 @@ import apsis.service
 
 #-------------------------------------------------------------------------------
 
-def get_host() -> (str, int):
+Address = namedtuple("Address", ("host", "port"))
+
+def get_address() -> Address:
     """
     Returns the configured host and port where Apsis runs.
     """
@@ -24,7 +27,7 @@ def get_host() -> (str, int):
             host, port = loc, apsis.service.DEFAULT_PORT
         else:
             port = int(port)
-    return host, port
+    return Address(host, port)
 
 
 
@@ -40,9 +43,12 @@ NO_ARG = object()
 
 class Client:
 
-    def __init__(self, host, port=apsis.service.DEFAULT_PORT):
-        self.__host = host
-        self.__port = port
+    def __init__(self, address=None):
+        """
+        :param addr:
+          Apsis hostname and port, or none for default.
+        """
+        self.__addr = get_address() if address is None else Address(*address)
 
 
     def __url(self, *path, **query):
@@ -53,7 +59,7 @@ class Client:
         )
         return urlunparse((
             "http",
-            f"{self.__host}:{self.__port}",
+            f"{self.__addr.host}:{self.__addr.port}",
             "/".join(path),
             "",
             query,

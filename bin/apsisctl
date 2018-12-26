@@ -7,6 +7,7 @@ import sys
 from   apsis.cmdline import format_job, print_lines
 import apsis.lib.argparse
 import apsis.lib.logging
+from   apsis.service import DEFAULT_PORT
 import apsis.service.client
 import apsis.service.main
 from   apsis.sqlite import SqliteDB
@@ -17,18 +18,16 @@ apsis.lib.logging.configure()
 log = logging.getLogger(__name__)
 
 parser = apsis.lib.argparse.CommandArgumentParser()
-
-default_host, default_port = apsis.service.client.get_host()
-
+addr = apsis.service.client.get_address()
 parser.add_argument(
-    "--host", metavar="HOST", default=default_host,
-    help=f"connect to HOST [def: {default_host}]")
+    "--host", metavar="HOST", default=addr.host,
+    help=f"connect to HOST [def: {addr.host}]")
 parser.add_argument(
-    "--port", metavar="PORT", default=default_port,
-    help=f"connect to PORT [def: {default_port}]")
+    "--port", metavar="PORT", default=addr.port,
+    help=f"connect to PORT [def: {addr.port}]")
 
 def get_client(args):
-    return apsis.service.client.Client(host=args.host, port=args.port)
+    return apsis.service.client.Client((args.host, args.port))
 
 
 #-------------------------------------------------------------------------------
@@ -118,8 +117,8 @@ cmd.add_argument(
     "--host", metavar="HOST", default="127.0.0.1",
     help="server host address")
 cmd.add_argument(
-    "--port", metavar="PORT", type=int, default=default_port,
-    help="server port")
+    "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
+    help=f"server port [def: {DEFAULT_PORT}]")
 cmd.add_argument(
     "jobs", metavar="JOBS", 
     help="job directory")
