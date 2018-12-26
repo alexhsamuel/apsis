@@ -1,14 +1,12 @@
 # Current
 
 - in agent, SIGCHLD may show up before pid is registered
-- normalize environment for another user, locally and by ssh
-- use token to authenticate with agent
-
 - clean up command line UI
   - implement `apsis runs --times`
   - nicer run list
   - nice job display
 - dependent jobs
+- job labels
 - convert `run.times` to log, with schema (timestamp, message, state)
   - show history in CLUI
   - retire run/transition message
@@ -37,6 +35,8 @@
   - intro docs in README
   - job docs
 - sudo support in programs
+- normalize environment for another user, locally and by ssh
+- use token to authenticate with agent
 - SSL for Apsis
 - control page
   - reload jobs
