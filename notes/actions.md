@@ -43,5 +43,6 @@ For reference, some of the ways of modeling relationships among jobs.
    _Preconditions_, with a run's dependencies specified in terms of states of
    other runs.
 
-1. _Pipelines_: Jobs are modeled explicitly as pipelines.
+1. _Pipelines_: A job is modeled explicitly as a multistage pipelines, or may
+   even contain a complete DAG.
 
