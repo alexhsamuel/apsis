@@ -21,7 +21,6 @@ requirements:
     - conda-forge/sanic
     - python
     - requests
-    - ruamel_yaml
     - sqlalchemy
     - ujson
 
