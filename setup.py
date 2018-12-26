@@ -44,6 +44,10 @@ setuptools.setup(
     ],
     package_data    ={
         "": ["test/*"],
+        "apsis.agent": [
+            "agent.cert",
+            "agent.key",
+        ],
         "apsis.service": [
             "vue/*",
             "vue/static/css/*",
