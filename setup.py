@@ -42,8 +42,15 @@ setuptools.setup(
         "apsis.lib.itr", 
         "apsis.service",
     ],
-    package_data    ={"": ["test/*"]},
-    data_files      =[],
+    package_data    ={
+        "": ["test/*"],
+        "apsis.service": [
+            "vue/*",
+            "vue/static/css/*",
+            "vue/static/js/*",
+            "vue/static/fonts/*",
+        ],
+    },
     entry_points    ={},
     scripts         =[
         "bin/apsis",

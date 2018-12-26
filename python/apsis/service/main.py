@@ -5,6 +5,7 @@ import sanic
 import sanic.response
 import sanic.router
 import signal
+import sys
 import ujson as json
 import websockets
 
@@ -61,15 +62,17 @@ class Router(sanic.router.Router):
 app = sanic.Sanic(__name__, router=Router(), log_config=SANIC_LOG_CONFIG)
 app.config.LOGO = None
 
-top_dir = Path(__file__).parents[3]
-
 app.blueprint(api.API, url_prefix="/api/v1")
 app.blueprint(control.API, url_prefix="/api/control")
 
+vue_dir = Path(__file__).parent / "vue"
+print(vue_dir)
+assert vue_dir.is_dir()
+
 # The SPA.
-app.static("/index.html", str(top_dir / "vue" / "dist" / "index.html"))
+app.static("/index.html", str(vue_dir / "index.html"))
 # Web assets.
-app.static("/static", str(top_dir / "vue" / "dist" / "static"))
+app.static("/static", str(vue_dir / "static"))
 
 @app.websocket("/api/log")
 async def websocket_log(request, ws):
