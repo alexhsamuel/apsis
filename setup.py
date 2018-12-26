@@ -47,6 +47,7 @@ setuptools.setup(
     entry_points    ={},
     scripts         =[
         "bin/apsis",
+        "bin/apsisctl",
         "bin/apsis-agent",
     ],
 )
