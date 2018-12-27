@@ -5,6 +5,7 @@ from   ora import now, Time
 from   .jobs import Jobs
 from   .lib.async import cancel_task
 from   .program import ProgramError, ProgramFailure
+from   . import runs
 from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler
@@ -272,6 +273,12 @@ class Apsis:
             raise MissingArgumentError(run, *missing)
         if extra:
             raise ExtraArgumentError(run, *extra)
+
+
+    def _propagate_args(self, old_args, inst):
+        job = self.jobs.get_job(inst.job_id)
+        args = runs.propagate_args(old_args, job, inst.args)
+        return runs.Instance(inst.job_id, args)
 
 
     # --- API ------------------------------------------------------------------

@@ -1,30 +1,17 @@
 import asyncio
 import functools
 import getpass
-import jinja2
 import logging
 from   pathlib import Path
-import shlex
 import socket
 import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
 from   .lib.json import Typed, no_unexpected_keys
 from   .lib.py import or_none
+from   .runs import template_expand, join_args
 
 log = logging.getLogger(__name__)
-
-#-------------------------------------------------------------------------------
-
-# FIXME: Elsewhere.
-
-def template_expand(template, args):
-    return jinja2.Template(template).render(args)
-
-
-def join_args(argv):
-    return " ".join( shlex.quote(a) for a in argv )
-
 
 #-------------------------------------------------------------------------------
 

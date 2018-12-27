@@ -6,6 +6,7 @@ import string
 import sys
 import yaml
 
+from   .actions import action_from_jso, action_to_jso
 from   .lib.py import tupleize
 from   .program import program_from_jso, program_to_jso
 from   .schedule import schedule_from_jso, schedule_to_jso
@@ -33,7 +34,7 @@ class Reruns:
 class Job:
 
     def __init__(self, job_id, params, schedules, program, reruns=Reruns(), 
-                 *, meta={}, ad_hoc=False):
+                 actions=[], *, meta={}, ad_hoc=False):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
@@ -48,6 +49,7 @@ class Job:
         self.schedules  = tupleize(schedules)
         self.program    = program
         self.reruns     = reruns
+        self.actions    = actions
         self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
 
@@ -102,6 +104,10 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("missing program")
     program = program_from_jso(program)
 
+    actions = jso.pop("actions", [])
+    actions = [actions] if isinstance(actions, dict) else actions
+    actions = [ action_from_jso(a) for a in actions ]
+
     reruns      = jso_to_reruns(jso.pop("reruns", {}))
     metadata    = jso.pop("metadata", {})
     ad_hoc      = jso.pop("ad_hoc", False)
@@ -112,6 +118,7 @@ def jso_to_job(jso, job_id):
     return Job(
         job_id, params, schedules, program, 
         reruns  =reruns, 
+        actions =actions,
         meta    =metadata,
         ad_hoc  =ad_hoc,
     )

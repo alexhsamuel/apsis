@@ -2,8 +2,10 @@ import asyncio
 from   contextlib import contextmanager
 import enum
 import itertools
+import jinja2
 import logging
 from   ora import now, Time
+import shlex
 
 from   .lib.py import format_ctor
 
@@ -83,6 +85,28 @@ class Instance:
             )
         ) if isinstance(other, Instance) else NotImplemented
 
+
+
+#-------------------------------------------------------------------------------
+
+def template_expand(template, args):
+    return jinja2.Template(template).render(args)
+
+
+def join_args(argv):
+    return " ".join( shlex.quote(a) for a in argv )
+
+
+def propagate_args(old_args, job, new_args):
+    """
+    Propagates args from `old_args` to `new_args` if needed for `job`.
+
+    Returns an arg dict, containing `new_args` plus any args that are missing
+    for `job` but available in `old_args`.
+    """
+    args = { p: old_args[p] for p in job.params if p in old_args }
+    args.update(new_args)
+    return args
 
 
 #-------------------------------------------------------------------------------

@@ -1,0 +1,4 @@
+params: [date, message]
+
+program: $HOME/dev/apsis/jobs/test1 '{{ message }}'
+
