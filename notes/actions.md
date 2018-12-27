@@ -7,8 +7,8 @@ action:
     state: success
   job_id: close day
   args:
-  - strat: "{{ strat }}"  # implied?
-  - date: "{{ date + cal(strat).DAY }}"
+    strat: "{{ strat }}"  # implied?
+    date: "{{ date + cal(strat).DAY }}"
 ```
 
 
@@ -18,8 +18,8 @@ action:
 successor:
 - job_id: close day
   args:
-  - strat: "{{ strat }}"  # implied?
-  - date: "{{ date + cal(strat).DAY }}"
+    strat: "{{ strat }}"  # implied?
+    date: "{{ date + cal(strat).DAY }}"
 ```
 
 
