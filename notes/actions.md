@@ -2,8 +2,9 @@
 
 ```yaml
 action:
-- type: successor
-  state: success
+- type: schedule
+  condition:
+    state: success
   job_id: close day
   args:
   - strat: "{{ strat }}"  # implied?
