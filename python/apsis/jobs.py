@@ -130,6 +130,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
+        "actions"       : [ action_to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,

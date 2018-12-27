@@ -6,6 +6,7 @@ from   urllib.parse import unquote
 import websockets
 
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
+from   .. import actions
 from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run, RunError
 
@@ -41,12 +42,17 @@ def schedule_to_jso(app, schedule):
     }
 
 
+def action_to_jso(app, action):
+    return actions.action_to_jso(action)
+
+
 def _job_to_jso(app, job):
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
+        "actions"       : [ action_to_jso(app, a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,

@@ -43,11 +43,17 @@ class Condition:
 
 
 
+# FIXME: Naming.
 class Action:
 
     def __init__(self, action, *, condition=None):
         self.__action = action
         self.__condition = condition
+
+
+    @property
+    def action(self):
+        return self.__action
 
 
     def __call__(self, run):
@@ -70,7 +76,7 @@ def action_from_jso(jso):
 
 
 def action_to_jso(action):
-    jso = TYPES.to_jso(action)
+    jso = TYPES.to_jso(action.action)
     # FIXME: Condition.
     return jso
 
