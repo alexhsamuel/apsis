@@ -188,7 +188,6 @@ class Apsis:
 
         self.__running_tasks[run.run_id] = future
         future.add_done_callback(done)
-        # FIXME: Don't just drop the future?
 
 
     def __rerun(self, run):
@@ -224,17 +223,6 @@ class Apsis:
 
     # --- Internal API ---------------------------------------------------------
 
-    def log_run_history(self, run_id, message, *, timestamp=None):
-        """
-        Adds a timestamped history record to the history for `run_id`.
-
-        :param timestamp:
-          The time of the event; current time if none.
-        """
-        timestamp = now() if timestamp is None else timestamp
-        self.__db.run_history_db.insert(run_id, timestamp, message)
-
-
     def _transition(self, run, state, *, outputs={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
@@ -260,7 +248,8 @@ class Apsis:
         # FIXME: Job may no longer exist.
         job = self.jobs.get_job(run.inst.job_id)
         for action in job.actions:
-            action(self, run)
+            # FIXME: Hold the future?  Or make sure it doesn't run for long?
+            asyncio.ensure_future(action(self, run))
 
 
     def _validate_run(self, run):
@@ -287,6 +276,17 @@ class Apsis:
 
 
     # --- API ------------------------------------------------------------------
+
+    def log_run_history(self, run_id, message, *, timestamp=None):
+        """
+        Adds a timestamped history record to the history for `run_id`.
+
+        :param timestamp:
+          The time of the event; current time if none.
+        """
+        timestamp = now() if timestamp is None else timestamp
+        self.__db.run_history_db.insert(run_id, timestamp, message)
+
 
     async def schedule(self, time, run):
         """

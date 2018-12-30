@@ -14,11 +14,19 @@ class ScheduleAction:
         self.__inst = instance
 
 
-    def __call__(self, apsis, run):
-        inst = apsis._propagate_args(run.inst.args, self.__inst)
+    async def __call__(self, apsis, run):
+        # Expand args templates.
+        args = { 
+            n: runs.template_expand(v, run.inst.args)
+            for n, v in self.__inst.args.items()
+        }
+        inst = runs.Instance(self.__inst.job_id, args)
+        # Propagate missing args.
+        inst = apsis._propagate_args(run.inst.args, inst)
+
+        log.info(f"schedule action for {run.run_id} scheduling {inst}")
         apsis.log_run_history(run.run_id, f"schedule action: scheduling {inst}")
-        # FIXME: This is async!
-        apsis.schedule(None, inst)
+        await apsis.schedule(None, runs.Run(inst))
 
 
     def to_jso(self):
@@ -66,9 +74,9 @@ class Action:
         return self.__action
 
 
-    def __call__(self, apsis, run):
+    async def __call__(self, apsis, run):
         if self.__condition is None or self.__condition(run):
-            self.__action(apsis, run)
+            await self.__action(apsis, run)
 
 
 
