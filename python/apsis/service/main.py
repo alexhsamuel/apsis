@@ -66,7 +66,6 @@ app.blueprint(api.API, url_prefix="/api/v1")
 app.blueprint(control.API, url_prefix="/api/control")
 
 vue_dir = Path(__file__).parent / "vue"
-print(vue_dir)
 assert vue_dir.is_dir()
 
 # The SPA.
