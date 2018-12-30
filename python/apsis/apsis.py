@@ -56,7 +56,7 @@ class Apsis:
                     f"not rescheduling expected, scheduled run {run.run_id}")
             else:
                 sched_time = run.times["schedule"]
-                self._log_run_history(
+                self.log_run_history(
                     run.run_id, 
                     f"at startup, rescheduled {run.run_id} for {sched_time}"
                 )
@@ -81,7 +81,7 @@ class Apsis:
         log.info(f"reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
-            self._log_run_history(
+            self.log_run_history(
                 run.run_id,
                 f"at startup, reconnecting to running {run.run_id}"
             )
@@ -113,7 +113,7 @@ class Apsis:
 
         except ProgramError as exc:
             # Program failed to start.
-            self._log_run_history(
+            self.log_run_history(
                 run.run_id,
                 f"program start error: {exc.message}",
             )
@@ -126,7 +126,7 @@ class Apsis:
 
         else:
             # Program started successfully.
-            self._log_run_history(
+            self.log_run_history(
                 run.run_id,
                 "program started",
             )
@@ -147,7 +147,7 @@ class Apsis:
 
             except ProgramFailure as exc:
                 # Program ran and failed.
-                self._log_run_history(
+                self.log_run_history(
                     run.run_id,
                     f"program failure: {exc.message}",
                 )
@@ -160,7 +160,7 @@ class Apsis:
 
             except ProgramError as exc:
                 # Program failed to start.
-                self._log_run_history(
+                self.log_run_history(
                     run.run_id,
                     f"program error: {exc.message}",
                 )
@@ -173,7 +173,7 @@ class Apsis:
 
             else:
                 # Program ran and completed successfully.
-                self._log_run_history(
+                self.log_run_history(
                     run.run_id,
                     f"program success",
                 )
@@ -224,7 +224,7 @@ class Apsis:
 
     # --- Internal API ---------------------------------------------------------
 
-    def _log_run_history(self, run_id, message, *, timestamp=None):
+    def log_run_history(self, run_id, message, *, timestamp=None):
         """
         Adds a timestamped history record to the history for `run_id`.
 
@@ -256,6 +256,11 @@ class Apsis:
 
         if state == run.STATE.failure:
             self.__rerun(run)
+
+        # FIXME: Job may no longer exist.
+        job = self.jobs.get_job(run.inst.job_id)
+        for action in job.actions:
+            action(self, run)
 
 
     def _validate_run(self, run):
@@ -301,7 +306,7 @@ class Apsis:
         except RuntimeError as exc:
             log.error("invalid run", exc_info=True)
             times["error"] = now()
-            self._log_run_history(
+            self.log_run_history(
                 run.run_id, 
                 f"invalid run: {exc}",
             )
@@ -312,11 +317,11 @@ class Apsis:
             return
 
         if time is None:
-            self._log_run_history(run.run_id, "starting now")
+            self.log_run_history(run.run_id, "starting now")
             await self.__start(run)
         else:
             self.scheduled.schedule(time, run)
-            self._log_run_history(run.run_id, f"scheduling for {time}")
+            self.log_run_history(run.run_id, f"scheduling for {time}")
             self._transition(run, run.STATE.scheduled, times=times)
 
 
@@ -327,7 +332,7 @@ class Apsis:
         Unschedules the run and sets it to the error state.
         """
         self.scheduled.unschedule(run)
-        self._log_run_history(run.run_id, "cancelled")
+        self.log_run_history(run.run_id, "cancelled")
         self._transition(run, run.STATE.error, message="cancelled")
 
 

@@ -1,5 +1,9 @@
+import logging
+
 from   . import runs
 from   .lib.json import Typed, no_unexpected_keys
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -11,8 +15,10 @@ class ScheduleAction:
 
 
     def __call__(self, apsis, run):
-        inst = apsis._propagate_args(run.args, self.__inst)
-        apsis.schedule(None, inst, expected=False)
+        inst = apsis._propagate_args(run.inst.args, self.__inst)
+        apsis.log_run_history(run.run_id, f"schedule action: scheduling {inst}")
+        # FIXME: This is async!
+        apsis.schedule(None, inst)
 
 
     def to_jso(self):
@@ -33,10 +39,14 @@ class ScheduleAction:
 class Condition:
 
     def __init__(self, *, states=None):
-        self.__states = None if states is None else frozenset(states)
+        self.__states = (
+            None if states is None
+            else { runs.Run.STATE[s] for s in states }
+        )
 
 
     def __call__(self, run):
+        log.debug(f"check condition for run state {run.state}")
         return (
             self.__states is None or run.state in self.__states
         )
@@ -56,9 +66,9 @@ class Action:
         return self.__action
 
 
-    def __call__(self, run):
+    def __call__(self, apsis, run):
         if self.__condition is None or self.__condition(run):
-            self.__action(run)
+            self.__action(apsis, run)
 
 
 
@@ -72,7 +82,8 @@ def action_from_jso(jso):
     with no_unexpected_keys(jso):
         action = TYPES.from_jso(jso)
         # FIXME: Condition.
-    return Action(action)
+        condition = Condition(states={"success"})
+    return Action(action, condition=condition)
 
 
 def action_to_jso(action):
