@@ -2,6 +2,7 @@ import logging
 
 from   . import runs
 from   .lib.json import Typed, no_unexpected_keys
+from   .lib.py import or_none, tupleize
 
 log = logging.getLogger(__name__)
 
@@ -47,37 +48,40 @@ class ScheduleAction:
 class Condition:
 
     def __init__(self, *, states=None):
-        self.__states = (
-            None if states is None
-            else { runs.Run.STATE[s] for s in states }
-        )
+        self.states = None if states is None else frozenset(states)
 
 
     def __call__(self, run):
         log.debug(f"check condition for run state {run.state}")
         return (
-            self.__states is None or run.state in self.__states
+            self.states is None or run.state in self.states
         )
 
 
 
-# FIXME: Naming.
-class Action:
-
-    def __init__(self, action, *, condition=None):
-        self.__action = action
-        self.__condition = condition
+@or_none
+def states_from_jso(jso):
+    return [ runs.Run.STATE[s] for s in tupleize(jso) ]
 
 
-    @property
-    def action(self):
-        return self.__action
+@or_none
+def states_to_jso(states):
+    return [ s.name for s in states ]
 
 
-    async def __call__(self, apsis, run):
-        if self.__condition is None or self.__condition(run):
-            await self.__action(apsis, run)
+@or_none
+def condition_from_jso(jso):
+    with no_unexpected_keys(jso):
+        states = states_from_jso(jso.pop("states", None))
 
+    return Condition(states=states)
+
+
+@or_none
+def condition_to_jso(condition):
+    return {
+        "states": states_to_jso(condition.states),
+    }
 
 
 #-------------------------------------------------------------------------------
@@ -86,17 +90,31 @@ TYPES = Typed({
     "schedule": ScheduleAction,
 })
 
+# FIXME: Naming.  RunAction?  
+class Action:
+
+    def __init__(self, action, *, condition=None):
+        self.action = action
+        self.condition = condition
+
+
+    async def __call__(self, apsis, run):
+        if self.condition is None or self.condition(run):
+            await self.action(apsis, run)
+
+
+
 def action_from_jso(jso):
     with no_unexpected_keys(jso):
         action = TYPES.from_jso(jso)
-        # FIXME: Condition.
-        condition = Condition(states={"success"})
+        condition = condition_from_jso(jso.pop("condition", None))
+
     return Action(action, condition=condition)
 
 
 def action_to_jso(action):
     jso = TYPES.to_jso(action.action)
-    # FIXME: Condition.
+    jso["condition"] = condition_to_jso(action.condition)
     return jso
 
 
