@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from   ora import now, Time
+import sys
 
 from   .jobs import Jobs
 from   .lib.async import cancel_task
@@ -35,7 +36,7 @@ class Apsis:
     """
 
     def __init__(self, jobs, db):
-        log.info("creating Apsis instance")
+        log.debug("creating Apsis instance")
         self.__db = db
         self.jobs = Jobs(jobs, db.job_db)
         self.runs = Runs(db.run_db)
@@ -56,7 +57,7 @@ class Apsis:
                     f"not rescheduling expected, scheduled run {run.run_id}")
             else:
                 sched_time = run.times["schedule"]
-                self.log_run_history(
+                self.run_log(
                     run.run_id,
                     f"at startup, rescheduled {run.run_id} for {sched_time}"
                 )
@@ -81,14 +82,14 @@ class Apsis:
         log.info(f"reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
-            self.log_run_history(
+            self.run_log(
                 run.run_id,
                 f"at startup, reconnecting to running {run.run_id}"
             )
             future = run.program.reconnect(run.run_id, run.run_state)
             self.__wait(run, future)
 
-        log.info("Apsis instance ready")
+        log.debug("Apsis instance ready")
 
 
     def __get_program(self, run):
@@ -113,10 +114,7 @@ class Apsis:
 
         except ProgramError as exc:
             # Program failed to start.
-            self.log_run_history(
-                run.run_id,
-                f"program start error: {exc.message}",
-            )
+            self.run_exc(run, "program start")
             self._transition(
                 run, run.STATE.error, 
                 meta    =exc.meta,
@@ -126,10 +124,7 @@ class Apsis:
 
         else:
             # Program started successfully.
-            self.log_run_history(
-                run.run_id,
-                "program started",
-            )
+            self.run_info(run, "program started")
             self._transition(run, run.STATE.running, **running.__dict__)
             future = asyncio.ensure_future(coro)
             self.__wait(run, future)
@@ -147,10 +142,7 @@ class Apsis:
 
             except ProgramFailure as exc:
                 # Program ran and failed.
-                self.log_run_history(
-                    run.run_id,
-                    f"program failure: {exc.message}",
-                )
+                self.run_log(run.run_id, f"program failure: {exc.message}")
                 self._transition(
                     run, run.STATE.failure, 
                     meta    =exc.meta,
@@ -160,10 +152,7 @@ class Apsis:
 
             except ProgramError as exc:
                 # Program failed to start.
-                self.log_run_history(
-                    run.run_id,
-                    f"program error: {exc.message}",
-                )
+                self.run_log(run.run_id, f"program error: {exc.message}")
                 self._transition(
                     run, run.STATE.error, 
                     meta    =exc.meta,
@@ -173,10 +162,7 @@ class Apsis:
 
             else:
                 # Program ran and completed successfully.
-                self.log_run_history(
-                    run.run_id,
-                    f"program success",
-                )
+                self.run_log(run.run_id, f"program success")
                 self._transition(
                     run, run.STATE.success,
                     meta    =success.meta,
@@ -225,24 +211,19 @@ class Apsis:
         try:
             await action(self, run)
         except Exception as exc:
-            log.error(f"{run.run_id} action failed", exc_info=True)
-            self.log_run_history(
-                run.run_id, f"error: action failed: {exc}")
+            self.run_exc(run, "action")
 
 
     def __actions(self, run):
         """
         Performs configured actions on `run`.
         """
-        job_id = run.inst.job_id
-        run_id = run.run_id
-
         # Find the job.
+        job_id = run.inst.job_id
         try:
             job = self.jobs.get_job(job_id)
-        except LookupError:
-            log.error(f"run {run_id}: no job {job_id}")
-            self.log_run_history(run_id, f"error: no job {job_id}")
+        except LookupError as exc:
+            self.run_error(run, exc)
             return
 
         loop = asyncio.get_event_loop()
@@ -301,9 +282,9 @@ class Apsis:
         return runs.Instance(inst.job_id, args)
 
 
-    # --- API ------------------------------------------------------------------
+    # --- run logging API ------------------------------------------------------
 
-    def log_run_history(self, run_id, message, *, timestamp=None):
+    def run_log(self, run_id, message, *, timestamp=None):
         """
         Adds a timestamped history record to the history for `run_id`.
 
@@ -313,6 +294,31 @@ class Apsis:
         timestamp = now() if timestamp is None else timestamp
         self.__db.run_history_db.insert(run_id, timestamp, message)
 
+
+    def run_info(self, run, message):
+        message = str(message)
+        log.info(f"run {run.run_id}: {message}")
+        self.run_log(run.run_id, message)
+
+
+    def run_error(self, run, message):
+        log.error(f"run {run.run_id}: {message}")
+        self.run_log(run.run_id, "error: " + message)
+
+
+    def run_exc(self, run, message=None):
+        _, exc_msg, _ = sys.exc_info()
+
+        log_msg = f"run {run.run_id}"
+        if message is not None:
+            log_msg += ": " + str(message)
+        log_msg += ": " + exc_msg
+        log.error(log_msg, exc_info=True)
+
+        self.run_log(run.run_id, f"error: {exc_msg}")
+
+
+    # --- API ------------------------------------------------------------------
 
     async def schedule(self, time, run):
         """
@@ -334,10 +340,7 @@ class Apsis:
         except RuntimeError as exc:
             log.error("invalid run", exc_info=True)
             times["error"] = now()
-            self.log_run_history(
-                run.run_id, 
-                f"invalid run: {exc}",
-            )
+            self.run_exc(run)
             self._transition(
                 run, run.STATE.error,
                 times   =times,
@@ -345,12 +348,12 @@ class Apsis:
             return run
 
         if time is None:
-            self.log_run_history(run.run_id, "starting now")
+            self.run_info(run, "starting now")
             await self.__start(run)
             return run
         else:
             self.scheduled.schedule(time, run)
-            self.log_run_history(run.run_id, f"scheduling for {time}")
+            self.run_info(run, f"scheduling for {time}")
             self._transition(run, run.STATE.scheduled, times=times)
             return run
 
@@ -362,7 +365,7 @@ class Apsis:
         Unschedules the run and sets it to the error state.
         """
         self.scheduled.unschedule(run)
-        self.log_run_history(run.run_id, "cancelled")
+        self.run_info(run, "cancelled")
         self._transition(run, run.STATE.error, message="cancelled")
 
 

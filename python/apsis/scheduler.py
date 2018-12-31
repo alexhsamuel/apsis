@@ -58,7 +58,7 @@ class Scheduler:
         """
         assert stop >= self.__stop
 
-        log.info(f"scheduling runs until {stop}")
+        log.debug(f"scheduling runs until {stop}")
         for time, run in self.get_runs(stop):
             await self.__schedule(time, run)
 

@@ -213,7 +213,7 @@ class JobsDir:
         try:
             return self.__jobs[job_id]
         except KeyError:
-            raise LookupError(job_id)
+            raise LookupError(f"no job {job_id}")
 
 
     def get_jobs(self, *, ad_hoc=None):

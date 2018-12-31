@@ -29,10 +29,8 @@ class ScheduleAction:
         new_run = await apsis.schedule(None, runs.Run(inst))
         log.info(f"action for {run.run_id}: scheduled {new_run.run_id}")
 
-        apsis.log_run_history(
-            run.run_id, f"action: scheduled {inst} as {new_run.run_id}")
-        apsis.log_run_history(
-            new_run.run_id, f"action: scheduled by {run.run_id}")
+        apsis.run_info(run, f"action scheduling {inst} as {new_run.run_id}")
+        apsis.run_info(new_run, f"scheduled by action of {run.run_id}")
 
 
     def to_jso(self):
