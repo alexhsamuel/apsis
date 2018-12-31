@@ -57,7 +57,7 @@ class Apsis:
             else:
                 sched_time = run.times["schedule"]
                 self.log_run_history(
-                    run.run_id, 
+                    run.run_id,
                     f"at startup, rescheduled {run.run_id} for {sched_time}"
                 )
                 self.scheduled.schedule(sched_time, run)
@@ -221,6 +221,36 @@ class Apsis:
         asyncio.ensure_future(self.rerun(run, time=rerun_time))
 
 
+    async def __wrap_action(self, run, action):
+        try:
+            await action(self, run)
+        except Exception as exc:
+            log.error(f"{run.run_id} action failed", exc_info=True)
+            self.log_run_history(
+                run.run_id, f"error: action failed: {exc}")
+
+
+    def __actions(self, run):
+        """
+        Performs configured actions on `run`.
+        """
+        job_id = run.inst.job_id
+        run_id = run.run_id
+
+        # Find the job.
+        try:
+            job = self.jobs.get_job(job_id)
+        except LookupError:
+            log.error(f"run {run_id}: no job {job_id}")
+            self.log_run_history(run_id, f"error: no job {job_id}")
+            return
+
+        loop = asyncio.get_event_loop()
+        for action in job.actions:
+            # FIXME: Hold the future?  Or make sure it doesn't run for long?
+            loop.create_task(self.__wrap_action(run, action))
+
+
     # --- Internal API ---------------------------------------------------------
 
     def _transition(self, run, state, *, outputs={}, **kw_args):
@@ -245,11 +275,7 @@ class Apsis:
         if state == run.STATE.failure:
             self.__rerun(run)
 
-        # FIXME: Job may no longer exist.
-        job = self.jobs.get_job(run.inst.job_id)
-        for action in job.actions:
-            # FIXME: Hold the future?  Or make sure it doesn't run for long?
-            asyncio.ensure_future(action(self, run))
+        self.__actions(run)
 
 
     def _validate_run(self, run):
