@@ -119,7 +119,7 @@ class JobDB:
 
 
 
-#----------------------------:--------------------------------------------------
+#-------------------------------------------------------------------------------
 
 # FIXME: For now, we store times and meta as JSON.  To make these searchable,
 # we'll need to break them out into tables.
@@ -147,6 +147,11 @@ TBL_RUNS = sa.Table(
     sa.Column("expected"    , sa.Boolean()      , nullable=False),
 )
 
+TBL_RUN_ID = sa.Table(
+    "max_run_id", METADATA,
+    sa.Column("run_id"      , sa.Integer()      , nullable=True),
+)
+
 
 class RunDB:
 
@@ -155,6 +160,41 @@ class RunDB:
 
     def __init__(self, engine):
         self.__engine = engine
+
+        with self.__engine.begin() as conn:
+            rows = list(conn.execute("SELECT * FROM max_run_id"))
+        if len(rows) == 0:
+            self.__max_run_id = -1
+        else:
+            (self.__max_run_id, ), = rows
+
+
+    @staticmethod
+    def migrate(engine):
+        with engine.begin() as conn:
+            rows = list(conn.execute("SELECT * FROM max_run_id"))
+            if len(rows) == 0:
+                rows = list(conn.execute("SELECT MAX(run_id) FROM runs"))
+                if len(rows) > 0:
+                    (max_row_id, ), = rows
+                    assert max_row_id.startswith("r")
+                    max_row_id = int(max_row_id[1 :])
+                    log.warning(f"using max_row_id = {max_row_id}")
+                    conn.execute(
+                        "INSERT INTO max_run_id VALUES (?)", (max_row_id, ))
+
+
+    def get_run_id(self):
+        """
+        Allocates and returns a new run ID.
+        """
+        run_id = self.__max_run_id = self.__max_run_id + 1
+        with self.__engine.begin() as conn:
+            if run_id == 0:
+                conn.execute("INSERT INTO max_run_id VALUES (0)")
+            else:
+                conn.execute("UPDATE max_run_id SET run_id = ?", (run_id, ))
+        return "r" + str(run_id)
 
 
     @staticmethod
@@ -442,6 +482,8 @@ class SqliteDB:
 
         engine = Class.__get_engine(path)
         METADATA.create_all(engine)
+
+        RunDB.migrate(engine)
 
 
     @classmethod

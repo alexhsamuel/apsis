@@ -244,11 +244,6 @@ class Runs:
         for run in self.__db.query():
             self.__runs[run.run_id] = run
 
-        # FIXME: Do this better.
-        run_ids = ( int(r.run_id[1 :]) for r in self.__runs.values() )
-        start_run_id = max(run_ids, default=0) + 1
-        self.__run_ids = ( "r" + str(i) for i in itertools.count(start_run_id) )
-
         # For live notification.
         self.__queues = set()
 
@@ -265,7 +260,7 @@ class Runs:
         assert run.state == Run.STATE.new
 
         timestamp = now()
-        run_id = next(self.__run_ids)
+        run_id = self.__db.get_run_id()
         assert run.run_id not in self.__runs
 
         run.run_id = run_id
