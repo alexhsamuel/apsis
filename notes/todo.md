@@ -2,12 +2,13 @@
 
 - in agent, SIGCHLD may show up before pid is registered
 
+- show actions in web UI
+- show actions in terminal UI
 - clean up command line UI
   - implement `apsis runs --times`
   - nicer run list
   - nice job display
 - convert `run.times` to log, with schema (timestamp, message, state)
-  - show history in CLUI
   - retire run/transition message
   - retire times in run?  or hide from UI
 - `apsisctl` script 
