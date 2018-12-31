@@ -15,11 +15,13 @@ schedule:
 
 program: $HOME/dev/apsis/jobs/test0 '{{ message }}'
 
-actions:
-  condition:
-    states: "success"
-  type: schedule
-  job_id: test1
-  args:
-    message: '{{ message }} again!'
+# actions:
+#   condition:
+#     states: "success"
+#   type: schedule
+#   job_id: test1
+#   args:
+#     message: '{{ message }} again!'
+
+successors: test1
 

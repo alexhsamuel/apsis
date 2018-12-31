@@ -44,7 +44,10 @@ class ScheduleAction:
 
     @classmethod
     def from_jso(Class, jso):
-        return Class(runs.Instance(jso.pop("job_id"), jso.pop("args")))
+        with no_unexpected_keys(jso):
+            job_id = jso.pop("job_id")
+            args = jso.pop("args", {})
+        return Class(runs.Instance(job_id, args))
 
 
 
@@ -132,5 +135,24 @@ def action_to_jso(action):
     jso = TYPES.to_jso(action.action)
     jso["condition"] = condition_to_jso(action.condition)
     return jso
+
+
+def successor_from_jso(jso):
+    """
+    Convert successors from JSO.
+
+    Successors are syntactic sugar for and are converted into `ScheduleAction`
+    records.
+    """
+    if isinstance(jso, str):
+        jso = {"job_id": jso}
+
+    with no_unexpected_keys(jso):
+        job_id = jso.pop("job_id")
+        args = jso.pop("args", {})
+    return ActionRec(
+        ScheduleAction(runs.Instance(job_id, args)),
+        condition=Condition(states=[runs.Run.STATE.success])
+    )
 
 

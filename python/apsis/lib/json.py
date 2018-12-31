@@ -5,6 +5,10 @@ from   .exc import SchemaError
 
 #------------------------------------------------------------------------------
 
+def to_array(obj):
+    return obj if isinstance(obj, list) else [obj]
+
+
 @contextlib.contextmanager
 def no_unexpected_keys(jso):
     """

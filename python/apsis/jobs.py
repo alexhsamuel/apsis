@@ -6,7 +6,8 @@ import string
 import sys
 import yaml
 
-from   .actions import action_from_jso, action_to_jso
+from   . import actions
+from   .lib.json import to_array
 from   .lib.py import tupleize
 from   .program import program_from_jso, program_to_jso
 from   .schedule import schedule_from_jso, schedule_to_jso
@@ -104,9 +105,12 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("missing program")
     program = program_from_jso(program)
 
-    actions = jso.pop("actions", [])
-    actions = [actions] if isinstance(actions, dict) else actions
-    actions = [ action_from_jso(a) for a in actions ]
+    acts = to_array(jso.pop("actions", []))
+    acts = [ actions.action_from_jso(a) for a in acts ]
+
+    # Successors are syntactic sugar for actions.
+    sucs = to_array(jso.pop("successors", []))
+    acts.extend([ actions.successor_from_jso(s) for s in sucs ])
 
     reruns      = jso_to_reruns(jso.pop("reruns", {}))
     metadata    = jso.pop("metadata", {})
@@ -118,7 +122,7 @@ def jso_to_job(jso, job_id):
     return Job(
         job_id, params, schedules, program, 
         reruns  =reruns, 
-        actions =actions,
+        actions =acts,
         meta    =metadata,
         ad_hoc  =ad_hoc,
     )
@@ -130,7 +134,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
-        "actions"       : [ action_to_jso(a) for a in job.actions ],
+        "actions"       : [ actions.action_to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
