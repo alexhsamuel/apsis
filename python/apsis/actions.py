@@ -2,7 +2,7 @@ import logging
 
 from   . import runs
 from   .lib.json import Typed, no_unexpected_keys
-from   .lib.py import or_none, tupleize
+from   .lib.py import tupleize
 
 log = logging.getLogger(__name__)
 
@@ -59,26 +59,33 @@ class Condition:
 
 
 
-@or_none
 def states_from_jso(jso):
-    return [ runs.Run.STATE[s] for s in tupleize(jso) ]
+    return (
+        None if jso is None
+        else tuple( runs.Run.STATE[s] for s in tupleize(jso) )
+    )
 
 
-@or_none
 def states_to_jso(states):
-    return [ s.name for s in states ]
+    return (
+        None if states is None
+        else [ s.name for s in states ]
+    )
 
 
-@or_none
 def condition_from_jso(jso):
+    if jso is None:
+        return None
+
     with no_unexpected_keys(jso):
         states = states_from_jso(jso.pop("states", None))
-
     return Condition(states=states)
 
 
-@or_none
 def condition_to_jso(condition):
+    if condition is None:
+        return None
+
     return {
         "states": states_to_jso(condition.states),
     }
