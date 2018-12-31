@@ -23,4 +23,3 @@ actions:
   args:
     message: '{{ message }} again!'
 
-
