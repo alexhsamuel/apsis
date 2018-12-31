@@ -295,6 +295,8 @@ class Apsis:
         :param time:
           The schedule time at which to run the run.  If `None`, the run
           is run now, instead of scheduled.
+        :return:
+          The scheduled run.
         """
         self.runs.add(run)
 
@@ -314,15 +316,17 @@ class Apsis:
                 run, run.STATE.error,
                 times   =times,
             )
-            return
+            return run
 
         if time is None:
             self.log_run_history(run.run_id, "starting now")
             await self.__start(run)
+            return run
         else:
             self.scheduled.schedule(time, run)
             self.log_run_history(run.run_id, f"scheduling for {time}")
             self._transition(run, run.STATE.scheduled, times=times)
+            return run
 
 
     async def cancel(self, run):
