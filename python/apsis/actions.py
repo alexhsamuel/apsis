@@ -90,8 +90,12 @@ TYPES = Typed({
     "schedule": ScheduleAction,
 })
 
-# FIXME: Naming.  RunAction?  
-class Action:
+class ActionRec:
+    """
+    An action record from a job specification.
+
+    Includes the action, plus conditions on it.
+    """
 
     def __init__(self, action, *, condition=None):
         self.action = action
@@ -109,7 +113,7 @@ def action_from_jso(jso):
         action = TYPES.from_jso(jso)
         condition = condition_from_jso(jso.pop("condition", None))
 
-    return Action(action, condition=condition)
+    return ActionRec(action, condition=condition)
 
 
 def action_to_jso(action):
