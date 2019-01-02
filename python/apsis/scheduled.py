@@ -129,7 +129,7 @@ class ScheduledRuns:
 
         else:
             # Put it onto the schedule heap.
-            log.info(f"schedule: {time} {run.run_id}")
+            log.debug(f"schedule: {time} {run.run_id}")
             entry = self.Entry(time, run)
             heapq.heappush(self.__heap, entry)
             self.__scheduled[run] = entry

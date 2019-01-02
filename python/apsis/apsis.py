@@ -51,17 +51,13 @@ class Apsis:
         log.info("restoring scheduled runs")
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
         for run in scheduled_runs:
-            if run.expected:
-                # Expected, scheduled runs should not have been persisted.
-                log.error(
-                    f"not rescheduling expected, scheduled run {run.run_id}")
-            else:
-                sched_time = run.times["schedule"]
-                self.run_log(
-                    run.run_id,
-                    f"at startup, rescheduled {run.run_id} for {sched_time}"
-                )
-                self.scheduled.schedule(sched_time, run)
+            assert not run.expected
+            sched_time = run.times["schedule"]
+            self.run_log(
+                run.run_id,
+                f"at startup, rescheduled {run.run_id} for {sched_time}"
+            )
+            self.scheduled.schedule(sched_time, run)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?

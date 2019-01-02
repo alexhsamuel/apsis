@@ -248,7 +248,7 @@ class RunDB:
         return run
 
 
-    def query(self, *, job_id=None, since=None, until=None):
+    def query(self, *, job_id=None, since=None, until=None, expected=None):
         log.debug(f"query job_id={job_id} since={since} until={until}")
         where = []
         if job_id is not None:
@@ -257,6 +257,8 @@ class RunDB:
             where.append(TBL_RUNS.c.rowid >= int(since))
         if until is not None:
             where.append(TBL_RUNS.c.rowid < int(until))
+        if expected is not None:
+            where.append(TBL_RUNS.c.expected == bool(expected))
 
         with self.__engine.begin() as conn:
             # FIMXE: Return only the last record for each run_id?
@@ -264,6 +266,23 @@ class RunDB:
         
         log.debug(f"query returned {len(runs)} runs")
         return runs
+
+
+    def get_max_run_id_num(self):
+        """
+        Returns the largest run ID number in use.
+
+        :return:
+          The run ID *number* of the largest run ID, or none.
+        """
+        with self.__engine.begin() as conn:
+            rows = list(conn.execute(
+                "SELECT MAX(CAST(SUBSTR(run_id, 2) AS DECIMAL)) FROM runs"))
+        if len(rows) == 0:
+            return None
+        else:
+            (max_run_id_num, ), = rows
+            return max_run_id_num
 
 
 

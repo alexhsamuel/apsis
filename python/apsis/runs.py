@@ -239,15 +239,18 @@ class Runs:
     def __init__(self, db):
         self.__db = db
 
-        # Populate cache from database.
-        self.__runs = {}
-        for run in self.__db.query():
-            self.__runs[run.run_id] = run
+        # Populate cache from database.  Don't repopulate expected runs; this
+        # is important because we will reschedule those.
+        self.__runs = {
+            r.run_id: r
+            for r in self.__db.query(expected=False)
+        }
 
-        # FIXME: Do this better.
-        run_ids = ( int(r.run_id[1 :]) for r in self.__runs.values() )
-        start_run_id = max(run_ids, default=0) + 1
-        self.__run_ids = ( "r" + str(i) for i in itertools.count(start_run_id) )
+        # Figure out where to start run IDs.
+        max_run_id = self.__db.get_max_run_id_num()
+        next_run_id = (0 if max_run_id is None else max_run_id) + 1
+        log.debug(f"next run_id: {next_run_id}")
+        self.__run_ids = ( "r" + str(i) for i in itertools.count(next_run_id) )
 
         # For live notification.
         self.__queues = set()
@@ -293,13 +296,8 @@ class Runs:
         assert self.__runs[run.run_id] is run
 
         # Persist the changes.
-        if run.expected and run.state in {Run.STATE.new, Run.STATE.scheduled}:
-            # Don't persist new or scheduled runs if they are expected; these
-            # runs should be recreated from job schedules.
-            pass
-        else:
-            log.debug(f"persisting: {run.run_id}")
-            self.__db.upsert(run)
+        log.debug(f"persisting: {run.run_id}")
+        self.__db.upsert(run)
 
         self.__send(timestamp, run)
 
