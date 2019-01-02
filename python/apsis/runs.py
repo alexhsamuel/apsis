@@ -207,6 +207,10 @@ class Run:
         self.times.update(times)
         self.run_state = run_state
 
+        # Only new and scheduled runs can be expected.
+        if self.state not in (self.STATE.new, self.STATE.scheduled):
+            self.expected = False
+
         # Compute and add elapsed time.
         start = self.times.get("running")
         end = self.times.get("success", self.times.get("failure"))
