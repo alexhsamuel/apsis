@@ -18,7 +18,7 @@ div
       th schedule
       td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
 
-    tr(v-if="job.actions")
+    tr(v-if="job.actions && job.actions.length > 0")
       th actions
       td.no-padding
         .action(v-for="action in job.actions"): table.fields
