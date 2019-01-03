@@ -14,6 +14,15 @@ export default {
   methods: {
     do_action(url) {
       fetch(url, { method: 'POST' })
+        .then(async (response) => {
+          if (response.ok) {
+            const result = await response.json()
+            if (result.show_run_id)
+              // Got a hint to nav to a new run.
+              // FIXME: Encapsulate this part of the API somewhere.
+              this.$router.push({ name: 'run', params: { run_id: result.show_run_id } })
+          }
+        })
     },
 
   },

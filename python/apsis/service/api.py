@@ -267,6 +267,8 @@ async def run_rerun(request, run_id):
     else:
         new_run = await state.rerun(run)
         jso = runs_to_jso(request.app, ora.now(), [new_run])
+        # Let UIs know to show the new run.
+        jso["show_run_id"] = new_run.run_id
         return response_json(jso)
 
 

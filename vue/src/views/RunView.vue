@@ -168,6 +168,7 @@ export default {
 
   mounted() {
     // Fetch output metadata immediately.
+    console.log('MOUNTED')
     this.fetchOutputMetadata(this.run)
   },
 
@@ -177,9 +178,13 @@ export default {
       this.fetchOutputMetadata(run)
     },
 
-    // '$route'(to, from) {
-    //   this.load()
-    // },
+    '$route'(to, from) {
+      console.log('NAV')
+      this.output = null
+      this.outputData = null
+      this.outputRequested = false
+      // this.load()
+    },
   },
 
 }
