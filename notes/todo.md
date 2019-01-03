@@ -2,7 +2,6 @@
 
 - in agent, SIGCHLD may show up before pid is registered
 
-- show actions in web UI
 - show actions in terminal UI
 - clean up command line UI
   - implement `apsis runs --times`

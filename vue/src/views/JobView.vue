@@ -18,6 +18,14 @@ div
       th schedule
       td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
 
+    tr(v-if="job.actions")
+      th actions
+      td.no-padding
+        .action(v-for="action in job.actions"): table.fields
+          tr(v-for="(value, key, i) in action" :key="i")
+            th {{ key }}
+            td {{ value }}
+
     tr(v-if="job.reruns")
       th reruns
       td.no-padding: table.fields
@@ -99,5 +107,13 @@ export default {
 
 h1 {
   color: $apsis-job-color;
+}
+
+// This is rubbish.
+.action {
+  padding-top: 8px;
+  th, td {
+    line-height: 1;
+  }
 }
 </style>
