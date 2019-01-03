@@ -2,7 +2,6 @@
 
 - in agent, SIGCHLD may show up before pid is registered
 
-- show actions in terminal UI
 - clean up command line UI
   - implement `apsis runs --times`
   - nicer run list
@@ -12,7 +11,6 @@
   - retire times in run?  or hide from UI
 - `apsisctl` script 
   - check job *dir*
-  - migrate apsis.db
 - configuration
   - provide a way to add functions to jinja2 eval namespace
 - refactor runs websocket into event stream
