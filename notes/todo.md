@@ -2,7 +2,8 @@
 
 - in agent, SIGCHLD may show up before pid is registered
 
-- GH-style job search, reflected in URL
+- search, filtering in JobsList
+  - GH-style job search, reflected in URL
 - GH-style run search, reflected in URL
 - clean up command line UI
   - implement `apsis runs --times`
@@ -25,7 +26,6 @@
   - connection indicator in web UI
 - watch jobs for changes
 - when a job has changed, cancel and reschedule all future runs?
-- search, filtering in JobsList
 - gzip output
   - in agent
 - release
