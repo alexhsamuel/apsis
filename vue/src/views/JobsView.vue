@@ -1,5 +1,5 @@
 <template lang="pug">
-JobsList
+JobsList.uk-margin-bottom
 </template>
 
 <script>
