@@ -6,32 +6,49 @@ div
   .row.job(
     v-for="job in jobs"
     :key="job.job_id"
-    v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
   )
+    .schedule: ul
+      li(v-for="(schedule, idx) in job.schedules" :key="idx")
+        span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
+
     .job-title
       Job.name(:job-id="job.job_id")
       span.params(v-if="job.params.length > 0")
         | ({{ join(job.params, ', ') }})
-    .schedule: ul
-      li(v-for="(schedule, idx) in job.schedules" :key="idx")
-        span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
     .description(v-html="markdown(job.metadata.description || ' ')")
-    .program
-      tt {{ job.program.str }}
-      //- host
-      //- user
+    //- .program
+    //-   tt {{ job.program.str }}
+    //-   //- host
+    //-   //- user
 
 </template>
 
 <script>
 import Job from './Job'
-import { filter, join, sortBy } from 'lodash'
+import { every, filter, join, map, sortBy, trim } from 'lodash'
 import MarkdownIt from 'markdown-it'
 import Program from './Program'
 
 const markdownit = new MarkdownIt()
 
-export default { 
+export function makePredicate(search) {
+  const parts = filter(map(search.split(' '), trim))
+  if (parts.length === 0)
+    return job => true
+
+  // Construct an array of predicates over runs, one for each term.
+  const preds = map(parts, part => {
+    return job => job.job_id.indexOf(part) >= 0
+  })
+
+  // The combined predicate function is true if all the predicates are.
+  return job => every(map(preds, f => f(job)))
+}
+
+
+export default {
+  props: ['search'],
+
   data() {
     return {
       allJobs: [],
@@ -53,12 +70,17 @@ export default {
 
   computed: {
     jobs() {
-      return sortBy(filter(this.allJobs, j => !j.ad_hoc), j => j.job_id)
+      const pred = job => !job.ad_hoc && this.searchPredicate(job)
+      return sortBy(filter(this.allJobs, pred), j => j.job_id)
+    },
+
+    searchPredicate() {
+      return makePredicate(this.search)
     }
   },
 
   methods: {
-    markdown(src) { return markdownit.renderInline(src) },
+    markdown(src) { const m = markdownit.renderInline(src); console.log(m); return m },
     join,
   },
 }
@@ -86,7 +108,6 @@ export default {
 }
 
 .job-title {
-  float: left;
   .name {
     font-size: 120%;
     font-weight: 500;
@@ -100,23 +121,21 @@ export default {
 }
 
 .description {
-  float: left;
-  clear: left;
   margin-bottom: 8px;
   font-size: 85%;
   color: #777;
 }
 
 .program {
-  float: left;
-  clear: left;
-  padding-left: 12px;
+  padding-left: 16px;
+  color: #777;
 }
 
 .schedule {
   float: right;
   width: 33%;
   font-size: 85%;
+  padding-top: 4px;
   ul {
     margin: 0;
   }
