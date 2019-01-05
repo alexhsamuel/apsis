@@ -15,6 +15,10 @@ code {
   letter-spacing: -0.02rem;
 }
 
+tt {
+  font-family: $base-code-font-family;
+}
+
 .field-label {
   font-size: $table-header-cell-font-size;
   font-weight: $table-header-cell-font-weight;
