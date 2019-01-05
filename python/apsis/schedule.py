@@ -21,12 +21,12 @@ class DailySchedule:
 
 
     def __str__(self):
-        return "on {} at {} in {} for {}".format(
-            self.calendar,
-            " ".join( format(y, "%H:%M:%S") for y in self.daytimes ),
-            self.tz,
-            " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
-        )
+        daytimes = ", ".join( format(y, "%H:%M:%S") for y in self.daytimes )
+        res = f"{self.calendar} at {daytimes} {self.tz}"
+        if len(self.args) > 0:
+            args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
+            res = "(" + args + ") " + res
+        return res
 
 
     def __call__(self, start: Time):
