@@ -1,5 +1,12 @@
 params: [strat, date]
 
+metadata:
+  description: >-
+    Starts the `strat` trading system for trading `date`. 
+
+    Fails if the trading system is open, and unless the last closed trading date
+    is the last calendar date for `strat`.
+
 program: |
   /Users/alex/dev/apsis/jobs/open_day.sh {{ strat }} {{ date }}
 

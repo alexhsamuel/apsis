@@ -1,5 +1,5 @@
 metadata:
-  description: |
+  description: >-
     Test job for testing automatic rerun functionality.
 
     Each run has a _75% chance of failure_, but a failed run is **retried**

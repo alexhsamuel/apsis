@@ -1,5 +1,11 @@
 params: [strat, date]
 
+metadata:
+  description: >-
+    Shuts down the `strat` trading system for trading `date`.
+
+    Fails if the trading system is not open for `date`.
+
 program: |
   /Users/alex/dev/apsis/jobs/close_day.sh {{ strat }} {{ date }}
 
