@@ -1,36 +1,31 @@
 <template lang="pug">
-  div
-    table.uk-table.uk-table-small.uk-table-divider
-      thead
-        tr
-          th Job
-          th Program
-          th Schedule
+div
+  .row.head
+    | {{ jobs.length }} Jobs
 
-      tbody
-        tr(
-          v-for="job in jobs"
-          v-if="!job.ad_hoc"
-          :key="job.job_id"
-          v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
-        )
-          td
-            div
-              Job(:job-id="job.job_id")
-              span.params(v-if="job.params.length > 0")
-                | (
-                span {{ join(job.params, ', ') }}
-                | )
-            div(v-html="markdown(job.metadata.description || ' ')")
-          td: Program(:program="job.program")
-          td: ul
-            li(v-for="(schedule, idx) in job.schedules" :key="idx") {{ schedule.str }}
+  .row.job(
+    v-for="job in jobs"
+    :key="job.job_id"
+    v-on:click="$router.push({ name: 'job', params: { job_id: job.job_id } })"
+  )
+    .job-title
+      Job.name(:job-id="job.job_id")
+      span.params(v-if="job.params.length > 0")
+        | ({{ join(job.params, ', ') }})
+    .schedule: ul
+      li(v-for="(schedule, idx) in job.schedules" :key="idx")
+        span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
+    .description(v-html="markdown(job.metadata.description || ' ')")
+    .program
+      tt {{ job.program.str }}
+      //- host
+      //- user
 
 </template>
 
 <script>
 import Job from './Job'
-import { join } from 'lodash'
+import { filter, join, sortBy } from 'lodash'
 import MarkdownIt from 'markdown-it'
 import Program from './Program'
 
@@ -39,7 +34,7 @@ const markdownit = new MarkdownIt()
 export default { 
   data() {
     return {
-      jobs: [],
+      allJobs: [],
     }
   },
 
@@ -53,7 +48,13 @@ export default {
     const url = '/api/v1/jobs'
     fetch(url)
       .then((response) => response.json())
-      .then((response) => response.forEach((j) => v.jobs.push(j)))
+      .then((response) => response.forEach((j) => v.allJobs.push(j)))
+  },
+
+  computed: {
+    jobs() {
+      return sortBy(filter(this.allJobs, j => !j.ad_hoc), j => j.job_id)
+    }
   },
 
   methods: {
@@ -64,10 +65,64 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.params {
-  padding-left: 0.2rem;
-  span {
-    padding: 0 0.2rem;
+.row {
+  border: 1px solid #e1e8e4;
+  border-top: none;
+  border-radius: 3px;
+  padding: 8px 24px 12px 24px;
+  overflow: auto;
+}
+
+.head {
+  background-color: #f6faf8;
+  border-top: 1px solid #e1e8e4;
+  padding: 12px 24px;
+}
+
+.job {
+  &:hover {
+    background-color: #fafafa;
+  }
+}
+
+.job-title {
+  float: left;
+  .name {
+    font-size: 120%;
+    font-weight: 500;
+  }
+  .params {
+    padding-left: 0.2rem;
+    span {
+      padding: 0 0.2rem;
+    }
+  }
+}
+
+.description {
+  float: left;
+  clear: left;
+  margin-bottom: 8px;
+  font-size: 85%;
+  color: #777;
+}
+
+.program {
+  float: left;
+  clear: left;
+  padding-left: 12px;
+}
+
+.schedule {
+  float: right;
+  width: 33%;
+  font-size: 85%;
+  ul {
+    margin: 0;
+  }
+
+  .disabled {
+    color: #aaa;
   }
 }
 </style>

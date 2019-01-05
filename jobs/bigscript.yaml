@@ -1,0 +1,15 @@
+params: []
+
+program: >
+  set -x
+
+  echo this is line one
+
+  echo this is line two
+
+  echo this is line three
+
+  return 0
+
+schedule:
+
