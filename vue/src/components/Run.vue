@@ -1,5 +1,5 @@
 <template lang="pug">
-router-link(
+router-link.run-link(
   :to="{ name: 'run', params: { run_id: runId } }"
 ) {{ runId }}
 
@@ -11,15 +11,15 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @import '../styles/vars.scss';
 
-a {
+.run-link {
   background-color: white;
   color: $apsis-run-color;
   box-sizing: border-box;
-  border: 1px solid $apsis-run-color;
-  border-radius: 500px;
+  border: 2px solid #e4f4ec;
+  border-radius: 0;
   padding: 0 0.4rem;
   font-size: 0.875rem;
   align-items: center;
@@ -27,8 +27,8 @@ a {
   cursor: default;
 
   &:hover {
-    color: white;
-    background-color: $apsis-run-color;
+    color: $apsis-run-color;
+    border-color: #a0d0c8;
     text-decoration: none;
   }
 }
