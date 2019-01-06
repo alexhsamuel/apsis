@@ -54,12 +54,10 @@ div
 
 <script>
 import { join } from 'lodash'
-import MarkdownIt from 'markdown-it'
+import { markdown } from 'markdown'
 import Program from '@/components/Program'
 import RunsList from '@/components/RunsList'
 import store from '@/store'
-
-const markdownit = new MarkdownIt()
 
 export default {
   props: ['job_id'],
@@ -96,7 +94,7 @@ export default {
   },
 
   methods: {
-    markdown(src) { return markdownit.render(src) },
+    markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
   },
 
 }

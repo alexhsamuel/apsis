@@ -15,21 +15,15 @@ div
       Job.name(:job-id="job.job_id")
       span.params(v-if="job.params.length > 0")
         | ({{ join(job.params, ', ') }})
-    .description(v-html="markdown(job.metadata.description || ' ')")
-    //- .program
-    //-   tt {{ job.program.str }}
-    //-   //- host
-    //-   //- user
+    .description(v-html="markdown(job.metadata.description || '')")
 
 </template>
 
 <script>
 import Job from './Job'
 import { every, filter, join, map, sortBy, trim } from 'lodash'
-import MarkdownIt from 'markdown-it'
+import { markdown } from 'markdown'
 import Program from './Program'
-
-const markdownit = new MarkdownIt()
 
 export function makePredicate(search) {
   const parts = filter(map(search.split(' '), trim))
@@ -80,7 +74,7 @@ export default {
   },
 
   methods: {
-    markdown(src) { const m = markdownit.renderInline(src); console.log(m); return m },
+    markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
     join,
   },
 }
@@ -124,11 +118,11 @@ export default {
   margin-bottom: 8px;
   font-size: 85%;
   color: #777;
-}
 
-.program {
-  padding-left: 16px;
-  color: #777;
+  // Need /deep/ here because v-html doesn't produce scoping attributes.
+  /deep/ p {
+    margin: 0;
+  }
 }
 
 .schedule {
