@@ -1,6 +1,7 @@
 <template lang="pug">
 div
-  div.controls
+  SearchInput(v-model="search").search-input.uk-margin-bottom
+  div.controls(v-if='false')  # FIXME
     .control
       label.field-label Job &amp; Args
       span.uk-inline
@@ -59,7 +60,7 @@ div
           v-on:keyup.esc="until = untilInput = ''"
         )
 
-  RunsList(
+  RunsList.uk-margin-bottom(
     :job-filter="jobFilter"
     :state-filter="stateFilter"
     :start-time="startTime"
@@ -70,6 +71,7 @@ div
 
 <script>
 import RunsList from '@/components/RunsList'
+import SearchInput from '@/components/SearchInput'
 import State from '@/components/State'
 import store from '@/store'
 import { parseTime } from '@/time'
@@ -78,6 +80,7 @@ export default {
   name: 'RunsView',
   components: {
     RunsList,
+    SearchInput,
     State,
   },
 
@@ -117,6 +120,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.search-input {
+  width: 50%;
+}
+
 .control {
   display: inline-block;
   margin: 1em;
