@@ -308,7 +308,7 @@ class Apsis:
         log_msg = f"run {run.run_id}"
         if message is not None:
             log_msg += ": " + str(message)
-        log_msg += ": " + exc_msg
+        log_msg += ": " + str(exc_msg)
         log.error(log_msg, exc_info=True)
 
         self.run_log(run.run_id, f"error: {exc_msg}")
