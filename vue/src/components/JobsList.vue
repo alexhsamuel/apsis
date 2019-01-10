@@ -25,8 +25,8 @@ import { every, filter, join, map, sortBy, trim } from 'lodash'
 import { markdown } from 'markdown'
 import Program from './Program'
 
-export function makePredicate(search) {
-  const parts = filter(map(search.split(' '), trim))
+export function makePredicate(query) {
+  const parts = filter(map(query.split(' '), trim))
   if (parts.length === 0)
     return job => true
 
@@ -41,7 +41,7 @@ export function makePredicate(search) {
 
 
 export default {
-  props: ['search'],
+  props: ['query'],
 
   data() {
     return {
@@ -64,12 +64,12 @@ export default {
 
   computed: {
     jobs() {
-      const pred = job => !job.ad_hoc && this.searchPredicate(job)
+      const pred = job => !job.ad_hoc && this.predicate(job)
       return sortBy(filter(this.allJobs, pred), j => j.job_id)
     },
 
-    searchPredicate() {
-      return makePredicate(this.search)
+    predicate() {
+      return makePredicate(this.query)
     }
   },
 

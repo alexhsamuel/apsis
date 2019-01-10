@@ -1,15 +1,11 @@
 <template lang="pug">
 div
-  span(style="width: 10em; display: inline-block").field-label
-    | {{ rerunGroups.length }} runs match
-  Pagination.field-label(style="display: inline-block" :page.sync="page" :num-pages="numPages")
-
-  table
+  table.runlist
     colgroup
+      col(style="width: 4rem")
+      col(style="width: 4rem")
       col(style="min-width: 10rem; max-width: 12rem;")
       col(style="min-width: 10rem; max-width: 100%;")
-      col(style="width: 4rem")
-      col(style="width: 4rem")
       col(style="width: 4rem")
       col(style="width: 10rem")
       col(style="width: 10rem")
@@ -18,11 +14,22 @@ div
 
     thead
       tr
+        td(colspan=2 style="padding-left: 14px;")
+          | {{ rerunGroups.length }} Runs
+        td(colspan=2)
+          Pagination.pagination(style="display: inline-block" :page.sync="page" :num-pages="numPages")
+        td(colspan=5 style="padding-right: 12px")
+          StatesSelect.state-select.control(
+            :value="states"
+            v-on:input="setStates($event)"
+          )
+
+      tr
+        th.col-run Run
+        th.col-state State
         th.col-job Job
         th.col-args Args
-        th.col-run Run
         th.col-reruns Reruns
-        th.col-state State
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -35,12 +42,14 @@ div
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
+          td.col-run
+            Run(:run-id="run.run_id")
+          td.col-state
+            State(:state="run.state")
           td.col-job
             Job(:job-id="run.job_id")
           td.col-args
             span {{ arg_str(run.args) }}
-          td.col-run
-            Run(:run-id="run.run_id")
           td.col-reruns
             span(v-show="index == 0 && rerunGroup.length > 1")
               | {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
@@ -48,8 +57,6 @@ div
                 v-bind:uk-icon="groupIcon(run.rerun)"
                 v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
               )
-          td.col-state
-            State(:state="run.state")
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
           td.col-start-time
@@ -81,8 +88,10 @@ import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
 import Run from './Run'
-import { makeJobPredicate, makeStatePredicate, groupReruns } from '../runs'
+import { groupReruns } from '../runs'
+import * as runsFilter from '@/runsFilter.js'
 import State from './State'
+import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
 
@@ -104,10 +113,10 @@ function maxTime(run) {
 }
 
 export default { 
-  name: 'runs',
+  name: 'RunsList',
   props: {
-    jobFilter: {type: String, default: ''},
-    stateFilter: {type: Array, default: () => []},
+    p: {type: Number, default: 0},
+    query: {type: String, default: ''},
     startTime: {default: null},
     endTime: {default: null},
     pageSize: {type: Number, default: 20},
@@ -119,30 +128,38 @@ export default {
     Pagination,
     Run,
     State,
+    StatesSelect,
     Timestamp,
   },
 
   data() { 
     return { 
       groupCollapse: {},
-      page: 0,
+      page: this.p,
       store,
     } 
   },
 
   watch: {
-    // When filters change, go back to page 0.
-    jobFilter() { this.page = 0 },
-    stateFilter() { this.page = 0 },
+    query(query) { 
+      // When filters change, go back to page 0.
+      this.page = 0
+    },
+
+    page(page) {
+      // Let the parent know the page has changed.
+      this.$emit('p', page)
+    }
   },
 
   computed: {
-    jobPredicate() {
-      return makeJobPredicate(this.jobFilter)
+    states() {
+      // Extract states from the query.
+      return runsFilter.getStates(this.query)
     },
 
-    statePredicate() {
-      return makeStatePredicate(this.stateFilter)
+    jobPredicate() {
+      return runsFilter.makePredicate(this.query)
     },
 
     timePredicate() {
@@ -172,8 +189,7 @@ export default {
           const latest = group[group.length - 1]
           // Apply state and job/arg filters.
           return (
-            this.statePredicate(latest) 
-            && this.jobPredicate(latest)
+            this.jobPredicate(latest)
             && _.some(_.map(group, this.timePredicate))
           )
         }
@@ -194,6 +210,11 @@ export default {
   },
 
   methods: {
+    setStates(states) {
+      const query = runsFilter.setStates(this.query, states)
+      this.$emit('query', query)
+    },
+
     // FIXME: Duplicated.
     arg_str(args) {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
@@ -225,75 +246,82 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
-@import 'src/styles/base.scss';
-
-table {
+<style lang="scss">
+table.runlist {
   width: 100%;
-  margin-top: 1rem;
   border-spacing: 0;
   border-collapse: collapse;
-}
 
-th {
-  @extend .field-label;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 0.3rem;
-  font-weight: inherit;
-}
+  thead {
+    background-color: #f6faf8;
+    tr {
+      border: 1px solid #e1e8e4;
+    }
+    td, th {
+      font-weight: normal;
+      padding: 12px 4px;
+    }
+    th:first-child {
+      padding-left: 12px;
+    }
+    th:last-child {
+      padding-right: 12px;
+    }
+  }
 
-tbody tr {
-  border-top: 1px solid $apsis-grid-color;
-}
+  tbody tr {
+    border: 1px solid #e1e8e4;
+    &:not(:last-child) {
+      border-bottom: none;
+    }
+    border-radius: 3px;
+    overflow: auto;
+    &.run-group-next {
+      border-top: none;
+      .col-job a,
+      .col-args span {
+        visibility: hidden;
+      }
+    }
+    &:hover {
+      background-color: #fafafa;
+    }
+    td {
+      padding: 4px 4px 5px 4px;
+    }
+  }
 
-td {
-  padding-top: 0.35rem;
-  padding-bottom: 0.2rem;
-}
+  .col-job, .col-args, .col-schedule-time, .col-start-time {
+    text-align: left;
+  }
 
-tr.run-group-next {
-  border-top: none;
-  
-  .col-job a,
-  .col-args span {
-    visibility: hidden;
+  .col-run, .col-reruns, .col-state {
+    text-align: center;
+  }
+
+  .col-elapsed {
+    padding-right: 1em;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .col-actions {
+    text-align: center;
+    button {
+      font-size: 80%;
+      line-height: 1.4;
+    }
+  }
+
+  .state-select {
+    width: 200px;
+    float: right;
+    // background: #eee;
   }
 }
+</style>
 
-.col-job, .col-args {
-  text-align: left;
-}
-
-.col-run {
-  text-align: center;
-}
-
-.col-reruns {
-  text-align: center;
-}
-
-.col-state {
-  text-align: center;
-}
-
-.col-schedule-time, .col-start-time {
-  text-align: left;
-}
-
-.col-elapsed {
-  padding-right: 1em;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.col-actions {
-  text-align: center;
-  button {
-    font-size: 80%;
-    line-height: 1.4;
-  }
-}
-
+<style lang="scss" scoped>
 // FIXME
 .uk-dropdown {
   padding: 12px;

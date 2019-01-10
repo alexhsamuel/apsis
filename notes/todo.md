@@ -2,7 +2,7 @@
 
 - in agent, SIGCHLD may show up before pid is registered
 
-- GH-style run search, reflected in URL
+- not (!) in run query
 - clean up command line UI
   - implement `apsis runs --times`
   - nicer run list
