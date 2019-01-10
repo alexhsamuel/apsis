@@ -1,7 +1,7 @@
 <template lang="pug">
 div
-  SearchInput(v-model="search").search.uk-margin-bottom
-  JobsList(:search="search").uk-margin-bottom
+  SearchInput(v-model="query").search.uk-margin-bottom
+  JobsList(:query="query").uk-margin-bottom
 </template>
 
 <script>
@@ -17,21 +17,21 @@ export default {
 
   data() {
     return {
-      search: this.$route.query.s || '',
+      query: this.$route.query.q || '',
     }
   },
 
   watch: {
-    search(search) {
-      // If the serch term changed, add it to the URL query.
-      const s = search || undefined
-      if (this.$route.query.s !== s)
-        this.$router.push({ query: { s } })
+    query(query) {
+      // If the query changed, add it to the URL query.
+      const q = query || undefined
+      if (this.$route.query.q !== q)
+        this.$router.push({ query: { q } })
     },
 
     '$route'(to, from) {
-      // Set the search term from the URL query.
-      this.search = to.query.s || ''
+      // Set the query from the URL query.
+      this.query = to.query.q || ''
     },
 
   },
