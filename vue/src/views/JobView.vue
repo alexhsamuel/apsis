@@ -48,7 +48,7 @@ div
           th {{ key }}
           td {{ value }}
 
-  RunsList(:jobFilter="job_id")
+  RunsList(:query="query")
 
 </template>
 
@@ -78,6 +78,11 @@ export default {
     params() {
       return join(this.job.params, ', ')
     },
+
+    query() {
+      // FIXME: Do better here.
+      return '"' + this.job_id + '"'
+    }
   },
 
   created() {
