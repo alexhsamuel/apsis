@@ -150,6 +150,7 @@ export default {
 
   computed: {
     jobPredicate() {
+      // FIXME: Maybe the parent should provide a predicate directly?
       return runsFilter.makePredicate(this.query)
     },
 
