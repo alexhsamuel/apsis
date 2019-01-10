@@ -18,11 +18,7 @@ div
           | {{ rerunGroups.length }} Runs
         td(colspan=2)
           Pagination.pagination(style="display: inline-block" :page.sync="page" :num-pages="numPages")
-        td(colspan=5 style="padding-right: 12px")
-          StatesSelect.state-select.control(
-            :value="states"
-            v-on:input="setStates($event)"
-          )
+        td(colspan=5)
 
       tr
         th.col-run Run
@@ -153,11 +149,6 @@ export default {
   },
 
   computed: {
-    states() {
-      // Extract states from the query.
-      return runsFilter.getStates(this.query)
-    },
-
     jobPredicate() {
       return runsFilter.makePredicate(this.query)
     },
@@ -210,11 +201,6 @@ export default {
   },
 
   methods: {
-    setStates(states) {
-      const query = runsFilter.setStates(this.query, states)
-      this.$emit('query', query)
-    },
-
     // FIXME: Duplicated.
     arg_str(args) {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
@@ -311,12 +297,6 @@ table.runlist {
       font-size: 80%;
       line-height: 1.4;
     }
-  }
-
-  .state-select {
-    width: 200px;
-    float: right;
-    // background: #eee;
   }
 }
 </style>
