@@ -57,9 +57,7 @@ export default {
   watch: {
     query(query) {
       // If the query changed, add it to the URL.
-      const q = query || undefined
-      if (this.$route.query.q !== q)
-        this.$router.push({ query: { q } })
+      this.setQueryParam('q', query || undefined)
     },
 
     '$route'(to, from) {
@@ -69,10 +67,23 @@ export default {
   },
 
   methods: {
+    // FIXME: Elsewhere.
+    /**
+     * Sets a query param in the route.
+     * @param param - the query param name
+     * @param val - the value to set, or undefined to remove
+     */
+    setQueryParam(param, val) {
+      if (this.$route.query[param] !== val) {
+        // Set only this param, keeping the reqest of the query.
+        const query = Object.assign({}, this.$route.query, { [param]: val })
+        this.$router.push({ query })
+      }
+    },
+
     setPage(p) {
       // If the page has changed, add it to the URL.
-      if (this.$route.query.p !== p - 1)
-        this.$router.push({ query: { p: p === 0 ? undefined : p + 1 } })
+      this.setQueryParam('p', p === 0 ? undefined : p + 1)
     },
 
     setStates(states) {
