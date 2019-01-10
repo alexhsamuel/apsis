@@ -115,6 +115,7 @@ function maxTime(run) {
 export default { 
   name: 'RunsList',
   props: {
+    p: {type: Number, default: 0},
     query: {type: String, default: ''},
     startTime: {default: null},
     endTime: {default: null},
@@ -134,7 +135,7 @@ export default {
   data() { 
     return { 
       groupCollapse: {},
-      page: 0,
+      page: this.p,
       store,
     } 
   },
@@ -144,6 +145,11 @@ export default {
       // When filters change, go back to page 0.
       this.page = 0
     },
+
+    page(page) {
+      // Let the parent know the page has changed.
+      this.$emit('p', page)
+    }
   },
 
   computed: {

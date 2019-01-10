@@ -2,9 +2,11 @@
 div
   SearchInput(v-model="query").search-input.uk-margin-bottom
   RunsList.uk-margin-bottom(
-    :query="query"
     :start-time="startTime"
     :end-time="endTime"
+    :p="+this.$route.query.p - 1 || 0"
+    v-on:p="setPage($event)"
+    :query="query"
     v-on:query="query = $event"
   )
 
@@ -52,6 +54,13 @@ export default {
     },
   },
 
+  methods: {
+    setPage(p) {
+      // If the page has changed, add it to the URL.
+      if (this.$route.query.p !== p - 1)
+        this.$router.push({ query: { p: p === 0 ? undefined : p + 1 } })
+    },
+  },
 }
 </script>
 
