@@ -1,11 +1,11 @@
 <template lang="pug">
-div.uk-inline
-    span.uk-form-icon(uk-icon="icon: search")
-    input.uk-input(
-      v-model="input"
-      v-on:change="search()"
-      v-on:keyup.esc="input = ''; search()"
-    )
+span.uk-inline
+  span.uk-form-icon(uk-icon="icon: search")
+  input.uk-input(
+    v-model="input"
+    v-on:change="search()"
+    v-on:keyup.esc="input = ''; search()"
+  )
 
 </template>
 
