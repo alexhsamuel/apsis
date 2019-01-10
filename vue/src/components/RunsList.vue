@@ -18,20 +18,11 @@ div
           | {{ rerunGroups.length }} Runs
         td(colspan=2)
           Pagination.pagination(style="display: inline-block" :page.sync="page" :num-pages="numPages")
-        td(colspan=5)
-          .control
-            label.field-label States
-            button.uk-button.uk-button-default(type="button" style="width: 11em")
-              span(v-if="stateFilter.length == 0") All
-              State(v-else v-for="state in stateFilter" :key="state" :state="state")
-            div.state-filter-select(uk-dropdown="pos: bottom-left")
-              ul.uk-nav.uk-dropdown-nav
-                li(v-for="[label, states] in stateOptions")
-                  a(href="#" v-on:click="stateFilter = states") 
-                    span(style="float: right")
-                      State(v-for="state in states" :key="state" :state="state")
-                    span.label {{ label }} 
-
+        td(colspan=5 style="padding-right: 12px")
+          StatesSelect.state-select.control(
+            :value="states"
+            v-on:input="setStates($event)"
+          )
 
       tr
         th.col-run Run
@@ -97,8 +88,10 @@ import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
 import Run from './Run'
-import { makeJobPredicate, makeStatePredicate, groupReruns } from '../runs'
+import { groupReruns } from '../runs'
+import * as runsFilter from '@/runsFilter.js'
 import State from './State'
+import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
 
@@ -120,10 +113,9 @@ function maxTime(run) {
 }
 
 export default { 
-  name: 'runs',
+  name: 'RunsList',
   props: {
-    jobFilter: {type: String, default: ''},
-    stateFilter: {type: Array, default: () => []},
+    query: {type: String, default: ''},
     startTime: {default: null},
     endTime: {default: null},
     pageSize: {type: Number, default: 20},
@@ -135,6 +127,7 @@ export default {
     Pagination,
     Run,
     State,
+    StatesSelect,
     Timestamp,
   },
 
@@ -147,18 +140,20 @@ export default {
   },
 
   watch: {
-    // When filters change, go back to page 0.
-    jobFilter() { this.page = 0 },
-    stateFilter() { this.page = 0 },
+    query(query) { 
+      // When filters change, go back to page 0.
+      this.page = 0
+    },
   },
 
   computed: {
-    jobPredicate() {
-      return makeJobPredicate(this.jobFilter)
+    states() {
+      // Extract states from the query.
+      return runsFilter.getStates(this.query)
     },
 
-    statePredicate() {
-      return makeStatePredicate(this.stateFilter)
+    jobPredicate() {
+      return runsFilter.makePredicate(this.query)
     },
 
     timePredicate() {
@@ -188,8 +183,7 @@ export default {
           const latest = group[group.length - 1]
           // Apply state and job/arg filters.
           return (
-            this.statePredicate(latest) 
-            && this.jobPredicate(latest)
+            this.jobPredicate(latest)
             && _.some(_.map(group, this.timePredicate))
           )
         }
@@ -210,6 +204,11 @@ export default {
   },
 
   methods: {
+    setStates(states) {
+      const query = runsFilter.setStates(this.query, states)
+      this.$emit('query', query)
+    },
+
     // FIXME: Duplicated.
     arg_str(args) {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
@@ -306,6 +305,12 @@ table.runlist {
       font-size: 80%;
       line-height: 1.4;
     }
+  }
+
+  .state-select {
+    width: 200px;
+    float: right;
+    // background: #eee;
   }
 }
 </style>
