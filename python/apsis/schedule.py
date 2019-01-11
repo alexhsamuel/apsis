@@ -52,26 +52,20 @@ class DailySchedule:
             i = 0
 
         # Now generate.
+        common_args = {
+            **self.args,
+            "tz": self.tz,
+        }
         while True:
-            yield (date, self.daytimes[i]) @ self.tz
+            time = (date, self.daytimes[i]) @ self.tz
+            args = {**common_args, "date": date}
+            yield time, args
+
             i += 1
             if i == len(self.daytimes):
                 # On to the next day.
                 date = self.calendar.after(date + 1)
                 i = 0
-
-
-    def bind_args(self, params, sched_time: Time):
-        args = dict(self.args)
-
-        # Bind temporal params from the schedule time.
-        if "time" in params:
-            # FIXME: Localize to TZ?  Or not?
-            args["time"] = lib.format_time(sched_time)
-        if "date" in params:
-            args["date"] = str((sched_time @ self.tz).date)
-
-        return args
 
 
     def to_jso(self):
@@ -113,30 +107,23 @@ class ExplicitSchedule:
     TYPE_NAME = "explicit"
 
     def __init__(self, times, args={}):
-        self.__times = tuple(sorted( Time(t) for t in times ))
-        self.__args = args
+        self.times = tuple(sorted( Time(t) for t in times) )
+        self.args = args
 
 
     def __str__(self):
-        return ",".join( str(t) for t in self.__times )
+        return ",".join( str(t) for t in self.times )
 
 
     def __call__(self, start: Time):
-        i = bisect.bisect_left(self.__times, start)
-        return iter(self.__times[i :])
-
-
-    def bind_args(self, params, sched_time: Time):
-        args = dict(self.__args)
-        if "time" in params:
-            args["time"] = lib.format_time(sched_time)
-        return args
+        i = bisect.bisect_left(self.times, start)
+        return ( (t, self.args) for t in self.times[i:] )
 
 
     def to_jso(self):
         return {
-            "times" : [ str(t) for t in self.__times ],
-            "args"  : self.__args,
+            "times" : [ str(t) for t in self.times ],
+            "args"  : self.args,
         }
 
 
@@ -162,42 +149,35 @@ class IntervalSchedule:
     TYPE_NAME = "interval"
 
     def __init__(self, interval, args):
-        self.__interval = float(interval)
-        self.__args     = { str(k): str(v) for k, v in args.items() }
+        self.interval   = float(interval)
+        self.args       = { str(k): str(v) for k, v in args.items() }
 
 
     def __repr__(self):
-        return format_ctor(self, self.__interval, self.__args)
+        return format_ctor(self, self.interval, self.args)
 
 
     def __str__(self):
-        return f"every {self.__interval} sec"
+        return f"every {self.interval} sec"
 
 
     def __call__(self, start: Time):
         # Round to the next interval.
         off = start - Time.EPOCH
         time = (
-            start if off % self.__interval == 0 
-            else Time.EPOCH + (off // self.__interval + 1) * self.__interval
+            start if off % self.interval == 0
+            else Time.EPOCH + (off // self.interval + 1) * self.interval
         )
 
         while True:
-            yield time
-            time += self.__interval
-
-
-    def bind_args(self, params, sched_time: Time):
-        args = dict(self.__args)
-        if "time" in params:
-            args["time"] = lib.format_time(sched_time)
-        return args
+            yield time, self.args
+            time += self.interval
 
 
     def to_jso(self):
         return {
-            "interval"  : self.__interval,
-            "args"      : self.__args,
+            "interval"  : self.interval,
+            "args"      : self.args,
         }
 
 

@@ -39,11 +39,18 @@ class Scheduler:
         for job in self.__jobs.get_jobs():
             for schedule in job.schedules:
                 times = itertools.takewhile(
-                    lambda t: t < stop, schedule(self.__stop))
+                    lambda t: t[0] < stop, schedule(self.__stop))
 
-                for sched_time in times:
-                    args = schedule.bind_args(job.params, sched_time)
+                for sched_time, args in times:
+                    args = {**args, "schedule_time": sched_time}
+                    args = { 
+                        a: str(v) 
+                        for a, v in args.items() 
+                        if a in job.params
+                    }
+                    # FIXME: Store additional args for later expansion.
                     inst = Instance(job.job_id, args)
+
                     if schedule.enabled:
                         # Runs instantiated by the scheduler are only expected;
                         # the job schedule may change before the run is started.
