@@ -2,7 +2,6 @@ import bisect
 import ora
 from   ora import Daytime, Time, TimeZone
 
-from   . import lib
 from   .lib.exc import SchemaError
 from   .lib.json import Typed, no_unexpected_keys
 from   .lib.py import format_ctor
