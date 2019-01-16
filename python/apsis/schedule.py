@@ -1,4 +1,5 @@
 import bisect
+import logging
 import ora
 from   ora import Daytime, Time, TimeZone
 
@@ -6,21 +7,24 @@ from   .lib.exc import SchemaError
 from   .lib.json import Typed, no_unexpected_keys
 from   .lib.py import format_ctor
 
+log = logging.getLogger(__name__)
+
 #-------------------------------------------------------------------------------
 
 class DailySchedule:
 
     TYPE_NAME = "daily"
 
-    def __init__(self, tz, calendar, daytimes, args):
+    def __init__(self, tz, calendar, daytimes, args, *, date_shift=0):
         self.tz         = TimeZone(tz)
         self.calendar   = calendar
         self.daytimes   = tuple(sorted( Daytime(t) for t in daytimes ))
         self.args       = { str(k): str(v) for k, v in args.items() }
+        self.date_shift = int(date_shift)
 
 
     def __str__(self):
-        daytimes = ", ".join( format(y, "%H:%M:%S") for y in self.daytimes )
+        daytimes = ", ".join( format(y, "%C") for y in self.daytimes )
         res = f"{self.calendar} at {daytimes} {self.tz}"
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
@@ -35,6 +39,8 @@ class DailySchedule:
         start = Time(start)
 
         start_date, start_daytime = start @ self.tz
+        start_date -= self.date_shift
+
         if start_date in self.calendar:
             date = start_date
             # Find the next daytime.
@@ -53,11 +59,14 @@ class DailySchedule:
         # Now generate.
         common_args = {
             **self.args,
-            "tz": self.tz,
+            "calendar": str(self.calendar),
+            "tz": str(self.tz),
         }
         while True:
-            time = (date, self.daytimes[i]) @ self.tz
-            args = {**common_args, "date": date}
+            sched_date = date + self.date_shift
+            time = (sched_date, self.daytimes[i]) @ self.tz
+            assert time >= start
+            args = {**common_args, "date": str(date)}
             yield time, args
 
             i += 1
@@ -72,6 +81,7 @@ class DailySchedule:
             "tz"        : str(self.tz),
             "calendar"  : repr(self.calendar),  # FIXME
             "daytime"   : [ str(y) for y in self.daytimes ],
+            "date_shift": self.date_shift,
             "args"      : self.args,
         }
 
@@ -95,7 +105,9 @@ class DailySchedule:
         daytimes = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
         daytimes = [ Daytime(d) for d in daytimes ]
 
-        return Class(tz, calendar, daytimes, args)
+        date_shift = jso.pop("date_shift", 0)
+
+        return Class(tz, calendar, daytimes, args, date_shift=date_shift)
 
 
 
