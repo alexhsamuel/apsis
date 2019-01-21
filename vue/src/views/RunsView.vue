@@ -2,6 +2,13 @@
 div
   .flex-margin
     SearchInput(v-model="query" style="flex-grow: 1;").search-input.uk-margin-bottom
+
+    SinceSelect(
+      style="flex-basis: 240px; flex-grow 0;"
+      :value="since"
+      v-on:input="setSince($event)"
+    )
+
     StatesSelect(
       style="flex-basis: 240px; flex-grow 0;"
       :value="states"
@@ -22,16 +29,16 @@ div
 import RunsList from '@/components/RunsList'
 import * as runsFilter from '@/runsFilter.js'
 import SearchInput from '@/components/SearchInput'
+import SinceSelect from '@/components/SinceSelect'
 import StatesSelect from '@/components/StatesSelect'
 import State from '@/components/State'
-import store from '@/store'
-import { parseTime } from '@/time'
 
 export default {
   name: 'RunsView',
   components: {
     RunsList,
     SearchInput,
+    SinceSelect,
     State,
     StatesSelect,
   },
@@ -43,14 +50,21 @@ export default {
   },
 
   computed: {
-    startTime() { return parseTime('yesterday', false, store.state.timeZone) },
-    endTime() { return parseTime('', true, store.state.timeZone) },
+    // startTime() { return parseTime('yesterday', false, store.state.timeZone) },
+    startTime() { return null },
+    // endTime() { return parseTime('', true, store.state.timeZone) },
+    endTime() { return null },
     sinceError() { return this.sinceInput !== '' && this.startTime === null },
     untilError() { return this.untilInput !== '' && this.endTime === null },
 
+    since() {
+      // Extract since from the query.
+      return runsFilter.SinceTerm.get(this.query)
+    },
+
     states() {
       // Extract states from the query.
-      return runsFilter.getStates(this.query)
+      return runsFilter.StateTerm.get(this.query)
     },
   },
 
@@ -86,8 +100,12 @@ export default {
       this.setQueryParam('p', p === 0 ? undefined : p + 1)
     },
 
+    setSince(since) {
+      this.query = runsFilter.SinceTerm.set(this.query, since)
+    },
+
     setStates(states) {
-      this.query = runsFilter.setStates(this.query, states)
+      this.query = runsFilter.StateTerm.set(this.query, states)
     },
   },
 }
