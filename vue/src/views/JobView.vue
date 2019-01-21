@@ -48,7 +48,7 @@ div
           th {{ key }}
           td {{ value }}
 
-  RunsList(:query="query")
+  RunsList(:query="query").uk-margin-bottom
 
 </template>
 
