@@ -1,4 +1,6 @@
 import { filter, includes, join, map } from 'lodash'
+import { parseTimeOrOffset } from '@/time.js'
+import store from '@/store'
 
 /**
  * Matches an unambiguous prefix.
@@ -16,7 +18,33 @@ export function splitQuoted(str) {
   return map(results, s => s.replace(/^"([^"]+)"$/, '$1'))
 }
 
-// --------
+/**
+ * Replaces all terms of `type` in `query` with `value`.
+ * @param {string} query 
+ * @param {*} type - term type to replace
+ * @param {*} term - replacement term or null to remove
+ */
+function replace(query, type, replacement) {
+  const terms = map(splitQuoted(query), parse)
+  let found = false
+  for (let i = 0; i < terms.length; ++i) {
+    const term = terms[i]
+    if (term instanceof type) {
+      if (found || !replacement)
+        // Remove it.
+        terms.splice(i--, 1)
+      else
+        // Replace it.
+        terms.splice(i, 1, replacement)
+      found = true
+    }
+  }
+  if (!found && replacement)
+    terms.push(replacement)
+  return terms.join(' ')
+}
+
+// -----------------------------------------------------------------------------
 
 const STATES = [
   'new', 
@@ -27,7 +55,7 @@ const STATES = [
   'error',
 ]
 
-class StateTerm {
+export class StateTerm {
   constructor(states) {
     if (typeof states === 'string') {
       const matchState = s => prefixMatch(STATES, s)
@@ -44,8 +72,18 @@ class StateTerm {
   get predicate() {
     return run => includes(this.states, run.state)
   }
+
+  static get(query) {
+    const terms = filter(map(splitQuoted(query), parse), t => t instanceof StateTerm)
+    return terms.length === 0 ? [] : terms[0].states
+  }
+  
+  static set(query, states) {
+    return replace(query, StateTerm, states.length > 0 ? new StateTerm(states) : null)
+  }
 }
 
+// -----------------------------------------------------------------------------
 
 class ArgTerm {
   constructor(arg, val) {
@@ -65,6 +103,7 @@ class ArgTerm {
   }
 }
 
+// -----------------------------------------------------------------------------
 
 class JobNameTerm {
   constructor(str) {
@@ -80,8 +119,36 @@ class JobNameTerm {
   }
 }
 
+// -----------------------------------------------------------------------------
 
-// --------
+export class SinceTerm {
+  constructor(str) {
+    this.str = str
+  }
+
+  toString() {
+    return 'since:' + this.str
+  }
+
+  get predicate() {
+    const date = parseTimeOrOffset(this.str, false, store.state.timeZone)
+    return (
+      date === null ? run => false
+      : run => new Date(run.time_range[1]) >= date
+    )
+  }
+
+  static get(query) {
+    const terms = filter(map(splitQuoted(query), parse), t => t instanceof SinceTerm)
+    return terms.length === 0 ? '' : terms[0].str
+  }
+  
+  static set(query, str) {
+    return replace(query, SinceTerm, str ? new SinceTerm(str) : null)
+  }
+}
+
+// -----------------------------------------------------------------------------
 
 /**
  * Produces the conjunction predicate.
@@ -107,6 +174,8 @@ function parse(part) {
     const val = part.substr(clx + 1)
     if (tag === 'state' || tag === 'states')
       return new StateTerm(val)
+    else if (tag === 'since')
+      return new SinceTerm(val)
     else
       return null  // FIXME
   }
@@ -126,35 +195,3 @@ export function makePredicate(str) {
   return combine(map(filter(terms), t => t.predicate))
 }
 
-export function getStates(query) {
-  const terms = filter(map(splitQuoted(query), parse), t => t instanceof StateTerm)
-  if (terms.length === 0)
-    return []
-  else
-    return terms[0].states
-}
-
-/**
- * 
- * @param {*} query 
- * @param {*} states 
- */
-export function setStates(query, states) {
-  const terms = map(splitQuoted(query), parse)
-  let found = 0
-  for (let i = 0; i < terms.length; ++i) {
-    const term = terms[i]
-    if (term instanceof StateTerm)
-      if (found === 0 && states.length > 0) {
-        // Update it with new states.
-        term.states = states
-        found = 1
-      }
-      else
-        // Remove it.
-        terms.splice(i--, 1)
-  }
-  if (found === 0 && states.length > 0)
-    terms.push(new StateTerm(states))
-  return terms.join(' ')
-}

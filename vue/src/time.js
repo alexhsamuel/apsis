@@ -98,3 +98,33 @@ export function parseTime(str, end, timeZone) {
     return date
   }
 }
+
+/**
+ * Parses a time offset and applies it to time.
+ * 
+ * Understands,
+ * - "#d" where # is a number of days.
+ * 
+ * @param {} str - string to parse
+ * @param {*} sign - sign for date offset
+ * @param {*} time - time to offset from or now if null
+ */
+export function parseTimeOffset(str, sign, time) {
+  if (!time)
+    time = new Date()
+  const match = str.match(/^(\d+)(d)$/)
+  if (match !== null) {
+    if (match[2] === 'd')
+      time.setDate(time.getDate() + sign * parseInt(match[1]))
+    return time
+  }
+  return null
+}
+
+export function parseTimeOrOffset(str, end, timeZone) {
+  let time = parseTime(str, end, timeZone)
+  if (time === null)
+    time = parseTimeOffset(str, end ? 1 : -1)
+  return time
+}
+
