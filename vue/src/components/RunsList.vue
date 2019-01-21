@@ -76,8 +76,7 @@ div
 </template>
 
 <script>
-import _, { filter, join, map, sortBy, toPairs } from 'lodash'
-import moment from 'moment-timezone'
+import { filter, join, map, sortBy, toPairs } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
@@ -91,30 +90,11 @@ import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
 
-function minTime(run) {
-  return moment(_.min(_.filter([ 
-    run.times.schedule,
-    run.times.running,
-  ])))
-}
-
-function maxTime(run) {
-  return moment(_.max(_.filter([
-    run.times.schedule,
-    run.times.running,
-    run.times.error,
-    run.times.success,
-    run.times.failure,
-  ])))
-}
-
 export default { 
   name: 'RunsList',
   props: {
     p: {type: Number, default: 0},
     query: {type: String, default: ''},
-    startTime: {default: null},
-    endTime: {default: null},
     pageSize: {type: Number, default: 20},
   },
 
@@ -154,19 +134,6 @@ export default {
       return runsFilter.makePredicate(this.query)
     },
 
-    timePredicate() {
-      const start = this.startTime
-      const end = this.endTime
-      if (start !== null && end !== null)
-        return r => start <= maxTime(r) && minTime(r) < end
-      else if (start !== null)
-        return r => start <= maxTime(r)
-      else if (end !== null)
-        return r => minTime(r) < end
-      else
-        return r => true
-    },
-
     // Array of rerun groups, each an array of runs that are reruns of the
     // same run.  Groups are filtered by current filters, and sorted.
     rerunGroups() {
@@ -176,15 +143,8 @@ export default {
       // Filter groups.
       reruns = filter(
         reruns,
-        group => {
-          // Filter by the latest run in the group.
-          const latest = group[group.length - 1]
-          // Apply state and job/arg filters.
-          return (
-            this.jobPredicate(latest)
-            && _.some(_.map(group, this.timePredicate))
-          )
-        }
+        // Filter by the latest run in the group.
+        group => this.jobPredicate(group[group.length - 1])
       )
 
       // Sort original runs.

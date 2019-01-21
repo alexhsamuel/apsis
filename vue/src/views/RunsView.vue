@@ -1,23 +1,25 @@
 <template lang="pug">
 div
   .flex-margin
+    //- Input box for the search string.
     SearchInput(v-model="query" style="flex-grow: 1;").search-input.uk-margin-bottom
 
+    //- Combo box for selecting the "since" start date of runs to show.
     SinceSelect(
       style="flex-basis: 240px; flex-grow 0;"
       :value="since"
       v-on:input="setSince($event)"
     )
 
+    //- Combo box for selecting the run states filter.
     StatesSelect(
       style="flex-basis: 240px; flex-grow 0;"
       :value="states"
       v-on:input="setStates($event)"
     )
 
+  //- The table of runs.
   RunsList.uk-margin-bottom(
-    :start-time="startTime"
-    :end-time="endTime"
     :p="+this.$route.query.p - 1 || 0"
     v-on:p="setPage($event)"
     :query="query"
@@ -31,7 +33,6 @@ import * as runsFilter from '@/runsFilter.js'
 import SearchInput from '@/components/SearchInput'
 import SinceSelect from '@/components/SinceSelect'
 import StatesSelect from '@/components/StatesSelect'
-import State from '@/components/State'
 
 export default {
   name: 'RunsView',
@@ -39,7 +40,6 @@ export default {
     RunsList,
     SearchInput,
     SinceSelect,
-    State,
     StatesSelect,
   },
 
@@ -50,13 +50,6 @@ export default {
   },
 
   computed: {
-    // startTime() { return parseTime('yesterday', false, store.state.timeZone) },
-    startTime() { return null },
-    // endTime() { return parseTime('', true, store.state.timeZone) },
-    endTime() { return null },
-    sinceError() { return this.sinceInput !== '' && this.startTime === null },
-    untilError() { return this.untilInput !== '' && this.endTime === null },
-
     since() {
       // Extract since from the query.
       return runsFilter.SinceTerm.get(this.query)
