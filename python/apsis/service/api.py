@@ -97,6 +97,10 @@ def _run_to_jso(app, run):
         "program"       : program,
         "message"       : run.message,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
+        "time_range"    : [
+            time_to_jso(min(run.times.values())),
+            time_to_jso(max(run.times.values())),
+        ],
         # FIXME: Rename to metadata.
         "meta"          : run.meta,
         "actions"       : actions,
