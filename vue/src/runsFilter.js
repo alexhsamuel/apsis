@@ -134,7 +134,7 @@ export class SinceTerm {
     const date = parseTimeOrOffset(this.str, false, store.state.timeZone)
     return (
       date === null ? run => false
-      : run => new Date(run.time_range[1]) >= date
+      : run => run.time_range && new Date(run.time_range[1]) >= date
     )
   }
 
