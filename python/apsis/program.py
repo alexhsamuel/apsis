@@ -330,10 +330,7 @@ class AgentProgram:
                 "proc_id"       : proc["proc_id"],
                 "pid"           : proc["pid"],
             }
-            meta.update({
-                "agent_proc_id" : proc["proc_id"],
-                "pid"           : proc["pid"],
-            })
+            meta.update(run_state)
             # FIXME: Propagate times from agent.
             # FIXME: Do this asynchronously from the agent instead.
             done = self.wait(run_id, run_state)
@@ -370,26 +367,18 @@ class AgentProgram:
                 break
 
         status = proc["status"]
-        meta = {
-            "status"            : status,
-            "return_code"       : proc["return_code"],
-            "signal"            : proc["signal"],
-            "rusage"            : proc["rusage"],
-            "agent_start_time"  : proc["start_time"],
-            "agent_end_time"    : proc["end_time"],
-        }            
         output = await agent.get_process_output(proc_id)
         outputs = program_outputs(output)
 
         try:
             if status == 0:
                 log.info(f"program success: {run_id}")
-                return ProgramSuccess(meta=meta, outputs=outputs)
+                return ProgramSuccess(meta=proc, outputs=outputs)
 
             else:
                 message = f"program failed: status {status}"
                 log.info(f"program failed: {run_id}: {message}")
-                raise ProgramFailure(message, meta=meta, outputs=outputs)
+                raise ProgramFailure(message, meta=proc, outputs=outputs)
 
         finally:
             # Clean up the process from the agent.
