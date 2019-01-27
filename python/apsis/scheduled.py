@@ -79,13 +79,17 @@ class ScheduledRuns:
         # run is scheduled in the very near future after the start loop has
         # already gone to sleep.
         try:
+            log_next_time = None
+
             while True:
                 time = now()
 
                 if log.isEnabledFor(logging.DEBUG):
                     count = len(self.__heap)
                     next_time = None if count == 0 else self.__heap[0].time
-                    log.debug(f"loop: {count} scheduled runs; next at {next_time}")
+                    if next_time != log_next_time:
+                        log.debug(f"loop: {count} scheduled runs; next at {next_time}")
+                        log_next_time = next_time
 
                 while len(self.__heap) > 0 and self.__heap[0].time <= time:
                     # The next run is ready.
