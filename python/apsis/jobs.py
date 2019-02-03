@@ -189,9 +189,6 @@ def check_job_file(path):
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Rename get_job() -> get().
-# FIXME: Rename get_jobs() -> all().
-
 class JobsDir:
 
     # FIXME: Mapping API?
