@@ -94,7 +94,8 @@ async def websocket_log(request, ws):
 
 #-------------------------------------------------------------------------------
 
-def serve(jobs_path, state_path, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
+# FIXME: Get host, port from config.
+def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     """
     Runs the Apsis service.
 
@@ -105,12 +106,16 @@ def serve(jobs_path, state_path, host="127.0.0.1", port=DEFAULT_PORT, debug=Fals
     root_log = logging.getLogger()
     root_log.handlers.append(WS_HANDLER)
 
-    log.info(f"opening state file {state_path}")
-    db      = SqliteDB.open(state_path)
-    log.info(f"opening jobs dir {jobs_path}")
-    jobs    = JobsDir(jobs_path)
+    db_path = cfg["database"]
+    log.info(f"opening state file {db_path}")
+    db      = SqliteDB.open(db_path)
+
+    job_dir = cfg["job_dir"]
+    log.info(f"opening jobs dir {job_dir}")
+    jobs    = JobsDir(job_dir)
+
     log.info("creating scheduler instance")
-    apsis   = Apsis(jobs, db)
+    apsis   = Apsis(cfg, jobs, db)
 
     app.apsis = apsis
     # Flag to indicate whether to restart after shutting down.

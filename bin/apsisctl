@@ -2,9 +2,11 @@
 
 import logging
 import os
+from   pathlib import Path
 import sys
 
 from   apsis.cmdline import format_job, print_lines
+import apsis.config
 import apsis.lib.argparse
 import apsis.lib.logging
 from   apsis.service import DEFAULT_PORT
@@ -90,9 +92,10 @@ cmd = parser.add_command(
 # command: serve
 
 def cmd_serve(args):
+    config = apsis.config.load(args.config)
+
     restart = apsis.service.main.serve(
-        args.jobs, args.state_path,
-        host=args.host, port=args.port, debug=args.debug)
+        config, host=args.host, port=args.port, debug=args.debug)
 
     if restart:
         # Start all over.
@@ -120,11 +123,8 @@ cmd.add_argument(
     "--port", metavar="PORT", type=int, default=DEFAULT_PORT,
     help=f"server port [def: {DEFAULT_PORT}]")
 cmd.add_argument(
-    "jobs", metavar="JOBS", 
-    help="job directory")
-cmd.add_argument(
-    "state_path", metavar="PATH",
-    help="state file")
+    "--config", metavar="CFGFILE", nargs="?", type=Path, default=None,
+    help="read config from CFGFILE")
 
 
 #-------------------------------------------------------------------------------
