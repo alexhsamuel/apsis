@@ -5,7 +5,6 @@ import sanic
 import sanic.response
 import sanic.router
 import signal
-import sys
 import ujson as json
 import websockets
 
