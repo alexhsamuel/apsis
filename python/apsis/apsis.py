@@ -35,8 +35,9 @@ class Apsis:
 
     """
 
-    def __init__(self, jobs, db):
+    def __init__(self, cfg, jobs, db):
         log.debug("creating Apsis instance")
+        self.cfg = cfg
         self.__db = db
         self.jobs = Jobs(jobs, db.job_db)
         self.runs = Runs(db.run_db)

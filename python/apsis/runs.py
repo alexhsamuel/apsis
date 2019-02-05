@@ -218,7 +218,7 @@ class Run:
             elapsed = end - start
             log.debug(f"elapsed time: {self.run_id}: {elapsed}")
             self.meta["elapsed"] = elapsed
-       
+
         # Transition to the new state.
         self.state = state
 
