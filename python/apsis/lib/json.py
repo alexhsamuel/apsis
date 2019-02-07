@@ -2,6 +2,7 @@ import contextlib
 import ujson
 
 from   .exc import SchemaError
+from   .imp import import_fqname, get_type_fqname
 
 #------------------------------------------------------------------------------
 
@@ -28,6 +29,9 @@ def no_unexpected_keys(jso):
 
 
 class Typed:
+
+    # Global flag controls whether explicit type imports are allowed.
+    IMPORTS = True
 
     def __init__(self, types={}, *, default=None):
         """
@@ -78,7 +82,11 @@ class Typed:
             try:
                 type = self.__by_name[name]
             except KeyError:
-                raise SchemaError(f"unknown type: {name}")
+                if self.IMPORTS and "." in name:
+                    # Attempt to import it as a fully qualified name.
+                    type = import_fqname(name)
+                else:
+                    raise SchemaError(f"unknown type: {name}")
 
         return type.from_jso(jso)
 
@@ -87,7 +95,11 @@ class Typed:
         try:
             name = self.__by_type[type(obj)]
         except KeyError:
-            raise TypeError(f"unregistered type: {type(obj)}")
+            if self.IMPORTS:
+                # Use its fully qualified name.
+                name = get_type_fqname(type(obj))
+            else:
+                raise TypeError(f"unregistered type: {type(obj)}")
 
         return {
             **obj.to_jso(),
