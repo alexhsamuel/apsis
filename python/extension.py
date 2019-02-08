@@ -45,26 +45,23 @@ class EmailAction:
         return {
             "to": list(self.__to),
             "from": self.__from,
-            "condition": self.__condition.to_jso(),
+            "condition": None if self.__condition is None else self.__condition.to_jso(),
         }
-
-
-    def format_body(self, run):
-        program = str(run.program)
-        output_meta = apsis.outputs.get_metadata(run.run_id)
-        if "output" in output_meta:
-            output = apsis.outputs.get_data(run.run_id, "output")
-        else:
-            output = ""
-        return TEMPLATE.format(**locals())
 
 
     async def __call__(self, apsis, run):
         if self.__condition is not None and not self.__condition(run):
             return
 
-        subject = f"{run.run_id}: {run.inst} {run.state}"
-        body = self.format_body(run)
+        subject = f"Apsis {run.run_id}: {run.inst}: {run.state.name}"
+
+        program = str(run.program)
+        output_meta = apsis.outputs.get_metadata(run.run_id)
+        if "output" in output_meta:
+            output = apsis.outputs.get_data(run.run_id, "output").decode()
+        else:
+            output = ""
+        body = TEMPLATE.format(**locals())
 
         smtp_cfg = apsis.cfg.get("smtp", {})
         email.send_html(

@@ -12,8 +12,8 @@ dictionary with the following fields and defaults:
     }
 
 If `port` is 0, the default port for the appropriate protocol is used.  `ssl`
-may by false, true, or `"starttls"`.  `auth` is none for no auth, or a username,
-password pair.
+may by false, true, or `"starttls"`.  `auth` is none for no auth, or a
+`{username, password}` dict.
 """
 
 from   email.mime.text import MIMEText
@@ -65,9 +65,9 @@ def send_message(to, msg, *, from_=None, smtp_cfg={}):
         if ssl == "starttls":
             smtp.starttls()
         if auth is not None:
-            username, password = auth
-            smtp.login(username, password)
+            smtp.login(auth["username"], auth["password"])
         smtp.send_message(msg, from_, to)
+    log.info("email sent")
 
 
 def send_html(to, subject, html, *, from_=None, smtp_cfg={}):
