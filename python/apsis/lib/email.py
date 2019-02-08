@@ -67,7 +67,7 @@ def send_message(to, msg, *, from_=None, smtp_cfg={}):
         if auth is not None:
             smtp.login(auth["username"], auth["password"])
         smtp.send_message(msg, from_, to)
-    log.info("email sent")
+    log.debug("email sent successfully")
 
 
 def send_html(to, subject, html, *, from_=None, smtp_cfg={}):
