@@ -96,7 +96,7 @@ class ScheduleAction:
         with no_unexpected_keys(jso):
             job_id = jso.pop("job_id")
             args = jso.pop("args", {})
-            condition = condition_from_jso(jso.pop("if", None))
+            condition = Condition.from_jso(jso.pop("if", None))
         return Class(runs.Instance(job_id, args), condition=condition)
 
 
