@@ -2,3 +2,10 @@ params: [date, message]
 
 program: $HOME/dev/apsis/jobs/test1 '{{ message }}'
 
+actions:
+- type: extension.EmailAction
+  to: alexhsamuel@gmail.com
+  from: alex@alexsamuel.net
+  # if:
+  #   states: ["failure", "error"]
+
