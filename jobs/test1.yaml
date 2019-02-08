@@ -6,6 +6,6 @@ actions:
 - type: extension.EmailAction
   to: alexhsamuel@gmail.com
   from: alex@alexsamuel.net
-  # if:
-  #   states: ["failure", "error"]
+  if:
+    states: ["failure", "error"]
 
