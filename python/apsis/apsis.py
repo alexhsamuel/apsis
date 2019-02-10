@@ -345,7 +345,7 @@ class Apsis:
             return run
 
         if time is None:
-            self.run_info(run, "starting now")
+            self.run_info(run, "scheduling for immediate run")
             await self.__start(run)
             return run
         else:
