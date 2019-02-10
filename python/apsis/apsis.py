@@ -3,6 +3,7 @@ import logging
 from   ora import now, Time
 import sys
 
+from   . import actions
 from   .jobs import Jobs
 from   .lib.async import cancel_task
 from   .program import ProgramError, ProgramFailure
@@ -47,6 +48,9 @@ class Apsis:
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
         self.__running_tasks = {}
+
+        # Actions applied to all runs.
+        self.__actions = [ actions.action_from_jso(o) for o in cfg["actions"] ]
 
         # Restore scheduled runs from DB.
         log.info("restoring scheduled runs")
@@ -211,20 +215,24 @@ class Apsis:
             self.run_exc(run, "action")
 
 
-    def __actions(self, run):
+    def __do_actions(self, run):
         """
         Performs configured actions on `run`.
         """
-        # Find the job.
+        actions = []
+
+        # Find actions attached to the job.
         job_id = run.inst.job_id
         try:
             job = self.jobs.get_job(job_id)
         except LookupError as exc:
+            # Job is gone; can't get the actions.
             self.run_error(run, exc)
-            return
+        else:
+            actions.extend(job.actions)
 
         loop = asyncio.get_event_loop()
-        for action in job.actions:
+        for action in actions + self.__actions:
             # FIXME: Hold the future?  Or make sure it doesn't run for long?
             loop.create_task(self.__wrap_action(run, action))
 
@@ -253,7 +261,7 @@ class Apsis:
         if state == run.STATE.failure:
             self.__rerun(run)
 
-        self.__actions(run)
+        self.__do_actions(run)
 
 
     def _validate_run(self, run):

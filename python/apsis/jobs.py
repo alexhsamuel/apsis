@@ -105,7 +105,7 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("missing program")
     program = program_from_jso(program)
 
-    acts = to_array(jso.pop("actions", []))
+    acts = to_array(jso.pop("action", []))
     acts = [ actions.action_from_jso(a) for a in acts ]
 
     # Successors are syntactic sugar for actions.
@@ -134,7 +134,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
-        "actions"       : [ actions.action_to_jso(a) for a in job.actions ],
+        "action"        : [ actions.action_to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,

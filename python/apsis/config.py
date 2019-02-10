@@ -2,6 +2,8 @@ import logging
 from   pathlib import Path
 import yaml
 
+from   .lib.json import to_array
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -23,6 +25,8 @@ def check(cfg, base_path: Path):
     if not database.exists():
         log.error(f"missing database: {database}")
     cfg["database"] = database
+
+    cfg["actions"] = to_array(cfg.get("action", []))
 
     return cfg
 
