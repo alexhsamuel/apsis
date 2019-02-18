@@ -124,6 +124,7 @@ class Run:
         (
             "new", 
             "scheduled", 
+            "blocked",
             "running",
             "success",
             "failure",
@@ -135,7 +136,8 @@ class Run:
     TRANSITIONS = {
         STATE.new       : set(),
         STATE.scheduled : {STATE.new},
-        STATE.running   : {STATE.new, STATE.scheduled},
+        STATE.blocked   : {STATE.new, STATE.scheduled},
+        STATE.running   : {STATE.new, STATE.scheduled, STATE.blocked},
         STATE.error     : {STATE.new, STATE.scheduled, STATE.running},
         STATE.success   : {STATE.running},
         STATE.failure   : {STATE.running},

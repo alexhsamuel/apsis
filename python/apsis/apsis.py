@@ -4,6 +4,7 @@ from   ora import now, Time
 import sys
 
 from   . import actions
+from   .blocker import Blocker
 from   .jobs import Jobs
 from   .lib.async import cancel_task
 from   .program import ProgramError, ProgramFailure
@@ -43,7 +44,8 @@ class Apsis:
         self.jobs = Jobs(jobs, db.job_db)
         self.runs = Runs(db.run_db)
         log.info("scheduling runs")
-        self.scheduled = ScheduledRuns(db.clock_db, self.__start)
+        self.scheduled = ScheduledRuns(db.clock_db, self.__block)
+        self.__blocker = Blocker(db.run_db, self.__start)
         # For now, expose the output database directly.
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
@@ -104,6 +106,14 @@ class Apsis:
             **run.inst.args,
         })
         return program
+
+
+    async def __block(self, run):
+        """
+        Blocks `run`, if it has pending conditions, otherwise starts it.
+        """
+        log.info(f"blocking: {run}")
+        await self.__blocker.start(run)
 
 
     async def __start(self, run):
@@ -354,7 +364,7 @@ class Apsis:
 
         if time is None:
             self.run_info(run, "scheduling for immediate run")
-            await self.__start(run)
+            await self.__block(run)
             return run
         else:
             self.scheduled.schedule(time, run)
@@ -380,7 +390,7 @@ class Apsis:
         """
         # FIXME: Race conditions?
         self.scheduled.unschedule(run)
-        await self.__start(run)
+        await self.__block(run)
 
 
     async def get_run_history(self, run_id):
