@@ -9,6 +9,7 @@ from   apsis.lib.terminal import COLOR, BLK, WHT, RED, BLD, NBL
 STATE_COLOR = {
     "new"       : COLOR( 17),
     "scheduled" : COLOR(243),
+    "waiting"   : COLOR(241),
     "running"   : COLOR(136),
     "success"   : COLOR( 29),
     "failure"   : COLOR(124),
@@ -18,6 +19,7 @@ STATE_COLOR = {
 STATE_SYMBOL = {
     "new"       : ".",
     "scheduled" : "O",
+    "waiting"   : "|",
     "running"   : ">",
     "success"   : "+",
     "failure"   : "X",
