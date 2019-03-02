@@ -4,13 +4,13 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class Blocker:
+class Waiter:
 
     def __init__(self, run_db, start):
         self.__run_db = run_db
         self.__start = start
 
-        self.__blocked = {}
+        self.__waiting = {}
 
 
     async def start(self, run):
