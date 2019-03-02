@@ -32,6 +32,8 @@ export default {
       options: [
         ['All', []],
         ['Scheduled', ['scheduled']],
+        ['Waiting', ['waiting']],
+        ['Held', ['scheduled', 'waiting']],
         ['Running', ['running']],
         ['Successful', ['success']],
         ['Unsuccessful', ['failure', 'error']],
