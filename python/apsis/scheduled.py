@@ -10,12 +10,14 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 async def sleep_until(time):
+    """
+    Sleep until `time`, or do our best at least.
+    """
     delay = time - now()
 
     if delay <= 0:
         # Nothing to do.
         if delay < 0.1:
-            # Not so good.
             log.debug(f"sleep to past time: {time}")
 
     else:
@@ -123,15 +125,12 @@ class ScheduledRuns:
                 if len(ready) > 0:
                     log.debug(f"{len(ready)} runs ready")
                     # Start the runs.
-                    # FIXME: Start concurrently.
-                    for run in ready:
-                        await self.__start_run(run)
+                    # FIXME: Return exceptions?
+                    await asyncio.gather(*( self.__start_run(r) for r in ready ))
 
                 next_time = time + self.LOOP_TIME
-                if len(self.__heap) == 0 or next_time < self.__heap[0].time:
-                    pass
-                else:
-                    next_time = self.__heap[0].time
+                if len(self.__heap) > 0:
+                    next_time = min(next_time, self.__heap[0].time)
 
                 await sleep_until(next_time)
 
