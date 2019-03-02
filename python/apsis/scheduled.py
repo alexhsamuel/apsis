@@ -9,6 +9,26 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+async def sleep_until(time):
+    """
+    Sleep until `time`, or do our best at least.
+    """
+    delay = time - now()
+
+    if delay <= 0:
+        # Nothing to do.
+        if delay < 0.1:
+            log.debug(f"sleep to past time: {time}")
+
+    else:
+        await asyncio.sleep(delay)
+        late = now() - time
+        if late < 0:
+            log.error(f"woke up early: {-late:.1f} s")
+        elif late > 0.1:
+            log.error(f"woke up late: {late:.1f} s")
+
+
 class ScheduledRuns:
     """
     Scheduled runs waiting to start.
@@ -88,25 +108,31 @@ class ScheduledRuns:
                     count = len(self.__heap)
                     next_time = None if count == 0 else self.__heap[0].time
                     if next_time != log_next_time:
-                        log.debug(f"loop: {count} scheduled runs; next at {next_time}")
+                        next_run = "none" if count == 0 else self.__heap[0].run.run_id
+                        log.debug(f"loop: {count} scheduled runs; next {next_run} at {next_time}")
                         log_next_time = next_time
 
+                ready = set()
                 while len(self.__heap) > 0 and self.__heap[0].time <= time:
                     # The next run is ready.
                     entry = heapq.heappop(self.__heap)
                     if entry.scheduled:
                         # Take it out of the entries dict.
                         assert self.__scheduled.pop(entry.run) is entry
-                        # Start the run.
-                        await self.__start_run(entry.run)
+                        ready.add(entry.run)
                 self.__clock_db.set_time(time)
 
-                wait = (
-                    self.LOOP_TIME if len(self.__heap) == 0
-                    else min(self.LOOP_TIME, self.__heap[0].time - now())
-                )
-                if wait > 0:
-                    await asyncio.sleep(wait)
+                if len(ready) > 0:
+                    log.debug(f"{len(ready)} runs ready")
+                    # Start the runs.
+                    # FIXME: Return exceptions?
+                    await asyncio.gather(*( self.__start_run(r) for r in ready ))
+
+                next_time = time + self.LOOP_TIME
+                if len(self.__heap) > 0:
+                    next_time = min(next_time, self.__heap[0].time)
+
+                await sleep_until(next_time)
 
         except asyncio.CancelledError:
             # Let this through.
