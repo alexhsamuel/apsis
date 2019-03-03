@@ -15,7 +15,8 @@ div
     thead
       tr
         td(colspan=2 style="padding-left: 14px;")
-          | {{ rerunGroups.length }} Runs
+          //- FIXME
+          | {{ runs.length }} Runs
         td(colspan=2)
           Pagination.pagination(style="display: inline-block" :page.sync="page" :num-pages="numPages")
         td(colspan=5)
@@ -32,9 +33,9 @@ div
         th.col-actions Actions
 
     tbody
-      template(v-for="rerunGroup in pageRuns")
+      template(v-for="[principal, runs] in pageGroups")
         tr( 
-          v-for="(run, index) in groupRuns(rerunGroup)" 
+          v-for="(run, index) in getVisibleRunsInGroup(principal, runs)" 
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
@@ -47,11 +48,11 @@ div
           td.col-args
             span {{ arg_str(run.args) }}
           td.col-reruns
-            span(v-show="index == 0 && rerunGroup.length > 1")
-              | {{ rerunGroup.length > 1 ? rerunGroup.length - 1 : "" }}
+            span(v-show="index == 0 && runs.length > 1")
+              | {{ runs.length > 1 ? runs.length - 1 : "" }}
               a(
-                v-bind:uk-icon="groupIcon(run.rerun)"
-                v-on:click="setGroupCollapse(run.rerun, !getGroupCollapse(run.rerun))"
+                v-bind:uk-icon="groupIcon(principal.run_id)"
+                v-on:click="toggleGroupCollapse(principal.run_id)"
               )
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -76,19 +77,22 @@ div
 </template>
 
 <script>
-import { filter, join, map, sortBy, toPairs } from 'lodash'
+import { entries, filter, groupBy, join, map, sortBy, toPairs } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
 import Run from './Run'
-import { groupReruns } from '../runs'
 import * as runsFilter from '@/runsFilter.js'
 import State from './State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
+
+function sortTime(run) {
+  return run.times.schedule || run.times.running || run.times.error
+}
 
 export default { 
   name: 'RunsList',
@@ -134,30 +138,70 @@ export default {
       return runsFilter.makePredicate(this.query)
     },
 
-    // Array of rerun groups, each an array of runs that are reruns of the
-    // same run.  Groups are filtered by current filters, and sorted.
-    rerunGroups() {
-      // Group runs together by rerun.
-      let reruns = groupReruns(this.store.state.runs)
-
-      // Filter groups.
-      reruns = filter(
-        reruns,
-        // Filter by the latest run in the group.
-        group => this.jobPredicate(group[group.length - 1])
-      )
-
-      // Sort original runs.
-      return sortBy(reruns, rr => {
-        const r = rr[0]
-        return r.times.schedule || r.times.error || r.times.running
-      })
+    runs() {
+      return filter(this.store.state.runs, this.jobPredicate)
     },
 
-    numPages() { return Math.ceil(this.rerunGroups.length / this.pageSize) },
+    // Array of rerun groups, each an array of runs that are reruns of the
+    // same run.  Groups are filtered by current filters, and sorted.
+    groups() {
+      const RUN_STATE_GROUPS = {
+          // Scheduled (and new) runs together.
+          'new': 'S',
+          'scheduled': 'S',
+          // Blocked runs.
+          'blocked': 'B',
+          // Running runs.
+          'running': 'R',
+          // Completed runs together.
+          'success': 'C',
+          'failure': 'C',
+          'error': 'C',
+      }
+
+      function instanceKey(run) {
+        // Assume args are in order.
+        return run.job_id + '\0' + Object.values(run.args).join('\0')
+      }
+
+      function groupKey(run) {
+        const sgrp = RUN_STATE_GROUPS[run.state]
+        return sgrp + (
+          // Blocked and running runs are never grouped.
+          (sgrp === 'B' || sgrp === 'R') ? run.run_id
+          // Runs in other state are grouped by instance.
+          : instanceKey(run)
+        )
+      }
+
+      let groups = entries(groupBy(this.runs, groupKey))
+
+      // For each group, select the principal run for the group.  This is the
+      // run that is shown when the group is collapsed.
+      groups = map(groups, ([key, runs]) => {
+        // Sort runs within each group.
+        runs = sortBy(runs, sortTime)
+
+        // Select the principal run for this group.
+        // - new/scheduled: the earliest run
+        // - blocked, running: not grouped
+        // - completed: the latest run
+        const sgrp = key[0]
+        const principal = runs[sgrp === 'C' ? runs.length - 1 : 0]
+
+        return [principal, runs]
+      })
+
+      // Sort groups by time of the principal run.
+      groups = sortBy(groups, ([principal, _]) => sortTime(principal))
+
+      return groups
+    },
+
+    numPages() { return Math.ceil(this.groups.length / this.pageSize) },
     pageStart() { return this.page * this.pageSize },
-    pageEnd() { return Math.min(this.pageStart + this.pageSize, this.rerunGroups.length) },
-    pageRuns() { return this.rerunGroups.slice(this.pageStart, this.pageEnd) },
+    pageEnd() { return Math.min(this.pageStart + this.pageSize, this.groups.length) },
+    pageGroups() { return this.groups.slice(this.pageStart, this.pageEnd) },
 
   },
 
@@ -174,13 +218,12 @@ export default {
       return c
     },
 
-    setGroupCollapse(runId, collapse) {
-      this.$set(this.groupCollapse, runId, collapse)
+    toggleGroupCollapse(runId) {
+      this.$set(this.groupCollapse, runId, !this.getGroupCollapse(runId))
     },
 
-    groupRuns(group) {
-      const rerun = group[0].rerun
-      return this.getGroupCollapse(rerun) ? [group[group.length - 1]] : group
+    getVisibleRunsInGroup(principal, runs) {
+      return this.getGroupCollapse(principal.run_id) ? [principal] : runs
     },
 
     groupIcon(runId) {
