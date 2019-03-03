@@ -138,10 +138,10 @@ class Apsis:
             self.run_info(run, "program started")
             self._transition(run, run.STATE.running, **running.__dict__)
             future = asyncio.ensure_future(coro)
-            self.__wait(run, future)
+            self.__finish(run, future)
 
 
-    def __wait(self, run, future):
+    def __finish(self, run, future):
         def done(future):
             try:
                 try:
