@@ -1,4 +1,4 @@
-import { each, every, filter, map, some, trim, values } from 'lodash'
+import { each, every, filter, groupBy, map, some, trim, values } from 'lodash'
 
 // Returns the filter function for jobs and args.
 //
@@ -41,17 +41,3 @@ export function makeStatePredicate(stateFilter) {
     return run => some(map(stateFilter, s => run.state === s))
 }
 
-// Organizes runs by rerun group.
-export function groupReruns(runs) {
-  // Collect reruns of the same run into an object keyed by run ID.
-  // FIXME: Use _.groupBy.
-  let reruns = {}
-  each(values(runs), r => {
-    if (r.rerun)
-      (reruns[r.rerun] || (reruns[r.rerun] = [])).push(r)
-    else 
-      // FIXME: Do we need this?
-      (reruns[r.run_id] || (reruns[r.run_id] = [])).splice(0, 0, r)
-  })
-  return values(reruns)
-}

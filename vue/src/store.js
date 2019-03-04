@@ -1,3 +1,5 @@
+import { formatTime } from '@/time'
+
 class Errors {
   // FIXME: I'm using  a list here because I can't figure out how to get
   // watch behavior working with an object keyed by errorId.
@@ -25,15 +27,18 @@ class Store {
     logLines: [],
     runs: {},
     time: new Date(),
+    timeStr: '',
     timeZone: 'UTC',
   }
 
   setTime(time) {
     this.state.time = time || new Date()
+    this.state.timeStr = formatTime(this.state.time, this.state.timeZone)
   }
 
   setTimeZone(timeZone) {
     this.state.timeZone = timeZone
+    this.state.timeStr = formatTime(this.state.time, this.state.timeZone)
   }
 
   _tick() {
