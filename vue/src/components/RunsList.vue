@@ -23,7 +23,7 @@ div
       tr
         th.col-schedule-time Schedule
         th.col-start-time Start
-        th.col-reruns Reruns
+        th.col-reruns Runs
         th.col-state State
         th.col-job Job
         th.col-args Args
@@ -44,7 +44,7 @@ div
             Timestamp(:time="run.times.running")
           td.col-reruns
             span(v-show="index == 0 && group.length > 1")
-              | {{ group.length > 1 ? group.length - 1 : "" }}
+              | {{ group.length > 1 ? group.length : "" }}
               a(
                 v-bind:uk-icon="groupIcon(group.id)"
                 v-on:click="toggleGroupCollapse(group.id)"
@@ -297,8 +297,13 @@ table.runlist {
     text-align: left;
   }
 
-  .col-run, .col-reruns, .col-state {
+  .col-run, .col-state {
     text-align: center;
+  }
+
+  .col-reruns {
+    text-align: right;
+    font-size: 90%;
   }
 
   .col-elapsed {
