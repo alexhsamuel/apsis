@@ -28,8 +28,7 @@ export function formatDuration(elapsed) {
 
 export function formatElapsed(elapsed) {
   return (
-      elapsed < 60   ? Math.trunc(elapsed)
-    : elapsed < 3600 ? 
+      elapsed < 3600 ? 
           Math.trunc(elapsed / 60) 
         + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
     :     Math.trunc(elapsed / 3660) 
