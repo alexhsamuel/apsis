@@ -123,7 +123,11 @@ class ExplicitSchedule:
 
 
     def __str__(self):
-        return ",".join( str(t) for t in self.times )
+        res = ",".join( str(t) for t in self.times )
+        if len(self.args) > 0:
+            args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
+            res = "(" + args + ") " + res
+        return res
 
 
     def __call__(self, start: Time):
@@ -169,7 +173,11 @@ class IntervalSchedule:
 
 
     def __str__(self):
-        return f"every {self.interval} sec"
+        res = f"every {self.interval} sec"
+        if len(self.args) > 0:
+            args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
+            res = "(" + args + ") " + res
+        return res
 
 
     def __call__(self, start: Time):
