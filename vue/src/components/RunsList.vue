@@ -2,33 +2,32 @@
 div
   table.runlist
     colgroup
+      col(style="width: 10rem")
+      col(style="width: 10rem")
       col(style="width: 4rem")
       col(style="width: 4rem")
       col(style="min-width: 10rem; max-width: 12rem;")
       col(style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
-      col(style="width: 10rem")
-      col(style="width: 10rem")
       col(style="width: 6rem")
       col(style="width: 4rem")
 
     thead
       tr
         td(colspan=2 style="padding-left: 14px;")
-          //- FIXME
           | {{ runs.length }} Runs
         td(colspan=2)
           Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
         td(colspan=5)
 
       tr
-        th.col-run Run
+        th.col-schedule-time Schedule
+        th.col-start-time Start
+        th.col-reruns Reruns
         th.col-state State
         th.col-job Job
         th.col-args Args
-        th.col-reruns Reruns
-        th.col-schedule-time Schedule
-        th.col-start-time Start
+        th.col-run Run
         th.col-elapsed Elapsed
         th.col-actions Actions
 
@@ -39,14 +38,10 @@ div
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
-          td.col-run
-            Run(:run-id="run.run_id")
-          td.col-state
-            State(:state="run.state")
-          td.col-job
-            Job(:job-id="run.job_id")
-          td.col-args
-            span {{ arg_str(run.args) }}
+          td.col-schedule-time
+            Timestamp(:time="run.times.schedule")
+          td.col-start-time
+            Timestamp(:time="run.times.running")
           td.col-reruns
             span(v-show="index == 0 && group.length > 1")
               | {{ group.length > 1 ? group.length - 1 : "" }}
@@ -54,10 +49,14 @@ div
                 v-bind:uk-icon="groupIcon(group.id)"
                 v-on:click="toggleGroupCollapse(group.id)"
               )
-          td.col-schedule-time
-            Timestamp(:time="run.times.schedule")
-          td.col-start-time
-            Timestamp(:time="run.times.running")
+          td.col-state
+            State(:state="run.state")
+          td.col-job
+            Job(:job-id="run.job_id")
+          td.col-args
+            span {{ arg_str(run.args) }}
+          td.col-run
+            Run(:run-id="run.run_id")
           td.col-elapsed
             | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
           td.col-actions
@@ -252,6 +251,15 @@ table.runlist {
   border-spacing: 0;
   border-collapse: collapse;
 
+  th, td {
+    &:first-child {
+      padding-left: 12px;
+    }
+    &:last-child {
+      padding-right: 12px;
+    }
+  }
+
   thead {
     background-color: #f6faf8;
     tr {
@@ -260,12 +268,6 @@ table.runlist {
     td, th {
       font-weight: normal;
       padding: 12px 4px;
-    }
-    th:first-child {
-      padding-left: 12px;
-    }
-    th:last-child {
-      padding-right: 12px;
     }
   }
 
