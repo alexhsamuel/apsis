@@ -15,6 +15,8 @@ async def sleep_until(time):
     """
     delay = time - now()
 
+    # FIXME: These thresholds are rather ad hoc.
+
     if delay <= 0:
         # Nothing to do.
         if delay < 0.1:
@@ -23,8 +25,8 @@ async def sleep_until(time):
     else:
         await asyncio.sleep(delay)
         late = now() - time
-        if late < 0:
-            log.error(f"woke up early: {-late:.1f} s")
+        if late < -0.001:
+            log.error(f"woke up early: {-late:.3f} s")
         elif late > 0.1:
             log.error(f"woke up late: {late:.1f} s")
 
