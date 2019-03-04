@@ -1,5 +1,5 @@
 <template lang="pug">
-span {{ formatTime(time, store.state.timeZone) }}
+span.timestamp(:class="{ past: str < store.state.timeStr }") {{ str }}
 </template>
 
 <script>
@@ -12,19 +12,25 @@ export default {
 
   data() {
     return {
-      store,
+      store
     }
   },
 
-  methods: {
-    formatTime,
+  computed: {
+    str() {
+      return formatTime(this.time, store.state.timeZone)
+    },
   },
 }
 </script>
 
-<style scoped>
-span {
+<style lang="scss">
+.timestamp {
   font-size: 90%;
   white-space: nowrap;
+
+  &.past {
+    color: #888;
+  }
 }
 </style>
