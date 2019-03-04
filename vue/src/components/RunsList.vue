@@ -33,9 +33,9 @@ div
         th.col-actions Actions
 
     tbody
-      template(v-for="[principal, runs] in pageGroups")
+      template(v-for="group in pageGroups")
         tr( 
-          v-for="(run, index) in getVisibleRunsInGroup(principal, runs)" 
+          v-for="(run, index) in group.visible(getGroupCollapse(group.id))" 
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
@@ -48,11 +48,11 @@ div
           td.col-args
             span {{ arg_str(run.args) }}
           td.col-reruns
-            span(v-show="index == 0 && runs.length > 1")
-              | {{ runs.length > 1 ? runs.length - 1 : "" }}
+            span(v-show="index == 0 && group.length > 1")
+              | {{ group.length > 1 ? group.length - 1 : "" }}
               a(
-                v-bind:uk-icon="groupIcon(principal.run_id)"
-                v-on:click="toggleGroupCollapse(principal.run_id)"
+                v-bind:uk-icon="groupIcon(group.id)"
+                v-on:click="toggleGroupCollapse(group.id)"
               )
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -187,13 +187,20 @@ export default {
         // - blocked, running: not grouped
         // - completed: the latest run
         const sgrp = key[0]
-        const principal = runs[sgrp === 'C' ? runs.length - 1 : 0]
+        const run = runs[sgrp === 'C' ? runs.length - 1 : 0]
 
-        return [principal, runs]
+        // Build a convience structure for the group.
+        return {
+          id: run.run_id,
+          length: runs.length,
+          run: run,
+          runs: runs,
+          visible: collapsed => collapsed ? [run] : runs,
+        }
       })
 
       // Sort groups by time of the principal run.
-      groups = sortBy(groups, ([principal, _]) => sortTime(principal))
+      groups = sortBy(groups, g => sortTime(g.run))
 
       return groups
     },
@@ -211,15 +218,15 @@ export default {
       return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
     },
 
-    getGroupCollapse(runId) {
-      let c = this.groupCollapse[runId]
+    getGroupCollapse(id) {
+      let c = this.groupCollapse[id]
       if (c === undefined)
-        this.$set(this.groupCollapse, runId, c = true)
+        this.$set(this.groupCollapse, id, c = true)
       return c
     },
 
-    toggleGroupCollapse(runId) {
-      this.$set(this.groupCollapse, runId, !this.getGroupCollapse(runId))
+    toggleGroupCollapse(id) {
+      this.$set(this.groupCollapse, id, !this.getGroupCollapse(id))
     },
 
     getVisibleRunsInGroup(principal, runs) {
