@@ -90,7 +90,7 @@ def jso_to_job(jso, job_id):
     params = jso.pop("params", [])
     params = [params] if isinstance(params, str) else params
 
-    # FIXME: 'schedules' for backward copmatibility; remove in a while.
+    # FIXME: 'schedules' for backward compatibility; remove in a while.
     schedules = jso.pop("schedule", jso.pop("schedules", ()))
     schedules = (
         [schedules] if isinstance(schedules, dict) 
