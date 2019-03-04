@@ -18,7 +18,7 @@ div
           //- FIXME
           | {{ runs.length }} Runs
         td(colspan=2)
-          Pagination.pagination(style="display: inline-block" :page.sync="page" :num-pages="numPages")
+          Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
         td(colspan=5)
 
       tr
@@ -99,7 +99,7 @@ export default {
   props: {
     p: {type: Number, default: 0},
     query: {type: String, default: ''},
-    pageSize: {type: Number, default: 20},
+    pageSize: {type: Number, default: null},
   },
 
   components: {
@@ -208,7 +208,10 @@ export default {
     numPages() { return Math.ceil(this.groups.length / this.pageSize) },
     pageStart() { return this.page * this.pageSize },
     pageEnd() { return Math.min(this.pageStart + this.pageSize, this.groups.length) },
-    pageGroups() { return this.groups.slice(this.pageStart, this.pageEnd) },
+
+    pageGroups() { 
+      return this.pageSize ? this.groups.slice(this.pageStart, this.pageEnd) : this.groups
+    },
 
   },
 
