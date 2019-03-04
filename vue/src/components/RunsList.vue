@@ -52,9 +52,9 @@ div
           td.col-state
             State(:state="run.state")
           td.col-job
-            Job(:job-id="run.job_id")
+            Job(v-if="run.run_id === group.id" :job-id="run.job_id")
           td.col-args
-            span {{ arg_str(run.args) }}
+            span(v-if="run.run_id === group.id" ) {{ arg_str(run.args) }}
           td.col-run
             Run(:run-id="run.run_id")
           td.col-elapsed
@@ -280,10 +280,6 @@ table.runlist {
     overflow: auto;
     &.run-group-next {
       border-top: none;
-      .col-job a,
-      .col-args span {
-        visibility: hidden;
-      }
     }
     &:hover {
       background-color: #fafafa;
