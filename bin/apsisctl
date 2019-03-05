@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
+import json
 import logging
 import os
 from   pathlib import Path
 import sys
 
-from   apsis.cmdline import format_job, print_lines
 import apsis.config
 import apsis.lib.argparse
 import apsis.lib.logging
@@ -39,7 +39,8 @@ def cmd_check_job(args):
     path = args.path
     job = apsis.jobs.check_job_file(path)
     if job is not None:
-        print_lines(format_job(apsis.jobs.job_to_jso(job)))
+        # FIXME: Use something nicer.
+        json.dump(apsis.jobs.job_to_jso(job), sys.stdout, indent=2)
 
 
 cmd = parser.add_command(
