@@ -17,6 +17,16 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+# FIXME: Enhance this.
+# FIXME: Move to runs, with template_expand().
+def get_bind_args(run):
+    return {
+        "run_id": run.run_id,
+        "job_id": run.inst.job_id,
+        **run.inst.args,
+    }    
+
+
 class Apsis:
     """
     The gestalt scheduling application.
@@ -95,17 +105,13 @@ class Apsis:
         log.debug("Apsis instance ready")
 
 
-    def __get_program(self, run):
+    def __get_precos(self, run):
         """
-        Constructs the program for a run, with arguments bound.
+        Constructs preconditions for a run, with arguments bound.
         """
         job = self.jobs.get_job(run.inst.job_id)
-        program = job.program.bind({
-            "run_id": run.run_id,
-            "job_id": run.inst.job_id,
-            **run.inst.args,
-        })
-        return program
+        bind_args = get_bind_args(run)
+        return [ p.bind(bind_args, run.inst) for p in job.precos ]
 
 
     async def __wait(self, run):
@@ -116,10 +122,15 @@ class Apsis:
         await self.__waiter.start(run)
 
 
-    async def __start(self, run):
-        if run.program is None:
-            run.program = self.__get_program(run)
+    def __get_program(self, run):
+        """
+        Constructs the program for a run, with arguments bound.
+        """
+        job = self.jobs.get_job(run.inst.job_id)
+        return job.program.bind(get_bind_args(run))
 
+
+    async def __start(self, run):
         try:
             running, coro = await run.program.start(run)
 
@@ -339,6 +350,8 @@ class Apsis:
         """
         Adds and schedules a new run.
 
+        This is the only way to add a new run to the scheduler instance.
+
         :param time:
           The schedule time at which to run the run.  If `None`, the run
           is run now, instead of scheduled.
@@ -361,6 +374,12 @@ class Apsis:
                 times   =times,
             )
             return run
+
+        # Bind job attributes to the run.
+        if run.program is None:
+            run.program = self.__get_program(run)
+        if run.precos is None:
+            run.precos = self.__get_precos(run)
 
         if time is None:
             self.run_info(run, "scheduling for immediate run")
