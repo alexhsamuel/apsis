@@ -9,6 +9,7 @@ from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 from   .. import actions
 from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run, RunError
+from   ..waiter import preco_to_jso
 
 log = logging.getLogger(__name__)
 
@@ -86,6 +87,7 @@ def _run_to_jso(app, run):
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
     program = None if run.program is None else program_to_jso(app, run.program)
+    precos = None if run.precos is None else [ preco_to_jso(p) for p in run.precos ]
 
     return {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
@@ -94,6 +96,7 @@ def _run_to_jso(app, run):
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state.name,
+        "precos"        : precos,
         "program"       : program,
         "message"       : run.message,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
