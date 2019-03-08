@@ -90,7 +90,7 @@ class Apsis:
                 f"at startup, reconnecting to running {run.run_id}"
             )
             future = run.program.reconnect(run.run_id, run.run_state)
-            self.__wait(run, future)
+            self.__finish(run, future)
 
         log.debug("Apsis instance ready")
 
