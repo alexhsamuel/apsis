@@ -356,11 +356,11 @@ class Runs:
 
 
     @contextmanager
-    def query_live(self, *, since=None, **kw_args):
+    def query_live(self, *, since=None):
         queue = asyncio.Queue()
         self.__queues.add(queue)
 
-        when, runs = self.query(since=since, **kw_args)
+        when, runs = self.query(since=since)
         queue.put_nowait((when, runs))
 
         try:
