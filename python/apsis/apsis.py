@@ -90,6 +90,10 @@ class Apsis:
         log.info("starting scheduled loop")
         self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
 
+        # Set up the waiter for waiting tasks.
+        log.info("schedulign watier loop")
+        self.__waiter_task = asyncio.ensure_future(self.__waiter.loop())
+
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
         log.info(f"reconnecting running runs")
@@ -119,6 +123,7 @@ class Apsis:
         Waits `run`, if it has pending conditions, otherwise starts it.
         """
         log.info(f"waiting: {run}")
+        self._transition(run, run.STATE.waiting)
         await self.__waiter.start(run)
 
 
@@ -441,6 +446,7 @@ class Apsis:
         log.info("shutting down Apsis")
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
+        await cancel_task(self.__waiter_task, "waiter", log)
         for run_id, task in self.__running_tasks.items():
             await cancel_task(task, f"run {run_id}", log)
         await self.runs.shut_down()

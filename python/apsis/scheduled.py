@@ -140,7 +140,6 @@ class ScheduledRuns:
 
         except Exception:
             # FIXME: Do this in Apsis.
-            # FIXME: Someone should be awaiting this task.
             log.critical("scheduled loop failed", exc_info=True)
             raise SystemExit(1)
 

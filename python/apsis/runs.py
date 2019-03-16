@@ -90,7 +90,7 @@ class Instance:
 #-------------------------------------------------------------------------------
 
 def template_expand(template, args):
-    return jinja2.Template(template).render(args)
+    return jinja2.Template(str(template)).render(args)
 
 
 def join_args(argv):
