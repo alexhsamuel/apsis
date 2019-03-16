@@ -55,7 +55,7 @@ class Apsis:
         self.runs = Runs(db.run_db)
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
-        self.__waiter = Waiter(db.run_db, self.__start)
+        self.__waiter = Waiter(self.runs, self.__start)
         # For now, expose the output database directly.
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
