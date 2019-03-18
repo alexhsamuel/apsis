@@ -158,37 +158,6 @@ class RunDB:
 
 
     @staticmethod
-    def __values(run):
-        assert run.run_id.startswith("r")
-        rowid = int(run.run_id[1 :])
-
-        program = (
-            None if run.program is None
-            else ujson.dumps(program_to_jso(run.program))
-        )
-        # FIXME: Precos, same as program.
-
-        times = { n: str(t) for n, t in run.times.items() }
-        times = ujson.dumps(times)
-        
-        return dict(
-            rowid       =rowid,
-            run_id      =run.run_id,
-            timestamp   =dump_time(run.timestamp),
-            job_id      =run.inst.job_id,
-            args        =ujson.dumps(run.inst.args),
-            state       =run.state.name,
-            program     =program,
-            times       =times,
-            meta        =ujson.dumps(run.meta),
-            message     =run.message,
-            run_state   =ujson.dumps(run.run_state),
-            rerun       =run.rerun,
-            expected    =run.expected,
-        )
-
-
-    @staticmethod
     def __query_runs(conn, expr):
         query = sa.select([TBL_RUNS]).where(expr)
         log.debug(str(query).replace("\n", " "))
@@ -221,26 +190,79 @@ class RunDB:
 
 
     def upsert(self, run):
+        assert run.run_id.startswith("r")
+        rowid = int(run.run_id[1 :])
+
+        program = (
+            None if run.program is None
+            else ujson.dumps(program_to_jso(run.program))
+        )
+        # FIXME: Precos, same as program.
+
+        times = { n: str(t) for n, t in run.times.items() }
+        
+        values = (
+            run.run_id,
+            dump_time(run.timestamp),
+            run.inst.job_id,
+            ujson.dumps(run.inst.args),
+            run.state.name,
+            program,
+            ujson.dumps(times),
+            ujson.dumps(run.meta),
+            run.message,
+            ujson.dumps(run.run_state),
+            run.rerun,
+            run.expected,
+            rowid,
+        )
+
         try:
             # Get the rowid; if it's missing, this run isn't in the table.
             rowid = run._rowid
 
         except AttributeError:
             # This run isn't in the database yet.
-            values = self.__values(run)
-            statement = TBL_RUNS.insert().values(values)
-            log.debug(statement)
             with self.__engine.begin() as conn:
-                conn.execute(statement)
-            run._rowid = values["rowid"]
+                conn.execute("""
+                    INSERT INTO runs (
+                        run_id, 
+                        timestamp, 
+                        job_id, 
+                        args, 
+                        state, 
+                        program, 
+                        times, 
+                        meta, 
+                        message, 
+                        run_state, 
+                        rerun, 
+                        expected,
+                        rowid
+                    ) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, values)
+            run._rowid = values[-1]
 
         else:
             # Update the existing row.
-            statement = TBL_RUNS.update().where(
-                TBL_RUNS.c.rowid == rowid).values(self.__values(run))
-            log.debug(statement)
             with self.__engine.begin() as conn:
-                conn.execute(statement)
+                conn.execute("""
+                    UPDATE runs SET
+                        run_id      = ?, 
+                        timestamp   = ?, 
+                        job_id      = ?, 
+                        args        = ?, 
+                        state       = ?, 
+                        program     = ?, 
+                        times       = ?, 
+                        meta        = ?, 
+                        message     = ?, 
+                        run_state   = ?, 
+                        rerun       = ?, 
+                        expected    = ?
+                    WHERE rowid = ?
+                """, values)
 
 
     def get(self, run_id):
