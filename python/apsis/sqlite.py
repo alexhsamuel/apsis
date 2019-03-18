@@ -155,6 +155,8 @@ class RunDB:
 
     def __init__(self, engine):
         self.__engine = engine
+        self.__connection = engine.raw_connection()
+        # FIXME: Do we need to clean this up?
 
 
     @staticmethod
@@ -224,46 +226,46 @@ class RunDB:
 
         except AttributeError:
             # This run isn't in the database yet.
-            with self.__engine.begin() as conn:
-                conn.execute("""
-                    INSERT INTO runs (
-                        run_id, 
-                        timestamp, 
-                        job_id, 
-                        args, 
-                        state, 
-                        program, 
-                        times, 
-                        meta, 
-                        message, 
-                        run_state, 
-                        rerun, 
-                        expected,
-                        rowid
-                    ) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, values)
+            self.__connection.connection.execute("""
+                INSERT INTO runs (
+                    run_id, 
+                    timestamp, 
+                    job_id, 
+                    args, 
+                    state, 
+                    program, 
+                    times, 
+                    meta, 
+                    message, 
+                    run_state, 
+                    rerun, 
+                    expected,
+                    rowid
+                ) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, values)
+            self.__connection.connection.commit()
             run._rowid = values[-1]
 
         else:
             # Update the existing row.
-            with self.__engine.begin() as conn:
-                conn.execute("""
-                    UPDATE runs SET
-                        run_id      = ?, 
-                        timestamp   = ?, 
-                        job_id      = ?, 
-                        args        = ?, 
-                        state       = ?, 
-                        program     = ?, 
-                        times       = ?, 
-                        meta        = ?, 
-                        message     = ?, 
-                        run_state   = ?, 
-                        rerun       = ?, 
-                        expected    = ?
-                    WHERE rowid = ?
-                """, values)
+            self.__connection.connection.execute("""
+                UPDATE runs SET
+                    run_id      = ?, 
+                    timestamp   = ?, 
+                    job_id      = ?, 
+                    args        = ?, 
+                    state       = ?, 
+                    program     = ?, 
+                    times       = ?, 
+                    meta        = ?, 
+                    message     = ?, 
+                    run_state   = ?, 
+                    rerun       = ?, 
+                    expected    = ?
+                WHERE rowid = ?
+            """, values)
+            self.__connection.connection.commit()
 
 
     def get(self, run_id):
