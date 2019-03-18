@@ -7,6 +7,7 @@ import logging
 from   ora import now, Time
 import shlex
 
+from   .lib.memo import memoize
 from   .lib.py import format_ctor
 
 log = logging.getLogger(__name__)
@@ -89,8 +90,11 @@ class Instance:
 
 #-------------------------------------------------------------------------------
 
+_get_template = memoize(jinja2.Template)
+
 def template_expand(template, args):
-    return jinja2.Template(str(template)).render(args)
+    template = _get_template(str(template))
+    return template.render(args)
 
 
 def join_args(argv):
@@ -307,7 +311,6 @@ class Runs:
         assert self.__runs[run.run_id] is run
 
         # Persist the changes.
-        log.debug(f"persisting: {run.run_id}")
         self.__db.upsert(run)
 
         self.__send(timestamp, run)
