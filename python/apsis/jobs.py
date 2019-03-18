@@ -6,7 +6,7 @@ import string
 import sys
 import yaml
 
-from   . import actions
+from   . import actions, waiter
 from   .lib.json import to_array
 from   .lib.py import tupleize
 from   .program import program_from_jso, program_to_jso
@@ -34,8 +34,8 @@ class Reruns:
 
 class Job:
 
-    def __init__(self, job_id, params, schedules, program, reruns=Reruns(), 
-                 actions=[], *, meta={}, ad_hoc=False):
+    def __init__(self, job_id, params, schedules, program, precos=[],
+                 reruns=Reruns(), actions=[], *, meta={}, ad_hoc=False):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
@@ -49,6 +49,7 @@ class Job:
         self.params     = frozenset( str(p) for p in tupleize(params) )
         self.schedules  = tupleize(schedules)
         self.program    = program
+        self.precos     = tupleize(precos)
         self.reruns     = reruns
         self.actions    = actions
         self.meta       = meta
@@ -83,8 +84,10 @@ def reruns_to_jso(reruns):
 
 
 def jso_to_job(jso, job_id):
+    # FIXME: no_unexpected_types
     jso = dict(jso)
 
+    # FIXME: job_id here at all?
     assert jso.pop("job_id", job_id) == job_id, f"JSON job_id mismatch {job_id}"
 
     params = jso.pop("params", [])
@@ -105,6 +108,9 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("missing program")
     program = program_from_jso(program)
 
+    precos = to_array(jso.pop("precondition", []))
+    precos = [ waiter.preco_from_jso(p) for p in precos ]
+
     acts = to_array(jso.pop("action", []))
     acts = [ actions.action_from_jso(a) for a in acts ]
 
@@ -120,7 +126,8 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("unknown keys: " + ", ".join(jso))
 
     return Job(
-        job_id, params, schedules, program, 
+        job_id, params, schedules, program,
+        precos  =precos,
         reruns  =reruns, 
         actions =acts,
         meta    =metadata,
@@ -134,6 +141,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
+        "precondition"  : [ waiter.preco_to_jso(p) for p in job.precos ],
         "action"        : [ actions.action_to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,

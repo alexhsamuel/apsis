@@ -10,6 +10,10 @@ metadata:
 program: |
   /Users/alex/dev/apsis/jobs/open_day.sh {{ strat }} {{ date }}
 
+precondition:
+  type: max_running
+  count: 1
+
 schedule:
   - type: daily
     args:

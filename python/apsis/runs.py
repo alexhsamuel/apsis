@@ -90,7 +90,7 @@ class Instance:
 #-------------------------------------------------------------------------------
 
 def template_expand(template, args):
-    return jinja2.Template(template).render(args)
+    return jinja2.Template(str(template)).render(args)
 
 
 def join_args(argv):
@@ -161,6 +161,7 @@ class Run:
 
         self.state      = Run.STATE.new
         self.expected   = bool(expected)
+        self.precos     = None
         self.program    = None
         # Timestamps for state transitions and other events.
         self.times      = {}
@@ -209,8 +210,12 @@ class Run:
         self.times.update(times)
         self.run_state = run_state
 
-        # Only new and scheduled runs can be expected.
-        if self.state not in (self.STATE.new, self.STATE.scheduled):
+        # A run is no longer expected once it starts.
+        if self.state in {
+                self.STATE.running, 
+                self.STATE.failure, 
+                self.STATE.error,
+        }:
             self.expected = False
 
         # Compute and add elapsed time.
@@ -351,11 +356,11 @@ class Runs:
 
 
     @contextmanager
-    def query_live(self, *, since=None, **kw_args):
+    def query_live(self, *, since=None):
         queue = asyncio.Queue()
         self.__queues.add(queue)
 
-        when, runs = self.query(since=since, **kw_args)
+        when, runs = self.query(since=since)
         queue.put_nowait((when, runs))
 
         try:

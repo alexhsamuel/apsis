@@ -129,7 +129,7 @@ def format_run(run):
         yield f"{b} rerun of run {RUN}{run['rerun']}{BLK}"
 
     # Current state and relevant time.
-    time = lambda n: format_time(run["times"].get(n, "?"))
+    time = lambda n: format_time(run["times"].get(n, ""))
     state = run["state"]
     if state == "scheduled":
         time = "for " + time("schedule")

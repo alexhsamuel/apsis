@@ -83,6 +83,25 @@ Schedule
 FIXME: Write this.
 
 
+Preconditions
+-------------
+
+A precondition temporarily prevents a scheduled run from starting.  While
+waiting for a precondition, the run is in the _waiting_ state.  Multiple
+preconditions may apply to a run; it is _waiting_ until all are satisfied.
+
+The `max_running` precondition causes a run to wait as long as there are too
+many other running runs with the same job ID and arguments.  For `max_running:
+1`, there may be only one such running job.
+
+.. code:: yaml
+
+    precondition:
+        type: max_running
+        count: 1
+
+
+
 Reruns
 ------
 
