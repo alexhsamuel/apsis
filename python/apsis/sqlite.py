@@ -201,6 +201,7 @@ class RunDB:
 
         times = { n: str(t) for n, t in run.times.items() }
         
+        # We use SQL instead of SQLAlchemy for performance.
         values = (
             run.run_id,
             dump_time(run.timestamp),
@@ -219,7 +220,7 @@ class RunDB:
 
         try:
             # Get the rowid; if it's missing, this run isn't in the table.
-            rowid = run._rowid
+            run._rowid
 
         except AttributeError:
             # This run isn't in the database yet.
