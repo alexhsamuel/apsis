@@ -175,7 +175,7 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, message, run_state, rerun,
+                meta, message, run_state, rerun, _
         ) in cursor:
             if program is not None:
                 program     = program_from_jso(ujson.loads(program))
