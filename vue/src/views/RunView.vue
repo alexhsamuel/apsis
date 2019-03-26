@@ -2,14 +2,14 @@
 div
   span.title {{ run_id }}
     //- FIXME: Use navbar or similar to organize.
-    span(v-if="run")
-      ActionButton(
-          v-for="(url, action) in run.actions" 
-          :key="action"
-          :url="url" 
-          :action="action" 
-          :button="true"
-        )
+  span(v-if="run")
+    ActionButton(
+        v-for="(url, action) in run.actions" 
+        :key="action"
+        :url="url" 
+        :action="action" 
+        :button="true"
+      )
 
   div.error-message(v-if="!run") 
     | This run does not currently exist. 
