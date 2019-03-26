@@ -361,7 +361,7 @@ class RunHistoryDB:
         with self.__engine.begin() as conn:
             rows = list(conn.execute(sa.select([self.TABLE]).where(where)))
 
-        for run_id, timestamp, _, message in rows:
+        for run_id, timestamp, message in rows:
             yield {
                 "run_id"    : run_id,
                 "timestamp" : load_time(timestamp),
