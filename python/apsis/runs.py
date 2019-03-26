@@ -214,14 +214,6 @@ class Run:
         self.times.update(times)
         self.run_state = run_state
 
-        # A run is no longer expected once it starts.
-        if self.state in {
-                self.STATE.running, 
-                self.STATE.failure, 
-                self.STATE.error,
-        }:
-            self.expected = False
-
         # Compute and add elapsed time.
         start = self.times.get("running")
         end = self.times.get("success", self.times.get("failure"))
@@ -252,18 +244,13 @@ class Runs:
     # to start retiring older runs.
 
     def __init__(self, db):
-        self.__db = db
+        self.__run_db = db.run_db
 
-        # Populate cache from database.  Don't repopulate expected runs; this
-        # is important because we will reschedule those.
-        self.__runs = {
-            r.run_id: r
-            for r in self.__db.query(expected=False)
-        }
+        # Populate cache from database.  
+        self.__runs = { r.run_id: r for r in self.__run_db.query() }
 
         # Figure out where to start run IDs.
-        max_run_id = self.__db.get_max_run_id_num()
-        next_run_id = (0 if max_run_id is None else max_run_id) + 1
+        next_run_id = db.get_max_run_id_num() + 1
         log.debug(f"next run_id: {next_run_id}")
         self.__run_ids = ( "r" + str(i) for i in itertools.count(next_run_id) )
 
@@ -310,8 +297,9 @@ class Runs:
         # Make sure we know about this run.
         assert self.__runs[run.run_id] is run
 
-        # Persist the changes.
-        self.__db.upsert(run)
+        # Persist the changes, but not for expected runs.
+        if not run.expected:
+            self.__run_db.upsert(run)
 
         self.__send(timestamp, run)
 

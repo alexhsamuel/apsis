@@ -26,6 +26,14 @@ def load_time(time):
     return ora.UNIX_EPOCH + time
 
 
+def _get_max_run_id_num(engine, table):
+    with engine.begin() as conn:
+        rows = list(conn.execute(
+            f"SELECT MAX(CAST(SUBSTR(run_id, 2) AS DECIMAL)) FROM {table}"))
+    (max_num, ), = rows
+    return 0 if max_num is None else max_num
+
+
 METADATA = sa.MetaData()
 
 #-------------------------------------------------------------------------------
@@ -119,7 +127,7 @@ class JobDB:
 
 
 
-#----------------------------:--------------------------------------------------
+#-------------------------------------------------------------------------------
 
 # FIXME: For now, we store times and meta as JSON.  To make these searchable,
 # we'll need to break them out into tables.
@@ -144,7 +152,6 @@ TBL_RUNS = sa.Table(
     sa.Column("message"     , sa.String()       , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),
-    sa.Column("expected"    , sa.Boolean()      , nullable=False),
 )
 
 
@@ -167,7 +174,7 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, message, run_state, rerun, expected,
+                meta, message, run_state, rerun,
         ) in cursor:
             if program is not None:
                 program     = program_from_jso(ujson.loads(program))
@@ -177,7 +184,7 @@ class RunDB:
 
             args            = ujson.loads(args)
             inst            = Instance(job_id, args)
-            run             = Run(inst, rerun=rerun, expected=expected)
+            run             = Run(inst, rerun=rerun)
 
             run.run_id      = run_id
             run.timestamp   = load_time(timestamp)
@@ -193,6 +200,7 @@ class RunDB:
 
     def upsert(self, run):
         assert run.run_id.startswith("r")
+        assert not run.expected
         rowid = int(run.run_id[1 :])
 
         program = (
@@ -216,7 +224,6 @@ class RunDB:
             run.message,
             ujson.dumps(run.run_state),
             run.rerun,
-            run.expected,
             rowid,
         )
 
@@ -239,10 +246,9 @@ class RunDB:
                     message, 
                     run_state, 
                     rerun, 
-                    expected,
                     rowid
                 ) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, values)
             self.__connection.connection.commit()
             run._rowid = values[-1]
@@ -261,8 +267,7 @@ class RunDB:
                     meta        = ?, 
                     message     = ?, 
                     run_state   = ?, 
-                    rerun       = ?, 
-                    expected    = ?
+                    rerun       = ?
                 WHERE rowid = ?
             """, values)
             self.__connection.connection.commit()
@@ -274,7 +279,7 @@ class RunDB:
         return run
 
 
-    def query(self, *, job_id=None, since=None, until=None, expected=None):
+    def query(self, *, job_id=None, since=None, until=None):
         log.debug(f"query job_id={job_id} since={since} until={until}")
         where = []
         if job_id is not None:
@@ -283,8 +288,6 @@ class RunDB:
             where.append(TBL_RUNS.c.rowid >= int(since))
         if until is not None:
             where.append(TBL_RUNS.c.rowid < int(until))
-        if expected is not None:
-            where.append(TBL_RUNS.c.expected == bool(expected))
 
         with self.__engine.begin() as conn:
             # FIMXE: Return only the last record for each run_id?
@@ -295,20 +298,7 @@ class RunDB:
 
 
     def get_max_run_id_num(self):
-        """
-        Returns the largest run ID number in use.
-
-        :return:
-          The run ID *number* of the largest run ID, or none.
-        """
-        with self.__engine.begin() as conn:
-            rows = list(conn.execute(
-                "SELECT MAX(CAST(SUBSTR(run_id, 2) AS DECIMAL)) FROM runs"))
-        if len(rows) == 0:
-            return None
-        else:
-            (max_run_id_num, ), = rows
-            return max_run_id_num
+        return _get_max_run_id_num(self.__engine, "runs")
 
 
 
@@ -320,13 +310,22 @@ class RunHistoryDB:
         "run_history", METADATA,
         sa.Column("run_id"      , sa.String()   , nullable=False),
         sa.Column("timestamp"   , sa.Float      , nullable=False),
-        sa.Column("user"        , sa.String()   , nullable=True),  # unused
         sa.Column("message"     , sa.String()   , nullable=False),
         sa.Index("idx_run_id", "run_id"),
     )
 
     def __init__(self, engine):
         self.__engine = engine
+        self.__cache = {}
+
+
+    def cache(self, run_id: str, timestamp: ora.Time, message: str):
+        values = {
+            "run_id"    : run_id,
+            "timestamp" : timestamp,
+            "message"   : str(message),
+        }
+        self.__cache.setdefault(run_id, []).append(values)
 
 
     def insert(self, run_id: str, timestamp: ora.Time, message: str):
@@ -339,21 +338,39 @@ class RunHistoryDB:
             conn.execute(self.TABLE.insert().values(**values))
 
 
+    def flush(self, run_id):
+        """
+        FLushes cached run history to the database.
+        """
+        cache = self.__cache.pop(run_id, ())
+        if len(cache) > 0:
+            for item in cache:
+                item["timestamp"] = dump_time(item["timestamp"])
+            with self.__engine.begin() as conn:
+                conn.execute(self.TABLE.insert().values(cache))
+
+
     def query(self, *, run_id: str):
         log.debug(f"query run history run_id={run_id}")
         where = self.TABLE.c.run_id == run_id
 
+        # Respond with cached values.
+        yield from self.__cache.get(run_id, ())
+
+        # Now query the database.
         with self.__engine.begin() as conn:
             rows = list(conn.execute(sa.select([self.TABLE]).where(where)))
 
-        return (
-            {
+        for run_id, timestamp, _, message in rows:
+            yield {
                 "run_id"    : run_id,
                 "timestamp" : load_time(timestamp),
                 "message"   : message,
             }
-            for run_id, timestamp, _, message in rows
-        )
+
+
+    def get_max_run_id_num(self):
+        return _get_max_run_id_num(self.__engine, "run_history")
 
 
 
@@ -488,6 +505,13 @@ class SqliteDB:
         engine = Class.__get_engine(path)
         METADATA.create_all(engine)
 
+        # Clean up expected runs; these used to be persisted.
+        try:
+            engine.execute("DELETE FROM runs WHERE expected")
+        except sa.exc.OperationalError:
+            # Column may not exist.
+            pass
+
 
     @classmethod
     def open(Class, path):
@@ -499,6 +523,17 @@ class SqliteDB:
         engine  = Class.__get_engine(path)
         # FIXME: Check that tables exist.
         return Class(engine)
+
+
+    def get_max_run_id_num(self):
+        """
+        :return:
+          The largest run ID number in use, or 0.
+        """
+        return max(
+            self.run_db.get_max_run_id_num(),
+            self.run_history_db.get_max_run_id_num(),
+        )
 
 
 

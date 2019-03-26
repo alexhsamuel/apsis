@@ -52,7 +52,7 @@ class Apsis:
         self.cfg = cfg
         self.__db = db
         self.jobs = Jobs(jobs, db.job_db)
-        self.runs = Runs(db.run_db)
+        self.runs = Runs(db)
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
         self.__waiter = Waiter(self.runs, self.__start)
@@ -271,6 +271,15 @@ class Apsis:
         """
         time = now()
 
+        # A run is no longer expected once it starts.
+        if run.expected and state in {
+                run.STATE.running, 
+                run.STATE.failure, 
+                run.STATE.error,
+        }:
+            self.__db.run_history_db.flush(run.run_id)
+            run.expected = False
+
         # Transition the run object.
         run._transition(time, state, **kw_args)
 
@@ -280,7 +289,7 @@ class Apsis:
         # transition.  In general, we have to persist new outputs only.
         for output_id, output in outputs.items():
             self.__db.output_db.add(run.run_id, output_id, output)
-            
+
         # Persist the new state.  
         self.runs.update(run, time)
 
@@ -323,7 +332,13 @@ class Apsis:
           The time of the event; current time if none.
         """
         timestamp = now() if timestamp is None else timestamp
-        self.__db.run_history_db.insert(run_id, timestamp, message)
+        _, run = self.runs.get(run_id)
+
+        db = self.__db.run_history_db
+        if run.expected:
+            db.cache(run_id, timestamp, message)
+        else:
+            db.insert(run_id, timestamp, message)
 
 
     def run_info(self, run, message):
