@@ -246,9 +246,10 @@ class RunDB:
                     message, 
                     run_state, 
                     rerun, 
-                    rowid
+                    rowid,
+                    expected
                 ) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, false)
             """, values)
             self.__connection.connection.commit()
             run._rowid = values[-1]
