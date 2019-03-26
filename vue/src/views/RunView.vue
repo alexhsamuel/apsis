@@ -1,9 +1,8 @@
 <template lang="pug">
-div(v-if="run")
-  div
-    span.title {{ run_id }}
+div
+  span.title {{ run_id }}
     //- FIXME: Use navbar or similar to organize.
-    span
+    span(v-if="run")
       ActionButton(
           v-for="(url, action) in run.actions" 
           :key="action"
@@ -11,7 +10,12 @@ div(v-if="run")
           :action="action" 
           :button="true"
         )
-  div
+
+  div.error-message(v-if="!run") 
+    | This run does not currently exist. 
+    | This may be a run that was previously scheduled but never run.
+
+  div(v-if="run")
     div
       Job(:job-id="run.job_id")
       |
@@ -106,7 +110,9 @@ export default {
 
   computed: {
     run() {
-      return this.store.state.runs[this.run_id]
+      const run = this.store.state.runs[this.run_id]
+      console.log(run)
+      return run
     },
 
     arg_str() {
