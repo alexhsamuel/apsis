@@ -152,7 +152,7 @@ TBL_RUNS = sa.Table(
     sa.Column("message"     , sa.String()       , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),
-    sa.Column("expected"    , sa.Boolean()      , nullable=False),
+    sa.Column("expected"    , sa.Boolean()      , nullable=True),
 )
 
 
