@@ -64,27 +64,34 @@ class Apsis:
         # Actions applied to all runs.
         self.__actions = [ actions.action_from_jso(o) for o in cfg["actions"] ]
 
+        def reschedule(run, time):
+            # Bind job attributes to the run.
+            if run.program is None:
+                run.program = self.__get_program(run)
+            if run.precos is None:
+                run.precos = self.__get_precos(run)
+
+            self.run_log(
+                run.run_id, f"rescheduling: {run.run_id} for {time or 'now'}")
+
+            if time is None:
+                self.__waiter.wait_for(run)
+            else:
+                self.scheduled.schedule(time, run)
+
         # Restore scheduled runs from DB.
         log.info("restoring scheduled runs")
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
         for run in scheduled_runs:
             assert not run.expected
-            sched_time = run.times["schedule"]
-            self.run_log(
-                run.run_id,
-                f"at startup rescheduling: {run.run_id} for {sched_time}"
-            )
-            self.scheduled.schedule(sched_time, run)
+            reschedule(run, run.times["schedule"])
 
         # Restore waiting runs from DB.
         log.info("restoring waiting runs")
         _, waiting_runs = self.runs.query(state=Run.STATE.waiting)
         for run in waiting_runs:
             assert not run.expected
-            if run.precos is None:
-                run.precos = self.__get_precos(run)
-            self.run_log(run.run_id, f"at startup waiting: {run.run_id}")
-            self.__waiter.wait_for(run)
+            reschedule(run, None)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
