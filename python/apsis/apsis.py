@@ -72,9 +72,19 @@ class Apsis:
             sched_time = run.times["schedule"]
             self.run_log(
                 run.run_id,
-                f"at startup, rescheduled {run.run_id} for {sched_time}"
+                f"at startup rescheduling: {run.run_id} for {sched_time}"
             )
             self.scheduled.schedule(sched_time, run)
+
+        # Restore waiting runs from DB.
+        log.info("restoring waiting runs")
+        _, waiting_runs = self.runs.query(state=Run.STATE.waiting)
+        for run in waiting_runs:
+            assert not run.expected
+            if run.precos is None:
+                run.precos = self.__get_precos(run)
+            self.run_log(run.run_id, f"at startup waiting: {run.run_id}")
+            self.__waiter.wait_for(run)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -91,7 +101,7 @@ class Apsis:
         self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
 
         # Set up the waiter for waiting tasks.
-        log.info("schedulign watier loop")
+        log.info("schedulign waiter loop")
         self.__waiter_task = asyncio.ensure_future(self.__waiter.loop())
 
         # Reconnect to running runs.
@@ -271,11 +281,10 @@ class Apsis:
         """
         time = now()
 
-        # A run is no longer expected once it starts.
-        if run.expected and state in {
-                run.STATE.running, 
-                run.STATE.failure, 
-                run.STATE.error,
+        # A run is no longer expected once it is no longer scheduled.
+        if run.expected and state not in {
+                run.STATE.new,
+                run.STATE.scheduled, 
         }:
             self.__db.run_history_db.flush(run.run_id)
             run.expected = False

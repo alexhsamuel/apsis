@@ -84,6 +84,9 @@ class Waiter:
 
 
     async def start(self, run):
+        """
+        Starts `run`, unless it's blocked; if so, wait for it.
+        """
         # Find which precos are blocking the run.
         blockers = [ p for p in run.precos if not p.check_runs(self.__runs) ]
 
@@ -92,11 +95,18 @@ class Waiter:
             log.debug(f"starting: {run}")
             await self.__start(run)
         else:
-            self.__await(run, blockers)
+            self.__waiting.append((run, blockers))
 
 
-    def __await(self, run, blockers):
-        assert len(blockers) > 0
+    def wait_for(self, run):
+        """
+        Adds `run` to the list of runs to await.
+
+        If the run is not blocked, it will be started on the next waiter loop.
+        """
+        # Find which precos are blocking the run.
+        blockers = [ p for p in run.precos if not p.check_runs(self.__runs) ]
+
         self.__waiting.append((run, blockers))
 
 
@@ -123,7 +133,6 @@ class Waiter:
 
         self.__waiting = waiting
         log.debug(f"check all done: {len(self.__waiting)} runs left")
-                
 
 
     async def loop(self):
