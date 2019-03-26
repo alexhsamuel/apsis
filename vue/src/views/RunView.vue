@@ -110,9 +110,7 @@ export default {
 
   computed: {
     run() {
-      const run = this.store.state.runs[this.run_id]
-      console.log(run)
-      return run
+      return this.store.state.runs[this.run_id] 
     },
 
     arg_str() {
