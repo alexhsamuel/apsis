@@ -1,0 +1,6 @@
+program: /bin/sleep 15
+
+precondition:
+  type: max_running
+  count: 1
+
