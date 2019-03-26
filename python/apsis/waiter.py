@@ -111,7 +111,6 @@ class Waiter:
 
 
     async def __check_all(self):
-        log.debug(f"check all: {len(self.__waiting)} runs")
         waiting = []
         for run, blockers in self.__waiting:
             while len(blockers) > 0:
@@ -132,7 +131,6 @@ class Waiter:
                 await self.__start(run)
 
         self.__waiting = waiting
-        log.debug(f"check all done: {len(self.__waiting)} runs left")
 
 
     async def loop(self):
