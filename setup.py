@@ -29,7 +29,7 @@ setuptools.setup(
         "ora",
         "pyyaml",
         "requests",
-        "sanic",
+        "sanic<1",
         "sqlalchemy",
         "ujson",
     ],
