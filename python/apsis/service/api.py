@@ -6,12 +6,16 @@ from   urllib.parse import unquote
 import websockets
 
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
+import apsis.lib.itr
 from   .. import actions
 from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run, RunError
 from   ..waiter import preco_to_jso
 
 log = logging.getLogger(__name__)
+
+# Max number of runs to send in one websocket message.
+WS_RUN_CHUNK = 1024
 
 #-------------------------------------------------------------------------------
 
@@ -344,14 +348,13 @@ async def websocket_runs(request, ws):
             runs = list(_filter_runs(runs, request.args))
             if len(runs) == 0:
                 continue
-            log.debug(f"converting {len(runs)} runs to JSO")
-            jso = runs_to_jso(request.app, when, runs)
-            log.debug(f"converting {len(runs)} runs to JSON")
-            json = ujson.dumps(jso)
-            log.debug(f"sending {len(runs)} runs to live connection")
+
             try:
-                await ws.send(json)
-                log.debug(f"sent {len(runs)} runs")
+                for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
+                    jso = runs_to_jso(request.app, when, chunk)
+                    json = ujson.dumps(jso)
+                    await ws.send(json)
+                    log.debug(f"sent {len(chunk)} runs: {request.socket}")
             except websockets.ConnectionClosed:
                 break
 
