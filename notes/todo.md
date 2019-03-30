@@ -7,6 +7,8 @@
   - query for older runs
   - in job view, include time limitation
 
+- apsis-agent should occasionally poll its childen explicitly
+  (to avoid a state where it waits forever)
 
 - check out: FastAPI, uvicorn, Starlette
 
