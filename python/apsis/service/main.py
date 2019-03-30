@@ -12,7 +12,7 @@ from   . import api, control
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import JobsDir
-from   ..lib.async import cancel_task
+from   ..lib.asyn import cancel_task
 from   ..sqlite import SqliteDB
 import apsis.lib.logging
 

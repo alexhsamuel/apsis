@@ -6,7 +6,7 @@ import sys
 from   . import actions
 from   .waiter import Waiter
 from   .jobs import Jobs
-from   .lib.async import cancel_task
+from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure
 from   . import runs
 from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
