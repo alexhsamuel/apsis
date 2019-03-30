@@ -117,6 +117,29 @@ def range(start, end, step=1, *, incl=None):
         val += step
 
 
+def chunks(items, size):
+    """
+    Returns `items` in chunks of `size`.
+
+      >>> list(chunks("foobar", 2))
+      [['f', 'o'], ['o', 'b'], ['a', 'r']]
+
+    Unlike `grouper`, no padding.
+
+      >>> list(chunks([1, 2, 3, 4, 5, 6, 7], 3))
+      [[1, 2, 3], [4, 5, 6], [7]]
+
+    """
+    chunk = []
+    for item in items:
+        chunk.append(item)
+        if len(chunk) == size:
+            yield chunk
+            chunk = []
+    if len(chunk) > 0:
+        yield chunk
+
+
 #-------------------------------------------------------------------------------
 
 class PeekIter:
