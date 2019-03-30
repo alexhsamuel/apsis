@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import ora
 import sanic
@@ -165,7 +166,7 @@ def runs_to_jso(app, when, runs):
 async def job(request, job_id):
     try:
         job = request.app.apsis.jobs.get_job(unquote(job_id))
-    except LookupError as exc:
+    except LookupError:
         return error(f"no job_id {job_id}", status=404)
     return response_json(job_to_jso(request.app, job))
 
@@ -355,6 +356,7 @@ async def websocket_runs(request, ws):
                     json = ujson.dumps(jso)
                     await ws.send(json)
                     log.debug(f"sent {len(chunk)} runs: {request.socket}")
+                    await asyncio.sleep(0)
             except websockets.ConnectionClosed:
                 break
 
