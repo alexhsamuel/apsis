@@ -1,5 +1,13 @@
 # Current
 
+- handle more runs
+  - serve runs incrementally over ws
+  - only load old runs in a given window
+  - retire old runs from memory
+  - query for older runs
+  - in job view, include time limitation
+
+
 - check out: FastAPI, uvicorn, Starlette
 
 - in agent, SIGCHLD may show up before pid is registered
