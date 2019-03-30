@@ -123,12 +123,19 @@ async def process_signal(req, proc_id, signum):
     return response({})
 
 
+def _stop(app):
+    # FIXME: This changed from returning a coro to returning None.
+    res = app.stop()
+    if res is not None:
+        app.add_task(res)
+
+
 @API.route("/processes/<proc_id>", methods={"DELETE"})
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
     stop = req.app.config.auto_stop and len(req.app.processes) == 0
     if stop:
-        req.app.add_task(req.app.stop())
+        _stop(req.app)
     return response({"stop": stop})
 
 
@@ -137,7 +144,7 @@ async def process_stop(req):
     # FIXME: Add a query option to kill and stop, or another endpoint.
     stop = len(req.app.processes) == 0
     if stop:
-        req.app.add_task(req.app.stop())
+        _stop(req.app)
     return response({"stop": stop})
 
 
