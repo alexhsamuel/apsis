@@ -1,9 +1,9 @@
 <template lang="pug">
 div
-  RecycleScroller.scroller(
-    :items="runs" 
-    :item-size="32"
-    key-field="run_id"
+  VirtualList(
+    :size="28"
+    :remain="40"
+    :debounce="5"
   ).runlist
     //- template#before
 
@@ -14,8 +14,8 @@ div
     //-       Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
     //-     td(colspan=5)
 
-    template(v-slot="{ item }")
-      .row.run-group-next
+    template(v-for="item of runs")
+      .row.run-group-next(:key="item.id")
         .col-schedule-time(style="height: 32px")
           Timestamp(:time="item.times.schedule")
         .col-start-time
@@ -60,8 +60,9 @@ import State from './State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
+import VirtualList from 'vue-virtual-scroll-list'
 
-import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+// import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 export default { 
   name: 'RunsList',
@@ -79,6 +80,7 @@ export default {
     State,
     StatesSelect,
     Timestamp,
+    VirtualList
   },
 
   data() { 
@@ -107,7 +109,7 @@ export default {
     },
 
     runs() {
-      return filter(this.store.state.runs, this.jobPredicate) // .slice(0, 100)
+      return filter(this.store.state.runs, this.jobPredicate)
     },
 
 },
@@ -126,15 +128,19 @@ export default {
 
 <style lang="scss">
 .runlist {
-  width: 100%;
-  height: 800px;
-  border: 1px solid red;
+
+  &:first-child {
+    padding-left: 12px;
+  }
+  &:last-child {
+    padding-right: 12px;
+  }
 
   .row {
-    height: 12px;
+    height: 28px;
+    box-sizing: border-box;
 
     display: flex;
-    border: 1px sold green;
 
     //-     th.col-schedule-time Schedule
     //-     th.col-start-time Start
@@ -145,13 +151,6 @@ export default {
     //-     th.col-run Run
     //-     th.col-elapsed Elapsed
     //-     th.col-actions Actions
-
-    &:first-child {
-      padding-left: 12px;
-    }
-    &:last-child {
-      padding-right: 12px;
-    }
 
     .col-schedule-time, .col-start-time {
       flex: 0 0 10rem;
