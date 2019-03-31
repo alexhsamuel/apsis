@@ -1,83 +1,49 @@
 <template lang="pug">
-div(style="overflow: scroll")
+div
   RecycleScroller.scroller(
     :items="runs" 
-    :item-size="16"
+    :item-size="32"
     key-field="run_id"
-    style="height: 8in; border: 1px solid red;"
-  )
-    template(slot-scope="{ item }")
-      div(
-        style="height: 16px; border: 1px solid green; overflow: hidden;"
-      ) ITEM: {{ item.run_id }}
+  ).runlist
+    //- template#before
 
-  table.runlist(v-if="false")
-    colgroup
-      col(style="width: 10rem")
-      col(style="width: 10rem")
-      col(style="width: 4rem")
-      col(style="width: 4rem")
-      col(style="min-width: 10rem; max-width: 12rem;")
-      col(style="min-width: 10rem; max-width: 100%;")
-      col(style="width: 4rem")
-      col(style="width: 6rem")
-      col(style="width: 4rem")
+    //-   tr
+    //-     td(colspan=2 style="padding-left: 14px;")
+    //-       | {{ runs.length }} Runs
+    //-     td(colspan=2)
+    //-       Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
+    //-     td(colspan=5)
 
-    thead
-      tr
-        td(colspan=2 style="padding-left: 14px;")
-          | {{ runs.length }} Runs
-        td(colspan=2)
-          Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
-        td(colspan=5)
-
-      tr
-        th.col-schedule-time Schedule
-        th.col-start-time Start
-        th.col-reruns Runs
-        th.col-state State
-        th.col-job Job
-        th.col-args Args
-        th.col-run Run
-        th.col-elapsed Elapsed
-        th.col-actions Actions
-
-    tbody
-      RecycleScroller.scroller(
-        :items="runs" 
-        :item-height="32" 
-        style="height: 100%"
-      )
-        tr.run_group-next(slot-scope="{ item }")
-          td.col-schedule-time(style="height: 32px")
-            | foo
-            Timestamp(:time="run.times.schedule")
-          td.col-start-time
-            Timestamp(:time="run.times.running")
-          td.col-reruns
-          td.col-state
-            State(:state="run.state")
-          td.col-job
-            Job(:job-id="run.job_id")
-          td.col-args
-            span {{ arg_str(run.args) }}
-          td.col-run
-            Run(:run-id="run.run_id")
-          td.col-elapsed
-            | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
-          td.col-actions
-            div.uk-inline(v-if="Object.keys(run.actions).length > 0")
-              button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
-                span(uk-icon="icon: menu; ratio: 0.75")
-              div(uk-dropdown="pos: left-center")
-                ul.uk-nav.uk-dropdown-nav
-                  li: ActionButton(
-                    v-for="(url, action) in run.actions" 
-                    :key="action"
-                    :url="url" 
-                    :action="action" 
-                    :button="true"
-                  )
+    template(v-slot="{ item }")
+      .row.run-group-next
+        .col-schedule-time(style="height: 32px")
+          Timestamp(:time="item.times.schedule")
+        .col-start-time
+          Timestamp(:time="item.times.running")
+        .col-reruns
+        .col-state
+          State(:state="item.state")
+        .col-job
+          Job(:job-id="item.job_id")
+        .col-args
+          span {{ arg_str(item.args) }}
+        .col-run
+          Run(:run-id="item.run_id")
+        .col-elapsed
+          | {{ item.meta.elapsed === undefined ? "" : formatElapsed(item.meta.elapsed) }}
+        .col-actions
+          div.uk-inline(v-if="Object.keys(item.actions).length > 0")
+            button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
+              span(uk-icon="icon: menu; ratio: 0.75")
+            div(uk-dropdown="pos: left-center")
+              ul.uk-nav.uk-dropdown-nav
+                li: ActionButton(
+                  v-for="(url, action) in item.actions" 
+                  :key="action"
+                  :url="url" 
+                  :action="action" 
+                  :button="true"
+                )
 
 </template>
 
@@ -94,6 +60,8 @@ import State from './State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
+
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 export default { 
   name: 'RunsList',
@@ -139,7 +107,7 @@ export default {
     },
 
     runs() {
-      return filter(this.store.state.runs, this.jobPredicate).slice(0, 100)
+      return filter(this.store.state.runs, this.jobPredicate) // .slice(0, 100)
     },
 
 },
@@ -157,19 +125,85 @@ export default {
 </script>
 
 <style lang="scss">
-table.runlist {
+.runlist {
   width: 100%;
-  border-spacing: 0;
-  border-collapse: collapse;
+  height: 800px;
+  border: 1px solid red;
 
-  th, td {
+  .row {
+    height: 12px;
+
+    display: flex;
+    border: 1px sold green;
+
+    //-     th.col-schedule-time Schedule
+    //-     th.col-start-time Start
+    //-     th.col-reruns Runs
+    //-     th.col-state State
+    //-     th.col-job Job
+    //-     th.col-args Args
+    //-     th.col-run Run
+    //-     th.col-elapsed Elapsed
+    //-     th.col-actions Actions
+
     &:first-child {
       padding-left: 12px;
     }
     &:last-child {
       padding-right: 12px;
     }
+
+    .col-schedule-time, .col-start-time {
+      flex: 0 0 10rem;
+      text-align: left;
+    }
+    
+    .col-reruns {
+      flex: 0 0 4rem;
+      text-align: right;
+      font-size: 90%;
+    }
+
+    .col-state {
+      flex: 0 0 4rem;
+      text-align: center;
+    }
+
+    .col-job {
+      flex: 0 0 12rem;
+      text-align: left;
+    }
+
+    .col-args {
+      flex: 1 0 12rem;
+      text-align: left;
+    }
+
+    .col-run {
+      flex: 0 0 4rem;
+      text-align: center;
+    }
+
+    .col-elapsed {
+      flex: 0 0 6rem;
+      padding-right: 1em;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .col-actions {
+      flex: 0 0 4rem;
+      text-align: center;
+      button {
+        font-size: 80%;
+        line-height: 1.4;
+      }
+    }
   }
+}
+
+table.runlist {
+  width: 100%;
 
   thead {
     background-color: #f6faf8;
@@ -200,32 +234,6 @@ table.runlist {
     }
   }
 
-  .col-job, .col-args, .col-schedule-time, .col-start-time {
-    text-align: left;
-  }
-
-  .col-run, .col-state {
-    text-align: center;
-  }
-
-  .col-reruns {
-    text-align: right;
-    font-size: 90%;
-  }
-
-  .col-elapsed {
-    padding-right: 1em;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .col-actions {
-    text-align: center;
-    button {
-      font-size: 80%;
-      line-height: 1.4;
-    }
-  }
 }
 </style>
 
