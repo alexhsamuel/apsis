@@ -1,6 +1,17 @@
 <template lang="pug">
-div
-  table.runlist
+div(style="overflow: scroll")
+  RecycleScroller.scroller(
+    :items="runs" 
+    :item-size="16"
+    key-field="run_id"
+    style="height: 8in; border: 1px solid red;"
+  )
+    template(slot-scope="{ item }")
+      div(
+        style="height: 16px; border: 1px solid green; overflow: hidden;"
+      ) ITEM: {{ item.run_id }}
+
+  table.runlist(v-if="false")
     colgroup
       col(style="width: 10rem")
       col(style="width: 10rem")
@@ -32,35 +43,41 @@ div
         th.col-actions Actions
 
     tbody
-      tr.run_group-next(v-for="(run, index) in runs" :key="run.run_id")
-        td.col-schedule-time
-          Timestamp(:time="run.times.schedule")
-        td.col-start-time
-          Timestamp(:time="run.times.running")
-        td.col-reruns
-        td.col-state
-          State(:state="run.state")
-        td.col-job
-          Job(:job-id="run.job_id")
-        td.col-args
-          span {{ arg_str(run.args) }}
-        td.col-run
-          Run(:run-id="run.run_id")
-        td.col-elapsed
-          | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
-        td.col-actions
-          div.uk-inline(v-if="Object.keys(run.actions).length > 0")
-            button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
-              span(uk-icon="icon: menu; ratio: 0.75")
-            div(uk-dropdown="pos: left-center")
-              ul.uk-nav.uk-dropdown-nav
-                li: ActionButton(
-                  v-for="(url, action) in run.actions" 
-                  :key="action"
-                  :url="url" 
-                  :action="action" 
-                  :button="true"
-                )
+      RecycleScroller.scroller(
+        :items="runs" 
+        :item-height="32" 
+        style="height: 100%"
+      )
+        tr.run_group-next(slot-scope="{ item }")
+          td.col-schedule-time(style="height: 32px")
+            | foo
+            Timestamp(:time="run.times.schedule")
+          td.col-start-time
+            Timestamp(:time="run.times.running")
+          td.col-reruns
+          td.col-state
+            State(:state="run.state")
+          td.col-job
+            Job(:job-id="run.job_id")
+          td.col-args
+            span {{ arg_str(run.args) }}
+          td.col-run
+            Run(:run-id="run.run_id")
+          td.col-elapsed
+            | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
+          td.col-actions
+            div.uk-inline(v-if="Object.keys(run.actions).length > 0")
+              button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
+                span(uk-icon="icon: menu; ratio: 0.75")
+              div(uk-dropdown="pos: left-center")
+                ul.uk-nav.uk-dropdown-nav
+                  li: ActionButton(
+                    v-for="(url, action) in run.actions" 
+                    :key="action"
+                    :url="url" 
+                    :action="action" 
+                    :button="true"
+                  )
 
 </template>
 
@@ -125,7 +142,7 @@ export default {
       return filter(this.store.state.runs, this.jobPredicate).slice(0, 100)
     },
 
-  },
+},
 
   methods: {
     // FIXME: Duplicated.
