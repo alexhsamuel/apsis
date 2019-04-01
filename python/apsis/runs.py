@@ -142,7 +142,7 @@ class Run:
         STATE.scheduled : {STATE.new},
         STATE.waiting   : {STATE.new, STATE.scheduled},
         STATE.running   : {STATE.new, STATE.scheduled, STATE.waiting},
-        STATE.error     : {STATE.new, STATE.scheduled, STATE.running},
+        STATE.error     : {STATE.new, STATE.scheduled, STATE.waiting, STATE.running},
         STATE.success   : {STATE.running},
         STATE.failure   : {STATE.running},
     }
