@@ -350,8 +350,9 @@ async def websocket_runs(request, ws):
             if len(runs) == 0:
                 continue
 
+            chunks = list(apsis.lib.itr.chunks(runs, WS_RUN_CHUNK))
             try:
-                for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
+                for chunk in chunks:
                     jso = runs_to_jso(request.app, when, chunk)
                     json = ujson.dumps(jso)
                     await ws.send(json)
