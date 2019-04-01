@@ -24,6 +24,7 @@ div.runlist
   RecycleScroller.scroller(
     :items="runs" 
     :item-size="24"
+    :buffer="1000"
     key-field="run_id"
   )
     template(v-slot="{ item }")
@@ -59,7 +60,7 @@ div.runlist
 </template>
 
 <script>
-import { filter, join, map, toPairs } from 'lodash'
+import { filter, join, map, sortBy, toPairs } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
@@ -73,6 +74,11 @@ import store from '@/store.js'
 import Timestamp from './Timestamp'
 
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+
+// FIXME: Deduplicate.
+function sortTime(run) {
+  return run.times.schedule || run.times.running || run.times.error
+}
 
 export default { 
   name: 'RunsList',
@@ -118,7 +124,7 @@ export default {
     },
 
     runs() {
-      return filter(this.store.state.runs, this.jobPredicate) // .slice(0, 100)
+      return sortBy(filter(this.store.state.runs, this.jobPredicate), sortTime)
     },
 
 },
