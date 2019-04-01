@@ -1,17 +1,19 @@
 # Current
 
 - handle more runs
-  - serve runs incrementally over ws
-  - only load old runs in a given window
+  - only load runs in a given window
   - retire old runs from memory
   - query for older runs
   - in job view, include time limitation
 
+- don't send metadata in ws run JSON
+  - separate endpoint?
+  - or include only in single run GET endpoint?
+
 - apsis-agent should occasionally poll its childen explicitly
   (to avoid a state where it waits forever)
 
-- check out: FastAPI, uvicorn, Starlette
-
+- check out: FastAPI, uvicorn, Starlett
 - in agent, SIGCHLD may show up before pid is registered
 
 - click on args in run list to add an arg query term
