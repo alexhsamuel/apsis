@@ -25,7 +25,7 @@ async def sleep_until(time):
     else:
         await asyncio.sleep(delay)
         late = now() - time
-        if late < -0.001:
+        if late < -0.005:
             log.error(f"woke up early: {-late:.3f} s")
         elif late > 0.1:
             log.error(f"woke up late: {late:.1f} s")

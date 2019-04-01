@@ -145,14 +145,14 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
                 log.info("removing logging websocket handler")
                 root_log.handlers.remove(WS_HANDLER)
 
-                log.info("shutting down logging websockets")
+                log.info("shutting down run websockets")
                 WS_HANDLER.shut_down()
-
-                # Shut down Apsis and all its bits.
-                await apsis.shut_down()
 
                 # Shut down the Sanic web service.
                 await cancel_task(server_task, "Sanic", log)
+
+                # Shut down Apsis and all its bits.
+                await apsis.shut_down()
 
             finally:
                 # Then tell the asyncio event loop to stop.

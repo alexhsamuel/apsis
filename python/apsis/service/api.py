@@ -16,7 +16,8 @@ from   ..waiter import preco_to_jso
 log = logging.getLogger(__name__)
 
 # Max number of runs to send in one websocket message.
-WS_RUN_CHUNK = 1024
+WS_RUN_CHUNK = 128
+WS_RUN_CHUNK_SLEEP = 0.01
 
 #-------------------------------------------------------------------------------
 
@@ -350,14 +351,14 @@ async def websocket_runs(request, ws):
             if len(runs) == 0:
                 continue
 
-            chunks = list(apsis.lib.itr.chunks(runs, WS_RUN_CHUNK))
+            chunks = list(apsis.lib.itr.chunks(runs[:: -1], WS_RUN_CHUNK))
             try:
                 for chunk in chunks:
                     jso = runs_to_jso(request.app, when, chunk)
                     json = ujson.dumps(jso)
                     await ws.send(json)
                     log.debug(f"sent {len(chunk)} runs: {request.socket}")
-                    await asyncio.sleep(0)
+                    await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
             except websockets.ConnectionClosed:
                 break
 
