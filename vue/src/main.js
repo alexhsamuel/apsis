@@ -6,9 +6,6 @@ import router from './router'
 import store from './store'
 import UIkit from 'uikit'
 import Vue from 'vue'
-import VueVirtualScroller from 'vue-virtual-scroller'
-
-Vue.use(VueVirtualScroller)
 
 UIkit.use(Icons)
 window.UIkit = UIkit

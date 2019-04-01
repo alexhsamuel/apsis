@@ -61,6 +61,7 @@ div.runlist
 
 <script>
 import { filter, join, map, sortBy, toPairs } from 'lodash'
+import { RecycleScroller } from 'vue-virtual-scroller'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
@@ -92,6 +93,7 @@ export default {
     ActionButton,
     Job,
     Pagination,
+    RecycleScroller,
     Run,
     State,
     StatesSelect,
