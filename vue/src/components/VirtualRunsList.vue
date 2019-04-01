@@ -1,26 +1,37 @@
 <template lang="pug">
-div
+div.runlist
+  .row.head
+    div
+      | {{ runs.length }} Runs
+
+  .row.head
+    .col-schedule-time Schedule
+    .col-start-time Start
+    .col-state State
+    .col-job Job
+    .col-args Args
+    .col-run Run
+    .col-elapsed Elapsed
+    .col-actions Actions
+
+  //- tr
+  //-   td(colspan=2 style="padding-left: 14px;")
+  //-     | {{ runs.length }} Runs
+  //-   td(colspan=2)
+  //-     Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
+  //-   td(colspan=5)
+
   RecycleScroller.scroller(
     :items="runs" 
-    :item-size="32"
+    :item-size="24"
     key-field="run_id"
-  ).runlist
-    //- template#before
-
-    //-   tr
-    //-     td(colspan=2 style="padding-left: 14px;")
-    //-       | {{ runs.length }} Runs
-    //-     td(colspan=2)
-    //-       Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
-    //-     td(colspan=5)
-
+  )
     template(v-slot="{ item }")
       .row.run-group-next
-        .col-schedule-time(style="height: 32px")
+        .col-schedule-time
           Timestamp(:time="item.times.schedule")
         .col-start-time
           Timestamp(:time="item.times.running")
-        .col-reruns
         .col-state
           State(:state="item.state")
         .col-job
@@ -127,30 +138,37 @@ export default {
 <style lang="scss">
 .runlist {
   width: 100%;
-  height: 800px;
-  border: 1px solid red;
+  border: 1px solid #e1e8e4;
+
+  .scroller {
+    height: calc(100vh - 280px);
+  }
 
   .row {
-    height: 12px;
-
+    height: 24px;
+    border-bottom: 1px solid #e1e8e4;
     display: flex;
-    border: 1px sold green;
+    padding-bottom: 0px;
 
-    //-     th.col-schedule-time Schedule
-    //-     th.col-start-time Start
-    //-     th.col-reruns Runs
-    //-     th.col-state State
-    //-     th.col-job Job
-    //-     th.col-args Args
-    //-     th.col-run Run
-    //-     th.col-elapsed Elapsed
-    //-     th.col-actions Actions
-
-    &:first-child {
+    > :first-child {
       padding-left: 12px;
     }
-    &:last-child {
+    > :last-child {
       padding-right: 12px;
+    }
+
+    &.head {
+      background-color: #f6faf8;
+      > div {
+        box-sizing: border-box;
+        font-weight: normal;
+        text-align: left;
+        padding: 12px;
+        &:last-child {
+          padding-right: 12px;
+        }
+      }
+      height: 48px;
     }
 
     .col-schedule-time, .col-start-time {
@@ -175,13 +193,15 @@ export default {
     }
 
     .col-args {
-      flex: 1 0 12rem;
+      flex: 1 1 12rem;
       text-align: left;
+      overflow: hidden;  // FIXME
     }
 
     .col-run {
-      flex: 0 0 4rem;
-      text-align: center;
+      flex: 0 0 6rem;
+      text-align: right;
+      font-size: 90%;
     }
 
     .col-elapsed {
@@ -200,38 +220,9 @@ export default {
       }
     }
   }
-}
 
-table.runlist {
-  width: 100%;
-
-  thead {
-    background-color: #f6faf8;
-    tr {
-      border: 1px solid #e1e8e4;
-    }
-    td, th {
-      font-weight: normal;
-      padding: 12px 4px;
-    }
-  }
-
-  tbody tr {
-    border: 1px solid #e1e8e4;
-    &:not(:last-child) {
-      border-bottom: none;
-    }
-    border-radius: 3px;
-    overflow: auto;
-    &.run-group-next {
-      border-top: none;
-    }
-    &:hover {
-      background-color: #fafafa;
-    }
-    td {
-      padding: 4px 4px 5px 4px;
-    }
+  .row:hover {
+    background-color: #fafafa;
   }
 
 }
