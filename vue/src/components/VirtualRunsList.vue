@@ -42,7 +42,7 @@ div.runlist
         .col-run
           Run(:run-id="item.run_id")
         .col-elapsed
-          | {{ item.meta.elapsed === undefined ? "" : formatElapsed(item.meta.elapsed) }}
+          // | {{ item.meta.elapsed === undefined ? "" : formatElapsed(item.meta.elapsed) }}
         .col-actions
           div.uk-inline(v-if="Object.keys(item.actions).length > 0")
             button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")

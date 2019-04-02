@@ -16,7 +16,7 @@ from   ..waiter import preco_to_jso
 log = logging.getLogger(__name__)
 
 # Max number of runs to send in one websocket message.
-WS_RUN_CHUNK = 1000
+WS_RUN_CHUNK = 10000
 WS_RUN_CHUNK_SLEEP = 0.001
 
 #-------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ def job_to_jso(app, job):
     return jso
 
 
-def _run_to_jso(app, run):
+def run_summary_to_jso(app, run):
     actions = {}
     # Start a scheduled job now.
     if run.state == run.STATE.scheduled:
@@ -92,9 +92,6 @@ def _run_to_jso(app, run):
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
-    program = None if run.program is None else program_to_jso(app, run.program)
-    precos = None if run.precos is None else [ preco_to_jso(p) for p in run.precos ]
-
     return {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job_id,
@@ -102,21 +99,31 @@ def _run_to_jso(app, run):
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state.name,
-        "precos"        : precos,
-        "program"       : program,
         "message"       : run.message,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
         "time_range"    : None if len(run.times) == 0 else [
             time_to_jso(min(run.times.values())),
             time_to_jso(max(run.times.values())),
         ],
-        # FIXME: Rename to metadata.
-        "meta"          : run.meta,
         "actions"       : actions,
         "rerun"         : run.rerun,
         "expected"      : run.expected,
         "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
     }
+
+
+def run_to_jso(app, run):
+    program = None if run.program is None else program_to_jso(app, run.program)
+    precos = None if run.precos is None else [ preco_to_jso(p) for p in run.precos ]
+
+    jso = run_summary_to_jso(app, run)
+    jso.update({
+        "precos"        : precos,
+        "program"       : program,
+        # FIXME: Rename to metadata.
+        "meta"          : run.meta,
+    })
+    return jso
 
 
 def _output_metadata_to_jso(app, run_id, outputs):
@@ -134,23 +141,30 @@ def _output_metadata_to_jso(app, run_id, outputs):
 # FIXME: Attach to the apsis object?
 # FIXME: Attach these to the Run objects?
 # FIXME: Cache JSON instead of JSO?
-_run_jso_cache = {}
+_run_summary_jso_cache = {}
 
-def run_to_jso(app, run):
+def _run_summary_to_jso(app, run):
     # Cache runs' JSO.  The run changes only on a state change, so we only
     # need to check the state to determine if the cache is valid.
     try:
-        state, jso = _run_jso_cache[run.run_id]
+        state, jso = _run_summary_jso_cache[run.run_id]
     except KeyError:
         pass
     else:
         if state == run.state:
             return jso
 
-    jso = _run_to_jso(app, run)
+    jso = run_summary_to_jso(app, run)
 
-    _run_jso_cache[run.run_id] = run.state, jso
+    _run_summary_jso_cache[run.run_id] = run.state, jso
     return jso
+
+
+def run_summaries_to_jso(app, when, runs):
+    return {
+        "when": time_to_jso(when),
+        "runs": { r.run_id: _run_summary_to_jso(app, r) for r in runs },
+    }
 
 
 def runs_to_jso(app, when, runs):
@@ -331,7 +345,7 @@ async def runs(request):
     return response_json(runs_to_jso(request.app, when, runs))
 
 
-@API.websocket("/runs-live")  # FIXME: Do we really need this?
+@API.websocket("/runs-live")
 async def websocket_runs(request, ws):
     since, = request.args.pop("since", (None, ))
 
@@ -339,7 +353,8 @@ async def websocket_runs(request, ws):
     with request.app.apsis.runs.query_live(since=since) as queue:
         while True:
             # FIXME: If the socket closes, clean up instead of blocking until
-            # the next run is available.
+            # the next run is available.  Not sure how to do this.  ws.ping()
+            # with a timeout doesn't appear to work.
             next_runs = await queue.get()
             if next_runs is None:
                 # Signalled to shut down.
@@ -347,14 +362,15 @@ async def websocket_runs(request, ws):
                 break
 
             when, runs = next_runs
-            runs = list(_filter_runs(runs, request.args))
-            if len(runs) == 0:
+            runs = _filter_runs(runs, request.args)
+            # Break large sets into chunks, to avoid block for too long.
+            chunks = list(apsis.lib.itr.chunks(runs, WS_RUN_CHUNK))
+            if len(chunks) == 0:
                 continue
 
-            chunks = list(apsis.lib.itr.chunks(runs, WS_RUN_CHUNK))
             try:
                 for chunk in chunks:
-                    jso = runs_to_jso(request.app, when, chunk)
+                    jso = run_summaries_to_jso(request.app, when, chunk)
                     # FIXME: JSOs are cached but ujson.dumps() still takes real
                     # time.
                     json = ujson.dumps(jso)

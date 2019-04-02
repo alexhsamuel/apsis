@@ -1,14 +1,19 @@
 # Current
 
+- don't send metadata in ws run JSON
+  - make /runs compatible with /runs-live
+  - send full run to single run endpoint
+  - add elapsed time to run summary
+  - remove actions from run summary?
+  - in RunView, query the full run
+  - in RunView, requery the full run when run state changes
+  - fix command line client
+
 - handle more runs
   - only load runs in a given window
   - retire old runs from memory
   - query for older runs
   - in job view, include time limitation
-
-- don't send metadata in ws run JSON
-  - separate endpoint?
-  - or include only in single run GET endpoint?
 
 - apsis-agent should occasionally poll its childen explicitly
   (to avoid a state where it waits forever)

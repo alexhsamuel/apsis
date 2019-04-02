@@ -58,7 +58,7 @@ div
           td.col-run
             Run(:run-id="run.run_id")
           td.col-elapsed
-            | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
+            // | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
           td.col-actions
             div.uk-inline(v-if="Object.keys(run.actions).length > 0")
               button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
