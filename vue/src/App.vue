@@ -30,9 +30,12 @@ export default {
 
   created() {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
-    this.runsSocket = new RunsSocket((msg) => { 
-      this.store.state.runs = Object.assign({}, this.store.state.runs, msg.runs)
-      console.log('got', Object.keys(msg.runs).length, 'runs')
+    this.runsSocket = new RunsSocket((msg) => {
+      const runs = this.store.state.runs
+      for (const runId in msg.runs)
+        // We never change the runs, so freeze them to avoid reactivity.
+        this.$set(runs, runId, Object.freeze(msg.runs[runId]))
+      console.log('got', Object.keys(msg.runs).length)
     })
   },
 
