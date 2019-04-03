@@ -8,6 +8,7 @@ import websockets
 
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
+from   apsis.lib.timing import Timer
 from   .. import actions
 from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run, RunError
@@ -353,12 +354,13 @@ async def websocket_runs(request, ws):
 
             try:
                 for chunk in chunks:
-                    jso = runs_to_jso(request.app, when, chunk, summary=True)
-                    # FIXME: JSOs are cached but ujson.dumps() still takes real
-                    # time.
-                    json = ujson.dumps(jso)
-                    await ws.send(json)
-                    log.debug(f"sent {len(chunk)} runs, {len(json)} bytes: {request.socket}")
+                    with Timer() as timer:
+                        jso = runs_to_jso(request.app, when, chunk, summary=True)
+                        # FIXME: JSOs are cached but ujson.dumps() still takes real
+                        # time.
+                        json = ujson.dumps(jso)
+                        await ws.send(json)
+                    log.debug(f"sent {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
                     await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
             except websockets.ConnectionClosed:
                 break

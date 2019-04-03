@@ -222,7 +222,6 @@ class Run:
         end = self.times.get("success", self.times.get("failure"))
         if start is not None and end is not None:
             elapsed = end - start
-            log.debug(f"elapsed time: {self.run_id}: {elapsed}")
             self.meta["elapsed"] = elapsed
 
         # Transition to the new state.

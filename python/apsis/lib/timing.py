@@ -4,7 +4,7 @@ import time
 
 class Timer:
 
-    def __init__(self, name, print=None):
+    def __init__(self, name="timer", print=None):
         self.__name = str(name)
         self.__print = print
         self.__start = None
@@ -13,6 +13,7 @@ class Timer:
 
     def __enter__(self):
         self.__start = time.perf_counter()
+        return self
 
 
     def __exit__(self, exc_type, exc, exc_tb):
