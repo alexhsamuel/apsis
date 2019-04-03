@@ -118,6 +118,13 @@ export default {
     run_times() {
       return sortBy(toPairs(this.run.times), ([k, v]) => v)
     },
+
+    /**
+     * The state of the run summary in the store, for detecting updates.
+     */
+    storeState() {
+      return store.state.runs[this.run_id].state
+    }
   },
 
   methods: {
@@ -198,6 +205,11 @@ export default {
       this.fetchRun()
       this.fetchOutputMetadata()
     },
+
+    storeState(to, from) {
+      // The run summary state has changed, so reload the whole run.
+      this.fetchRun()
+    }
   },
 
 }

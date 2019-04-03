@@ -1,8 +1,8 @@
 # Current
 
 - don't send metadata in ws run JSON
-  - in RunView, requery the full run when run state changes
-  - add elapsed time to run summary
+  - rename store.state.runs to store.state.run_summaries
+  - compute elapsed time in UI (for running jobs too)
   - remove actions from run summary?
   - fix command line client
 
