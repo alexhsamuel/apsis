@@ -1,7 +1,6 @@
 # Current
 
 - don't send metadata in ws run JSON
-  - make /runs compatible with /runs-live
   - send full run to single run endpoint
   - add elapsed time to run summary
   - remove actions from run summary?

@@ -42,7 +42,7 @@ export default class RunsSocket {
   static get_url(run_id, job_id) {
     const url = new URL(location)
     url.protocol = 'ws'
-    url.pathname = '/api/v1/runs-live'
+    url.pathname = '/api/v1/ws/runs'
     if (run_id !== undefined)
       url.searchParams.set('run_id', run_id)
     if (job_id !== undefined)

@@ -82,7 +82,7 @@ def job_to_jso(app, job):
     return jso
 
 
-def run_summary_to_jso(app, run):
+def _run_summary_to_jso(app, run):
     jso = run._jso_cache
     if jso is not None:
         # Use the cached JSO.
@@ -118,31 +118,28 @@ def run_summary_to_jso(app, run):
     return jso
 
 
-def run_to_jso(app, run):
-    program = None if run.program is None else program_to_jso(app, run.program)
-    precos = None if run.precos is None else [ preco_to_jso(p) for p in run.precos ]
+def run_to_jso(app, run, summary=False):
+    jso = _run_summary_to_jso(app, run)
 
-    jso = run_summary_to_jso(app, run)
-    jso.update({
-        "precos"        : precos,
-        "program"       : program,
-        # FIXME: Rename to metadata.
-        "meta"          : run.meta,
-    })
+    if not summary:
+        jso.update({
+            "precos":
+                None if run.precos is None 
+                else [ preco_to_jso(p) for p in run.precos ],
+            "program":
+                None if run.program is None 
+                else program_to_jso(app, run.program),
+            # FIXME: Rename to metadata.
+            "meta": run.meta,
+        })
+
     return jso
 
 
-def run_summaries_to_jso(app, when, runs):
+def runs_to_jso(app, when, runs, summary=False):
     return {
         "when": time_to_jso(when),
-        "runs": { r.run_id: run_summary_to_jso(app, r) for r in runs },
-    }
-
-
-def runs_to_jso(app, when, runs):
-    return {
-        "when": time_to_jso(when),
-        "runs": { r.run_id: run_to_jso(app, r) for r in runs },
+        "runs": { r.run_id: run_to_jso(app, r, summary) for r in runs },
     }
 
 
@@ -309,13 +306,15 @@ def _filter_runs(runs, args):
 @API.route("/runs")
 async def runs(request):
     # Get runs from the selected interval.
-    args    = request.args
-    run_ids = args.pop("run_id", None)
-    job_id, = args.pop("job_id", (None, ))
-    state,  = args.pop("state", (None, ))
-    since,  = args.pop("since", (None, ))
-    until,  = args.pop("until", (None, ))
-    reruns, = args.pop("reruns", ("False", ))
+    args        = request.args
+    summary,    = args.pop("summary", ("False", ))
+    summary     = to_bool(summary)
+    run_ids     = args.pop("run_id", None)
+    job_id,     = args.pop("job_id", (None, ))
+    state,      = args.pop("state", (None, ))
+    since,      = args.pop("since", (None, ))
+    until,      = args.pop("until", (None, ))
+    reruns,     = args.pop("reruns", ("False", ))
 
     when, runs = request.app.apsis.runs.query(
         run_ids =run_ids, 
@@ -326,10 +325,10 @@ async def runs(request):
         until   =until,
     )
 
-    return response_json(runs_to_jso(request.app, when, runs))
+    return response_json(runs_to_jso(request.app, when, runs, summary=summary))
 
 
-@API.websocket("/runs-live")
+@API.websocket("/ws/runs")
 async def websocket_runs(request, ws):
     since, = request.args.pop("since", (None, ))
 
@@ -354,7 +353,7 @@ async def websocket_runs(request, ws):
 
             try:
                 for chunk in chunks:
-                    jso = run_summaries_to_jso(request.app, when, chunk)
+                    jso = runs_to_jso(request.app, when, chunk, summary=True)
                     # FIXME: JSOs are cached but ujson.dumps() still takes real
                     # time.
                     json = ujson.dumps(jso)
