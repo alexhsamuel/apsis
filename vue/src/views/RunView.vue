@@ -11,7 +11,7 @@ div
         :button="true"
       )
 
-  div.error-message(v-if="!run") 
+  div.error-message(v-if="run === null") 
     | This run does not currently exist. 
     | This may be a run that was previously scheduled but never run.
 
@@ -104,15 +104,13 @@ export default {
       output: null,
       outputRequested: false,  // FIXME: Remove?
       outputData: null,
+      // Start with the run summary from the run state.
+      run: store.state.runs[this.run_id],
       store,
     }
   },
 
   computed: {
-    run() {
-      return this.store.state.runs[this.run_id] 
-    },
-
     arg_str() {
       return join(map(toPairs(this.run.args), ([k, v]) => k + '=' + v), ' ')
     },
@@ -123,6 +121,19 @@ export default {
   },
 
   methods: {
+    fetchRun() {
+      const url = '/api/v1/runs/' + this.run_id  // FIXME
+      fetch(url)
+        .then(async (response) => {
+          if (response.ok)
+            this.run = (await response.json()).runs[this.run_id]
+          else if (response.status === 404)
+            this.run = null
+          else
+            store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
+        })
+    },
+
     fetchOutputMetadata(run) {
       if (run && run.output_url)
         fetch(run.output_url)
@@ -171,21 +182,21 @@ export default {
   },
 
   mounted() {
+    // Fetch full run info.
+    this.fetchRun()
     // Fetch output metadata immediately.
     this.fetchOutputMetadata(this.run)
   },
 
   watch: {
-    run(run) {
-      // Reload output metadata when the run chnages.
-      this.fetchOutputMetadata(run)
-    },
-
     // Reset state on nav from one run to another.
     '$route'(to, from) {
+      this.run = store.state.runs[this.run_id]
       this.output = null
       this.outputData = null
       this.outputRequested = false
+      this.fetchRun()
+      this.fetchOutputMetadata()
     },
   },
 

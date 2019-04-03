@@ -1,11 +1,9 @@
 # Current
 
 - don't send metadata in ws run JSON
-  - send full run to single run endpoint
+  - in RunView, requery the full run when run state changes
   - add elapsed time to run summary
   - remove actions from run summary?
-  - in RunView, query the full run
-  - in RunView, requery the full run when run state changes
   - fix command line client
 
 - handle more runs
