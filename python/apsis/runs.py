@@ -178,6 +178,9 @@ class Run:
 
         self.rerun      = rerun
 
+        # Cached summary JSO object.
+        self._jso_cache = None
+
 
     def __hash__(self):
         return hash(self.run_id)
@@ -224,6 +227,9 @@ class Run:
 
         # Transition to the new state.
         self.state = state
+
+        # Discard cached JSO.  Used by run_summary_to_json().
+        self._jso_cache = None
 
 
 

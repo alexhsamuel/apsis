@@ -83,6 +83,11 @@ def job_to_jso(app, job):
 
 
 def run_summary_to_jso(app, run):
+    jso = run._jso_cache
+    if jso is not None:
+        # Use the cached JSO.
+        return jso
+
     actions = {}
     # Start a scheduled job now.
     if run.state == run.STATE.scheduled:
@@ -92,7 +97,7 @@ def run_summary_to_jso(app, run):
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
 
-    return {
+    jso = run._jso_cache = {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job_id,
         "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
@@ -110,6 +115,7 @@ def run_summary_to_jso(app, run):
         "expected"      : run.expected,
         "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
     }
+    return jso
 
 
 def run_to_jso(app, run):
@@ -126,6 +132,20 @@ def run_to_jso(app, run):
     return jso
 
 
+def run_summaries_to_jso(app, when, runs):
+    return {
+        "when": time_to_jso(when),
+        "runs": { r.run_id: run_summary_to_jso(app, r) for r in runs },
+    }
+
+
+def runs_to_jso(app, when, runs):
+    return {
+        "when": time_to_jso(when),
+        "runs": { r.run_id: run_to_jso(app, r) for r in runs },
+    }
+
+
 def _output_metadata_to_jso(app, run_id, outputs):
     return [
         {
@@ -136,42 +156,6 @@ def _output_metadata_to_jso(app, run_id, outputs):
         }
         for output_id, output in outputs.items()
     ]
-
-
-# FIXME: Attach to the apsis object?
-# FIXME: Attach these to the Run objects?
-# FIXME: Cache JSON instead of JSO?
-_run_summary_jso_cache = {}
-
-def _run_summary_to_jso(app, run):
-    # Cache runs' JSO.  The run changes only on a state change, so we only
-    # need to check the state to determine if the cache is valid.
-    try:
-        state, jso = _run_summary_jso_cache[run.run_id]
-    except KeyError:
-        pass
-    else:
-        if state == run.state:
-            return jso
-
-    jso = run_summary_to_jso(app, run)
-
-    _run_summary_jso_cache[run.run_id] = run.state, jso
-    return jso
-
-
-def run_summaries_to_jso(app, when, runs):
-    return {
-        "when": time_to_jso(when),
-        "runs": { r.run_id: _run_summary_to_jso(app, r) for r in runs },
-    }
-
-
-def runs_to_jso(app, when, runs):
-    return {
-        "when": time_to_jso(when),
-        "runs": { r.run_id: run_to_jso(app, r) for r in runs },
-    }
 
 
 #-------------------------------------------------------------------------------
