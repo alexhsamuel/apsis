@@ -51,7 +51,7 @@ div
           td.no-padding: RunHistory(:run_id="run_id")
 
         tr(
-          v-if="Object.keys(run.meta).length"
+          v-if="run.meta && Object.keys(run.meta).length"
           v-on:click="metadataCollapsed = !metadataCollapsed"
         )
           th: div(style="white-space: nowrap;")
