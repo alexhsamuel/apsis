@@ -1,0 +1,4 @@
+params: [tag, time]
+
+program: "sleep {{ time }}; echo '{{ tag }}'"
+
