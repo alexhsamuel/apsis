@@ -359,8 +359,8 @@ async def websocket_runs(request, ws):
                         # FIXME: JSOs are cached but ujson.dumps() still takes real
                         # time.
                         json = ujson.dumps(jso)
-                        await ws.send(json)
-                    log.debug(f"sent {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
+                    log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
+                    await ws.send(json)
                     await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
             except websockets.ConnectionClosed:
                 break
