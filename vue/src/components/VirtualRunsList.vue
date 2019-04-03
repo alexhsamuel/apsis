@@ -23,7 +23,7 @@ div.runlist
 
   RecycleScroller.scroller(
     :items="runs" 
-    :item-size="24"
+    :item-size="28"
     :buffer="1000"
     key-field="run_id"
   )
@@ -153,8 +153,7 @@ export default {
   }
 
   .row {
-    height: 24px;
-    border-bottom: 1px solid #e1e8e4;
+    height: 28px;
     display: flex;
     padding-bottom: 0px;
 
