@@ -127,7 +127,6 @@ export default {
 
     elapsed() {
       if (this.run.state === 'success' || this.run.state === 'failure') {
-        console.log(this.run.times)
         const start = moment(this.run.times.running)
         const end = moment(this.run.times[this.run.state])
         return end.diff(start) * 1e-3
