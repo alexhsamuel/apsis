@@ -2,12 +2,12 @@
 
 - don't send metadata in ws run JSON
   - rename store.state.runs to store.state.run_summaries
-  - compute elapsed time in UI (for running jobs too)
+  - remove elapsed from runs tables?
   - remove actions from run summary?
   - fix command line client
 
 - handle more runs
-  - only load runs in a given window
+  - only load runs in a given time window
   - retire old runs from memory
   - query for older runs
   - in job view, include time limitation
