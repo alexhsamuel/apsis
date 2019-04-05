@@ -125,10 +125,17 @@ export default {
       return sortBy(toPairs(this.run.times), ([k, v]) => v)
     },
 
+    /**
+     * Elapsed time in seconds if the run is completed, null otherwise.
+     */
     elapsed() {
-      if (this.run.state === 'success' || this.run.state === 'failure') {
+      if (this.run.times.running) {
         const start = moment(this.run.times.running)
-        const end = moment(this.run.times[this.run.state])
+        const end = moment(
+          this.run.state === 'running'
+          ? this.store.state.time
+          : this.run.times[this.run.state]
+        )
         return end.diff(start) * 1e-3
       }
       else
