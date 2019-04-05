@@ -46,6 +46,10 @@ div
               th {{ name }}
               td: Timestamp(:time="time")
 
+        tr(v-if="elapsed")
+          th elapsed
+          td {{ formatDuration(elapsed) }}
+
         tr
           th history
           td.no-padding: RunHistory(:run_id="run_id")
@@ -75,6 +79,7 @@ div
 
 <script>
 import { forEach, join, map, sortBy, toPairs } from 'lodash'
+import moment from 'moment-timezone'
 
 import ActionButton from '@/components/ActionButton'
 import { formatElapsed } from '../time'
@@ -84,6 +89,7 @@ import Run from '@/components/Run'
 import RunHistory from '@/components/RunHistory'
 import State from '@/components/State'
 import store from '@/store'
+import { formatDuration } from '@/time.js'
 import Timestamp from '@/components/Timestamp'
 
 export default {
@@ -119,6 +125,17 @@ export default {
       return sortBy(toPairs(this.run.times), ([k, v]) => v)
     },
 
+    elapsed() {
+      if (this.run.state === 'success' || this.run.state === 'failure') {
+        console.log(this.run.times)
+        const start = moment(this.run.times.running)
+        const end = moment(this.run.times[this.run.state])
+        return end.diff(start) * 1e-3
+      }
+      else
+        return null
+    },
+
     /**
      * The state of the run summary in the store, for detecting updates.
      */
@@ -132,8 +149,10 @@ export default {
       const url = '/api/v1/runs/' + this.run_id  // FIXME
       fetch(url)
         .then(async (response) => {
-          if (response.ok)
-            this.run = (await response.json()).runs[this.run_id]
+          if (response.ok) {
+            const run = (await response.json()).runs[this.run_id]
+            this.run = Object.freeze(run)
+          }
           else if (response.status === 404)
             this.run = null
           else
@@ -185,6 +204,8 @@ export default {
       else 
         return value
     },
+
+    formatDuration,
 
   },
 
