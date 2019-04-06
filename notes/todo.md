@@ -1,13 +1,14 @@
 # Current
 
-- don't send metadata in ws run JSON
-  - remove actions from run summary?
+- send debug log to file, from config
 
 - handle more runs
   - only load runs in a given time window
   - retire old runs from memory
   - query for older runs
   - in job view, include time limitation
+
+- remove actions from run summary?
 
 - apsis-agent should occasionally poll its childen explicitly
   (to avoid a state where it waits forever)
