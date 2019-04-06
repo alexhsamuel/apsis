@@ -25,9 +25,15 @@ class Store {
   state = {
     errors: new Errors(),
     logLines: [],
+
+    // Map from run_id to (summary) runs.  Updated live.
     runs: {},
+
+    // Current time, updated secondly, and its string representation.
     time: new Date(),
     timeStr: '',
+
+    // User-selected time zone.
     timeZone: 'UTC',
   }
 
