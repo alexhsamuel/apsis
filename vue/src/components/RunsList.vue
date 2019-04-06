@@ -58,7 +58,7 @@ div
           td.col-run
             Run(:run-id="run.run_id")
           td.col-elapsed
-            // | {{ run.meta.elapsed === undefined ? "" : formatElapsed(run.meta.elapsed) }}
+            RunElapsed(:run="run")
           td.col-actions
             div.uk-inline(v-if="Object.keys(run.actions).length > 0")
               button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
@@ -83,6 +83,7 @@ import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
 import Run from './Run'
+import RunElapsed from '@/components/RunElapsed'
 import * as runsFilter from '@/runsFilter.js'
 import State from './State'
 import StatesSelect from '@/components/StatesSelect'
@@ -106,6 +107,7 @@ export default {
     Job,
     Pagination,
     Run,
+    RunElapsed,
     State,
     StatesSelect,
     Timestamp,

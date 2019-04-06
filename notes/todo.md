@@ -2,7 +2,6 @@
 
 - don't send metadata in ws run JSON
   - rename store.state.runs to store.state.run_summaries
-  - remove elapsed from runs tables?
   - remove actions from run summary?
   - fix command line client
 

@@ -46,9 +46,10 @@ div
               th {{ name }}
               td: Timestamp(:time="time")
 
-        tr(v-if="elapsed")
+        tr
           th elapsed
-          td {{ formatDuration(elapsed) }}
+          td
+            RunElapsed(:run="run")
 
         tr
           th history
@@ -79,13 +80,12 @@ div
 
 <script>
 import { forEach, join, map, sortBy, toPairs } from 'lodash'
-import moment from 'moment-timezone'
 
 import ActionButton from '@/components/ActionButton'
-import { formatElapsed } from '../time'
 import Job from '@/components/Job'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
+import RunElapsed from '@/components/RunElapsed'
 import RunHistory from '@/components/RunHistory'
 import State from '@/components/State'
 import store from '@/store'
@@ -99,6 +99,7 @@ export default {
     Job,
     Program,
     Run,
+    RunElapsed,
     RunHistory,
     State,
     Timestamp,
@@ -123,23 +124,6 @@ export default {
 
     run_times() {
       return sortBy(toPairs(this.run.times), ([k, v]) => v)
-    },
-
-    /**
-     * Elapsed time in seconds if the run is completed, null otherwise.
-     */
-    elapsed() {
-      if (this.run.times.running) {
-        const start = moment(this.run.times.running)
-        const end = moment(
-          this.run.state === 'running'
-          ? this.store.state.time
-          : this.run.times[this.run.state]
-        )
-        return end.diff(start) * 1e-3
-      }
-      else
-        return null
     },
 
     /**
@@ -203,9 +187,7 @@ export default {
     },
 
     format(key, value) {
-      if (key === 'elapsed')
-        return formatElapsed(value)
-      else if (key === 'command')
+      if (key === 'command')
         return '<code>' + value + '</code>'
       else 
         return value

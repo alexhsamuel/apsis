@@ -40,4 +40,3 @@ export function makeStatePredicate(stateFilter) {
   else
     return run => some(map(stateFilter, s => run.state === s))
 }
-

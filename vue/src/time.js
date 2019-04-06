@@ -11,7 +11,8 @@ export function formatTime(time, tz, format) {
 
 export function formatDuration(elapsed) {
   return (
-      elapsed < 1e-5 ? (elapsed * 1e6).toPrecision(2) + ' µs'
+      elapsed < 0 ? '??'
+    : elapsed < 1e-5 ? (elapsed * 1e6).toPrecision(2) + ' µs'
     : elapsed < 1e-3 ? (elapsed * 1e6).toPrecision(3) + ' µs'
     : elapsed < 1e-2 ? (elapsed * 1e3).toPrecision(2) + ' ms'
     : elapsed < 1e+0 ? (elapsed * 1e3).toPrecision(3) + ' ms'
