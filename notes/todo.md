@@ -2,7 +2,6 @@
 
 - don't send metadata in ws run JSON
   - remove actions from run summary?
-  - fix command line client
 
 - handle more runs
   - only load runs in a given time window

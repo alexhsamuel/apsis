@@ -177,13 +177,28 @@ def format_runs(runs, *, reruns=False):
     if reruns:
         runs = sorted(runs, key=lambda r: r["rerun"])
 
+    cur = now()
+    def elapsed(run):
+        try:
+            start = Time(run["times"]["running"])
+        except KeyError:
+            return None
+        state = run["state"]
+        if state == "running":
+            return cur - start
+        elif state in {"success", "failure", "error"}:
+            stop = Time(run["times"][state])
+            return stop - start
+        else:
+            return None
+
     table = fixfmt.table.RowTable(RUNS_CFG)
     for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
         row = {
             "run_id"    : RUN + run["run_id"] + BLK,
             "S"         : run["state"],
             "start"     : start_time(run),
-            "elapsed"   : run["meta"].get("elapsed"),
+            "elapsed"   : elapsed(run),
             "job_id"    : JOB + run["job_id"] + BLK,
             "args"      : " ".join( f"{k}={v}" for k, v in run["args"].items() ),
           # **run["args"],
@@ -207,10 +222,12 @@ def format_runs(runs, *, reruns=False):
 
 def format_elapsed(secs):
     secs = round(secs)
-    if secs < 3600:
-        return f"   {secs // 60:2d}:{secs % 60:02d}"
+    m, s = divmod(secs, 60)
+    if m < 60:
+        return f"   {m:2d}:{s:02d}"
     else:
-        return f"{secs // 3600:2d}:{secs // 60 % 60:02d}:{secs % 60:02d}"
+        h, m = divmod(m, 60)
+        return f"{h:2d}:{m:02d}:{s:02d}"
     # FIXME: Add formats for longer times.
 
 format_elapsed.width = 8
