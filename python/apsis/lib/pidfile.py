@@ -1,103 +1,73 @@
-import logging
+import errno
+import fcntl
 import os
 from   pathlib import Path
-
-log = logging.getLogger("pidfile")
+import time
 
 #-------------------------------------------------------------------------------
 
-class PidExistsError(RuntimeError):
-    """
-    The pid file indicates a running process.
-    """
-
-    def __init__(self, pid, data):
-        super().__init__(f"process already running: {pid}")
-        self.pid = pid
-        self.data = data
-
-
-
 class PidFile:
     """
-    Pid file context manager.
+    Pid file.
     """
 
     def __init__(self, path):
         self.path = Path(path)
+        self.file = None
 
 
-    def get_pid(self):
+    def lock(self):
         """
-        Checks if the process is running.
+        Locks the pid file.
+
+        Whether or not the lock succeeds, the `file` attribute contains a file
+        object open to the pid file, with its position set to right after the
+        pid itself.  The caller may write (on success) or read (on failure)
+        additional data from this point.
 
         :return:
-          The pid and associated data of the running process, if any, or 
-          `None, None` otherwise.
+          None on success.  If another process has the file locked, the pid
+          of the other process.
         """
-        # Try to read a pid from the pid file.
+        assert self.file is None
+
+        pid_str = format(os.getpid(), "5d") + "\n"
+
+        # Open for append.  The file may exist, or not.
+        self.file = open(self.path, "a+")
+
         try:
-            with open(self.path, "rt") as file:
-                pid = int(next(file).strip())
-                data = file.read()
-        except Exception as exc:
-            log.debug(f"can't read pidfile: {self.path}: {exc}")
-            return None, None
-        # Check if the process exists.
-        try:
-            os.kill(pid, 0)
-        except PermissionError:
-            # Not our process, but that's OK.
-            return pid, data
-        except ProcessLookupError:
-            # No such process.  
-            self.remove()
-            return None, None
+            # Lock it.
+            fcntl.flock(self.file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        except IOError as exc:
+            if exc.errno == errno.EWOULDBLOCK:
+                # Someone other process has locked it.  Try to read its info.
+                # But first give it a moment, to reduces races.  FIXME: Yak.
+                time.sleep(0.001)
+                self.file.seek(0)
+                pid_str = self.file.read(6)
+                pid = int(pid_str.strip())
+                return pid
+
+            else:
+                # Something else went wrong.
+                raise
+
         else:
-            return pid, data
+            # Our lock.  Write immediately.
+            self.file.seek(0)
+            self.file.truncate()
+            self.file.write(pid_str)
+            self.file.flush()
+
+            return None
 
 
-    def write(self, pid=None, data=""):
-        """
-        Writes the pid file.
-        """
-        if pid is None:
-            pid = os.getpid()
-        contents = (str(pid) + "\n" + data).encode()
-
-        try:
-            fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
-            return False
-        else:
-            os.write(fd, contents)
-            os.close(fd)
-
-
-    def remove(self):
-        """
-        Removes the pid file.
-        """
-        try:
-            os.unlink(self.path)
-        except Exception as exc:
-            log.debug(f"failed to remove pid file: {self.path}: {exc}")
-
-
-    def __enter__(self):
-        """
-        Does not write the pid file.
-        """
-        pid, data = self.get_pid()
-        if pid is None:
-            pass
-        else:
-            raise PidExistsError(pid, data)
-        return self
-
-
-    def __exit__(self, exc_type, exc, exc_tb):
-        self.remove()
+    def unlock(self):
+        if self.file is not None:
+            self.file.close()
+            self.file = None
 
 
 

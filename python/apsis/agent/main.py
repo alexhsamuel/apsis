@@ -165,60 +165,60 @@ def main():
     state_dir = get_state_dir()
     logging.debug(f"using dir: {state_dir}")
 
+    port, sock = make_server_socket(
+        args.bind, range(DEFAULT_PORT, DEFAULT_PORT + 100))
+    token = secrets.token_urlsafe()
+    pid_data = encode_pid_data(port, token)
+
     pid_file = PidFile(state_dir / "pid")
-    pid, pid_data = pid_file.get_pid()
+    logging.info(state_dir / "pid")
+    pid = pid_file.lock()
 
     if pid is None:
-        # No agent running.
+        # Our pid file, so no agent currently running.
+
         if args.connect:
             print("agent not running", file=sys.stderr)
             raise SystemExit(1)
 
+        # Print the port and token for the client to grab.
+        print(pid_data)
+        sys.stdout.flush()
+
+        # Write the port and token to the pid file, for other clients.
+        pid_file.file.write(pid_data)
+        pid_file.file.flush()
+
         # Start the agent.
-        try:
-            app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
-            app.config.LOGO = None
-            app.config.auto_stop = not args.no_stop
-            app.blueprint(API, url_prefix="/api/v1")
+        app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
+        app.config.LOGO = None
+        app.config.auto_stop = not args.no_stop
+        app.blueprint(API, url_prefix="/api/v1")
 
-            app.processes = Processes(state_dir)
-            signal.signal(signal.SIGCHLD, app.processes.sigchld)
+        app.processes = Processes(state_dir)
+        signal.signal(signal.SIGCHLD, app.processes.sigchld)
 
-            port, sock = make_server_socket(
-                args.bind, range(DEFAULT_PORT, DEFAULT_PORT + 100))
+        # SSL certificates are stored in this directory.
+        ssl_context = ssl.create_default_context(
+            purpose=ssl.Purpose.CLIENT_AUTH)
+        ssl_context.load_cert_chain(SSL_CERT, keyfile=SSL_KEY)
 
-            token = secrets.token_urlsafe()
+        if not args.no_daemon:
+            daemonize(state_dir / "log")
 
-            pid_data = encode_pid_data(port, token)
-
-            # Print the port and token for the client to grab.
-            print(pid_data)
-            sys.stdout.flush()
-
-            if not args.no_daemon:
-                daemonize(state_dir / "log")
-
-            pid_file.write(data=pid_data)
-
-            # SSL certificates are stored in this directory.
-            ssl_context = ssl.create_default_context(
-                purpose=ssl.Purpose.CLIENT_AUTH)
-            ssl_context.load_cert_chain(SSL_CERT, keyfile=SSL_KEY)
-
-            # FIXME: auto_reload added to sanic after 0.7.
-            logging.info("running app")
-            app.run(
-                sock    =sock,
-                ssl     =ssl_context,
-                debug   =args.debug,
-            )
-            # FIXME: Kill and clean up procs on stop.
-
-        finally:
-            pid_file.remove()
+       # FIXME: auto_reload added to sanic after 0.7.
+        logging.info("running app")
+        app.run(
+            sock    =sock,
+            ssl     =ssl_context,
+            debug   =args.debug,
+        )
+        # FIXME: Kill and clean up procs on stop.
 
     else:
         # Found a running agent.
+
+        pid_data = pid_file.file.read()
         port, token = decode_pid_data(pid_data)
 
         if args.no_connect:
@@ -229,6 +229,8 @@ def main():
 
         # Print the pid and token for the client to grab.
         print(pid_data)
+
+    pid_file.unlock()
 
 
 if __name__ == "__main__":
