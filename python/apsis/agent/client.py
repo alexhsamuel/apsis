@@ -111,7 +111,7 @@ async def start_agent(*, host=None, user=None, connect=None):
 
     :param connect:
       If true, connect to a running instance only.  If false, fail if an 
-      instance is already running.
+      instance is already running.  If None, either start or connect.
     :return:
       The agent port and token.
     """
@@ -167,6 +167,16 @@ class Agent:
         return f"agent {self.__user}@{self.__host} on port {self.__port}"
 
 
+    @property
+    def addr(self):
+        """
+        The current host, port of the agent.
+
+        The port is none if not currently connected.
+        """
+        return self.__host, self.__port
+
+
     async def start(self):
         """
         Attempts to start the agent.
@@ -217,6 +227,7 @@ class Agent:
                     rsp = requests.request(method, url, json=data, verify=False)
 
             except requests.ConnectionError:
+                self.__port = self.__token = None
                 if self.__restart:
                     if i < self.START_TRIES:
                         await self.start()
