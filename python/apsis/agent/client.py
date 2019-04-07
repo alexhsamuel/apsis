@@ -137,11 +137,9 @@ async def start_agent(*, host=None, user=None, connect=None):
 
 class Agent:
 
-    # Number of attempts to start the agent, if a request fails.
-    START_TRIES = 3
-
-    # Delay after starting the agent before a request is sent.
-    START_DELAY = 0.25
+    # Delays between attempts to start the agent-- back off.  The number of
+    # attempts is the number of delays.
+    START_DELAYS = [ 0.5 * i**2 for i in range(6) ]
 
     def __init__(self, host=None, user=None, *, connect=None, restart=False):
         """
@@ -213,7 +211,9 @@ class Agent:
 
         # FIXME: Use async requests.
 
-        for i in range(self.START_TRIES + 1):
+        for delay in self.START_DELAYS:
+            if delay > 0:
+                await asyncio.sleep(delay)
             try:
                 # FIXME: For now, we use no server verification when
                 # establishing the TLS connection to the agent.  The agent uses
@@ -229,9 +229,8 @@ class Agent:
             except requests.ConnectionError:
                 self.__port = self.__token = None
                 if self.__restart:
-                    if i < self.START_TRIES:
-                        await self.start()
-                        await asyncio.sleep(self.START_DELAY)
+                    await self.start()
+                    await asyncio.sleep(delay)
                 else:
                     raise NoAgentError(self.__host, self.__user)
             else:
@@ -239,7 +238,7 @@ class Agent:
                 break
 
         else:
-            raise RuntimeError(f"failed to start agent in {i} tries")
+            raise RuntimeError(f"failed to start agent after {len(self.START_DELAYS)} tries")
 
         log.debug(f"{method} {url} → {rsp.status_code}")
         return rsp
