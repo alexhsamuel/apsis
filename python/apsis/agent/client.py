@@ -218,17 +218,17 @@ class Agent:
 
             except requests.ConnectionError:
                 if self.__restart:
-                    if i == self.START_TRIES:
-                        raise RuntimeError(
-                            f"failed to start agent in {i} tries")
-                    else:
+                    if i < self.START_TRIES:
                         await self.start()
                         await asyncio.sleep(self.START_DELAY)
                 else:
-                    raise
+                    raise NoAgentError(self.__host, self.__user)
             else:
                 # Request submitted successfully.
                 break
+
+        else:
+            raise RuntimeError(f"failed to start agent in {i} tries")
 
         log.debug(f"{method} {url} → {rsp.status_code}")
         return rsp
