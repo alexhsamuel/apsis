@@ -13,7 +13,7 @@ span
 import moment from 'moment-timezone'
 
 import store from '@/store'
-import { formatDuration } from '@/time.js'
+import { formatElapsed } from '@/time.js'
 
 export default {
   props: ['run'],
@@ -28,7 +28,7 @@ export default {
       if (this.run.times.running) {
         const start = moment(this.run.times.running)
         const end = moment(this.run.times[this.run.state])
-        return formatDuration(end.diff(start) * 1e-3)
+        return formatElapsed(end.diff(start) * 1e-3)
       }
       else
         return ''
@@ -37,7 +37,7 @@ export default {
     running() {
       const start = moment(this.run.times.running)
       const end = moment(this.store.state.time)
-      return formatDuration(end.diff(start) * 1e-3)
+      return formatElapsed(end.diff(start) * 1e-3)
     },
   },
 

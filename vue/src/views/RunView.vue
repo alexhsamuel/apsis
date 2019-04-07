@@ -89,7 +89,6 @@ import RunElapsed from '@/components/RunElapsed'
 import RunHistory from '@/components/RunHistory'
 import State from '@/components/State'
 import store from '@/store'
-import { formatDuration } from '@/time.js'
 import Timestamp from '@/components/Timestamp'
 
 export default {
@@ -192,8 +191,6 @@ export default {
       else 
         return value
     },
-
-    formatDuration,
 
   },
 
