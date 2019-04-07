@@ -14,7 +14,6 @@
   (to avoid a state where it waits forever)
 
 - check out: FastAPI, uvicorn, Starlett
-- in agent, SIGCHLD may show up before pid is registered
 
 - click on args in run list to add an arg query term
 - not (!) in run query

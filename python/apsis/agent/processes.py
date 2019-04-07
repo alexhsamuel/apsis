@@ -1,4 +1,5 @@
 import _posixsubprocess  # Yes, we use an internal API here.
+import asyncio
 import builtins
 from   contextlib import contextmanager
 import errno
@@ -357,11 +358,17 @@ class Processes:
         assert signum == signal.SIGCHLD
         log.info("SIGCHLD")
 
-        count = 0
-        while self.reap():
-            count += 1
-        if count == 0:
-            log.error("SIGCHLD but no child reaped")
+        def reap_all():
+            count = 0
+            while self.reap():
+                count += 1
+            if count == 0:
+                log.error("SIGCHLD but no child reaped")
+
+        # Schedule the reaping in a task.  If we do it now, we might beat
+        # start() in a race and try to find the process before start() has added
+        # it to __procs.
+        asyncio.get_event_loop().call_soon(reap_all)
 
 
     def __len__(self):
