@@ -1,5 +1,6 @@
 import asyncio
 import time
+import threading
 
 import apsis.agent.client
 
@@ -71,5 +72,28 @@ def test_connect():
 
     assert not go(agent0.is_running())
     assert not go(agent1.is_running())
+
+
+def test_concurrent_start():
+    """
+    Checks that concurrent agent starts all use the same agent.
+    """
+    agents = [ apsis.agent.client.Agent() for _ in range(10) ]
+    res = go(asyncio.gather(*( a.start() for a in agents )))
+    assert len(res) == len(agents)
+
+    # All connections should be to the same port.
+    _, port = agents[0].addr
+    assert all( a.addr[1] == port for a in agents )
+
+    # Stop the first agent.
+    assert go(agents[0].stop()) == True
+
+    # All should be stopped.
+    res = go(asyncio.gather(*( a.is_running() for a in agents )))
+    print(res)
+    assert len(res) == len(agents)
+    assert all( not r for r in res )
+
 
 
