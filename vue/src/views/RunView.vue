@@ -129,7 +129,8 @@ export default {
      * The state of the run summary in the store, for detecting updates.
      */
     storeState() {
-      return store.state.runs[this.run_id].state
+      const run = store.state.runs[this.run_id]
+      return run ? run.state : undefined
     }
   },
 
@@ -141,6 +142,7 @@ export default {
           if (response.ok) {
             const run = (await response.json()).runs[this.run_id]
             this.run = Object.freeze(run)
+            this.fetchOutputMetadata()
           }
           else if (response.status === 404)
             this.run = null
@@ -149,9 +151,9 @@ export default {
         })
     },
 
-    fetchOutputMetadata(run) {
-      if (run && run.output_url)
-        fetch(run.output_url)
+    fetchOutputMetadata() {
+      if (this.run && this.run.output_url)
+        fetch(this.run.output_url)
           .then(async rsp => {
             const outputs = await rsp.json()
 
@@ -197,8 +199,6 @@ export default {
   mounted() {
     // Fetch full run info.
     this.fetchRun()
-    // Fetch output metadata immediately.
-    this.fetchOutputMetadata(this.run)
   },
 
   watch: {
@@ -209,12 +209,12 @@ export default {
       this.outputData = null
       this.outputRequested = false
       this.fetchRun()
-      this.fetchOutputMetadata()
     },
 
-    storeState(to, from) {
-      // The run summary state has changed, so reload the whole run.
-      this.fetchRun()
+    storeState(state, previous) {
+      if (!this.run || this.run.state !== state)
+        // The run summary state has changed, so reload the whole run.
+        this.fetchRun()
     }
   },
 
