@@ -48,7 +48,7 @@ class AgentStartError(RuntimeError):
 
     def __init__(self, returncode, err):
         super().__init__(
-            f"agent start failed with returncode={returncode}: {err.decode()}")
+            f"agent start failed with returncode={returncode}: {err}")
 
 
 
@@ -125,12 +125,15 @@ async def start_agent(*, host=None, user=None, connect=None):
     if proc.returncode == 0:
         # The agent is running.  Whether it just started or not, it prints
         # out its port and secret token.
-        data, = out.decode().splitlines()
-        port, token = data.split()
-        return int(port), token
+        try:
+            data, = out.decode().splitlines()
+            port, token = data.split()
+            return int(port), token
+        except (TypeError, ValueError):
+            raise AgentStartError(proc.returncode, out.decode())
 
     else:
-        raise AgentStartError(proc.returncode, err)
+        raise AgentStartError(proc.returncode, err.decode())
 
 
 #-------------------------------------------------------------------------------
