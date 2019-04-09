@@ -234,6 +234,7 @@ class RunDB:
 
         except AttributeError:
             # This run isn't in the database yet.
+            # FIXME: sqlite doesn't accepted "FALSE" until version 3.23.0.
             self.__connection.connection.execute("""
                 INSERT INTO runs (
                     run_id, 
@@ -250,7 +251,7 @@ class RunDB:
                     rowid,
                     expected
                 ) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, false)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             """, values)
             self.__connection.connection.commit()
             run._rowid = values[-1]
