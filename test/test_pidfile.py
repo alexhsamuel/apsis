@@ -1,11 +1,12 @@
 import os
+from   pathlib import Path
 
 from   apsis.lib.pidfile import PidFile
 
 #-------------------------------------------------------------------------------
 
-def test_lock_data(tmp_path):
-    path = tmp_path / "pidfile"
+def test_lock_data(tmpdir):
+    path = Path(tmpdir) / "pidfile"
     token = "hello, world!\n"
 
     pf0 = PidFile(path)
