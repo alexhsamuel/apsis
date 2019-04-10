@@ -31,7 +31,7 @@ class PidFile:
         """
         assert self.file is None
 
-        pid_str = format(os.getpid(), "6d") + "\n"
+        pid_str = str(os.getpid()) + "\n"
 
         # Open for append.  The file may exist, or not.
         self.file = open(self.path, "a+")
@@ -46,7 +46,7 @@ class PidFile:
                 # But first give it a moment, to reduces races.  FIXME: Yak.
                 time.sleep(0.001)
                 self.file.seek(0)
-                pid_str = self.file.read(7)
+                pid_str = self.file.readline()
                 pid = int(pid_str.strip())
                 return pid
 
