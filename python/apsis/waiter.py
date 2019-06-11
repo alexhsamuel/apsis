@@ -2,9 +2,52 @@ import asyncio
 import logging
 
 from   .lib.json import Typed, no_unexpected_keys
-from   .runs import Run, template_expand
+from   .runs import Run, Instance, template_expand
 
 log = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+
+class Preco:
+    """
+    Precondition type.  Not a base class; for API illustration only.
+    """
+
+    def to_jso(self):
+        pass
+
+
+    @classmethod
+    def from_jso(Class, jso):
+        pass
+
+
+    def bind(self, inst, jobs, bind_args):
+        """
+        Binds a job preco to `inst`.
+
+        :param inst:
+          The instance to bind to.
+        :param jobs:
+          The jobs DB.
+        :param bind_args:
+          A mapping of additional arguments available for template evaluation.
+        :return:
+          An instance of the same preco type, bound to the instances.
+        """
+
+
+    def check_runs(self, runs):
+        """
+        Checks whether all run precos are met.
+
+        :param runs:
+          The run DB.
+        :return:
+          True if dependencies are met.
+        """
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -40,9 +83,14 @@ class MaxRunningPreco:
         )
 
 
-    def bind(self, args, inst):
-        count = int(template_expand(self.__count, args))
-        return type(self)(count, inst.job_id, inst.args)
+    def bind(self, inst, jobs, bind_args):
+        count = int(template_expand(self.__count, bind_args))
+        job_id = inst.job_id if self.__job_id is None else self.__job_id
+        # FIXME: Support self.__args not none.  Template-expand them, add in
+        # inst.args, and bind to job args.
+        if self.__args is not None:
+            raise NotImplementedError()
+        return type(self)(count, job_id, inst.args)
 
 
     def check_runs(self, runs):
@@ -58,6 +106,57 @@ class MaxRunningPreco:
         return count < self.__count
 
 
+
+#-------------------------------------------------------------------------------
+
+class Dependency:
+
+    def __init__(self, job_id, args, states={Run.STATE.success}):
+        self.__job_id = job_id
+        self.__args = args
+        self.__states = states
+
+
+    # FIXME: Handle exceptions when binding.
+
+    def bind(self, inst, jobs, bind_args):
+        # Match our args and the inst's args to the job params.
+        def get(name):
+            try:
+                return template_expand(self.__args[name], bind_args)
+            except KeyError:
+                pass
+            try:
+                return inst.args[name]
+            except KeyError:
+                pass
+            raise LookupError(
+                f"no value for param {name} of dependency job {inst.job_id}")
+
+        job = jobs[self.__job_id]
+        args = { n: get(n) for n in job.params }
+        return type(self)(self.__job_id, args, self.__states)
+
+
+    # FIXME: Handle exceptions when checking.
+
+    def check_runs(self, runs):
+        # FIXME: Support query by args.
+        # FIXME: Support query by multiple states.
+        for state in self.__states:
+            _, deps = runs.query(job_id=self.__job_id, state=state)
+            for dep in deps:
+                if dep.args == self.__args:
+                    log.debug(f"dep satisfied: {dep}")
+                    return True
+        else:
+            inst = Instance(self.__job_id, self.__args)
+            log.debug(f"dep not satisified: {inst}")
+            return False
+            
+
+
+#-------------------------------------------------------------------------------
 
 TYPES = Typed({
     "max_running"       : MaxRunningPreco,

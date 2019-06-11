@@ -132,7 +132,7 @@ class Apsis:
         """
         job = self.jobs.get_job(run.inst.job_id)
         bind_args = get_bind_args(run)
-        return [ p.bind(bind_args, run.inst) for p in job.precos ]
+        return [ p.bind(run.inst, self.jobs, bind_args) for p in job.precos ]
 
 
     async def __wait(self, run):
@@ -401,7 +401,7 @@ class Apsis:
 
         try:
             self._validate_run(run)
-        except RuntimeError as exc:
+        except RuntimeError:
             log.error("invalid run", exc_info=True)
             times["error"] = now()
             self.run_exc(run)
