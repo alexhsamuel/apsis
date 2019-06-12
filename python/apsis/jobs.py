@@ -249,6 +249,9 @@ class Jobs:
         return self.__job_db.get(job_id)
 
 
+    __getitem__ = get_job
+
+
     def get_jobs(self, *, ad_hoc=None):
         """
         :param ad_hoc:

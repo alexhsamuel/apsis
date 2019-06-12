@@ -234,6 +234,19 @@ class Run:
 
 #-------------------------------------------------------------------------------
 
+def get_bind_args(run):
+    """
+    Returns args available to template expansion for `run`.
+    """
+    return {
+        "run_id": run.run_id,
+        "job_id": run.inst.job_id,
+        **run.inst.args,
+    }    
+
+
+#-------------------------------------------------------------------------------
+
 class Runs:
     """
     Stores run state.

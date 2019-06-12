@@ -10,22 +10,13 @@ from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure
 from   . import runs
 from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
+from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-
-# FIXME: Enhance this.
-# FIXME: Move to runs, with template_expand().
-def get_bind_args(run):
-    return {
-        "run_id": run.run_id,
-        "job_id": run.inst.job_id,
-        **run.inst.args,
-    }    
-
 
 class Apsis:
     """
@@ -130,9 +121,9 @@ class Apsis:
         """
         Constructs preconditions for a run, with arguments bound.
         """
+        # FIXME: Handle exceptions when binding.
         job = self.jobs.get_job(run.inst.job_id)
-        bind_args = get_bind_args(run)
-        return [ p.bind(run.inst, self.jobs, bind_args) for p in job.precos ]
+        return [ p.bind(run, self.jobs) for p in job.precos ]
 
 
     async def __wait(self, run):
