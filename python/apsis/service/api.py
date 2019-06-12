@@ -62,6 +62,7 @@ def _job_to_jso(app, job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
+        "precondition"  : [ preco_to_jso(p) for p in job.precos ],
         "actions"       : [ action_to_jso(app, a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
