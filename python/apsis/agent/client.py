@@ -105,13 +105,15 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
     return argv
 
 
-async def start_agent(*, host=None, user=None, connect=None):
+async def start_agent(*, host=None, user=None, connect=None, timeout=10):
     """
     Starts the agent on `host` as `user`.
 
     :param connect:
       If true, connect to a running instance only.  If false, fail if an 
       instance is already running.  If None, either start or connect.
+    :param timeout:
+      Timeout in sec.
     :return:
       The agent port and token.
     """
@@ -120,7 +122,10 @@ async def start_agent(*, host=None, user=None, connect=None):
     log.info(" ".join(argv))
     proc = await asyncio.create_subprocess_exec(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = await proc.communicate()
+    try:
+        out, err = await asyncio.wait_for(proc.communicate(), timeout)
+    except asyncio.TimeoutError:
+        raise AgentStartError(-1, "timeout")
 
     if proc.returncode == 0:
         # The agent is running.  Whether it just started or not, it prints

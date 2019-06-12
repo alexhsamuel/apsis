@@ -6,7 +6,7 @@ from   pathlib import Path
 import socket
 import traceback
 
-from   .agent.client import Agent, NoSuchProcessError
+from   .agent.client import Agent, NoSuchProcessError, AgentStartError
 from   .lib.json import Typed, no_unexpected_keys
 from   .lib.py import or_none
 from   .runs import template_expand, join_args
@@ -350,7 +350,10 @@ class AgentProgram:
 
     async def wait(self, run_id, run_state):
         proc_id = run_state["proc_id"]
-        agent = await self.__get_agent()
+        try:
+            agent = await self.__get_agent()
+        except AgentStartError as exc:
+            raise ProgramError(f"agent start failed: {exc}")
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
