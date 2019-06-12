@@ -90,6 +90,9 @@ A precondition temporarily prevents a scheduled run from starting.  While
 waiting for a precondition, the run is in the _waiting_ state.  Multiple
 preconditions may apply to a run; it is _waiting_ until all are satisfied.
 
+Max running jobs
+''''''''''''''''
+
 The `max_running` precondition causes a run to wait as long as there are too
 many other running runs with the same job ID and arguments.  For `max_running:
 1`, there may be only one such running job.
@@ -99,6 +102,24 @@ many other running runs with the same job ID and arguments.  For `max_running:
     precondition:
         type: max_running
         count: 1
+
+
+Dependencies
+''''''''''''
+
+The `dependency` precondition causes a run to wait until another run exists in
+a given state.  Specify the job ID of the dependency, and any arguments.
+
+.. code:: yaml
+
+    precondition:
+        type: dependency
+        job_id: "previous job"
+        args:
+            label: foobar
+
+The arguments are template-expanded.  If the dependency job shares a param with
+the dependent job, it may be omitted; the same arg is used.
 
 
 
