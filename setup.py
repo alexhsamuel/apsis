@@ -26,7 +26,6 @@ setuptools.setup(
     install_requires=[
         "fixfmt",
         "jinja2",
-        "numpy",  # for Ora
         "ora",
         "pyyaml",
         "requests",
