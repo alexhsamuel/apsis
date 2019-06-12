@@ -1,5 +1,8 @@
 # Current
 
+- rename s/preco/cond/
+- query runs by args
+
 - send debug log to file, from config
 
 - handle more runs
