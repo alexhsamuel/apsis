@@ -361,7 +361,7 @@ class Apsis:
 
     def run_log(self, run, message, *, timestamp=None):
         """
-        Adds a timestamped history record to the history for `run_id`.
+        Adds a timestamped history record to the history for `run`.
 
         :param timestamp:
           The time of the event; current time if none.
@@ -423,7 +423,6 @@ class Apsis:
         try:
             self._validate_run(run)
         except RuntimeError:
-            log.error("invalid run", exc_info=True)
             self._run_exc(run, message="invalid run")
             return run
 
@@ -434,7 +433,6 @@ class Apsis:
             try:
                 run.precos = list(self.__get_precos(run))
             except Exception:
-                log.error("invalid condition", exc_info=True)
                 self._run_exc(run, message="invalid condition")
                 return run
 
