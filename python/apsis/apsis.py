@@ -50,7 +50,7 @@ class Apsis:
         self.runs = Runs(db)
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
-        self.__waiter = Waiter(self.runs, self.__start)
+        self.__waiter = Waiter(self.runs, self.__start, self.run_history)
         # For now, expose the output database directly.
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
@@ -70,7 +70,7 @@ class Apsis:
                 run, f"rescheduling: {run.run_id} for {time or 'now'}")
 
             if time is None:
-                self.__waiter.wait_for(run)
+                self.__waiter.start(run)
             else:
                 self.scheduled.schedule(time, run)
 

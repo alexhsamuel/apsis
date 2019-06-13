@@ -232,9 +232,10 @@ preco_to_jso = TYPES.to_jso
 
 class Waiter:
 
-    def __init__(self, runs, start):
+    def __init__(self, runs, start, run_history):
         self.__runs = runs
         self.__start = start
+        self.__run_history = run_history
 
         # FIXME: Primitive first cut: just store all runs with their blockers,
         # and reevaluate all of them every time.
@@ -254,18 +255,6 @@ class Waiter:
             await self.__start(run)
         else:
             self.__waiting.append((run, blockers))
-
-
-    def wait_for(self, run):
-        """
-        Adds `run` to the list of runs to await.
-
-        If the run is not blocked, it will be started on the next waiter loop.
-        """
-        # Find which precos are blocking the run.
-        blockers = [ p for p in run.precos if not p.check_runs(self.__runs) ]
-
-        self.__waiting.append((run, blockers))
 
 
     async def __check_all(self):
