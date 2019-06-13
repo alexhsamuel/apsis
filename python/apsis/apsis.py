@@ -2,17 +2,19 @@ import asyncio
 import logging
 from   ora import now, Time
 import sys
+import traceback
 
 from   . import actions
-from   .waiter import Waiter
+from   .exc import ConditionError
 from   .jobs import Jobs
 from   .lib.asyn import cancel_task
-from   .program import ProgramError, ProgramFailure
+from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
 from   . import runs
 from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler
+from   .waiter import Waiter
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +62,7 @@ class Apsis:
             if run.program is None:
                 run.program = self.__get_program(run)
             if run.precos is None:
-                run.precos = self.__get_precos(run)
+                run.precos = list(self.__get_precos(run))
 
             self.run_log(
                 run.run_id, f"rescheduling: {run.run_id} for {time or 'now'}")
@@ -123,7 +125,11 @@ class Apsis:
         """
         # FIXME: Handle exceptions when binding.
         job = self.jobs.get_job(run.inst.job_id)
-        return [ p.bind(run, self.jobs) for p in job.precos ]
+        for cond in job.precos:
+            try:
+                yield cond.bind(run, self.jobs)
+            except Exception:
+                raise ConditionError(str(cond))
 
 
     async def __wait(self, run):
@@ -149,7 +155,7 @@ class Apsis:
 
         except ProgramError as exc:
             # Program failed to start.
-            self.run_exc(run, "program start")
+            self.run_log_exc(run, "program start")
             self._transition(
                 run, run.STATE.error, 
                 meta    =exc.meta,
@@ -242,13 +248,6 @@ class Apsis:
         asyncio.ensure_future(self.rerun(run, time=rerun_time))
 
 
-    async def __wrap_action(self, run, action):
-        try:
-            await action(self, run)
-        except Exception as exc:
-            self.run_exc(run, "action")
-
-
     def __do_actions(self, run):
         """
         Performs configured actions on `run`.
@@ -266,12 +265,44 @@ class Apsis:
             actions.extend(job.actions)
 
         loop = asyncio.get_event_loop()
+
+        async def wrap(run, action):
+            try:
+                await action(self, run)
+            except Exception:
+                self.run_log_exc(run, "action")
+
         for action in actions + self.__actions:
             # FIXME: Hold the future?  Or make sure it doesn't run for long?
-            loop.create_task(self.__wrap_action(run, action))
+            loop.create_task(wrap(run, action))
 
 
     # --- Internal API ---------------------------------------------------------
+
+    def _run_exc(self, run, *, message=None):
+        """
+        Transitions `run` to error, with the current exception attached.
+        """
+        self.run_log_exc(run, message)
+
+        outputs = {}
+        if sys.exc_info()[0] is not None:
+            # Attach the exception traceback as run output.
+            tb = traceback.format_exc().encode()
+            # FIXME: For now, use the name "output" as this is the only one 
+            # the UIs render.  In the future, change to "traceback".
+            outputs["output"] = Output(
+                OutputMetadata("output", len(tb), content_type="text/plain"),
+                tb
+            )
+
+        self._transition(
+            run, run.STATE.error,
+            times={"error": now()},
+            message=message,
+            outputs=outputs,
+        )
+
 
     def _transition(self, run, state, *, outputs={}, **kw_args):
         """
@@ -359,7 +390,10 @@ class Apsis:
         self.run_log(run.run_id, "error: " + message)
 
 
-    def run_exc(self, run, message=None):
+    def run_log_exc(self, run, message=None):
+        """
+        Logs an exception for `run`.
+        """
         _, exc_msg, _ = sys.exc_info()
 
         log_msg = f"run {run.run_id}"
@@ -394,19 +428,19 @@ class Apsis:
             self._validate_run(run)
         except RuntimeError:
             log.error("invalid run", exc_info=True)
-            times["error"] = now()
-            self.run_exc(run)
-            self._transition(
-                run, run.STATE.error,
-                times   =times,
-            )
+            self._run_exc(run, message="invalid run")
             return run
 
         # Bind job attributes to the run.
         if run.program is None:
             run.program = self.__get_program(run)
         if run.precos is None:
-            run.precos = self.__get_precos(run)
+            try:
+                run.precos = list(self.__get_precos(run))
+            except Exception:
+                log.error("invalid condition", exc_info=True)
+                self._run_exc(run, message="invalid condition")
+                return run
 
         if time is None:
             self.run_info(run, "scheduling for immediate run")

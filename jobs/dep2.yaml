@@ -1,0 +1,14 @@
+params: [label, bar]
+
+program: 'echo "dep2 label={{ label }} bar={{ bar }}"'
+
+precondition:
+- type: dependency
+  job_id: dep1
+  args:
+    foo: -42
+- type: dependency
+  job_id: dep0
+  args: {label: coconut}
+
+

@@ -1,8 +1,9 @@
 import asyncio
+import json
 import logging
 
 from   .lib.json import Typed, no_unexpected_keys
-from   .lib.py import iterize
+from   .lib.py import iterize, format_ctor
 from   .runs import Run, Instance, get_bind_args, template_expand
 
 log = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ log = logging.getLogger(__name__)
 
 # FIXME: Elsewhere?
 
-def _bind(params, obj_args, inst_args, bind_args):
+def _bind(job, obj_args, inst_args, bind_args):
     """
     Binds args to `params`.
 
@@ -28,17 +29,21 @@ def _bind(params, obj_args, inst_args, bind_args):
             return inst_args[name]
         except KeyError:
             pass
-        raise LookupError(f"no value for param {name}")
+        raise LookupError(f"no value for param {name} of job {job.job_id}")
 
-    return { n: get(n) for n in params }
+    return { n: get(n) for n in job.params }
 
 
 #-------------------------------------------------------------------------------
 
 class Preco:
     """
-    Precondition type.  Not a base class; for API illustration only.
+    Precondition type.  For API illustration.
     """
+
+    def __str__(self):
+        return json.dumps(self.to_jso())
+
 
     def to_jso(self):
         pass
@@ -76,7 +81,7 @@ class Preco:
 
 #-------------------------------------------------------------------------------
 
-class MaxRunningPreco:
+class MaxRunningPreco(Preco):
 
     def __init__(self, count, job_id=None, args=None):
         """
@@ -89,6 +94,11 @@ class MaxRunningPreco:
         self.__count = count
         self.__job_id = job_id
         self.__args = args
+
+
+    def __repr__(self):
+        return format_ctor(
+            self, self.__count, job_id=self.__job_id, args=self.__args)
 
 
     def to_jso(self):
@@ -137,15 +147,19 @@ class MaxRunningPreco:
 
 #-------------------------------------------------------------------------------
 
-class Dependency:
+class Dependency(Preco):
 
     def __init__(self, job_id, args, states={Run.STATE.success}):
-        states = list(iterize(states))
+        states = frozenset(iterize(states))
         assert all( isinstance(s, Run.STATE) for s in states )
 
         self.job_id = job_id
         self.args = args
         self.states = states
+
+
+    def __repr__(self):
+        return format_ctor(self, self.job_id, self.args, states=self.states)
 
 
     def to_jso(self):
@@ -169,7 +183,7 @@ class Dependency:
     def bind(self, run, jobs):
         job = jobs[self.job_id]
         bind_args = get_bind_args(run)
-        args = _bind(job.params, self.args, run.inst.args, bind_args)
+        args = _bind(job, self.args, run.inst.args, bind_args)
         return type(self)(self.job_id, args, self.states)
 
 
