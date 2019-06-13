@@ -1,7 +1,10 @@
 # Current
 
+- better run log for deps
 - rename s/preco/cond/
+- --yaml output from clui
 - query runs by args
+- add/increase agent shutdown timeout
 
 - send debug log to file, from config
 
@@ -10,6 +13,12 @@
   - retire old runs from memory
   - query for older runs
   - in job view, include time limitation
+
+It might be better for the scheduler, scheduled, and waiter loops to be managed
+by the Apsis instance, so that it can split workloads (i.e. run some runs before
+1scheduling others).  This might also make the components more functional.  They
+might not have to reach back and call Apsis methods to transition runs; instead
+they would just return instructions and Apsis would do the work.
 
 - remove actions from run summary?
 
