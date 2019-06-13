@@ -101,7 +101,7 @@ class Apsis:
         self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
 
         # Set up the waiter for waiting tasks.
-        log.info("schedulign waiter loop")
+        log.info("scheduling waiter loop")
         self.__waiter_task = asyncio.ensure_future(self.__waiter.loop())
 
         # Reconnect to running runs.
