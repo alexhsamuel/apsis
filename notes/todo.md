@@ -12,9 +12,9 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- better run log for deps
 - rename s/preco/cond/
 - --yaml output from clui
+- make startup rescheduling async
 - query runs by args
 - add/increase agent shutdown timeout
 

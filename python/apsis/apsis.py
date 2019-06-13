@@ -59,6 +59,9 @@ class Apsis:
         # Actions applied to all runs.
         self.__actions = [ actions.action_from_jso(o) for o in cfg["actions"] ]
 
+        # FIXME: This should be async.
+        #        =====================
+
         def reschedule(run, time):
             # Bind job attributes to the run.
             if run.program is None:
@@ -66,12 +69,15 @@ class Apsis:
             if run.precos is None:
                 run.precos = list(self.__get_precos(run))
 
-            self.run_history.record(
-                run, f"rescheduling: {run.run_id} for {time or 'now'}")
-
             if time is None:
-                self.__waiter.start(run)
+                self.run_history.record(
+                    run, f"startup: restoring {run.run_id}: waiting")
+                # FIXME: No!  Make this async.
+                asyncio.ensure_future(self.__waiter.start(run))
             else:
+                self.run_history.record(
+                    run, 
+                    f"startup: restoring {run.run_id}: scheduled for {time}")
                 self.scheduled.schedule(time, run)
 
         # Restore scheduled runs from DB.

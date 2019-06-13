@@ -232,52 +232,73 @@ preco_to_jso = TYPES.to_jso
 
 class Waiter:
 
+    # FIXME: Primitive first cut: just store all runs with their blockers,
+    # by run ID, and reevaluate all of them every time.
+
     def __init__(self, runs, start, run_history):
         self.__runs = runs
         self.__start = start
         self.__run_history = run_history
 
-        # FIXME: Primitive first cut: just store all runs with their blockers,
-        # and reevaluate all of them every time.
-        self.__waiting = []
+        # Mapping from run ID to (run, precos).  The latter is a list of 
+        # precos that have not yet been checked.  The first preco is blocking.
+        # Others may not have been checked yet.  The list is mutated as precos
+        # are checked.
+        self.__waiting = {}
+
+
+    def __check(self, run, precos):
+        """
+        Checks `precos` for a blocker, removing those that check successfully.
+        """
+        while len(precos) > 0:
+            if precos[0].check_runs(self.__runs):
+                # Not blocking.
+                precos.pop(0)
+            else:
+                # Blocking.
+                break
 
 
     async def start(self, run):
         """
-        Starts `run`, unless it's blocked; if so, wait for it.
+        Starts `run`, unless it's blocked; if so, registers it to wait for.
         """
-        # Find which precos are blocking the run.
-        blockers = [ p for p in run.precos if not p.check_runs(self.__runs) ]
+        precos = list(run.precos)
+        self.__check(run, precos)
 
-        if len(blockers) == 0:
+        if len(precos) == 0:
             # Ready to run.
             log.debug(f"starting: {run}")
             await self.__start(run)
+
         else:
-            self.__waiting.append((run, blockers))
+            # Blocked by a preco.
+            assert run.run_id not in self.__waiting
+            self.__run_history.info(run, f"waiting for {precos[0]}")
+            self.__waiting[run.run_id] = (run, precos)
 
 
     async def __check_all(self):
-        waiting = []
-        for run, blockers in self.__waiting:
-            while len(blockers) > 0:
-                if blockers[0].check_runs(self.__runs):
-                    # This preco no longer blocking.
-                    log.debug(f"{run.run_id}: {blockers[0]} no longer blocking")
-                    blockers.pop(0)
-                else:
-                    log.debug(f"{run.run_id}: {blockers[0]} still blocking")
-                    break
-            if len(blockers) > 0:
-                # Still blocked.
-                log.debug(f"{run.run_id} still blocked")
-                waiting.append((run, blockers))
-            else:
+        """
+        Checks precos on all waiting runs; starts any no longer blocked.
+        """
+        for run_id, (run, precos) in list(self.__waiting.items()):
+            last_blocker = precos[0]
+            self.__check(run, precos)
+
+            if len(precos) == 0:
                 # No longer blocked; ready to run.
-                log.debug(f"{run.run_id} starting")
+                self.__run_history.info(run, f"no longer waiting")
+                del self.__waiting[run.run_id]
                 await self.__start(run)
 
-        self.__waiting = waiting
+            else:
+                # Still blocked.
+                blocker = precos[0]
+                if blocker is not last_blocker:
+                    # Blocked by a new preco.
+                    self.__run_history.info(run, f"waiting for {blocker}")
 
 
     async def loop(self):
