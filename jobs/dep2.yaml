@@ -2,7 +2,7 @@ params: [label, bar]
 
 program: 'echo "dep2 label={{ label }} bar={{ bar }}"'
 
-precondition:
+condition:
 - type: dependency
   job_id: dep1
   args:

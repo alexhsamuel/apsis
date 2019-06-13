@@ -83,23 +83,23 @@ Schedule
 FIXME: Write this.
 
 
-Preconditions
--------------
+Conditions
+----------
 
-A precondition temporarily prevents a scheduled run from starting.  While
-waiting for a precondition, the run is in the _waiting_ state.  Multiple
-preconditions may apply to a run; it is _waiting_ until all are satisfied.
+A condition temporarily prevents a scheduled run from starting.  While waiting
+for a condition, the run is in the _waiting_ state.  Multiple conditions may
+apply to a run; it is _waiting_ until all are satisfied.
 
 Max running jobs
 ''''''''''''''''
 
-The `max_running` precondition causes a run to wait as long as there are too
-many other running runs with the same job ID and arguments.  For `max_running:
-1`, there may be only one such running job.
+The `max_running` condition causes a run to wait as long as there are too many
+other running runs with the same job ID and arguments.  For `max_running: 1`,
+there may be only one such running job.
 
 .. code:: yaml
 
-    precondition:
+    condition:
         type: max_running
         count: 1
 
@@ -107,12 +107,12 @@ many other running runs with the same job ID and arguments.  For `max_running:
 Dependencies
 ''''''''''''
 
-The `dependency` precondition causes a run to wait until another run exists in
-a given state.  Specify the job ID of the dependency, and any arguments.
+The `dependency` condition causes a run to wait until another run exists in a
+given state.  Specify the job ID of the dependency, and any arguments.
 
 .. code:: yaml
 
-    precondition:
+    condition:
         type: dependency
         job_id: "previous job"
         args:

@@ -12,7 +12,7 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- rename s/preco/cond/
+- pyyaml warning
 - --yaml output from clui
 - make startup rescheduling async
 - query runs by args

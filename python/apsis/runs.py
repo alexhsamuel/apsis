@@ -165,7 +165,7 @@ class Run:
 
         self.state      = Run.STATE.new
         self.expected   = bool(expected)
-        self.precos     = None
+        self.conds      = None
         self.program    = None
         # Timestamps for state transitions and other events.
         self.times      = {}

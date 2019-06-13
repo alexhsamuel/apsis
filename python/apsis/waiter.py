@@ -1,236 +1,14 @@
 import asyncio
 import logging
 
-from   .lib.json import Typed, no_unexpected_keys
-from   .lib.py import iterize, format_ctor
-from   .runs import Run, Instance, get_bind_args, template_expand
-
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Elsewhere?
-
-def _bind(job, obj_args, inst_args, bind_args):
-    """
-    Binds args to `params`.
-
-    Binds `obj_args` and `inst_args` to params by name.  `obj_args` take
-    precedence, and are template-expanded with `bind_args`; `inst_args` are
-    not expanded.
-    """
-    def get(name):
-        try:
-            return template_expand(obj_args[name], bind_args)
-        except KeyError:
-            pass
-        try:
-            return inst_args[name]
-        except KeyError:
-            pass
-        raise LookupError(f"no value for param {name} of job {job.job_id}")
-
-    return { n: get(n) for n in job.params }
-
-
-#-------------------------------------------------------------------------------
-
-class Preco:
-    """
-    Precondition type.  For API illustration.
-    """
-
-    def to_jso(self):
-        pass
-
-
-    @classmethod
-    def from_jso(Class, jso):
-        pass
-
-
-    def bind(self, run, jobs):
-        """
-        Binds a job preco to `inst`.
-
-        :param run:
-          The run to bind to.
-        :param jobs:
-          The jobs DB.
-        :return:
-          An instance of the same preco type, bound to the instances.
-        """
-
-
-    def check_runs(self, runs):
-        """
-        Checks whether all run precos are met.
-
-        :param runs:
-          The run DB.
-        :return:
-          True if dependencies are met.
-        """
-
-
-
-#-------------------------------------------------------------------------------
-
-class MaxRunningPreco(Preco):
-
-    def __init__(self, count, job_id=None, args=None):
-        """
-        :param job_id:
-          Job ID of runs to count.  If none, bound to the job ID of the 
-          owning instance.
-        :param args:
-          Args to match.  If none, the bound to the args of the owning instance.
-        """
-        self.__count = count
-        self.__job_id = job_id
-        self.__args = args
-
-
-    def __repr__(self):
-        return format_ctor(
-            self, self.__count, job_id=self.__job_id, args=self.__args)
-
-
-    def __str__(self):
-        args = (
-            None if self.__args is None
-            else " ".join( f"{k}={v}" for k, v in self.__args.items() )
-        )
-        return f"max {self.__count} running {self.__job_id}({args})"
-
-
-    def to_jso(self):
-        return {
-            "count" : self.__count,
-            "job_id": self.__job_id,
-             "args" : self.__args,
-        }
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        return cls(
-            jso.pop("count", "1"),
-            jso.pop("job_id", None),
-            jso.pop("args", None),
-        )
-
-
-    def bind(self, run, jobs):
-        bind_args = get_bind_args(run)
-        count = template_expand(self.__count, bind_args)
-        job_id = run.inst.job_id if self.__job_id is None else self.__job_id
-        # FIXME: Support self.__args not none.  Template-expand them, add in
-        # inst.args, and bind to job args.
-        if self.__args is not None:
-            raise NotImplementedError()
-        return type(self)(count, job_id, run.inst.args)
-
-
-    def check_runs(self, runs):
-        max_count = int(self.__count)
-
-        # FIXME: Support query by args.
-        _, running = runs.query(
-            job_id=self.__job_id, 
-            state=Run.STATE.running,
-        )
-        for name, val in self.__args.items():
-            running = ( r for r in running if r.inst.args.get(name) == val )
-        count = len(list(running))
-        log.debug(f"count matching {self.__job_id} {self.__args}: {count}")
-        return count < max_count
-
-
-
-#-------------------------------------------------------------------------------
-
-class Dependency(Preco):
-
-    def __init__(self, job_id, args, states={Run.STATE.success}):
-        states = frozenset(iterize(states))
-        assert all( isinstance(s, Run.STATE) for s in states )
-
-        self.job_id = job_id
-        self.args = args
-        self.states = states
-
-
-    def __repr__(self):
-        return format_ctor(self, self.job_id, self.args, states=self.states)
-
-
-    def __str__(self):
-        inst = Instance(self.job_id, self.args)
-        states = "|".join( s.name for s in self.states )
-        return f"dependency on {inst} → {states}"
-
-
-    def to_jso(self):
-        return {
-            "job_id": self.job_id,
-            "args"  : self.args,
-            "states": [ s.name for s in self.states ],
-        }
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        states = { Run.STATE[s] for s in iterize(jso.pop("states", "success")) }
-        return cls(
-            jso.pop("job_id"),
-            jso.pop("args", {}),
-            states,
-        )
-
-
-    def bind(self, run, jobs):
-        job = jobs[self.job_id]
-        bind_args = get_bind_args(run)
-        args = _bind(job, self.args, run.inst.args, bind_args)
-        return type(self)(self.job_id, args, self.states)
-
-
-    # FIXME: Handle exceptions when checking.
-
-    def check_runs(self, runs):
-        # FIXME: Support query by args.
-        # FIXME: Support query by multiple states.
-        for state in self.states:
-            _, deps = runs.query(job_id=self.job_id, state=state)
-            for dep in deps:
-                if dep.inst.args == self.args:
-                    log.debug(f"dep satisfied: {dep}")
-                    return True
-        else:
-            inst = Instance(self.job_id, self.args)
-            log.debug(f"dep not satisified: {inst}")
-            return False
-
-
-
-#-------------------------------------------------------------------------------
-
-TYPES = Typed({
-    "dependency"        : Dependency,
-    "max_running"       : MaxRunningPreco,
-})
-
-def preco_from_jso(jso):
-    with no_unexpected_keys(jso):
-        return TYPES.from_jso(jso)
-
-
-preco_to_jso = TYPES.to_jso
-
-#-------------------------------------------------------------------------------
-
 class Waiter:
+    """
+    Holds runs in the waiting state until all conditions are satisfied.
+    """
 
     # FIXME: Primitive first cut: just store all runs with their blockers,
     # by run ID, and reevaluate all of them every time.
@@ -240,21 +18,27 @@ class Waiter:
         self.__start = start
         self.__run_history = run_history
 
-        # Mapping from run ID to (run, precos).  The latter is a list of 
-        # precos that have not yet been checked.  The first preco is blocking.
-        # Others may not have been checked yet.  The list is mutated as precos
+        # Mapping from run ID to (run, conds).  The latter is a list of 
+        # conds that have not yet been checked.  The first cond is blocking.
+        # Others may not have been checked yet.  The list is mutated as conds
         # are checked.
         self.__waiting = {}
 
 
-    def __check(self, run, precos):
+    def __check(self, run, conds):
         """
-        Checks `precos` for a blocker, removing those that check successfully.
+        Checks conditions for a blocker, starting from the front. 
+
+        On return, either `conds` is empty and the run is not blocked, or the
+        run is blocked on `conds[0]`.
+
+        :param conds:
+          A list of conditions; mutated.
         """
-        while len(precos) > 0:
-            if precos[0].check_runs(self.__runs):
+        while len(conds) > 0:
+            if conds[0].check_runs(self.__runs):
                 # Not blocking.
-                precos.pop(0)
+                conds.pop(0)
             else:
                 # Blocking.
                 break
@@ -264,30 +48,30 @@ class Waiter:
         """
         Starts `run`, unless it's blocked; if so, registers it to wait for.
         """
-        precos = list(run.precos)
-        self.__check(run, precos)
+        conds = list(run.conds)
+        self.__check(run, conds)
 
-        if len(precos) == 0:
+        if len(conds) == 0:
             # Ready to run.
             log.debug(f"starting: {run}")
             await self.__start(run)
 
         else:
-            # Blocked by a preco.
+            # Blocked by a cond.
             assert run.run_id not in self.__waiting
-            self.__run_history.info(run, f"waiting for {precos[0]}")
-            self.__waiting[run.run_id] = (run, precos)
+            self.__run_history.info(run, f"waiting for {conds[0]}")
+            self.__waiting[run.run_id] = (run, conds)
 
 
     async def __check_all(self):
         """
-        Checks precos on all waiting runs; starts any no longer blocked.
+        Checks conds on all waiting runs; starts any no longer blocked.
         """
-        for run_id, (run, precos) in list(self.__waiting.items()):
-            last_blocker = precos[0]
-            self.__check(run, precos)
+        for run_id, (run, conds) in list(self.__waiting.items()):
+            last_blocker = conds[0]
+            self.__check(run, conds)
 
-            if len(precos) == 0:
+            if len(conds) == 0:
                 # No longer blocked; ready to run.
                 self.__run_history.info(run, f"no longer waiting")
                 del self.__waiting[run.run_id]
@@ -295,9 +79,9 @@ class Waiter:
 
             else:
                 # Still blocked.
-                blocker = precos[0]
+                blocker = conds[0]
                 if blocker is not last_blocker:
-                    # Blocked by a new preco.
+                    # Blocked by a new cond.
                     self.__run_history.info(run, f"waiting for {blocker}")
 
 

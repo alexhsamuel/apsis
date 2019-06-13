@@ -6,7 +6,8 @@ import string
 import sys
 import yaml
 
-from   . import actions, waiter
+from   . import actions
+from   .cond import cond_to_jso, cond_from_jso
 from   .lib.json import to_array
 from   .lib.py import tupleize
 from   .program import program_from_jso, program_to_jso
@@ -34,7 +35,7 @@ class Reruns:
 
 class Job:
 
-    def __init__(self, job_id, params, schedules, program, precos=[],
+    def __init__(self, job_id, params, schedules, program, conds=[],
                  reruns=Reruns(), actions=[], *, meta={}, ad_hoc=False):
         """
         :param schedules:
@@ -49,7 +50,7 @@ class Job:
         self.params     = frozenset( str(p) for p in tupleize(params) )
         self.schedules  = tupleize(schedules)
         self.program    = program
-        self.precos     = tupleize(precos)
+        self.conds      = tupleize(conds)
         self.reruns     = reruns
         self.actions    = actions
         self.meta       = meta
@@ -108,8 +109,8 @@ def jso_to_job(jso, job_id):
         raise JobSpecificationError("missing program")
     program = program_from_jso(program)
 
-    precos = to_array(jso.pop("precondition", []))
-    precos = [ waiter.preco_from_jso(p) for p in precos ]
+    conds = to_array(jso.pop("condition", []))
+    conds = [ cond_from_jso(c) for c in conds ]
 
     acts = to_array(jso.pop("action", []))
     acts = [ actions.action_from_jso(a) for a in acts ]
@@ -127,7 +128,7 @@ def jso_to_job(jso, job_id):
 
     return Job(
         job_id, params, schedules, program,
-        precos  =precos,
+        conds   =conds,
         reruns  =reruns, 
         actions =acts,
         meta    =metadata,
@@ -141,7 +142,7 @@ def job_to_jso(job):
         "params"        : list(sorted(job.params)),
         "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : program_to_jso(job.program),
-        "precondition"  : [ waiter.preco_to_jso(p) for p in job.precos ],
+        "condition"     : [ cond_to_jso(c) for c in job.conds ],
         "action"        : [ actions.action_to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,

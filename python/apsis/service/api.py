@@ -6,13 +6,13 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
+from   apsis.cond import cond_to_jso
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
 from   .. import actions
 from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run, RunError
-from   ..waiter import preco_to_jso
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def _job_to_jso(app, job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
-        "precondition"  : [ preco_to_jso(p) for p in job.precos ],
+        "condition"     : [ cond_to_jso(c) for c in job.conds ],
         "actions"       : [ action_to_jso(app, a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
@@ -125,9 +125,9 @@ def run_to_jso(app, run, summary=False):
 
     if not summary:
         jso.update({
-            "precos":
-                None if run.precos is None 
-                else [ preco_to_jso(p) for p in run.precos ],
+            "conds":
+                None if run.conds is None 
+                else [ cond_to_jso(c) for c in run.conds ],
             "program":
                 None if run.program is None 
                 else program_to_jso(app, run.program),

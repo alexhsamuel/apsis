@@ -66,8 +66,8 @@ class Apsis:
             # Bind job attributes to the run.
             if run.program is None:
                 run.program = self.__get_program(run)
-            if run.precos is None:
-                run.precos = list(self.__get_precos(run))
+            if run.conds is None:
+                run.conds = list(self.__get_conds(run))
 
             if time is None:
                 self.run_history.record(
@@ -125,13 +125,13 @@ class Apsis:
         log.debug("Apsis instance ready")
 
 
-    def __get_precos(self, run):
+    def __get_conds(self, run):
         """
-        Constructs preconditions for a run, with arguments bound.
+        Constructs conditions for a run, with arguments bound.
         """
         # FIXME: Handle exceptions when binding.
         job = self.jobs.get_job(run.inst.job_id)
-        for cond in job.precos:
+        for cond in job.conds:
             try:
                 yield cond.bind(run, self.jobs)
             except Exception:
@@ -394,9 +394,9 @@ class Apsis:
         # Bind job attributes to the run.
         if run.program is None:
             run.program = self.__get_program(run)
-        if run.precos is None:
+        if run.conds is None:
             try:
-                run.precos = list(self.__get_precos(run))
+                run.conds = list(self.__get_conds(run))
             except Exception:
                 self._run_exc(run, message="invalid condition")
                 return run
