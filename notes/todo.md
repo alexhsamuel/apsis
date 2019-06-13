@@ -12,7 +12,6 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- pyyaml warning
 - --yaml output from clui
 - make startup rescheduling async
 - query runs by args

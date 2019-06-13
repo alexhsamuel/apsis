@@ -42,7 +42,7 @@ def load(path):
     else:
         path = Path(path)
         with open(path) as file:
-            cfg = yaml.load(file)
+            cfg = yaml.load(file, Loader=yaml.BaseLoader)
         return check(cfg, path.parent.absolute())
 
 
