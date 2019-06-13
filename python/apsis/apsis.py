@@ -6,6 +6,7 @@ import traceback
 
 from   . import actions
 from   .exc import ConditionError
+from   .history import RunHistory
 from   .jobs import Jobs
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
@@ -44,6 +45,7 @@ class Apsis:
         log.debug("creating Apsis instance")
         self.cfg = cfg
         self.__db = db
+        self.run_history = RunHistory(self.__db.run_history_db)
         self.jobs = Jobs(jobs, db.job_db)
         self.runs = Runs(db)
         log.info("scheduling runs")
@@ -64,7 +66,8 @@ class Apsis:
             if run.precos is None:
                 run.precos = list(self.__get_precos(run))
 
-            self.run_log(run, f"rescheduling: {run.run_id} for {time or 'now'}")
+            self.run_history.record(
+                run, f"rescheduling: {run.run_id} for {time or 'now'}")
 
             if time is None:
                 self.__waiter.wait_for(run)
@@ -108,7 +111,7 @@ class Apsis:
         log.info(f"reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
-            self.run_log(
+            self.run_history.record(
                 run, f"at startup, reconnecting to running {run.run_id}")
             future = run.program.reconnect(run.run_id, run.run_state)
             self.__finish(run, future)
@@ -152,7 +155,7 @@ class Apsis:
 
         except ProgramError as exc:
             # Program failed to start.
-            self.run_log_exc(run, "program start")
+            self.run_history.exc(run, "program start")
             self._transition(
                 run, run.STATE.error, 
                 meta    =exc.meta,
@@ -162,7 +165,7 @@ class Apsis:
 
         else:
             # Program started successfully.
-            self.run_info(run, "program started")
+            self.run_history.info(run, "program started")
             self._transition(run, run.STATE.running, **running.__dict__)
             future = asyncio.ensure_future(coro)
             self.__finish(run, future)
@@ -180,7 +183,7 @@ class Apsis:
 
             except ProgramFailure as exc:
                 # Program ran and failed.
-                self.run_log(run, f"program failure: {exc.message}")
+                self.run_history.record(run, f"program failure: {exc.message}")
                 self._transition(
                     run, run.STATE.failure, 
                     meta    =exc.meta,
@@ -190,7 +193,7 @@ class Apsis:
 
             except ProgramError as exc:
                 # Program failed to start.
-                self.run_log(run, f"program error: {exc.message}")
+                self.run_history.record(run, f"program error: {exc.message}")
                 self._transition(
                     run, run.STATE.error, 
                     meta    =exc.meta,
@@ -200,7 +203,7 @@ class Apsis:
 
             else:
                 # Program ran and completed successfully.
-                self.run_log(run, f"program success")
+                self.run_history.record(run, f"program success")
                 self._transition(
                     run, run.STATE.success,
                     meta    =success.meta,
@@ -257,7 +260,7 @@ class Apsis:
             job = self.jobs.get_job(job_id)
         except LookupError as exc:
             # Job is gone; can't get the actions.
-            self.run_error(run, exc)
+            self.run_history.error(run, exc)
         else:
             actions.extend(job.actions)
 
@@ -267,7 +270,7 @@ class Apsis:
             try:
                 await action(self, run)
             except Exception:
-                self.run_log_exc(run, "action")
+                self.run_history.exc(run, "action")
 
         for action in actions + self.__actions:
             # FIXME: Hold the future?  Or make sure it doesn't run for long?
@@ -280,7 +283,7 @@ class Apsis:
         """
         Transitions `run` to error, with the current exception attached.
         """
-        self.run_log_exc(run, message)
+        self.run_history.exc(run, message)
 
         outputs = {}
         if sys.exc_info()[0] is not None:
@@ -357,50 +360,6 @@ class Apsis:
         return runs.Instance(inst.job_id, args)
 
 
-    # --- run logging API ------------------------------------------------------
-
-    def run_log(self, run, message, *, timestamp=None):
-        """
-        Adds a timestamped history record to the history for `run`.
-
-        :param timestamp:
-          The time of the event; current time if none.
-        """
-        timestamp = now() if timestamp is None else timestamp
-
-        db = self.__db.run_history_db
-        if run.expected:
-            db.cache(run.run_id, timestamp, message)
-        else:
-            db.insert(run.run_id, timestamp, message)
-
-
-    def run_info(self, run, message):
-        message = str(message)
-        log.info(f"run {run.run_id}: {message}")
-        self.run_log(run, message)
-
-
-    def run_error(self, run, message):
-        log.error(f"run {run.run_id}: {message}")
-        self.run_log(run, "error: " + message)
-
-
-    def run_log_exc(self, run, message=None):
-        """
-        Logs an exception for `run`.
-        """
-        _, exc_msg, _ = sys.exc_info()
-
-        log_msg = f"run {run.run_id}"
-        if message is not None:
-            log_msg += ": " + str(message)
-        log_msg += ": " + str(exc_msg)
-        log.error(log_msg, exc_info=True)
-
-        self.run_log(run, f"error: {exc_msg}")
-
-
     # --- API ------------------------------------------------------------------
 
     async def schedule(self, time, run):
@@ -437,12 +396,12 @@ class Apsis:
                 return run
 
         if time is None:
-            self.run_info(run, "scheduling for immediate run")
+            self.run_history.info(run, "scheduling for immediate run")
             await self.__wait(run)
             return run
         else:
             self.scheduled.schedule(time, run)
-            self.run_info(run, f"scheduling for {time}")
+            self.run_history.info(run, f"scheduling for {time}")
             self._transition(run, run.STATE.scheduled, times=times)
             return run
 
@@ -454,7 +413,7 @@ class Apsis:
         Unschedules the run and sets it to the error state.
         """
         self.scheduled.unschedule(run)
-        self.run_info(run, "cancelled")
+        self.run_history.info(run, "cancelled")
         self._transition(run, run.STATE.error, message="cancelled")
 
 

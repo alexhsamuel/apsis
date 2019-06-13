@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 
 from   .lib.json import Typed, no_unexpected_keys
@@ -40,10 +39,6 @@ class Preco:
     """
     Precondition type.  For API illustration.
     """
-
-    def __str__(self):
-        return json.dumps(self.to_jso())
-
 
     def to_jso(self):
         pass
@@ -99,6 +94,14 @@ class MaxRunningPreco(Preco):
     def __repr__(self):
         return format_ctor(
             self, self.__count, job_id=self.__job_id, args=self.__args)
+
+
+    def __str__(self):
+        args = (
+            None if self.__args is None
+            else " ".join( f"{k}={v}" for k, v in self.__args.items() )
+        )
+        return f"max {self.__count} running {self.__job_id}({args})"
 
 
     def to_jso(self):
@@ -160,6 +163,12 @@ class Dependency(Preco):
 
     def __repr__(self):
         return format_ctor(self, self.job_id, self.args, states=self.states)
+
+
+    def __str__(self):
+        inst = Instance(self.job_id, self.args)
+        states = "|".join( s.name for s in self.states )
+        return f"dependency on {inst} → {states}"
 
 
     def to_jso(self):
