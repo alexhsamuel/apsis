@@ -149,6 +149,19 @@ def format_run(run):
     yield ""
 
 
+def format_run_history(run_history):
+    table = fixfmt.table.RowTable()
+    table.extend(
+        {
+            "timestamp": Time(h["timestamp"]),
+            "message": h["message"],
+        }
+        for h in run_history
+    )
+    table.fmts["timestamp"] = format_time
+    return table
+
+
 RUNS_CFG = fixfmt.table.update_cfg(fixfmt.table.RowTable.DEFAULT_CFG, {
     "header": {
         "separator": {

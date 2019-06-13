@@ -146,7 +146,7 @@ class ScheduledRuns:
             raise SystemExit(1)
 
 
-    def schedule(self, time: Time, run: Run):
+    async def schedule(self, time: Time, run: Run):
         """
         Schedule `run` to start at `time`.
 
@@ -156,7 +156,7 @@ class ScheduledRuns:
         if wait <= 0:
             # Job is current; start it now.
             log.info(f"run immediately: {time} {run.run_id}")
-            asyncio.ensure_future(self.__start_run(run))
+            await self.__start_run(run)
 
         else:
             # Put it onto the schedule heap.

@@ -59,10 +59,18 @@ class Apsis:
         # Actions applied to all runs.
         self.__actions = [ actions.action_from_jso(o) for o in cfg["actions"] ]
 
-        # FIXME: This should be async.
-        #        =====================
+        # Continue scheduling from the last time we handled scheduled jobs.
+        # FIXME: Rename: schedule horizon?
+        stop_time = db.clock_db.get_time()
+        log.info(f"scheduling runs from {stop_time}")
+        self.scheduler = Scheduler(self.jobs, self.schedule, stop_time)
 
-        def reschedule(run, time):
+
+    async def restore(self):
+        """
+        Restores scheduled, waiting, and running runs from DB.
+        """
+        async def reschedule(run, time):
             # Bind job attributes to the run.
             if run.program is None:
                 run.program = self.__get_program(run)
@@ -70,47 +78,25 @@ class Apsis:
                 run.conds = list(self.__get_conds(run))
 
             if time is None:
-                self.run_history.record(
-                    run, f"startup: restoring {run.run_id}: waiting")
-                # FIXME: No!  Make this async.
-                asyncio.ensure_future(self.__waiter.start(run))
+                self.run_history.info(run, f"restored: waiting")
+                await self.__waiter.start(run)
             else:
-                self.run_history.record(
-                    run, 
-                    f"startup: restoring {run.run_id}: scheduled for {time}")
-                self.scheduled.schedule(time, run)
+                self.run_history.info(run, f"restored: scheduled for {time}")
+                await self.scheduled.schedule(time, run)
 
         # Restore scheduled runs from DB.
         log.info("restoring scheduled runs")
         _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
         for run in scheduled_runs:
             assert not run.expected
-            reschedule(run, run.times["schedule"])
+            await reschedule(run, run.times["schedule"])
 
         # Restore waiting runs from DB.
         log.info("restoring waiting runs")
         _, waiting_runs = self.runs.query(state=Run.STATE.waiting)
         for run in waiting_runs:
             assert not run.expected
-            reschedule(run, None)
-
-        # Continue scheduling from the last time we handled scheduled jobs.
-        # FIXME: Rename: schedule horizon?
-        stop_time = db.clock_db.get_time()
-        log.info(f"scheduling runs from {stop_time}")
-        self.scheduler = Scheduler(self.jobs, self.schedule, stop_time)
-
-        # Set up the scheduler.
-        log.info("starting scheduler loop")
-        self.__scheduler_task = asyncio.ensure_future(self.scheduler.loop())
-
-        # Set up the manager for scheduled tasks.
-        log.info("starting scheduled loop")
-        self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
-
-        # Set up the waiter for waiting tasks.
-        log.info("scheduling waiter loop")
-        self.__waiter_task = asyncio.ensure_future(self.__waiter.loop())
+            await reschedule(run, None)
 
         # Reconnect to running runs.
         _, running_runs = self.runs.query(state=Run.STATE.running)
@@ -122,7 +108,19 @@ class Apsis:
             future = run.program.reconnect(run.run_id, run.run_state)
             self.__finish(run, future)
 
-        log.debug("Apsis instance ready")
+
+    def start_loops(self):
+        # Set up the scheduler.
+        log.info("starting scheduler loop")
+        self.__scheduler_task = asyncio.ensure_future(self.scheduler.loop())
+
+        # Set up the manager for scheduled tasks.
+        log.info("starting scheduled loop")
+        self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
+
+        # Set up the waiter for waiting tasks.
+        log.info("scheduling waiter loop")
+        self.__waiter_task = asyncio.ensure_future(self.__waiter.loop())
 
 
     def __get_conds(self, run):
@@ -406,9 +404,9 @@ class Apsis:
             await self.__wait(run)
             return run
         else:
-            self.scheduled.schedule(time, run)
             self.run_history.info(run, f"scheduling for {time}")
             self._transition(run, run.STATE.scheduled, times=times)
+            await self.scheduled.schedule(time, run)
             return run
 
 
