@@ -64,8 +64,7 @@ class Apsis:
             if run.precos is None:
                 run.precos = list(self.__get_precos(run))
 
-            self.run_log(
-                run.run_id, f"rescheduling: {run.run_id} for {time or 'now'}")
+            self.run_log(run, f"rescheduling: {run.run_id} for {time or 'now'}")
 
             if time is None:
                 self.__waiter.wait_for(run)
@@ -110,9 +109,7 @@ class Apsis:
         for run in running_runs:
             assert run.program is not None
             self.run_log(
-                run.run_id,
-                f"at startup, reconnecting to running {run.run_id}"
-            )
+                run, f"at startup, reconnecting to running {run.run_id}")
             future = run.program.reconnect(run.run_id, run.run_state)
             self.__finish(run, future)
 
@@ -183,7 +180,7 @@ class Apsis:
 
             except ProgramFailure as exc:
                 # Program ran and failed.
-                self.run_log(run.run_id, f"program failure: {exc.message}")
+                self.run_log(run, f"program failure: {exc.message}")
                 self._transition(
                     run, run.STATE.failure, 
                     meta    =exc.meta,
@@ -193,7 +190,7 @@ class Apsis:
 
             except ProgramError as exc:
                 # Program failed to start.
-                self.run_log(run.run_id, f"program error: {exc.message}")
+                self.run_log(run, f"program error: {exc.message}")
                 self._transition(
                     run, run.STATE.error, 
                     meta    =exc.meta,
@@ -203,7 +200,7 @@ class Apsis:
 
             else:
                 # Program ran and completed successfully.
-                self.run_log(run.run_id, f"program success")
+                self.run_log(run, f"program success")
                 self._transition(
                     run, run.STATE.success,
                     meta    =success.meta,
@@ -362,7 +359,7 @@ class Apsis:
 
     # --- run logging API ------------------------------------------------------
 
-    def run_log(self, run_id, message, *, timestamp=None):
+    def run_log(self, run, message, *, timestamp=None):
         """
         Adds a timestamped history record to the history for `run_id`.
 
@@ -370,24 +367,23 @@ class Apsis:
           The time of the event; current time if none.
         """
         timestamp = now() if timestamp is None else timestamp
-        _, run = self.runs.get(run_id)
 
         db = self.__db.run_history_db
         if run.expected:
-            db.cache(run_id, timestamp, message)
+            db.cache(run.run_id, timestamp, message)
         else:
-            db.insert(run_id, timestamp, message)
+            db.insert(run.run_id, timestamp, message)
 
 
     def run_info(self, run, message):
         message = str(message)
         log.info(f"run {run.run_id}: {message}")
-        self.run_log(run.run_id, message)
+        self.run_log(run, message)
 
 
     def run_error(self, run, message):
         log.error(f"run {run.run_id}: {message}")
-        self.run_log(run.run_id, "error: " + message)
+        self.run_log(run, "error: " + message)
 
 
     def run_log_exc(self, run, message=None):
@@ -402,7 +398,7 @@ class Apsis:
         log_msg += ": " + str(exc_msg)
         log.error(log_msg, exc_info=True)
 
-        self.run_log(run.run_id, f"error: {exc_msg}")
+        self.run_log(run, f"error: {exc_msg}")
 
 
     # --- API ------------------------------------------------------------------
