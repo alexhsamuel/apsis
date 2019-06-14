@@ -1,6 +1,6 @@
 from   apsis.jobs import Job
 from   apsis.runs import Instance
-from   apsis.waiter import Dependency
+from   apsis.cond.dependency import Dependency
 
 #-------------------------------------------------------------------------------
 
