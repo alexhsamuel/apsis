@@ -149,52 +149,46 @@ class Agent:
     # attempts is the number of delays.
     START_DELAYS = [ 0.5 * i**2 for i in range(6) ]
 
-    def __init__(self, host=None, user=None, *, connect=None, restart=False):
+    def __init__(self, host=None, user=None, *, connect=None):
         """
         :param host:
           Host to run on, or `None` for local.
         :param connect:
           If true, connect to a running instance only.  If false, fail if an 
           instance is already running.
-        :param restart:
-          If true, the client will attempt to start an agent automatically
-          whenever the agent cannot be reached.
         """
         self.__host     = host
         self.__user     = user
         self.__connect  = connect
-        self.__restart  = bool(restart)
 
-        self.__port     = None
-        self.__token    = None
+        self.__lock     = asyncio.Lock()
+        self.__conn     = None
 
 
     def __str__(self):
         return f"agent {self.__user}@{self.__host} on port {self.__port}"
 
 
-    @property
-    def addr(self):
+    async def connect(self, *, reconnect=False):
         """
-        The current host, port of the agent.
+        Attempts to start or connect to the agent.
 
-        The port is none if not currently connected.
+        :return:
+          The agent port and token.
         """
-        return self.__host, self.__port
+        async with self.__lock:
+            if reconnect or self.__conn is None:
+                self.__conn = await start_agent(
+                    host    =self.__host,
+                    user    =self.__user,
+                    connect =self.__connect,
+                )
+                log.info(f"agent connected: port={self.__conn[0]}")
+
+            return self.__conn
 
 
-    async def start(self):
-        """
-        Attempts to start the agent.
-        """
-        self.__port, self.__token = await start_agent(
-            host=self.__host, user=self.__user, connect=self.__connect)
-
-        log.info(f"agent started: port={self.__port}")
-        return self
-
-
-    async def request(self, method, endpoint, data=None):
+    async def request(self, method, endpoint, data=None, *, restart=False):
         """
         Performs an HTTP request to the agent.
 
@@ -204,24 +198,25 @@ class Agent:
           API endpoint path fragment.
         :param data:
           Payload data, to send as JSON.
+        :param restart:
+          If true, the client will attempt to start an agent automatically
+          if the agent conenction fails.
         :return:
           The response.
         """
-        if self.__port is None or self.__token is None:
-            if self.__restart:
-                await self.start()
-            else:
-                raise NoAgentError(self.__host, self.__user)
-
-        url_host = if_none(self.__host, "localhost")
-        url = f"https://{url_host}:{self.__port}/api/v1" + endpoint
-        log.debug(f"{method} {url}")
-
         # FIXME: Use async requests.
 
-        for delay in self.START_DELAYS:
+        # Delays in sec before each attempt to connect.
+        delays = self.START_DELAYS if restart else [0]
+
+        for delay in delays:
             if delay > 0:
                 await asyncio.sleep(delay)
+
+            port, token = await self.connect()
+            url_host = if_none(self.__host, "localhost")
+            url = f"https://{url_host}:{port}/api/v1" + endpoint
+
             try:
                 # FIXME: For now, we use no server verification when
                 # establishing the TLS connection to the agent.  The agent uses
@@ -235,21 +230,21 @@ class Agent:
                     rsp = requests.request(method, url, json=data, verify=False)
 
             except requests.ConnectionError:
-                self.__port = self.__token = None
-                if self.__restart:
-                    await self.start()
-                    await asyncio.sleep(delay)
-                else:
-                    raise NoAgentError(self.__host, self.__user)
+                # Try again.
+                log.debug(f"{method} {url} → connection error")
+                # FIXME: Do this properly.
+                async with self.__lock:
+                    self.__conn = None
+                continue
+
             else:
                 # Request submitted successfully.
-                break
+                log.debug(f"{method} {url} → {rsp.status_code}")
+                return rsp
 
         else:
-            raise RuntimeError(f"failed to start agent after {len(self.START_DELAYS)} tries")
-
-        log.debug(f"{method} {url} → {rsp.status_code}")
-        return rsp
+            # Ran out of connection attempts.
+            raise NoAgentError(self.__host, self.__user)
 
 
     async def is_running(self):
@@ -268,7 +263,8 @@ class Agent:
         return rsp.json()["processes"]
 
 
-    async def start_process(self, argv, cwd="/", env=None, stdin=None):
+    async def start_process(
+            self, argv, cwd="/", env=None, stdin=None, restart=False):
         """
         Starts a process.
 
@@ -284,16 +280,18 @@ class Agent:
                     "stdin" : stdin,
                 },
             },
+            restart=restart
         )
         rsp.raise_for_status()
         return rsp.json()["process"]
 
 
-    async def get_process(self, proc_id):
+    async def get_process(self, proc_id, *, restart=False):
         """
         Returns inuformation about a process.
         """
-        rsp = await self.request("GET", f"/processes/{proc_id}")
+        rsp = await self.request(
+            "GET", f"/processes/{proc_id}", restart=restart)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
         rsp.raise_for_status()

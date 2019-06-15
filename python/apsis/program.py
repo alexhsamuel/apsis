@@ -6,7 +6,7 @@ from   pathlib import Path
 import socket
 import traceback
 
-from   .agent.client import Agent, NoSuchProcessError, AgentStartError
+from   .agent.client import Agent, NoSuchProcessError
 from   .lib.json import Typed, no_unexpected_keys
 from   .lib.py import or_none
 from   .runs import template_expand, join_args
@@ -255,9 +255,7 @@ class ShellCommandProgram(ProcessProgram):
 
 @functools.lru_cache(maxsize=None)
 def _get_agent(host, user):
-    agent = Agent(host=host, user=user, restart=True)
-    agent = asyncio.ensure_future(agent.start())
-    return agent
+    return Agent(host=host, user=user)
 
 
 class AgentProgram:
@@ -311,8 +309,8 @@ class AgentProgram:
         }
 
         try:
-            agent = await self.__get_agent()
-            proc = await agent.start_process(argv)
+            agent = self.__get_agent()
+            proc = await agent.start_process(argv, restart=True)
 
         except Exception as exc:
             log.error("failed to start process", exc_info=True)
@@ -350,17 +348,14 @@ class AgentProgram:
 
     async def wait(self, run_id, run_state):
         proc_id = run_state["proc_id"]
-        try:
-            agent = await self.__get_agent()
-        except AgentStartError as exc:
-            raise ProgramError(f"agent start failed: {exc}")
+        agent = self.__get_agent()
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
         while True:
             log.debug(f"polling proc: {proc_id}")
             try:
-                proc = await agent.get_process(proc_id)
+                proc = await agent.get_process(proc_id, restart=True)
             except NoSuchProcessError:
                 # Agent doens't know about this process anymore.
                 raise ProgramError(f"program lost: {run_id}")

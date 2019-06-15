@@ -74,8 +74,7 @@ cmd = commands.add_parser("clean")
 cmd.set_defaults(cmd="clean")
 
 args = parser.parse_args()
-agent = Agent(
-    host=args.host, user=args.user, restart=False, connect=args.connect)
+agent = Agent(host=args.host, user=args.user, connect=args.connect)
 try:
     sync(agent.start())
 except RuntimeError as exc:
@@ -100,7 +99,7 @@ elif args.cmd == "clean":
 
 try:
     result = sync(result)
-except RuntimeError as exc:
+except RuntimeError:
     logging.error(f"{args.cmd} failed", exc_info=True)
 else:
     try:
