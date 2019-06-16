@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from   pathlib import Path
 import sanic
@@ -123,19 +124,12 @@ async def process_signal(req, proc_id, signum):
     return response({})
 
 
-def _stop(app):
-    # FIXME: This changed from returning a coro to returning None.
-    res = app.stop()
-    if res is not None:
-        app.add_task(res)
-
-
 @API.route("/processes/<proc_id>", methods={"DELETE"})
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
-    stop = req.app.config.auto_stop and len(req.app.processes) == 0
+    stop = len(req.app.processes) == 0 and req.app.config.auto_stop is not None
     if stop:
-        _stop(req.app)
+        _schedule_auto_stop(req.app, req.app.config.auto_stop)
     return response({"stop": stop})
 
 
@@ -146,5 +140,40 @@ async def process_stop(req):
     if stop:
         _stop(req.app)
     return response({"stop": stop})
+
+
+#-------------------------------------------------------------------------------
+
+def _stop(app):
+    res = app.stop()
+    assert res is None, "old sanic used to return a coro here"
+
+
+_auto_stop_task = None
+
+def _schedule_auto_stop(app, delay):
+    """
+    Schedule `app` stop after `delay` sec, if there are no processes left.
+    """
+    global _auto_stop_task
+
+    # Cancel any existing auto stop task.
+    if _auto_stop_task is not None:
+        _auto_stop_task.cancel()
+        _auto_stop_task = None
+
+    async def _stop():
+        if delay > 0:
+            log.info(f"auto stop in {delay} s")
+            try:
+                await asyncio.sleep(delay)
+            except asyncio.CancelledError:
+                return
+
+        if len(app.processes) == 0:
+            log.info("no processes left; stopping")
+            app.stop()
+
+    _auto_stop_task = asyncio.ensure_future(_stop())
 
 

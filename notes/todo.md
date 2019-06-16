@@ -14,7 +14,11 @@ instance.  The run objects would become mucb more active.
 
 - --yaml output from clui
 - query runs by args
-- add/increase agent shutdown timeout
+
+- agent cleanup
+  - add endpoint to kill a process
+  - add endpoint to forefully shut down
+  - automatically clean up abandoned processes after a certain time
 
 - send debug log to file, from config
 

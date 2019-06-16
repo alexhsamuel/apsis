@@ -160,15 +160,13 @@ def main():
     parser.add_argument(
         "--no-stop", action="store_true", default=False,
         help="don't stop automatically after last process")
+    parser.add_argument(
+        "--stop-time", metavar="SECS", default=3600,
+        help="wait SECS after last process before stopping [def: 3600]")
     args = parser.parse_args()
 
     state_dir = get_state_dir()
     logging.debug(f"using dir: {state_dir}")
-
-    port, sock = make_server_socket(
-        args.bind, range(DEFAULT_PORT, DEFAULT_PORT + 100))
-    token = secrets.token_urlsafe()
-    pid_data = encode_pid_data(port, token)
 
     pid_file = PidFile(state_dir / "pid")
     logging.info(state_dir / "pid")
@@ -181,6 +179,11 @@ def main():
             print("agent not running", file=sys.stderr)
             raise SystemExit(1)
 
+        port, sock = make_server_socket(
+            args.bind, range(DEFAULT_PORT, DEFAULT_PORT + 100))
+        token = secrets.token_urlsafe()
+        pid_data = encode_pid_data(port, token)
+
         # Print the port and token for the client to grab.
         print(pid_data)
         sys.stdout.flush()
@@ -192,7 +195,7 @@ def main():
         # Start the agent.
         app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
         app.config.LOGO = None
-        app.config.auto_stop = not args.no_stop
+        app.config.auto_stop = None if args.no_stop else args.stop_time
         app.blueprint(API, url_prefix="/api/v1")
 
         app.processes = Processes(state_dir)
