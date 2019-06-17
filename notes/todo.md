@@ -23,9 +23,8 @@ instance.  The run objects would become mucb more active.
 - send debug log to file, from config
 
 - handle more runs
-  - only load runs in a given time window
   - retire old runs from memory
-  - query for older runs
+  - query db for older runs instead of holding them in memory (not possible?)
   - in job view, include time limitation
 
 - remove actions from run summary?

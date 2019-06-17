@@ -261,11 +261,14 @@ class Runs:
     # FIXME: For now, we cache all runs in memory.  At some point, we'll need
     # to start retiring older runs.
 
-    def __init__(self, db):
+    def __init__(self, db, *, min_timestamp):
         self.__run_db = db.run_db
 
         # Populate cache from database.  
-        self.__runs = { r.run_id: r for r in self.__run_db.query() }
+        self.__runs = { 
+            r.run_id: r
+            for r in self.__run_db.query(min_timestamp=min_timestamp)
+        }
 
         # Figure out where to start run IDs.
         next_run_id = db.get_max_run_id_num() + 1

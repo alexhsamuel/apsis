@@ -47,7 +47,15 @@ class Apsis:
         self.__db = db
         self.run_history = RunHistory(self.__db.run_history_db)
         self.jobs = Jobs(jobs, db.job_db)
-        self.runs = Runs(db)
+
+        try:
+            runs_lookback = cfg["runs_lookback"]
+        except KeyError:
+            min_timestamp = None
+        else:
+            min_timestamp = now() - runs_lookback
+        self.runs = Runs(db, min_timestamp=min_timestamp)
+
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
         self.__waiter = Waiter(self.runs, self.__start, self.run_history)
