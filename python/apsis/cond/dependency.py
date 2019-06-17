@@ -60,18 +60,17 @@ class Dependency(Condition):
     # FIXME: Handle exceptions when checking.
 
     def check_runs(self, runs):
-        # FIXME: Support query by args.
-        # FIXME: Support query by multiple states.
-        for state in self.states:
-            _, deps = runs.query(job_id=self.job_id, state=state)
-            for dep in deps:
-                if dep.inst.args == self.args:
-                    log.debug(f"dep satisfied: {dep}")
-                    return True
-        else:
+        _, deps = runs.query(
+            job_id=self.job_id, args=self.args, state=self.states)
+        try:
+            dep = next(deps)
+        except StopIteration:
             inst = Instance(self.job_id, self.args)
             log.debug(f"dep not satisified: {inst}")
             return False
+        else:
+            log.debug(f"dep satisfied: {dep}")
+            return True
 
 
 

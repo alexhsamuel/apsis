@@ -13,7 +13,7 @@ instance.  The run objects would become mucb more active.
 # Current
 
 - --yaml output from clui
-- query runs by args
+- check token in agent protocol
 
 - agent cleanup
   - add endpoint to kill a process

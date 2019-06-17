@@ -8,7 +8,7 @@ from   ora import now, Time
 import shlex
 
 from   .lib.memo import memoize
-from   .lib.py import format_ctor
+from   .lib.py import format_ctor, iterize
 
 log = logging.getLogger(__name__)
 
@@ -328,11 +328,18 @@ class Runs:
 
 
     def query(self, *, run_ids=None, job_id=None, state=None, rerun=None, 
-              since=None, until=None, reruns=True):
+              since=None, until=None, reruns=True, args=None, with_args=None):
         """
+        :param state:
+          Lkimits results to runs in the specified state(s).
         :param reruns:
           If true, include all reruns; otherwise, includes only the latest run
           in each rerun group.
+        :param args:
+          Limits results to runs with exactly the specified args.
+        :param with_args:
+          Limits results to runs with the specified args.  Runs may include
+          other args not explicitly given.
         """
         if run_ids is None:
             runs = self.__runs.values()
@@ -343,13 +350,24 @@ class Runs:
         if job_id is not None:
             runs = ( r for r in runs if r.inst.job_id == job_id )
         if state is not None:
-            runs = ( r for r in runs if r.state == state )
+            states = set(iterize(state))
+            runs = ( r for r in runs if r.state in states )
         if rerun is not None:
             runs = ( r for r in runs if r.rerun == rerun )
         if since is not None:
             runs = ( r for r in runs if r.timestamp >= since )
         if until is not None:
             runs = ( r for r in runs if r.timestamp < until )
+        if args is not None:
+            runs = ( r for r in runs if r.inst.args == args )
+        if with_args is not None:
+            runs = (
+                r for r in runs
+                if all(
+                        r.inst.args.get(k, None) == v
+                        for k, v in with_args.items()
+                )
+            )
 
         if not reruns:
             # FIXME: Make this more efficient.
