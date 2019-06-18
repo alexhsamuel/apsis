@@ -12,13 +12,13 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- --yaml output from clui
 - check token in agent protocol
 
 - agent cleanup
   - add endpoint to kill a process
   - add endpoint to forefully shut down
   - automatically clean up abandoned processes after a certain time
+  - occasionally poll childen explicitly, to catch silently died processes
 
 - send debug log to file, from config
 
@@ -28,9 +28,6 @@ instance.  The run objects would become mucb more active.
   - in job view, include time limitation
 
 - remove actions from run summary?
-
-- apsis-agent should occasionally poll its childen explicitly
-  (to avoid a state where it waits forever)
 
 - check out: FastAPI, uvicorn, Starlett
 

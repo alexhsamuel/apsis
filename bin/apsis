@@ -5,6 +5,7 @@ import logging
 from   ora import now
 import random
 import sys
+import yaml
 
 from   apsis.cmdline import format_job, format_jobs, format_run, format_runs, \
                             format_run_history
@@ -18,6 +19,21 @@ import apsis.service.client
 
 apsis.lib.logging.configure()
 log = logging.getLogger(__name__)
+
+#-------------------------------------------------------------------------------
+
+def add_dump_format_option(parser):
+    parser.add_argument(
+        "--format", metavar="FMT", default=None, choices={"json", "yaml"},
+        help="write as FMT [json, yaml]")
+
+
+def dump_format(obj, format):
+    if format == "json":
+        json.dump(obj, sys.stdout, indent=2)
+    elif format == "yaml":
+        yaml.dump(obj, sys.stdout)
+
 
 #-------------------------------------------------------------------------------
 # top-level argument parser
@@ -60,10 +76,10 @@ cmd.add_argument(
 
 def cmd_history(client, args):
     run_history = client.get_history(args.run_id)
-    if args.json:
-        json.dump(run_history, sys.stdout, indent=2)
-    else:
+    if args.format is None:
         print_lines(format_run_history(run_history))
+    else:
+        dump_format(run_history, args.format)
 
 
 cmd = parser.add_command(
@@ -71,20 +87,17 @@ cmd = parser.add_command(
     description="Shows history for a run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID")
-cmd.add_argument(
-    "--json", action="store_true", default=False,
-    help="dump run history as JSON")
+add_dump_format_option(cmd)
         
-
 #--- command: job --------------------------------------------------------------
 
 def cmd_job(client, args):
     job_id = args.job  # FIXME
     job = client.get_job(job_id)
-    if args.json:
-        json.dump(job, sys.stdout, indent=2)
-    else:
+    if args.format is None:
         print_lines(format_job(job))
+    else:
+        dump_format(job, args.format)
 
 
 cmd = parser.add_command(
@@ -93,9 +106,7 @@ cmd = parser.add_command(
 cmd.add_argument(
     "job", metavar="JOB-ID",
     help="display job with JOB-ID")
-cmd.add_argument(
-    "--json", action="store_true", default=False,
-    help="dump run as JSON")
+add_dump_format_option(cmd)
 
 #--- command: jobs -------------------------------------------------------------
 
@@ -127,10 +138,10 @@ cmd.add_argument(
 
 def cmd_rerun(client, arg):
     run = client.rerun(arg.run_id)
-    if args.json:
-        json.dump(run, sys.stdout, indent=2)
-    else:
+    if args.format is None:
         print_lines(format_run(run))
+    else:
+        dump_format(run, args.format)
 
 
 cmd = parser.add_command(
@@ -138,19 +149,17 @@ cmd = parser.add_command(
     description="Reruns a failed (or error) run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID")
-cmd.add_argument(
-    "--json", action="store_true", default=False,
-    help="dump run as JSON")
+add_dump_format_option(cmd)
 
 #--- command: run --------------------------------------------------------------
 
 def cmd_run(client, args):
     for run_id in args.run_id:
         run = client.get_run(run_id)
-        if args.json:
-            json.dump(run, sys.stdout, indent=2)
-        else:
+        if args.format is None:
             print_lines(format_run(run))
+        else:
+            dump_format(run, args.format)
 
 
 cmd = parser.add_command(
@@ -158,9 +167,7 @@ cmd = parser.add_command(
     description="Displays a run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID", nargs="+")
-cmd.add_argument(
-    "--json", action="store_true", default=False,
-    help="dump run as JSON")
+add_dump_format_option(cmd)
 
 #--- command: runs -------------------------------------------------------------
 
@@ -172,13 +179,13 @@ def cmd_runs(client, arg):
         # FIXME: times
     )
 
-    if args.json:
-        json.dump(runs, sys.stdout, indent=2)
-    elif args.summary:
+    if args.summary:
         for run in runs.values():
             print_lines(format_run(run))
-    else:
+    elif args.format is None:
         print_lines(format_runs(runs, reruns=args.reruns))
+    else:
+        dump_format(runs, args.format)
 
 
 cmd = parser.add_command(
@@ -202,9 +209,7 @@ grp = cmd.add_mutually_exclusive_group()
 grp.add_argument(
     "--summary", action="store_true", default=False,
     help="summarize each run")
-grp.add_argument(
-    "--json", action="store_true", default=False,
-    help="output as JSON")
+add_dump_format_option(grp)
 
 #--- command: schedule ---------------------------------------------------------
 
