@@ -83,7 +83,11 @@ class Apsis:
             if run.program is None:
                 run.program = self.__get_program(run)
             if run.conds is None:
-                run.conds = list(self.__get_conds(run))
+                try:
+                    run.conds = list(self.__get_conds(run))
+                except Exception:
+                    self._run_exc(run, message="invalid condition")
+                    return
 
             if time is None:
                 self.run_history.info(run, f"restored: waiting")
@@ -135,7 +139,6 @@ class Apsis:
         """
         Constructs conditions for a run, with arguments bound.
         """
-        # FIXME: Handle exceptions when binding.
         job = self.jobs.get_job(run.inst.job_id)
         for cond in job.conds:
             try:
