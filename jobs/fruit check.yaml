@@ -1,0 +1,28 @@
+params: [fruit]
+bulk_params: [fruit]
+
+program: 
+  type: shell
+  command: sleep $(jot -r 1 1 10); echo {{ fruit }} wuz here.
+  host: localhost
+
+schedule:
+- type: interval
+  args: {fruit: "apple"}
+  interval: 60
+- type: interval
+  args: {fruit: "pear"}
+  interval: 60
+- type: interval
+  args: {fruit: "banana"}
+  interval: 60
+- type: interval
+  args: {fruit: "peach"}
+  interval: 120
+- type: interval
+  args: {fruit: "mango"}
+  interval: 90
+- type: interval
+  args: {fruit: "apricot"}
+  interval: 60
+
