@@ -342,14 +342,24 @@ async def websocket_runs(request, ws):
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.  Not sure how to do this.  ws.ping()
             # with a timeout doesn't appear to work.
-            next_runs = await queue.get()
-            if next_runs is None:
+            next_runs = [await queue.get()]
+            # Drain the queue.
+            while True:
+                try:
+                    next_runs.append(queue.get_nowait())
+                except asyncio.QueueEmpty:
+                    break
+
+            if any( r is None for r in next_runs ):
                 # Signalled to shut down.
                 await ws.close()
                 break
 
-            when, runs = next_runs
+            when = next_runs[-1][0]
+            assert all( w <= when for w, _ in next_runs )
+            runs = apsis.lib.itr.chain.from_iterable( r for _, r in next_runs )
             runs = _filter_runs(runs, request.args)
+
             # Break large sets into chunks, to avoid block for too long.
             chunks = list(apsis.lib.itr.chunks(runs, WS_RUN_CHUNK))
             if len(chunks) == 0:

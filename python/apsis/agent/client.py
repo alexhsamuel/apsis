@@ -183,7 +183,9 @@ class Agent:
                     user    =self.__user,
                     connect =self.__connect,
                 )
-                log.info(f"agent connected: port={self.__conn[0]}")
+                log.info(
+                    f"agent host={self.__host} user={self.__user} connected: "
+                    f"port={self.__conn[0]}")
 
             return self.__conn
 
