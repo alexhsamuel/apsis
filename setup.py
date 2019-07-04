@@ -38,6 +38,7 @@ setuptools.setup(
     packages        =[
         "apsis", 
         "apsis.agent", 
+        "apsis.cond",
         "apsis.lib", 
         "apsis.lib.itr", 
         "apsis.service",
