@@ -160,9 +160,9 @@ export default {
           'error': 'C',
       }
 
-      function instanceKey(run) {
-        // Assume args are in order.
-        return run.job_id + '\0' + Object.values(run.args).join('\0')
+      function key(run) {
+        return run.run_group
+          || (run.job_id + '\0' + Object.values(run.args).join('\0'))
       }
 
       function groupKey(run) {
@@ -171,7 +171,7 @@ export default {
           // Blocked and running runs are never grouped.
           (sgrp === 'B' || sgrp === 'R') ? run.run_id
           // Runs in other state are grouped by instance.
-          : instanceKey(run)
+          : key(run)
         )
       }
 
@@ -202,6 +202,7 @@ export default {
 
       // Sort groups by time of the principal run.
       groups = sortBy(groups, g => sortTime(g.run))
+      console.log('num groups:', groups.length)
 
       return groups
     },
