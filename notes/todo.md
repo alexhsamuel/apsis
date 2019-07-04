@@ -7,10 +7,17 @@ might not have to reach back and call Apsis methods to transition runs; instead
 they would just return instructions and Apsis would do the work.
 
 Maybe we should just bite our tounges and attach the apsis object to each run
-instance.  The run objects would become mucb more active.
+instance.  The run objects would become much more active.
 
 
 # Current
+
+- run group needs to go in the RunDB (it can't be recomputed on load because
+  the job may no longer be available)
+
+- job subdirectories
+  - hierarchical list in web UI
+  - search in web UI
 
 - check token in agent protocol
 

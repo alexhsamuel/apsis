@@ -368,6 +368,9 @@ class Apsis:
         if extra:
             raise ExtraArgumentError(run, *extra)
 
+        # Populate the run group.
+        run.run_group = runs.get_run_group(job, run)
+
 
     def _propagate_args(self, old_args, inst):
         job = self.jobs.get_job(inst.job_id)

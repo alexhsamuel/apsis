@@ -176,6 +176,7 @@ class Run:
         # State information specific to the program, for a running run.
         self.run_state  = None
 
+        self.run_group  = None  # populated later
         self.rerun      = rerun
 
         # Cached summary JSO object.
@@ -243,6 +244,26 @@ def get_bind_args(run):
         "job_id": run.inst.job_id,
         **run.inst.args,
     }    
+
+
+def get_run_group(job, run):
+    """
+    Constructs the run group for `run`.
+
+    The run key is used by UIs for grouping runs together.
+    """
+    assert job.job_id == run.inst.job_id
+    return (
+        run.run_id if job.bulk_params is None
+        else "\0".join([
+            job.job_id,
+            *[
+                v
+                for p, v in run.inst.args.items()
+                if p in job.bulk_params
+            ]
+        ])
+    )
 
 
 #-------------------------------------------------------------------------------

@@ -35,8 +35,10 @@ class Reruns:
 
 class Job:
 
-    def __init__(self, job_id, params, schedules, program, conds=[],
-                 reruns=Reruns(), actions=[], *, meta={}, ad_hoc=False):
+    def __init__(
+            self, job_id, params, schedules, program, conds=[],
+            reruns=Reruns(), actions=[], bulk_params=None, *, 
+            meta={}, ad_hoc=False):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
@@ -46,13 +48,20 @@ class Job:
         :param meta:
           Dict of metadata.  Must be JSON-serlializable.
         """
+        params = frozenset( str(p) for p in tupleize(params) )
+
+        if bulk_params is not None:
+            bulk_params = frozenset( str(p) for p in tupleize(bulk_params) )
+            assert all( p in params for p in bulk_params )
+
         self.job_id     = None if job_id is None else str(job_id)
-        self.params     = frozenset( str(p) for p in tupleize(params) )
+        self.params     = params
         self.schedules  = tupleize(schedules)
         self.program    = program
         self.conds      = tupleize(conds)
         self.reruns     = reruns
         self.actions    = actions
+        self.bulk_params= bulk_params
         self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
 
@@ -120,6 +129,7 @@ def jso_to_job(jso, job_id):
     acts.extend([ actions.successor_from_jso(s) for s in sucs ])
 
     reruns      = jso_to_reruns(jso.pop("reruns", {}))
+    bulk_params = jso.pop("bulk_params", None)
     metadata    = jso.pop("metadata", {})
     ad_hoc      = jso.pop("ad_hoc", False)
 
@@ -128,11 +138,12 @@ def jso_to_job(jso, job_id):
 
     return Job(
         job_id, params, schedules, program,
-        conds   =conds,
-        reruns  =reruns, 
-        actions =acts,
-        meta    =metadata,
-        ad_hoc  =ad_hoc,
+        conds       =conds,
+        reruns      =reruns, 
+        actions     =acts,
+        bulk_params =bulk_params,
+        meta        =metadata,
+        ad_hoc      =ad_hoc,
     )
 
 
@@ -145,6 +156,8 @@ def job_to_jso(job):
         "condition"     : [ cond_to_jso(c) for c in job.conds ],
         "action"        : [ actions.action_to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
+        "bulk_params"   : None if job.bulk_params is None
+                          else list(sorted(job.bulk_params)),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
     }
