@@ -160,7 +160,7 @@ def _output_metadata_to_jso(app, run_id, outputs):
 #-------------------------------------------------------------------------------
 # Jobs
 
-@API.route("/jobs/<job_id>")
+@API.route("/jobs/<job_id:path>")
 async def job(request, job_id):
     try:
         job = request.app.apsis.jobs.get_job(unquote(job_id))
@@ -169,7 +169,7 @@ async def job(request, job_id):
     return response_json(job_to_jso(request.app, job))
 
 
-@API.route("/jobs/<job_id>/runs")
+@API.route("/jobs/<job_id:path>/runs")
 async def job_runs(request, job_id):
     when, runs = request.app.apsis.runs.query(job_id=unquote(job_id))
     jso = runs_to_jso(request.app, when, runs)
