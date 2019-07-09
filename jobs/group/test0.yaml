@@ -1,0 +1,12 @@
+params: [date, message]
+
+schedule:
+  args: {message: "Hello, world!"}
+  tz: US/Eastern
+  daytime: 
+  - "09:50:00"
+  - "09:30:00"
+  - "12:00:00"
+
+program: "echo '{{ message }}' on {{ date }}"
+
