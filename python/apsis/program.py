@@ -1,8 +1,9 @@
 import asyncio
 import functools
-import getpass
 import logging
+import os
 from   pathlib import Path
+import pwd
 import socket
 import traceback
 
@@ -176,7 +177,7 @@ class ProcessProgram:
 
         meta = {
             "hostname"  : socket.gethostname(),
-            "username"  : getpass.getuser(),
+            "username"  : pwd.getpwuid(os.getuid()).pw_name,
         }
 
         try:
@@ -302,10 +303,9 @@ class AgentProgram:
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
-        # FIXME: Factor out, or move to agent.
         meta = {
-            "hostname"  : socket.gethostname(),
-            "username"  : getpass.getuser(),
+            "apsis_hostname"  : socket.gethostname(),
+            "apsis_username"  : pwd.getpwuid(os.getuid()).pw_name,
         }
 
         try:

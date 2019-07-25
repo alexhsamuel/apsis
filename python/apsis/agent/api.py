@@ -1,6 +1,8 @@
 import asyncio
 import logging
+import os
 from   pathlib import Path
+import pwd
 import sanic
 import socket
 import traceback
@@ -58,6 +60,7 @@ def proc_to_jso(proc):
         "start_time": None if proc.start_time is None else str(proc.start_time),
         "end_time"  : None if proc.end_time is None else str(proc.end_time),
         "hostname"  : socket.gethostname(),
+        "username"  : pwd.getpwuid(os.getuid()).pw_name,
     }
 
 
