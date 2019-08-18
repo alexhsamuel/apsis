@@ -18,6 +18,8 @@ div
       v-on:input="setStates($event)"
     )
 
+  input(:value="path")
+
   //- The table of runs.
   RunsList.uk-margin-bottom(
     :p="+this.$route.query.p - 1 || 0"
@@ -51,6 +53,10 @@ export default {
   },
 
   computed: {
+    path() {
+      return runsFilter.PathTerm.get(this.query)
+    },
+
     since() {
       // Extract since from the query.
       return runsFilter.SinceTerm.get(this.query)

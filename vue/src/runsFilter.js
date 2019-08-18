@@ -85,6 +85,27 @@ export class StateTerm {
 
 // -----------------------------------------------------------------------------
 
+export class PathTerm {
+  constructor(path) {
+    this.path = path
+  }
+
+  toString() {
+    return this.path
+  }
+
+  get predicate() {
+    return run => run.job_id.startsWith(this.path + '/')
+  }
+
+  static get(query) {
+    const terms = filter(map(splitQuoted(query), parse), t => t instanceof PathTerm)
+    return terms.length === 0 ? '' : terms[0].path
+  }
+}
+
+// -----------------------------------------------------------------------------
+
 class ArgTerm {
   constructor(arg, val) {
     this.arg = arg
@@ -185,6 +206,9 @@ function parse(part) {
     const val = part.substr(eqx + 1)
     return new ArgTerm(arg, val)
   }
+  else if (part.startsWith('/'))
+    // Found a '/path'.  Match the subpath.
+    return new PathTerm(part.substr(1))
   else
     // Just a keyword.  Search in job id.
     return new JobNameTerm(part)
