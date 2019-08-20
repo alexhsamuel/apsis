@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  table.runlist
+  table.widetable.runlist
     colgroup
       col(style="width: 10rem")
       col(style="width: 10rem")
@@ -16,6 +16,7 @@ div
       tr
         td(colspan=2 style="padding-left: 14px;")
           | {{ runs.length }} Runs
+          span(v-if="path")  in {{ path }}
         td(colspan=2)
           Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
         td(colspan=5)
@@ -214,6 +215,10 @@ export default {
       return this.pageSize ? this.groups.slice(this.pageStart, this.pageEnd) : this.groups
     },
 
+    path() {
+      return runsFilter.PathTerm.get(this.query)
+    },
+
   },
 
   methods: {
@@ -249,48 +254,6 @@ export default {
 
 <style lang="scss">
 table.runlist {
-  width: 100%;
-  border-spacing: 0;
-  border-collapse: collapse;
-
-  th, td {
-    &:first-child {
-      padding-left: 12px;
-    }
-    &:last-child {
-      padding-right: 12px;
-    }
-  }
-
-  thead {
-    background-color: #f6faf8;
-    tr {
-      border: 1px solid #e1e8e4;
-    }
-    td, th {
-      font-weight: normal;
-      padding: 12px 4px;
-    }
-  }
-
-  tbody tr {
-    border: 1px solid #e1e8e4;
-    &:not(:last-child) {
-      border-bottom: none;
-    }
-    border-radius: 3px;
-    overflow: auto;
-    &.run-group-next {
-      border-top: none;
-    }
-    &:hover {
-      background-color: #fafafa;
-    }
-    td {
-      padding: 4px 4px 5px 4px;
-    }
-  }
-
   .col-job, .col-args, .col-schedule-time, .col-start-time {
     text-align: left;
   }

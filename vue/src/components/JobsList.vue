@@ -3,19 +3,31 @@ div
   .row.head
     | {{ jobs.length }} Jobs
 
-  .row.job(
-    v-for="job in jobs"
-    :key="job.job_id"
-  )
-    .schedule: ul
-      li(v-for="(schedule, idx) in job.schedules" :key="idx")
-        span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
+  table.widetable.joblist
+    thead
+      tr
+        th Job
+        th Description
+        th Schedule
 
-    .job-title
-      Job.name(:job-id="job.job_id")
-      span.params(v-if="job.params.length > 0")
-        | ({{ join(job.params, ', ') }})
-    .description(v-html="markdown(job.metadata.description || '')")
+    tbody
+      tr(
+        v-for="[dir, name, job] in jobItems"
+        :key="dir.concat([name]).join('/')"
+      )
+        td.job-title
+          span(:style="{ display: 'inline-block', width: (16 * dir.length) + 'px' }") &nbsp;
+          span(v-if="job")
+            Job.name(:job-id="job.job_id")
+            span.params(v-if="job && job.params.length > 0")
+              | ({{ join(job.params, ', ') }})
+          span.name(v-else) {{ name }} /
+        td.description
+          div(v-if="job" v-html="markdown(job.metadata.description || '')")
+        td.schedule
+          ul(v-if="job")
+            li(v-for="(schedule, idx) in job.schedules" :key="idx")
+              span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
 
 </template>
 
@@ -39,9 +51,46 @@ export function makePredicate(query) {
   return job => every(map(preds, f => f(job)))
 }
 
+function jobsToTree(jobs) {
+  const tree = [{}, {}]
+  console.log('jobs', jobs)
+  for (var i = 0; i < jobs.length; ++i) {
+    const job = jobs[i]
+    const parts = job.job_id.split('/')
+    const name = parts.splice(parts.length - 1, 1)[0]
+
+    var subtree = tree
+    for (var p = 0; p < parts.length; ++p) {
+      const part = parts[p]
+      subtree = subtree[0][part] = subtree[0][part] || [{}, {}]
+    }
+
+    subtree[1][name] = job
+  }
+
+  console.log(tree)
+  return tree
+}
+
+
+function flattenTree(tree, path, flattened) {
+  const [subtrees, items] = tree
+
+  for (var [name, item] of Object.entries(items))
+    flattened.push([path, name, item])
+
+  for (var [subname, subtree] of Object.entries(subtrees)) {
+    flattened.push([path, subname, null])
+    flattenTree(subtree, path.concat([subname]), flattened)
+  }
+}
+
 
 export default {
-  props: ['query'],
+  props: [
+    'dir',
+    'query',
+  ],
 
   data() {
     return {
@@ -64,8 +113,22 @@ export default {
 
   computed: {
     jobs() {
+      var jobs = this.allJobs
+
+      if (this.dir)
+        jobs = filter(jobs, job => job.job_id.startsWith(this.dir + '/'))
+
       const pred = job => !job.ad_hoc && this.predicate(job)
-      return sortBy(filter(this.allJobs, pred), j => j.job_id)
+      jobs = filter(jobs, pred)
+
+      return sortBy(jobs, j => j.job_id)
+    },
+
+    jobItems() {
+      const flattened = []
+      flattenTree(jobsToTree(this.jobs), [], flattened)
+      console.log(flattened)
+      return flattened
     },
 
     predicate() {
@@ -80,6 +143,46 @@ export default {
 }
 </script>
 
+<style lang="scss">
+.joblist {
+  .job-title {
+    .name {
+      font-weight: 500;
+    }
+    .params {
+      padding-left: 0.2rem;
+      span {
+        padding: 0 0.2rem;
+      }
+    }
+  }
+
+  .description {
+    // margin-bottom: 8px;
+    font-size: 85%;
+    color: #777;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .schedule {
+    max-width: 33%;
+    font-size: 85%;
+    padding-top: 4px;
+    ul {
+      margin: 0;
+    }
+
+    .disabled {
+      color: #aaa;
+    }
+  }
+
+}
+</style>
+
 <style lang="scss" scoped>
 .row {
   border: 1px solid #e1e8e4;
@@ -89,53 +192,10 @@ export default {
   overflow: auto;
 }
 
-.head {
-  background-color: #f6faf8;
-  border-top: 1px solid #e1e8e4;
-  padding: 12px 24px;
-}
-
 .job {
   &:hover {
     background-color: #fafafa;
   }
 }
 
-.job-title {
-  .name {
-    font-size: 120%;
-    font-weight: 500;
-  }
-  .params {
-    padding-left: 0.2rem;
-    span {
-      padding: 0 0.2rem;
-    }
-  }
-}
-
-.description {
-  margin-bottom: 8px;
-  font-size: 85%;
-  color: #777;
-
-  // Need /deep/ here because v-html doesn't produce scoping attributes.
-  /deep/ p {
-    margin: 0;
-  }
-}
-
-.schedule {
-  float: right;
-  width: 33%;
-  font-size: 85%;
-  padding-top: 4px;
-  ul {
-    margin: 0;
-  }
-
-  .disabled {
-    color: #aaa;
-  }
-}
 </style>
