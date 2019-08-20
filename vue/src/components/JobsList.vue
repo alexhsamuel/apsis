@@ -145,6 +145,13 @@ export default {
 
 <style lang="scss">
 .joblist {
+  th {
+    text-align: left;
+  }
+  td {
+    vertical-align: top;
+  }
+  
   .job-title {
     .name {
       font-weight: 500;
