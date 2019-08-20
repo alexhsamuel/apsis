@@ -1,10 +1,10 @@
 <template lang="pug">
 div
-  .row.head
-    | {{ jobs.length }} Jobs
-
   table.widetable.joblist
     thead
+      tr
+        th(colspan="3")
+          | {{ jobs.length }} Jobs
       tr
         th Job
         th Description
@@ -18,7 +18,7 @@ div
         td.job-title
           span(:style="{ display: 'inline-block', width: (16 * dir.length) + 'px' }") &nbsp;
           span(v-if="job")
-            Job.name(:job-id="job.job_id")
+            Job.name(:job-id="job.job_id" :name="name")
             span.params(v-if="job && job.params.length > 0")
               | ({{ join(job.params, ', ') }})
           span.name(v-else) {{ name }} /
@@ -194,21 +194,4 @@ export default {
   }
 
 }
-</style>
-
-<style lang="scss" scoped>
-.row {
-  border: 1px solid #e1e8e4;
-  border-top: none;
-  border-radius: 3px;
-  padding: 8px 24px 12px 24px;
-  overflow: auto;
-}
-
-.job {
-  &:hover {
-    background-color: #fafafa;
-  }
-}
-
 </style>
