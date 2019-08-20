@@ -51,40 +51,55 @@ export function makePredicate(query) {
   return job => every(map(preds, f => f(job)))
 }
 
+/**
+ * Arranges an array of jobs into a tree by job ID path components.
+ * 
+ * Each node in the tree is [subtrees, jobs], where subtrees maps
+ * names to subnodes, and jobs maps names to jobs.
+ * 
+ * @returns the root node
+ */
 function jobsToTree(jobs) {
   const tree = [{}, {}]
-  console.log('jobs', jobs)
-  for (var i = 0; i < jobs.length; ++i) {
-    const job = jobs[i]
+  for (const job of jobs) {
     const parts = job.job_id.split('/')
     const name = parts.splice(parts.length - 1, 1)[0]
 
     var subtree = tree
-    for (var p = 0; p < parts.length; ++p) {
-      const part = parts[p]
+    for (const part of parts)
       subtree = subtree[0][part] = subtree[0][part] || [{}, {}]
-    }
 
     subtree[1][name] = job
   }
 
-  console.log(tree)
   return tree
 }
 
+/**
+ * Flattens a tree into items for rendering.
+ * 
+ * Returns [path, name, job] items, where job is null
+ * for directory items.
+ * 
+ * @param tree - the tree node to flatten
+ */
+function flattenTree(tree) {
+  function flatten(tree, path, flattened) {
+    const [subtrees, items] = tree
 
-function flattenTree(tree, path, flattened) {
-  const [subtrees, items] = tree
+    for (const [name, item] of Object.entries(items))
+      flattened.push([path, name, item])
 
-  for (var [name, item] of Object.entries(items))
-    flattened.push([path, name, item])
-
-  for (var [subname, subtree] of Object.entries(subtrees)) {
-    flattened.push([path, subname, null])
-    flattenTree(subtree, path.concat([subname]), flattened)
+    for (const [subname, subtree] of Object.entries(subtrees)) {
+      flattened.push([path, subname, null])
+      flatten(subtree, path.concat([subname]), flattened)
+    }
   }
-}
 
+  const flattened = []
+  flatten(tree, [], flattened)
+  return flattened
+}
 
 export default {
   props: [
@@ -125,10 +140,7 @@ export default {
     },
 
     jobItems() {
-      const flattened = []
-      flattenTree(jobsToTree(this.jobs), [], flattened)
-      console.log(flattened)
-      return flattened
+      return flattenTree(jobsToTree(this.jobs))
     },
 
     predicate() {
