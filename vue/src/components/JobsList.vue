@@ -78,27 +78,21 @@ function jobsToTree(jobs) {
 /**
  * Flattens a tree into items for rendering.
  * 
- * Returns [path, name, job] items, where job is null
+ * Generates [path, name, job] items, where job is null
  * for directory items.
  * 
  * @param tree - the tree node to flatten
  */
-function flattenTree(tree) {
-  function flatten(tree, path, flattened) {
-    const [subtrees, items] = tree
+function* flattenTree(tree, path = []) {
+  const [subtrees, items] = tree
 
-    for (const [name, item] of Object.entries(items))
-      flattened.push([path, name, item])
+  for (const [name, item] of Object.entries(items))
+    yield [path, name, item]
 
-    for (const [subname, subtree] of Object.entries(subtrees)) {
-      flattened.push([path, subname, null])
-      flatten(subtree, path.concat([subname]), flattened)
-    }
+  for (const [name, subtree] of Object.entries(subtrees)) {
+    yield [path, name, null]
+    yield* flattenTree(subtree, path.concat([name]))
   }
-
-  const flattened = []
-  flatten(tree, [], flattened)
-  return flattened
 }
 
 export default {
@@ -140,7 +134,7 @@ export default {
     },
 
     jobItems() {
-      return flattenTree(jobsToTree(this.jobs))
+      return Array.from(flattenTree(jobsToTree(this.jobs)))
     },
 
     predicate() {
