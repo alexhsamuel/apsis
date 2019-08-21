@@ -21,7 +21,8 @@ div
             Job.name(:job-id="job.job_id" :name="name")
             span.params(v-if="job && job.params.length > 0")
               | ({{ join(job.params, ', ') }})
-          span.name(v-else) {{ name }} /
+          span.name(v-else)
+            a(v-on:click="$emit('dir', dir.concat([name]).join('/'))") {{ name }} 
         td.description
           div(v-if="job" v-html="markdown(job.metadata.description || '')")
         td.schedule

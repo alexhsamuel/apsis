@@ -21,8 +21,8 @@ div
   //- The table of runs.
   RunsList.uk-margin-bottom(
     :p="+this.$route.query.p - 1 || 0"
-    v-on:p="setPage($event)"
     :query="query"
+    v-on:p="setPage($event)"
   )
 
 </template>

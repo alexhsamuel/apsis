@@ -1,7 +1,11 @@
 <template lang="pug">
 div
   SearchInput(v-model="query").search.uk-margin-bottom
-  JobsList(:dir="dir" :query="query").uk-margin-bottom
+  JobsList(
+    :dir="dir"
+    :query="query"
+    v-on:dir="dir = $event"
+    ).uk-margin-bottom
 </template>
 
 <script>
