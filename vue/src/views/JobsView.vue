@@ -35,10 +35,11 @@ export default {
     },
 
     dir(dir) {
+      console.log('dir changed', dir)
       // If the dir changed, add it to the URL query.
       const d = dir || undefined
       if (this.$route.query.d !== d)
-        this.$router.push({ dir: { q: this.query, d } })
+        this.$router.push({ query: { q: this.query, d } })
     },
 
     '$route'(to, from) {
