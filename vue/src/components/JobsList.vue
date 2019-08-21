@@ -1,10 +1,11 @@
 <template lang="pug">
 div
+  h3
+    | {{ dir ? 'Jobs in ' + dir : 'All Jobs' }}
+    | ({{ jobs.length }} jobs)
+
   table.widetable.joblist
     thead
-      tr
-        th(colspan="3")
-          | {{ jobs.length }} Jobs
       tr
         th Job
         th Description
