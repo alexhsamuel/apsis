@@ -2,7 +2,7 @@
 div
   h3
     | {{ dir ? 'Jobs in ' + dir : 'All Jobs' }}
-    | ({{ jobs.length }} jobs)
+    | ({{ numVisibleJobs }} jobs)
 
   table.widetable.joblist
     thead
@@ -13,7 +13,7 @@ div
 
     tbody
       tr(
-        v-for="[dir, name, job] in jobItems"
+        v-for="[dir, name, job] in jobRows"
         :key="dir.concat([name]).join('/')"
       )
         td.job-title
@@ -35,7 +35,7 @@ div
 
 <script>
 import Job from './Job'
-import { every, filter, join, map, sortBy, trim } from 'lodash'
+import { every, filter, join, map, sum, trim } from 'lodash'
 import { markdown } from 'markdown'
 import Program from './Program'
 
@@ -123,25 +123,39 @@ export default {
   },
 
   computed: {
-    jobs() {
-      var jobs = this.allJobs
+    /** Jobs after applying the filter.  */
+    visibleJobs() {
+      const filter = makePredicate(this.query)
+      const pred = job => !job.ad_hoc && filter
+      return filter(this.allJobs, pred)
+    },
 
+    /** Filtered jobs, as a tree.  */
+    jobsTree() {
+      return jobsToTree(this.visibleJobs)
+    },
+
+    /** Filtered jobs subtree for current dir.  */
+    jobsDir() {
+      var tree = this.jobsTree()
       if (this.dir)
-        jobs = filter(jobs, job => job.job_id.startsWith(this.dir + '/'))
-
-      const pred = job => !job.ad_hoc && this.predicate(job)
-      jobs = filter(jobs, pred)
-
-      return sortBy(jobs, j => j.job_id)
+        for (const part of this.dir.split('/'))
+          tree = tree[0][part]
+      return tree
     },
 
-    jobItems() {
-      return Array.from(flattenTree(jobsToTree(this.jobs)))
+    /** Filtered jobs subtree flattened to display rows, including dirs.  */
+    jobRows() {
+      return Array.from(flattenTree(this.jobsDir()))
     },
 
-    predicate() {
-      return makePredicate(this.query)
-    }
+    numVisibleJobs() {
+      function count(tree) {
+        return Object.keys(tree[1]).length
+          + sum(map(count, Object.values(tree[0])))
+      }
+      return count(this.jobsDir)
+    },
   },
 
   methods: {
