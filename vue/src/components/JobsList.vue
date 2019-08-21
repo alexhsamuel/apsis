@@ -17,15 +17,22 @@ div
         :key="dir.concat([name]).join('/')"
       )
         td.job-title
+          //- indent
           span(:style="{ display: 'inline-block', width: (16 * dir.length) + 'px' }") &nbsp;
+
+          //- a job
           span(v-if="job")
             Job.name(:job-id="job.job_id" :name="name")
             span.params(v-if="job && job.params.length > 0")
               | ({{ join(job.params, ', ') }})
+
+          //- a dir entry
           span.name(v-else)
-            a(v-on:click="$emit('dir', dir.concat([name]).join('/'))") {{ name }} 
+            a(v-on:click="$emit('dir', dir.concat([name]).join('/'))") {{ name }} /
+
         td.description
           div(v-if="job" v-html="markdown(job.metadata.description || '')")
+
         td.schedule
           ul(v-if="job")
             li(v-for="(schedule, idx) in job.schedules" :key="idx")
@@ -125,8 +132,8 @@ export default {
   computed: {
     /** Jobs after applying the filter.  */
     visibleJobs() {
-      const filter = makePredicate(this.query)
-      const pred = job => !job.ad_hoc && filter
+      const query = makePredicate(this.query)
+      const pred = job => !job.ad_hoc && query(job)
       return filter(this.allJobs, pred)
     },
 
@@ -137,7 +144,7 @@ export default {
 
     /** Filtered jobs subtree for current dir.  */
     jobsDir() {
-      var tree = this.jobsTree()
+      var tree = this.jobsTree
       if (this.dir)
         for (const part of this.dir.split('/'))
           tree = tree[0][part]
@@ -146,7 +153,7 @@ export default {
 
     /** Filtered jobs subtree flattened to display rows, including dirs.  */
     jobRows() {
-      return Array.from(flattenTree(this.jobsDir()))
+      return Array.from(flattenTree(this.jobsDir))
     },
 
     numVisibleJobs() {
