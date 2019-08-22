@@ -5,7 +5,6 @@ div
     span(v-for="[dir, name] in dirPrefixes")
       |  &gt; 
       a(v-on:click="$emit('dir', dir)") {{ name }}
-    span  ({{ numVisibleJobs }} jobs)
 
   table.widetable.joblist
     thead
@@ -46,7 +45,7 @@ div
 
 <script>
 import Job from './Job'
-import { every, filter, join, map, sortBy, sum, trim } from 'lodash'
+import { every, filter, join, map, sortBy, trim } from 'lodash'
 import { markdown } from 'markdown'
 import Program from './Program'
 
@@ -170,14 +169,7 @@ export default {
       return Array.from(flattenTree(parts, this.jobsDir))
     },
 
-    numVisibleJobs() {
-      function count(tree) {
-        return Object.keys(tree[1]).length
-          + sum(map(count, Object.values(tree[0])))
-      }
-      return count(this.jobsDir)
-    },
-  },
+},
 
   methods: {
     markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
