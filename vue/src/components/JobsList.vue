@@ -187,6 +187,12 @@ export default {
 </script>
 
 <style lang="scss">
+@import '../styles/vars.scss';
+
+.dirnav {
+  color: $apsis-dir-color;
+}
+
 .joblist {
   th {
     text-align: left;
