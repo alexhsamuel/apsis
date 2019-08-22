@@ -46,7 +46,7 @@ div
 
 <script>
 import Job from './Job'
-import { every, filter, join, map, sum, trim } from 'lodash'
+import { every, filter, join, map, sortBy, sum, trim } from 'lodash'
 import { markdown } from 'markdown'
 import Program from './Program'
 
@@ -99,10 +99,10 @@ function jobsToTree(jobs) {
 function* flattenTree(parts, tree, path = []) {
   const [subtrees, items] = tree
 
-  for (const [name, item] of Object.entries(items))
+  for (const [name, item] of sortBy(Object.entries(items)))
     yield [parts.concat(path, [name]), path, name, item]
 
-  for (const [name, subtree] of Object.entries(subtrees)) {
+  for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
     yield [parts.concat(path, [name]), path, name, null]
     yield* flattenTree(parts, subtree, path.concat([name]))
   }
