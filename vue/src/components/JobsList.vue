@@ -1,11 +1,5 @@
 <template lang="pug">
 div
-  h3
-    a.dirnav(v-on:click="$emit('dir', null)") Jobs
-    span(v-for="[dir, name] in dirPrefixes")
-      |  &gt; 
-      a(v-on:click="$emit('dir', dir)") {{ name }}
-
   table.widetable.joblist
     thead
       tr
@@ -133,15 +127,6 @@ export default {
   },
 
   computed: {
-    dirPrefixes() {
-      return this.dir ? Array.from(
-        function*(parts) {
-          for (var i = 0; i < parts.length; ++i)
-            yield [parts.slice(0, i + 1).join('/'), parts[i]]
-        }(this.dir.split('/'))
-      ) : []
-    },
-
     /** Jobs after applying the filter.  */
     visibleJobs() {
       const query = makePredicate(this.query)

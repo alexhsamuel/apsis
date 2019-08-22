@@ -1,6 +1,13 @@
 <template lang="pug">
 div
+  h3
+    a.dirnav(v-on:click="dir = null") Jobs
+    span(v-for="[subdir, name] in dirPrefixes")
+      span(uk-icon="icon: chevron-right" ratio="1.5") 
+      a.dirnav(v-on:click="dir = subdir") {{ name }}
+
   SearchInput(v-model="query").search.uk-margin-bottom
+
   JobsList(
     :dir="dir"
     :query="query"
@@ -24,6 +31,18 @@ export default {
       dir: this.$route.query.d,
       query: this.$route.query.q || '',
     }
+  },
+
+  computed: {
+    dirPrefixes() {
+      return this.dir ? Array.from(
+        function*(parts) {
+          for (var i = 0; i < parts.length; ++i)
+            yield [parts.slice(0, i + 1).join('/'), parts[i]]
+        }(this.dir.split('/'))
+      ) : []
+    },
+
   },
 
   watch: {
