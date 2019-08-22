@@ -1,8 +1,11 @@
 <template lang="pug">
 div
   h3
-    | {{ dir ? 'Jobs in ' + dir : 'All Jobs' }}
-    | ({{ numVisibleJobs }} jobs)
+    a.dirnav(v-on:click="$emit('dir', null)") Jobs
+    span(v-for="[dir, name] in dirPrefixes")
+      |  &gt; 
+      a(v-on:click="$emit('dir', dir)") {{ name }}
+    span  ({{ numVisibleJobs }} jobs)
 
   table.widetable.joblist
     thead
@@ -13,12 +16,12 @@ div
 
     tbody
       tr(
-        v-for="[dir, name, job] in jobRows"
-        :key="dir.concat([name]).join('/')"
+        v-for="[path, subpath, name, job] in jobRows"
+        :key="subpath.concat([name]).join('/')"
       )
         td.job-title
           //- indent
-          span(:style="{ display: 'inline-block', width: (16 * dir.length) + 'px' }") &nbsp;
+          span(:style="{ display: 'inline-block', width: (16 * subpath.length) + 'px' }") &nbsp;
 
           //- a job
           span(v-if="job")
@@ -28,7 +31,8 @@ div
 
           //- a dir entry
           span.name(v-else)
-            a(v-on:click="$emit('dir', dir.concat([name]).join('/'))") {{ name }} /
+            a.dirnav(v-on:click="$emit('dir', path.join('/'))") {{ name }}
+            |  /
 
         td.description
           div(v-if="job" v-html="markdown(job.metadata.description || '')")
@@ -87,20 +91,20 @@ function jobsToTree(jobs) {
 /**
  * Flattens a tree into items for rendering.
  * 
- * Generates [path, name, job] items, where job is null
+ * Generates [path, subpath, name, job] items, where job is null
  * for directory items.
  * 
  * @param tree - the tree node to flatten
  */
-function* flattenTree(tree, path = []) {
+function* flattenTree(parts, tree, path = []) {
   const [subtrees, items] = tree
 
   for (const [name, item] of Object.entries(items))
-    yield [path, name, item]
+    yield [parts.concat(path, [name]), path, name, item]
 
   for (const [name, subtree] of Object.entries(subtrees)) {
-    yield [path, name, null]
-    yield* flattenTree(subtree, path.concat([name]))
+    yield [parts.concat(path, [name]), path, name, null]
+    yield* flattenTree(parts, subtree, path.concat([name]))
   }
 }
 
@@ -130,6 +134,15 @@ export default {
   },
 
   computed: {
+    dirPrefixes() {
+      return this.dir ? Array.from(
+        function*(parts) {
+          for (var i = 0; i < parts.length; ++i)
+            yield [parts.slice(0, i + 1).join('/'), parts[i]]
+        }(this.dir.split('/'))
+      ) : []
+    },
+
     /** Jobs after applying the filter.  */
     visibleJobs() {
       const query = makePredicate(this.query)
@@ -147,13 +160,14 @@ export default {
       var tree = this.jobsTree
       if (this.dir)
         for (const part of this.dir.split('/'))
-          tree = tree[0][part]
+          tree = tree[0][part] || [{}, {}]
       return tree
     },
 
     /** Filtered jobs subtree flattened to display rows, including dirs.  */
     jobRows() {
-      return Array.from(flattenTree(this.jobsDir))
+      const parts = this.dir ? this.dir.split('/') : []
+      return Array.from(flattenTree(parts, this.jobsDir))
     },
 
     numVisibleJobs() {
