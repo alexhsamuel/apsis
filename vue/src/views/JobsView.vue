@@ -1,19 +1,28 @@
 <template lang="pug">
 div
-  h3
-    a.dirnav(v-on:click="dir = null") Jobs
-    span(v-for="[subdir, name] in dirPrefixes")
-      span(uk-icon="icon: chevron-right" ratio="1.5") 
-      a.dirnav(v-on:click="dir = subdir") {{ name }}
+  div(style="display: flex")
+    div(style="flex: 1 0 auto")
+      h3
+        a.dirnav(v-on:click="dir = null") Jobs
+        span(v-for="[subdir, name] in dirPrefixes")
+          span(uk-icon="icon: chevron-right" ratio="1.5") 
+          a.dirnav(v-on:click="dir = subdir") {{ name }}
 
-  SearchInput(v-model="query").search.uk-margin-bottom
+    div(style="flex: 0 auto; padding: 0 8px")
+      button.uk-button(
+        type="button"
+        v-on:click="navShowRuns"
+        ) Show Runs
+
+    div(style="flex: 0 auto")
+      SearchInput(v-model="query").search.uk-margin-bottom
 
   JobsList(
     :dir="dir"
     :query="query"
     v-on:dir="dir = $event"
     ).uk-margin-bottom
-    
+
 </template>
 
 <script>
@@ -44,6 +53,15 @@ export default {
       ) : []
     },
 
+  },
+
+  methods: {
+    navShowRuns() {
+      this.$router.push({
+        name: 'runs-list',
+        query: { q: '/' + this.dir }
+      })
+    },
   },
 
   watch: {
