@@ -4,6 +4,7 @@ div
     thead
       tr
         th Job
+        th Parameters
         th Description
         th Schedule
 
@@ -13,19 +14,22 @@ div
         :key="subpath.concat([name]).join('/')"
       )
         td.job-title
-          //- indent
-          span(:style="{ display: 'inline-block', width: (16 * subpath.length) + 'px' }") &nbsp;
+          span(style="white-space: nowrap")
+            //- indent
+            span(:style="{ display: 'inline-block', width: (16 * subpath.length) + 'px' }") &nbsp;
 
-          //- a job
-          span(v-if="job")
-            Job.name(:job-id="job.job_id" :name="name")
-            span.params(v-if="job && job.params.length > 0")
-              | ({{ join(job.params, ', ') }})
+            //- a job
+            span(v-if="job")
+              Job.name(:job-id="job.job_id" :name="name")
 
-          //- a dir entry
-          span.name(v-else)
-            a.dirnav(v-on:click="$emit('dir', path.join('/'))") {{ name }}
-            |  /
+            //- a dir entry
+            span.name(v-else)
+              a.dirnav(v-on:click="$emit('dir', path.join('/'))") {{ name }}
+              |  /
+
+        td
+          span.params(v-if="job && job.params.length > 0")
+            | {{ join(job.params, ', ') }}
 
         td.description
           div(v-if="job" v-html="markdown(job.metadata.description || '')")
