@@ -13,6 +13,7 @@ div
     :query="query"
     v-on:dir="dir = $event"
     ).uk-margin-bottom
+    
 </template>
 
 <script>
