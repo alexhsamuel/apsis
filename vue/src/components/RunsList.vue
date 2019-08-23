@@ -2,13 +2,13 @@
 div
   table.widetable.runlist
     colgroup
-      col(style="width: 10rem")
-      col(style="width: 10rem")
-      col(style="width: 4rem")
-      col(style="width: 4rem")
       col(style="min-width: 10rem; max-width: 12rem;")
       col(style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
+      col(style="width: 4rem")
+      col(style="width: 4rem")
+      col(style="width: 10rem")
+      col(style="width: 10rem")
       col(style="width: 6rem")
       col(style="width: 4rem")
 
@@ -22,13 +22,13 @@ div
         td(colspan=5)
 
       tr
-        th.col-schedule-time Schedule
-        th.col-start-time Start
-        th.col-reruns Runs
-        th.col-state State
         th.col-job Job
         th.col-args Args
         th.col-run Run
+        th.col-state State
+        th.col-reruns Runs
+        th.col-schedule-time Schedule
+        th.col-start-time Start
         th.col-elapsed Elapsed
         th.col-actions Actions
 
@@ -39,10 +39,14 @@ div
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
-          td.col-schedule-time
-            Timestamp(:time="run.times.schedule")
-          td.col-start-time
-            Timestamp(:time="run.times.running")
+          td.col-job
+            Job(v-if="run.run_id === group.id" :job-id="run.job_id")
+          td.col-args
+            span(v-if="run.run_id === group.id" ) {{ arg_str(run.args) }}
+          td.col-run
+            Run(:run-id="run.run_id")
+          td.col-state
+            State(:state="run.state")
           td.col-reruns
             span(v-show="index == 0 && group.length > 1")
               | {{ group.length > 1 ? group.length : "" }}
@@ -50,14 +54,10 @@ div
                 v-bind:uk-icon="groupIcon(group.id)"
                 v-on:click="toggleGroupCollapse(group.id)"
               )
-          td.col-state
-            State(:state="run.state")
-          td.col-job
-            Job(v-if="run.run_id === group.id" :job-id="run.job_id")
-          td.col-args
-            span(v-if="run.run_id === group.id" ) {{ arg_str(run.args) }}
-          td.col-run
-            Run(:run-id="run.run_id")
+          td.col-schedule-time
+            Timestamp(:time="run.times.schedule")
+          td.col-start-time
+            Timestamp(:time="run.times.running")
           td.col-elapsed
             RunElapsed(:run="run")
           td.col-actions

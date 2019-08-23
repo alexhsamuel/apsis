@@ -13,7 +13,7 @@ div
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
       )
-        td.job-title
+        td
           span(style="white-space: nowrap")
             //- indent
             span(:style="{ display: 'inline-block', width: (16 * subpath.length) + 'px' }") &nbsp;
