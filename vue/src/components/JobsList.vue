@@ -20,7 +20,7 @@ div
         :key="subpath.concat([name]).join('/')"
         :style="job ? {} : {background: '#f8f8f8'}"
       )
-        td()
+        td
           span(style="white-space: nowrap")
             //- indent
             span(:style="{ display: 'inline-block', width: (16 * subpath.length) + 'px' }") &nbsp;
@@ -203,7 +203,6 @@ export default {
   }
 
   .description {
-    // margin-bottom: 8px;
     font-size: 85%;
     color: #777;
 
