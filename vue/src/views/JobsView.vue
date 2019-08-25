@@ -5,7 +5,7 @@ div
       h3
         a.dirnav(v-on:click="dir = null") Jobs
         span(v-for="[subdir, name] in dirPrefixes")
-          span(uk-icon="icon: chevron-right" ratio="1.5") 
+          span(uk-icon="icon: chevron-right" ratio="1.2") 
           a.dirnav(v-on:click="dir = subdir") {{ name }}
 
     div(style="flex: 0 auto; padding: 0 8px")

@@ -1,6 +1,12 @@
 <template lang="pug">
 div
   table.widetable.joblist
+    colgroup
+      col(style="min-width: 10%")
+      col(style="min-width: 10%")
+      col(style="width: 30%;")
+      col(style="width: 20%;")
+
     thead
       tr
         th Job
@@ -12,8 +18,9 @@ div
       tr(
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
+        :style="job ? {} : {background: '#f8f8f8'}"
       )
-        td
+        td()
           span(style="white-space: nowrap")
             //- indent
             span(:style="{ display: 'inline-block', width: (16 * subpath.length) + 'px' }") &nbsp;
@@ -27,7 +34,7 @@ div
               a.dirnav(v-on:click="$emit('dir', path.join('/'))") {{ name }}
               |  /
 
-        td
+        td.params
           span.params(v-if="job && job.params.length > 0")
             | {{ join(job.params, ', ') }}
 
@@ -180,6 +187,7 @@ export default {
   }
   td {
     vertical-align: top;
+    height: 40px;
   }
   
   .job-title {
@@ -204,8 +212,10 @@ export default {
     }
   }
 
+  .params {
+  }
+
   .schedule {
-    max-width: 33%;
     font-size: 85%;
     padding-top: 4px;
     ul {

@@ -30,9 +30,6 @@ table.widetable {
 
   thead {
     background-color: #f6faf8;
-    tr {
-      border: 1px solid #e1e8e4;
-    }
     td, th {
       font-weight: normal;
       padding: 12px 4px;
@@ -40,7 +37,8 @@ table.widetable {
   }
 
   tbody tr {
-    border: 1px solid #e1e8e4;
+    border-top: 1px solid $apsis-grid-color;
+    border-bottom: 1px solid $apsis-grid-color;
     &:not(:last-child) {
       border-bottom: none;
     }
