@@ -3,7 +3,7 @@ div
   div(style="display: flex")
     div(style="flex: 1 0 auto")
       h3
-        a.dirnav(v-on:click="dir = null") Jobs
+        a.dirnav(v-on:click="dir = null" style="padding-left: 12px;") Jobs
         span(v-for="[subdir, name] in dirPrefixes")
           span(uk-icon="icon: chevron-right" ratio="1.2") 
           a.dirnav(v-on:click="dir = subdir") {{ name }}
