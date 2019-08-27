@@ -23,7 +23,7 @@ div
     :p="+this.$route.query.p - 1 || 0"
     :query="query"
     v-on:p="setPage($event)"
-  )
+)
 
 </template>
 
