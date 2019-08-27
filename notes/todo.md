@@ -12,6 +12,12 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- path navigation
+  - proper programmatic API in runFilter, to build query (separate dir path)?
+  - clean up webapp URLs: /group/folder/ for example
+  - show Runs by job dir
+  - unify Jobs and Runs views?
+
 - check token in agent protocol
 
 - agent cleanup
