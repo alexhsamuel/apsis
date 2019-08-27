@@ -59,7 +59,7 @@ export default {
     navShowRuns() {
       this.$router.push({
         name: 'runs-list',
-        query: { q: '/' + this.dir }
+        query: { q: this.dir ? '/' + this.dir : undefined }
       })
     },
   },
