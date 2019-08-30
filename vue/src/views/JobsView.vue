@@ -3,10 +3,10 @@ div
   div(style="display: flex")
     div(style="flex: 1 0 auto")
       h3
-        a.dirnav(v-on:click="dir = null" style="padding-left: 12px;") Jobs
+        a.dirnav(v-on:click="setPath(null)" style="padding-left: 12px;") Jobs
         span(v-for="[subdir, name] in dirPrefixes")
           span(uk-icon="icon: chevron-right" ratio="1.2") 
-          a.dirnav(v-on:click="dir = subdir") {{ name }}
+          a.dirnav(v-on:click="setPath(subdir)") {{ name }}
 
     div(style="flex: 0 auto; padding: 0 8px")
       button.uk-button(
@@ -18,9 +18,9 @@ div
       SearchInput(v-model="query").search.uk-margin-bottom
 
   JobsList(
-    :dir="dir"
+    :dir="toPathStr(path)"
     :query="query"
-    v-on:dir="dir = $event"
+    v-on:dir="setPath($event)"
     ).uk-margin-bottom
 
 </template>
@@ -29,8 +29,31 @@ div
 import JobsList from '@/components/JobsList'
 import SearchInput from '@/components/SearchInput'
 
+function toPathStr(path) {
+  return (
+    !path ? ''
+    : Array.isArray(path) ? path.join('/')
+    : path
+  )
+}
+
+function toPathParts(path) {
+  return (
+    !path ? []
+    : Array.isArray(path) ? path
+    : path.split('/')
+  )
+}
+
 export default {
   name: 'JobsView',
+  props: [
+    // Accept both str and array paths.  vue-router always returns a path
+    // string, but if we $router.push a string params, it URL-encodes
+    // path seps.  So, we $router.push an array of path parts instead.
+    // But then we have to accept both str and array paths.
+    'path',
+  ],
   components: {
     JobsList,
     SearchInput,
@@ -38,29 +61,34 @@ export default {
 
   data() {
     return {
-      dir: this.$route.query.d,
       query: this.$route.query.q || '',
     }
   },
 
   computed: {
     dirPrefixes() {
-      return this.dir ? Array.from(
+      return Array.from(
         function*(parts) {
           for (var i = 0; i < parts.length; ++i)
             yield [parts.slice(0, i + 1).join('/'), parts[i]]
-        }(this.dir.split('/'))
-      ) : []
+        }(toPathParts(this.path))
+      )
     },
-
   },
 
   methods: {
+    toPathStr,
+
     navShowRuns() {
       this.$router.push({
         name: 'runs-list',
         query: { q: this.dir ? '/' + this.dir : undefined }
       })
+    },
+
+    setPath(path) {
+      if (toPathStr(this.$route.params.path) !== path)
+        this.$router.push({ name: 'jobs-list', params: { path: toPathParts(path) } })
     },
   },
 
@@ -69,23 +97,8 @@ export default {
       // If the query changed, add it to the URL query.
       const q = query || undefined
       if (this.$route.query.q !== q)
-        this.$router.push({ query: { q, d: this.dir } })
+        this.$router.push({ query: { q } })
     },
-
-    dir(dir) {
-      console.log('dir changed', dir)
-      // If the dir changed, add it to the URL query.
-      const d = dir || undefined
-      if (this.$route.query.d !== d)
-        this.$router.push({ query: { q: this.query, d } })
-    },
-
-    '$route'(to, from) {
-      // Set the dir and query from the URL query.
-      this.dir = to.query.d
-      this.query = to.query.q || ''
-    },
-
   },
 }
 </script>
