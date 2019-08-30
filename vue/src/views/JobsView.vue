@@ -88,6 +88,8 @@ export default {
 
     setPath(path) {
       if (toPathStr(this.$route.params.path) !== path)
+        // Push path as an array of path components rather than as a str,
+        // since Vue will URL-encode path seps otherwise.  See above.
         this.$router.push({ name: 'jobs-list', params: { path: toPathParts(path) } })
     },
   },
