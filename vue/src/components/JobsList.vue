@@ -23,7 +23,7 @@ div
         td
           span(style="white-space: nowrap")
             //- indent
-            span(:style="{ display: 'inline-block', width: (16 * subpath.length) + 'px' }") &nbsp;
+            span(:style="{ display: 'inline-block', width: (20 * subpath.length) + 'px' }")
 
             //- a job
             span(v-if="job")
@@ -31,6 +31,11 @@ div
 
             //- a dir entry
             span.name(v-else)
+              div.folder-icon(
+                uk-icon="icon: minus-circle" ratio="0.7"
+                style="width: 20px"
+                v-on:click="toggleCollapse(path)"
+                )
               a.dirnav(v-on:click="$emit('dir', path.join('/'))") {{ name }}
               |  /
 
@@ -100,15 +105,17 @@ function jobsToTree(jobs) {
  * 
  * @param tree - the tree node to flatten
  */
-function* flattenTree(parts, tree, path = []) {
+function* flattenTree(parts, tree, collapse, path = []) {
   const [subtrees, items] = tree
 
   for (const [name, item] of sortBy(Object.entries(items)))
     yield [parts.concat(path, [name]), path, name, item]
 
   for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
-    yield [parts.concat(path, [name]), path, name, null]
-    yield* flattenTree(parts, subtree, path.concat([name]))
+    const dirPath = parts.concat(path, [name])
+    yield [dirPath, path, name, null]
+    if (collapse[dirPath])
+      yield* flattenTree(path, subtree, collapse, path.concat([name]))
   }
 }
 
@@ -121,6 +128,7 @@ export default {
   data() {
     return {
       allJobs: [],
+      collapse: {},
     }
   },
 
@@ -162,7 +170,7 @@ export default {
     /** Filtered jobs subtree flattened to display rows, including dirs.  */
     jobRows() {
       const parts = this.dir ? this.dir.split('/') : []
-      return Array.from(flattenTree(parts, this.jobsDir))
+      return Array.from(flattenTree(parts, this.jobsDir, this.collapse))
     },
 
 },
@@ -170,6 +178,10 @@ export default {
   methods: {
     markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
     join,
+
+    toggleCollapse(path) {
+      this.$set(this.collapse, path, !this.collapse[path])
+    }
   },
 }
 </script>
@@ -189,7 +201,7 @@ export default {
     vertical-align: top;
     height: 40px;
   }
-  
+
   .job-title {
     .name {
       font-weight: 500;
@@ -209,9 +221,6 @@ export default {
     p {
       margin: 0;
     }
-  }
-
-  .params {
   }
 
   .schedule {
