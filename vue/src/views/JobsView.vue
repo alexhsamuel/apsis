@@ -4,9 +4,10 @@ div
     div(style="flex: 1 0 auto")
       h3
         a.dirnav(v-on:click="setPath(null)" style="padding-left: 12px;") Jobs
+        span(style="font-size: 16px; padding: 0 4px;")  in 
         span(v-for="[subdir, name] in dirPrefixes")
-          span(uk-icon="icon: chevron-right" ratio="1.2") 
           a.dirnav(v-on:click="setPath(subdir)") {{ name }}
+          |  / 
 
     div(style="flex: 0 auto; padding: 0 8px")
       button.uk-button(

@@ -18,7 +18,7 @@ div
       tr(
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
-        :style="job ? {} : {background: '#f8f8f8'}"
+        :class="[job ? 'job' : 'dir']"
       )
         td
           span(style="white-space: nowrap")
@@ -196,10 +196,18 @@ export default {
 .joblist {
   th {
     text-align: left;
+    border-bottom: 1.5px solid #666;
   }
-  td {
+  tr {
+    &.job {
+    }
+    &.dir {
+      border-top: 1.5px solid #666;
+    }
+  }
+  .job > td {
     vertical-align: top;
-    height: 40px;
+    height: 60px;
   }
 
   .job-title {

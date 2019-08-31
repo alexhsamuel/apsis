@@ -20,6 +20,9 @@ instance.  The run objects would become mucb more active.
 
 - check token in agent protocol
 
+- get rid of UIKit
+  - something like [Tailwind](https://tailwindcss.com/)? [Tachyons](http://tachyons.io)?
+
 - agent cleanup
   - add endpoint to kill a process
   - add endpoint to forefully shut down
