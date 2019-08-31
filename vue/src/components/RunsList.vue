@@ -100,6 +100,7 @@ export default {
   props: {
     p: {type: Number, default: 0},
     query: {type: String, default: ''},
+    path: {type: String, default: null},
     pageSize: {type: Number, default: null},
   },
 
@@ -140,8 +141,16 @@ export default {
       return runsFilter.makePredicate(this.query)
     },
 
+    /** Runs, after filtering.  */
     runs() {
-      return filter(this.store.state.runs, this.jobPredicate)
+      let runs = this.store.state.runs
+
+      if (this.path) {
+        const prefix = this.path + '/'
+        runs = filter(runs, job => job.job_id.startsWith(prefix))
+      }
+
+      return filter(runs, this.jobPredicate)
     },
 
     // Array of rerun groups, each an array of runs that are reruns of the
@@ -213,10 +222,6 @@ export default {
 
     pageGroups() { 
       return this.pageSize ? this.groups.slice(this.pageStart, this.pageEnd) : this.groups
-    },
-
-    path() {
-      return runsFilter.PathTerm.get(this.query)
     },
 
   },

@@ -22,6 +22,7 @@ div
   RunsList.uk-margin-bottom(
     :p="+this.$route.query.p - 1 || 0"
     :query="query"
+    :path="path"
     v-on:p="setPage($event)"
 )
 
@@ -51,6 +52,10 @@ export default {
   },
 
   computed: {
+    path() {
+      return this.$route.query.path
+    },
+
     since() {
       // Extract since from the query.
       return runsFilter.SinceTerm.get(this.query)

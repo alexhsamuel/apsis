@@ -12,7 +12,7 @@ div
     div(style="flex: 0 auto; padding: 0 8px")
       button.uk-button(
         type="button"
-        v-on:click="navShowRuns"
+        v-on:click="onShowRuns"
         ) Show Runs
 
     div(style="flex: 0 auto")
@@ -80,10 +80,10 @@ export default {
   methods: {
     toPathStr,
 
-    navShowRuns() {
+    onShowRuns() {
       this.$router.push({
         name: 'runs-list',
-        query: { q: this.dir ? '/' + this.dir : undefined }
+        query: { path: toPathStr(this.path) || undefined },
       })
     },
 
