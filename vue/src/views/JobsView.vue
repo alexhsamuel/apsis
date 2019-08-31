@@ -4,10 +4,8 @@ div
     div(style="flex: 1 0 auto")
       h3
         a.dirnav(v-on:click="setPath(null)" style="padding-left: 12px;") Jobs
-        span(style="font-size: 16px; padding: 0 4px;")  in 
-        span(v-for="[subdir, name] in dirPrefixes")
-          a.dirnav(v-on:click="setPath(subdir)") {{ name }}
-          |  / 
+        span(v-if="pathStr" style="font-size: 16px; padding: 0 4px;")  in 
+          PathNav(:path="pathStr" v-on:path="setPath($event)")
 
     div(style="flex: 0 auto; padding: 0 8px")
       button.uk-button(
@@ -19,7 +17,7 @@ div
       SearchInput(v-model="query").search.uk-margin-bottom
 
   JobsList(
-    :dir="toPathStr(path)"
+    :dir="pathStr"
     :query="query"
     v-on:dir="setPath($event)"
     ).uk-margin-bottom
@@ -28,6 +26,7 @@ div
 
 <script>
 import JobsList from '@/components/JobsList'
+import PathNav from '@/components/PathNav'
 import SearchInput from '@/components/SearchInput'
 
 function toPathStr(path) {
@@ -57,6 +56,7 @@ export default {
   ],
   components: {
     JobsList,
+    PathNav,
     SearchInput,
   },
 
@@ -67,23 +67,16 @@ export default {
   },
 
   computed: {
-    dirPrefixes() {
-      return Array.from(
-        function*(parts) {
-          for (var i = 0; i < parts.length; ++i)
-            yield [parts.slice(0, i + 1).join('/'), parts[i]]
-        }(toPathParts(this.path))
-      )
+    pathStr() {
+      return toPathStr(this.path)
     },
   },
 
   methods: {
-    toPathStr,
-
     onShowRuns() {
       this.$router.push({
         name: 'runs-list',
-        query: { path: toPathStr(this.path) || undefined },
+        query: { path: this.pathStr || undefined },
       })
     },
 

@@ -16,7 +16,8 @@ div
       tr
         td(colspan=2 style="padding-left: 14px;")
           | {{ runs.length }} Runs
-          span(v-if="path")  in {{ path }}
+          span(v-if="path")  in 
+            PathNav(:path="path" v-on:path="$emit('path', $event)")
         td(colspan=2)
           Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
         td(colspan=5)
@@ -83,6 +84,7 @@ import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
+import PathNav from '@/components/PathNav'
 import Run from './Run'
 import RunElapsed from '@/components/RunElapsed'
 import * as runsFilter from '@/runsFilter.js'
@@ -108,6 +110,7 @@ export default {
     ActionButton,
     Job,
     Pagination,
+    PathNav,
     Run,
     RunElapsed,
     State,

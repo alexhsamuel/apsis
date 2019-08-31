@@ -24,6 +24,7 @@ div
     :query="query"
     :path="path"
     v-on:p="setPage($event)"
+    v-on:path="setPath($event)"
 )
 
 </template>
@@ -105,6 +106,10 @@ export default {
 
     setStates(states) {
       this.query = runsFilter.StateTerm.set(this.query, states)
+    },
+
+    setPath(path) {
+      this.setQueryParam('path', path)
     },
   },
 }
