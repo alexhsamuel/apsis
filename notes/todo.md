@@ -13,10 +13,9 @@ instance.  The run objects would become mucb more active.
 # Current
 
 - path navigation
-  - collapsing folders in Jobs view
   - proper programmatic API in runFilter, to build query (separate dir path)?
-  - show Runs by job dir
   - unify Jobs and Runs views?
+  - handle "/path" terms in search box specially
 
 - check token in agent protocol
 

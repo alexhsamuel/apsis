@@ -23,7 +23,7 @@ div
         td
           span(style="white-space: nowrap")
             //- indent
-            span(:style="{ display: 'inline-block', width: (20 * subpath.length) + 'px' }")
+            span(:style="{ display: 'inline-block', width: (24 * subpath.length) + 'px' }")
 
             //- a job
             span(v-if="job")
@@ -31,13 +31,22 @@ div
 
             //- a dir entry
             span.name(v-else)
-              div.folder-icon(
-                uk-icon="icon: minus-circle" ratio="0.7"
-                style="width: 20px"
-                v-on:click="toggleCollapse(path)"
+              span(v-on:click="toggleCollapse(path)")
+                span.folder-icon(
+                  v-if="isCollapsed(path)"
+                  uk-icon="icon: minus-circle" ratio="0.7"
+                  style="width: 24px"
                 )
-              a.dirnav(v-on:click="$emit('dir', path.join('/'))") {{ name }}
-              |  /
+                span.folder-icon(
+                  v-else
+                  uk-icon="icon: plus-circle" ratio="0.7"
+                  style="width: 24px"
+                )
+                | {{ name }} 
+              span.dirnav(
+                uk-icon="icon: play" ratio="0.7"
+                v-on:click="$emit('dir', path.join('/'))"
+              )
 
         td.params
           span.params(v-if="job && job.params.length > 0")
@@ -108,15 +117,15 @@ function jobsToTree(jobs) {
 function* flattenTree(parts, tree, collapse, path = []) {
   const [subtrees, items] = tree
 
-  for (const [name, item] of sortBy(Object.entries(items)))
-    yield [parts.concat(path, [name]), path, name, item]
-
   for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
     const dirPath = parts.concat(path, [name])
     yield [dirPath, path, name, null]
     if (collapse[dirPath])
       yield* flattenTree(path, subtree, collapse, path.concat([name]))
   }
+
+  for (const [name, item] of sortBy(Object.entries(items)))
+    yield [parts.concat(path, [name]), path, name, item]
 }
 
 export default {
@@ -173,7 +182,7 @@ export default {
       return Array.from(flattenTree(parts, this.jobsDir, this.collapse))
     },
 
-},
+  },
 
   methods: {
     markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
@@ -181,6 +190,10 @@ export default {
 
     toggleCollapse(path) {
       this.$set(this.collapse, path, !this.collapse[path])
+    },
+
+    isCollapsed(path) {
+      return !this.collapse[path]
     }
   },
 }
@@ -202,7 +215,7 @@ export default {
     &.job {
     }
     &.dir {
-      border-top: 1.5px solid #666;
+      //border-top: 1.5px solid #666;
     }
   }
   .job > td {
