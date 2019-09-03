@@ -159,7 +159,7 @@ def load_yaml_files(dir_path):
     dir_path = Path(dir_path)
     for dir, _, names in os.walk(dir_path):
         dir = Path(dir)
-        paths = ( dir / n for n in names )
+        paths = ( dir / n for n in names if not n.startswith(".") )
         paths = ( p for p in paths if p.suffix == ".yaml" )
         for path in paths:
             name = path.with_suffix("").relative_to(dir_path)
