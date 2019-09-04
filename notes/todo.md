@@ -13,9 +13,13 @@ instance.  The run objects would become mucb more active.
 # Current
 
 - path navigation
-  - proper programmatic API in runFilter, to build query (separate dir path)?
+  - proper programmatic API in runFilter, to build query?
   - unify Jobs and Runs views?
   - handle "/path" terms in search box specially
+
+- runs filter
+  - remove time, state filter to query args
+  - make time, state filter persistent?  (cookie?)
 
 - check token in agent protocol
 
