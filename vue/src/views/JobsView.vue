@@ -1,19 +1,14 @@
 <template lang="pug">
 div
   div(style="display: flex")
-    div(style="flex: 1 0 auto")
-      h3
-        a.dirnav(v-on:click="setPath(null)" style="padding-left: 12px;") Jobs
-        span(v-if="pathStr" style="font-size: 16px; padding: 0 4px;")  in 
+    div(style="flex: 1;")
+      h3(style="padding-left: 12px;")
+        a.undersel.sel() Jobs
+        a.undersel(v-on:click="onShowRuns") Runs
+        span(v-if="pathStr" style="font-size: 16px; padding: 0 4px;")  
           PathNav(:path="pathStr" v-on:path="setPath($event)")
 
-    div(style="flex: 0 auto; padding: 0 8px")
-      button.uk-button(
-        type="button"
-        v-on:click="onShowRuns"
-        ) Show Runs
-
-    div(style="flex: 0 auto")
+    div(style="flex: 0 0 300px;")
       SearchInput(v-model="query").search.uk-margin-bottom
 
   JobsList(
@@ -76,7 +71,10 @@ export default {
     onShowRuns() {
       this.$router.push({
         name: 'runs-list',
-        query: { path: this.pathStr || undefined },
+        query: {
+          path: this.pathStr || undefined,
+          q: 'since:1d',
+        },
       })
     },
 
@@ -98,6 +96,21 @@ export default {
   },
 }
 </script>
+
+<style lang="scss">
+// For "buttons" with underline selection.
+.undersel {
+  padding: 0 8px 4px 8px;
+  color: inherit;
+  &:hover {
+    text-decoration: none;
+    border-bottom: 3px solid #eee;
+  }
+  &.sel {
+    border-bottom: 3px solid black;
+  }
+}
+</style>
 
 <style lang="scss" scoped>
 .search {

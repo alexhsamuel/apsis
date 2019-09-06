@@ -209,15 +209,8 @@ export default {
 .joblist {
   th {
     text-align: left;
-    border-bottom: 1.5px solid #666;
   }
-  tr {
-    &.job {
-    }
-    &.dir {
-      //border-top: 1.5px solid #666;
-    }
-  }
+
   .job > td {
     vertical-align: top;
     height: 60px;

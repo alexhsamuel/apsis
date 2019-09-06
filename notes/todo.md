@@ -14,7 +14,6 @@ instance.  The run objects would become mucb more active.
 
 - path navigation
   - proper programmatic API in runFilter, to build query?
-  - unify Jobs and Runs views?
   - handle "/path" terms in search box specially
 
 - runs filter
