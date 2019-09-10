@@ -4,7 +4,7 @@ div
     h3(style="padding-left: 12px; flex: 1;")
       a.undersel(v-on:click="onShowJobs") Jobs
       a.undersel.sel(v-on:click="") Runs
-      span(v-if="path" style="font-size: 16px; padding: 0 4px;")  
+      span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
         PathNav(:path="path" v-on:path="setPath($event)")
 
     //- Combo box for selecting the "since" start date of runs to show.

@@ -1,7 +1,11 @@
 <template lang="pug">
 span
   span: a.dirnav(v-on:click="$emit('path', null)")
-    div.folder-icon(uk-icon="icon: home" ratio="0.8")
+    div.folder-icon(
+      uk-icon="icon: home"
+      ratio="0.8"
+      style="display: relative; top: -3px;"
+    )
 
   span(v-if="this.parts.length > 0")
     |  / 
