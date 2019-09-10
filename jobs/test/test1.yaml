@@ -1,6 +1,6 @@
 params: [date, message]
 
-program: $HOME/dev/apsis/jobs/test1 '{{ message }}'
+program: $HOME/dev/apsis/jobs/test/test1 '{{ message }}'
 
 # action:
 # - type: extension.EmailAction

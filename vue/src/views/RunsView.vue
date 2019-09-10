@@ -1,33 +1,45 @@
 <template lang="pug">
 div
   .flex-margin
-    //- Input box for the search string.
-    SearchInput(v-model="query" style="flex-grow: 1;").search-input.uk-margin-bottom
+    h3(style="padding-left: 12px; flex: 1;")
+      a.undersel(v-on:click="onShowJobs") Jobs
+      a.undersel.sel(v-on:click="") Runs
+      span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
+        PathNav(:path="path" v-on:path="setPath($event)")
 
     //- Combo box for selecting the "since" start date of runs to show.
     SinceSelect(
-      style="flex-basis: 240px; flex-grow 0;"
+      style="flex: 0 0 150px;"
       :value="since"
       v-on:input="setSince($event)"
     )
 
     //- Combo box for selecting the run states filter.
     StatesSelect(
-      style="flex-basis: 240px; flex-grow 0;"
+      style="flex: 0 0 150px;"
       :value="states"
       v-on:input="setStates($event)"
+    )
+
+    //- Input box for the search string.
+    SearchInput.search-input.uk-margin-bottom(
+      v-model="query"
+      style="flex: 0 0 300px;"
     )
 
   //- The table of runs.
   RunsList.uk-margin-bottom(
     :p="+this.$route.query.p - 1 || 0"
-    v-on:p="setPage($event)"
     :query="query"
-  )
+    :path="path"
+    v-on:p="setPage($event)"
+    v-on:path="setPath($event)"
+)
 
 </template>
 
 <script>
+import PathNav from '@/components/PathNav'
 import RunsList from '@/components/RunsList'
 // import RunsList from '@/components/VirtualRunsList'
 import * as runsFilter from '@/runsFilter.js'
@@ -38,6 +50,7 @@ import StatesSelect from '@/components/StatesSelect'
 export default {
   name: 'RunsView',
   components: {
+    PathNav,
     RunsList,
     SearchInput,
     SinceSelect,
@@ -51,6 +64,10 @@ export default {
   },
 
   computed: {
+    path() {
+      return this.$route.query.path
+    },
+
     since() {
       // Extract since from the query.
       return runsFilter.SinceTerm.get(this.query)
@@ -100,6 +117,19 @@ export default {
 
     setStates(states) {
       this.query = runsFilter.StateTerm.set(this.query, states)
+    },
+
+    setPath(path) {
+      this.setQueryParam('path', path)
+    },
+
+    onShowJobs() {
+      this.$router.push({
+        name: 'jobs-list',
+        params: {
+          path: this.path || undefined,
+        },
+      })
     },
   },
 }

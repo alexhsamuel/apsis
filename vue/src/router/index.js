@@ -3,7 +3,7 @@ import Router from 'vue-router'
 
 import ControlView  from '@/views/ControlView'
 import JobView      from '@/views/JobView'
-import JobsList     from '@/views/JobsView'
+import JobsView     from '@/views/JobsView'
 import Overview     from '@/views/Overview'
 import RunView      from '@/views/RunView'
 import RunsView     from '@/views/RunsView'
@@ -25,15 +25,16 @@ export default new Router({
       component: ControlView,
     },
     {
-      path: '/jobs/:job_id',
+      path: '/jobs/:path*',
+      props: true,
+      name: 'jobs-list',
+      component: JobsView,
+    },
+    {
+      path: '/job/:job_id',
       props: true,
       name: 'job',
       component: JobView,
-    },
-    {
-      path: '/jobs',
-      name: 'jobs-list',
-      component: JobsList,
     },
     {
       path: '/runs/:run_id',
