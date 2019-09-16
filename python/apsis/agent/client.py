@@ -127,6 +127,10 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=10):
     except asyncio.TimeoutError:
         raise AgentStartError(-1, "timeout")
 
+    # Show the agent's log output.
+    for line in err.decode().splitlines():
+        log.debug("agent log: " + line)
+
     if proc.returncode == 0:
         # The agent is running.  Whether it just started or not, it prints
         # out its port and secret token.

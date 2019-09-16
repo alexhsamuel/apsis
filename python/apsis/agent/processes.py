@@ -8,6 +8,7 @@ import logging
 import ora
 import os
 from   pathlib import Path
+import pwd
 import shlex
 import signal
 from   subprocess import SubprocessError
@@ -283,6 +284,10 @@ class Processes:
         try:
             command = " ".join( shlex.quote(a) for a in argv )
             log.info(f"start: {proc_dir}: {command}")
+
+            uid = pwd.getpwuid(os.getuid())
+            euid = pwd.getpwuid(os.geteuid())
+            logging.info(f"start: uid={uid.pw_uid}/{uid.pw_name} euid={euid.pw_uid}/{euid.pw_name}")
 
             proc.start_time = ora.now()
 
