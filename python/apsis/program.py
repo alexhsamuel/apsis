@@ -178,6 +178,7 @@ class ProcessProgram:
         meta = {
             "hostname"  : socket.gethostname(),
             "username"  : pwd.getpwuid(os.getuid()).pw_name,
+            "euid"      : pwd.getpwuid(os.geteuid()).pw_name,
         }
 
         try:
