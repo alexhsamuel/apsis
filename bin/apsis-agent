@@ -75,11 +75,6 @@ cmd.set_defaults(cmd="clean")
 
 args = parser.parse_args()
 agent = Agent(host=args.host, user=args.user, connect=args.connect)
-try:
-    sync(agent.start())
-except RuntimeError as exc:
-    logging.critical(exc)
-    raise SystemExit(1)
 
 if args.cmd is None:
     # Nothing to do.
