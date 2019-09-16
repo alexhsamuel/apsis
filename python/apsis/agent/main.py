@@ -209,7 +209,11 @@ def main():
         if not args.no_daemon:
             daemonize(state_dir / "log")
 
-       # FIXME: auto_reload added to sanic after 0.7.
+        uid = pwd.getpwuid(os.getuid())
+        euid = pwd.getpwuid(os.geteuid())
+        logging.info(f"uid={uid.pw_uid}/{uid.pw_name} euid={euid.pw_uid}/{euid.pw_name}")
+
+        # FIXME: auto_reload added to sanic after 0.7.
         logging.info("running app")
         app.run(
             sock    =sock,
