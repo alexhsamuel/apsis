@@ -1,14 +1,14 @@
 <template lang="pug">
 div
-  table.runlist
+  table.widetable.runlist
     colgroup
-      col(style="width: 10rem")
-      col(style="width: 10rem")
-      col(style="width: 4rem")
-      col(style="width: 4rem")
       col(style="min-width: 10rem; max-width: 12rem;")
       col(style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
+      col(style="width: 4rem")
+      col(style="width: 4rem")
+      col(style="width: 10rem")
+      col(style="width: 10rem")
       col(style="width: 6rem")
       col(style="width: 4rem")
 
@@ -16,18 +16,20 @@ div
       tr
         td(colspan=2 style="padding-left: 14px;")
           | {{ runs.length }} Runs
+          span(v-if="path")  in 
+            PathNav(:path="path" v-on:path="$emit('path', $event)")
         td(colspan=2)
           Pagination.pagination(v-if="pageSize" style="display: inline-block" :page.sync="page" :num-pages="numPages")
         td(colspan=5)
 
       tr
-        th.col-schedule-time Schedule
-        th.col-start-time Start
-        th.col-reruns Runs
-        th.col-state State
         th.col-job Job
         th.col-args Args
         th.col-run Run
+        th.col-state State
+        th.col-reruns Runs
+        th.col-schedule-time Schedule
+        th.col-start-time Start
         th.col-elapsed Elapsed
         th.col-actions Actions
 
@@ -38,10 +40,14 @@ div
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
-          td.col-schedule-time
-            Timestamp(:time="run.times.schedule")
-          td.col-start-time
-            Timestamp(:time="run.times.running")
+          td.col-job
+            Job(v-if="run.run_id === group.id" :job-id="run.job_id")
+          td.col-args
+            span(v-if="run.run_id === group.id" ) {{ arg_str(run.args) }}
+          td.col-run
+            Run(:run-id="run.run_id")
+          td.col-state
+            State(:state="run.state")
           td.col-reruns
             span(v-show="index == 0 && group.length > 1")
               | {{ group.length > 1 ? group.length : "" }}
@@ -49,14 +55,10 @@ div
                 v-bind:uk-icon="groupIcon(group.id)"
                 v-on:click="toggleGroupCollapse(group.id)"
               )
-          td.col-state
-            State(:state="run.state")
-          td.col-job
-            Job(v-if="run.run_id === group.id" :job-id="run.job_id")
-          td.col-args
-            span(v-if="run.run_id === group.id" ) {{ arg_str(run.args) }}
-          td.col-run
-            Run(:run-id="run.run_id")
+          td.col-schedule-time
+            Timestamp(:time="run.times.schedule")
+          td.col-start-time
+            Timestamp(:time="run.times.running")
           td.col-elapsed
             RunElapsed(:run="run")
           td.col-actions
@@ -82,6 +84,7 @@ import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
+import PathNav from '@/components/PathNav'
 import Run from './Run'
 import RunElapsed from '@/components/RunElapsed'
 import * as runsFilter from '@/runsFilter.js'
@@ -99,6 +102,7 @@ export default {
   props: {
     p: {type: Number, default: 0},
     query: {type: String, default: ''},
+    path: {type: String, default: null},
     pageSize: {type: Number, default: null},
   },
 
@@ -106,6 +110,7 @@ export default {
     ActionButton,
     Job,
     Pagination,
+    PathNav,
     Run,
     RunElapsed,
     State,
@@ -139,8 +144,16 @@ export default {
       return runsFilter.makePredicate(this.query)
     },
 
+    /** Runs, after filtering.  */
     runs() {
-      return filter(this.store.state.runs, this.jobPredicate)
+      let runs = this.store.state.runs
+
+      if (this.path) {
+        const prefix = this.path + '/'
+        runs = filter(runs, job => job.job_id.startsWith(prefix))
+      }
+
+      return filter(runs, this.jobPredicate)
     },
 
     // Array of rerun groups, each an array of runs that are reruns of the
@@ -249,48 +262,6 @@ export default {
 
 <style lang="scss">
 table.runlist {
-  width: 100%;
-  border-spacing: 0;
-  border-collapse: collapse;
-
-  th, td {
-    &:first-child {
-      padding-left: 12px;
-    }
-    &:last-child {
-      padding-right: 12px;
-    }
-  }
-
-  thead {
-    background-color: #f6faf8;
-    tr {
-      border: 1px solid #e1e8e4;
-    }
-    td, th {
-      font-weight: normal;
-      padding: 12px 4px;
-    }
-  }
-
-  tbody tr {
-    border: 1px solid #e1e8e4;
-    &:not(:last-child) {
-      border-bottom: none;
-    }
-    border-radius: 3px;
-    overflow: auto;
-    &.run-group-next {
-      border-top: none;
-    }
-    &:hover {
-      background-color: #fafafa;
-    }
-    td {
-      padding: 4px 4px 5px 4px;
-    }
-  }
-
   .col-job, .col-args, .col-schedule-time, .col-start-time {
     text-align: left;
   }

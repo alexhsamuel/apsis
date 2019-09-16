@@ -1,21 +1,64 @@
 <template lang="pug">
 div
-  .row.head
-    | {{ jobs.length }} Jobs
+  table.widetable.joblist
+    colgroup
+      col(style="min-width: 10%")
+      col(style="min-width: 10%")
+      col(style="width: 30%;")
+      col(style="width: 20%;")
 
-  .row.job(
-    v-for="job in jobs"
-    :key="job.job_id"
-  )
-    .schedule: ul
-      li(v-for="(schedule, idx) in job.schedules" :key="idx")
-        span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
+    thead
+      tr
+        th Job
+        th Parameters
+        th Description
+        th Schedule
 
-    .job-title
-      Job.name(:job-id="job.job_id")
-      span.params(v-if="job.params.length > 0")
-        | ({{ join(job.params, ', ') }})
-    .description(v-html="markdown(job.metadata.description || '')")
+    tbody
+      tr(
+        v-for="[path, subpath, name, job] in jobRows"
+        :key="subpath.concat([name]).join('/')"
+        :class="[job ? 'job' : 'dir']"
+      )
+        td
+          span(style="white-space: nowrap")
+            //- indent
+            span(:style="{ display: 'inline-block', width: (24 * subpath.length) + 'px' }")
+
+            //- a job
+            span(v-if="job")
+              Job.name(:job-id="job.job_id" :name="name")
+
+            //- a dir entry
+            span.name(v-else)
+              span(v-on:click="toggleCollapse(path)")
+                span.folder-icon(
+                  v-if="isCollapsed(path)"
+                  uk-icon="icon: minus-circle" ratio="0.7"
+                  style="width: 24px"
+                )
+                span.folder-icon(
+                  v-else
+                  uk-icon="icon: plus-circle" ratio="0.7"
+                  style="width: 24px"
+                )
+                | {{ name }} 
+              span.dirnav(
+                uk-icon="icon: play" ratio="0.7"
+                v-on:click="$emit('dir', path.join('/'))"
+              )
+
+        td.params
+          span.params(v-if="job && job.params.length > 0")
+            | {{ join(job.params, ', ') }}
+
+        td.description
+          div(v-if="job" v-html="markdown(job.metadata.description || '')")
+
+        td.schedule
+          ul(v-if="job")
+            li(v-for="(schedule, idx) in job.schedules" :key="idx")
+              span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
 
 </template>
 
@@ -39,13 +82,62 @@ export function makePredicate(query) {
   return job => every(map(preds, f => f(job)))
 }
 
+/**
+ * Arranges an array of jobs into a tree by job ID path components.
+ * 
+ * Each node in the tree is [subtrees, jobs], where subtrees maps
+ * names to subnodes, and jobs maps names to jobs.
+ * 
+ * @returns the root node
+ */
+function jobsToTree(jobs) {
+  const tree = [{}, {}]
+  for (const job of jobs) {
+    const parts = job.job_id.split('/')
+    const name = parts.splice(parts.length - 1, 1)[0]
+
+    var subtree = tree
+    for (const part of parts)
+      subtree = subtree[0][part] = subtree[0][part] || [{}, {}]
+
+    subtree[1][name] = job
+  }
+
+  return tree
+}
+
+/**
+ * Flattens a tree into items for rendering.
+ * 
+ * Generates [path, subpath, name, job] items, where job is null
+ * for directory items.
+ * 
+ * @param tree - the tree node to flatten
+ */
+function* flattenTree(parts, tree, collapse, path = []) {
+  const [subtrees, items] = tree
+
+  for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
+    const dirPath = parts.concat(path, [name])
+    yield [dirPath, path, name, null]
+    if (collapse[dirPath])
+      yield* flattenTree(path, subtree, collapse, path.concat([name]))
+  }
+
+  for (const [name, item] of sortBy(Object.entries(items)))
+    yield [parts.concat(path, [name]), path, name, item]
+}
 
 export default {
-  props: ['query'],
+  props: [
+    'dir',
+    'query',
+  ],
 
   data() {
     return {
       allJobs: [],
+      collapse: {},
     }
   },
 
@@ -63,79 +155,106 @@ export default {
   },
 
   computed: {
-    jobs() {
-      const pred = job => !job.ad_hoc && this.predicate(job)
-      return sortBy(filter(this.allJobs, pred), j => j.job_id)
+    /** Jobs after applying the filter.  */
+    visibleJobs() {
+      const query = makePredicate(this.query)
+      const pred = job => !job.ad_hoc && query(job)
+      return filter(this.allJobs, pred)
     },
 
-    predicate() {
-      return makePredicate(this.query)
-    }
+    /** Filtered jobs, as a tree.  */
+    jobsTree() {
+      return jobsToTree(this.visibleJobs)
+    },
+
+    /** Filtered jobs subtree for current dir.  */
+    jobsDir() {
+      var tree = this.jobsTree
+      if (this.dir)
+        for (const part of this.dir.split('/'))
+          tree = tree[0][part] || [{}, {}]
+      return tree
+    },
+
+    /** Filtered jobs subtree flattened to display rows, including dirs.  */
+    jobRows() {
+      const parts = this.dir ? this.dir.split('/') : []
+      return Array.from(flattenTree(parts, this.jobsDir, this.collapse))
+    },
+
   },
 
   methods: {
     markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
     join,
+
+    toggleCollapse(path) {
+      this.$set(this.collapse, path, !this.collapse[path])
+    },
+
+    isCollapsed(path) {
+      return !this.collapse[path]
+    }
   },
 }
 </script>
 
-<style lang="scss" scoped>
-.row {
-  border: 1px solid #e1e8e4;
-  border-top: none;
-  border-radius: 3px;
-  padding: 8px 24px 12px 24px;
-  overflow: auto;
+<style lang="scss">
+@import '../styles/vars.scss';
+
+.dirnav {
+  color: $apsis-dir-color;
 }
 
-.head {
-  background-color: #f6faf8;
-  border-top: 1px solid #e1e8e4;
-  padding: 12px 24px;
-}
-
-.job {
-  &:hover {
-    background-color: #fafafa;
+.joblist {
+  th {
+    text-align: left;
+    border-bottom: 1.5px solid #666;
   }
-}
-
-.job-title {
-  .name {
-    font-size: 120%;
-    font-weight: 500;
-  }
-  .params {
-    padding-left: 0.2rem;
-    span {
-      padding: 0 0.2rem;
+  tr {
+    &.job {
+    }
+    &.dir {
+      //border-top: 1.5px solid #666;
     }
   }
-}
-
-.description {
-  margin-bottom: 8px;
-  font-size: 85%;
-  color: #777;
-
-  // Need /deep/ here because v-html doesn't produce scoping attributes.
-  /deep/ p {
-    margin: 0;
-  }
-}
-
-.schedule {
-  float: right;
-  width: 33%;
-  font-size: 85%;
-  padding-top: 4px;
-  ul {
-    margin: 0;
+  .job > td {
+    vertical-align: top;
+    height: 60px;
   }
 
-  .disabled {
-    color: #aaa;
+  .job-title {
+    .name {
+      font-weight: 500;
+    }
+    .params {
+      padding-left: 0.2rem;
+      span {
+        padding: 0 0.2rem;
+      }
+    }
   }
+
+  .description {
+    font-size: 85%;
+    color: #777;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .schedule {
+    font-size: 85%;
+    padding-top: 4px;
+    ul {
+      margin: 0;
+    }
+
+    .disabled {
+      color: #aaa;
+    }
+  }
+
 }
 </style>

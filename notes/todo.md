@@ -12,7 +12,15 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- path navigation
+  - proper programmatic API in runFilter, to build query (separate dir path)?
+  - unify Jobs and Runs views?
+  - handle "/path" terms in search box specially
+
 - check token in agent protocol
+
+- get rid of UIKit
+  - something like [Tailwind](https://tailwindcss.com/)? [Tachyons](http://tachyons.io)?
 
 - agent cleanup
   - add endpoint to kill a process

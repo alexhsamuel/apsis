@@ -42,5 +42,6 @@ module.exports = {
     'space-in-parens': 'off',
     'key-spacing': 'off',
     'brace-style': 'off',
+    'yield-star-spacing': 'off',
   }
 }

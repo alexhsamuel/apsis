@@ -13,7 +13,51 @@
 // Base application styles.
 @import "src/styles/base.scss";
 
-// FIXME
+// Wide table for runs, jobs.
+table.widetable {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: collapse;
+
+  th, td {
+    &:first-child {
+      padding-left: 12px;
+    }
+    &:last-child {
+      padding-right: 12px;
+    }
+  }
+
+  thead {
+    background-color: #f6faf8;
+    td, th {
+      font-weight: normal;
+      padding: 12px 4px;
+    }
+  }
+
+  tbody tr {
+    border-top: 1px solid $apsis-grid-color;
+    border-bottom: 1px solid $apsis-grid-color;
+    &:not(:last-child) {
+      border-bottom: none;
+    }
+    border-radius: 3px;
+    overflow: auto;
+    &.run-group-next {
+      border-top: none;
+    }
+    &:hover {
+      background-color: #fafafa;
+    }
+    td {
+      padding: 4px 4px 5px 4px;
+    }
+  }
+}
+
+
+// Table for record-like expansions (single job, etc).
 table.fields {
   @extend .uk-table;
   @extend .uk-table-small;

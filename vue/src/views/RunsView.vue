@@ -21,9 +21,11 @@ div
   //- The table of runs.
   RunsList.uk-margin-bottom(
     :p="+this.$route.query.p - 1 || 0"
-    v-on:p="setPage($event)"
     :query="query"
-  )
+    :path="path"
+    v-on:p="setPage($event)"
+    v-on:path="setPath($event)"
+)
 
 </template>
 
@@ -51,6 +53,10 @@ export default {
   },
 
   computed: {
+    path() {
+      return this.$route.query.path
+    },
+
     since() {
       // Extract since from the query.
       return runsFilter.SinceTerm.get(this.query)
@@ -100,6 +106,10 @@ export default {
 
     setStates(states) {
       this.query = runsFilter.StateTerm.set(this.query, states)
+    },
+
+    setPath(path) {
+      this.setQueryParam('path', path)
     },
   },
 }

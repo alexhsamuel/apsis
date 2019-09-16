@@ -1,13 +1,20 @@
 <template lang="pug">
 router-link(
   :to="{ name: 'job', params: { job_id: jobId }}"
-) {{ jobId }}
+) {{ label }}
 
 </template>
 
 <script>
 export default {
-  props: ['jobId'],
+  props: [
+    'jobId',
+    'name',
+  ],
+
+  computed: {
+    label() { return this.name || this.jobId },
+  },
 }
 </script>
 
