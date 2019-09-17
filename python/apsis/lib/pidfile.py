@@ -31,8 +31,6 @@ class PidFile:
         """
         assert self.file is None
 
-        pid_str = str(os.getpid()) + "\n"
-
         # Open for append.  The file may exist, or not.
         self.file = open(self.path, "a+")
 
@@ -56,6 +54,7 @@ class PidFile:
 
         else:
             # Our lock.  Write immediately.
+            pid_str = str(os.getpid()) + "\n"
             self.file.seek(0)
             self.file.truncate()
             self.file.write(pid_str)
