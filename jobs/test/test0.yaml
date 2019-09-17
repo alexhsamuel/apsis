@@ -23,5 +23,5 @@ program: $HOME/dev/apsis/jobs/test/test0 '{{ message }}'
 #   args:
 #     message: '{{ message }} again!'
 
-successors: test1
+successors: test/test1
 
