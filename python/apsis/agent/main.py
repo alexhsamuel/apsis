@@ -166,10 +166,9 @@ def main():
     args = parser.parse_args()
 
     state_dir = get_state_dir()
-    logging.debug(f"using dir: {state_dir}")
+    print(f"using dir: {state_dir}", file=sys.stderr)
 
     pid_file = PidFile(state_dir / "pid")
-    logging.info(state_dir / "pid")
     pid = pid_file.lock()
 
     if pid is None:
@@ -178,6 +177,13 @@ def main():
         if args.connect:
             print("agent not running", file=sys.stderr)
             raise SystemExit(1)
+
+        print("starting new agent", file=sys.stderr)
+        uid = pwd.getpwuid(os.getuid())
+        euid = pwd.getpwuid(os.geteuid())
+        print(
+            f"uid={uid.pw_uid}/{uid.pw_name} euid={euid.pw_uid}/{euid.pw_name}",
+            file=sys.stderr)
 
         port, sock = make_server_socket(
             args.bind, range(DEFAULT_PORT, DEFAULT_PORT + 100))
@@ -209,6 +215,7 @@ def main():
         if not args.no_daemon:
             daemonize(state_dir / "log")
 
+        logging.info(f"pid={os.getpid()}")
         uid = pwd.getpwuid(os.getuid())
         euid = pwd.getpwuid(os.geteuid())
         logging.info(f"uid={uid.pw_uid}/{uid.pw_name} euid={euid.pw_uid}/{euid.pw_name}")
@@ -227,10 +234,11 @@ def main():
 
         pid_data = pid_file.file.read()
         port, token = decode_pid_data(pid_data)
+        print(f"existing agent: port={port}", file=sys.stderr)
 
         if args.no_connect:
             print(
-                f"agent already running; pid {pid} port {port}", 
+                f"agent already running; port {port}", 
                 file=sys.stderr)
             raise SystemExit(1)
 
