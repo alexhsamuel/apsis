@@ -12,6 +12,8 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- check token in agent protocol
+
 - path navigation
   - proper programmatic API in runFilter, to build query?
   - handle "/path" terms in search box specially
@@ -19,8 +21,6 @@ instance.  The run objects would become mucb more active.
 - runs filter
   - remove time, state filter to query args
   - make time, state filter persistent?  (cookie?)
-
-- check token in agent protocol
 
 - get rid of UIKit
   - something like [Tailwind](https://tailwindcss.com/)? [Tachyons](http://tachyons.io)?
