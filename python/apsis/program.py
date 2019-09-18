@@ -256,8 +256,13 @@ class ShellCommandProgram(ProcessProgram):
 #-------------------------------------------------------------------------------
 
 @functools.lru_cache(maxsize=None)
+def _get_agent_fqdn(fqdn, user):
+    return Agent(host=fqdn, user=user)
+
+
 def _get_agent(host, user):
-    return Agent(host=host, user=user)
+    host = None if host is None else socket.getfqdn(host)
+    return _get_agent_fqdn(host, user)
 
 
 class AgentProgram:
