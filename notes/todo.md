@@ -12,7 +12,7 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- check token in agent protocol
+- shut down agent cleanly, including canceling shutdown task
 
 - path navigation
   - proper programmatic API in runFilter, to build query?
