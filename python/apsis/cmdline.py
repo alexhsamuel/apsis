@@ -50,7 +50,7 @@ def format_jso(jso, indent=0):
 
 
 def format_state_symbol(state):
-    return STATE_COLOR[state] + STATE_SYMBOL[state] + BLK
+    return STATE_COLOR[state] + STATE_SYMBOL[state] + NBL
 
 format_state_symbol.width = 1
 
@@ -65,8 +65,8 @@ def format_schedule(schedule, indent=0):
 
 def format_instance(run):
     return (
-        f"{JOB}{run['job_id']}{BLK} "
-        + " ".join( f"{k}={ARG}{v}{BLK}" for k, v in run["args"].items() )
+        f"{JOB}{run['job_id']}{NBL} "
+        + " ".join( f"{k}={ARG}{v}{NBL}" for k, v in run["args"].items() )
     )
 
 
@@ -118,7 +118,7 @@ def format_run(run):
 
     # Run ID.
     run_id = run["run_id"]
-    yield f"{BLD}run {RUN}{run_id}{BLK}{NBL}"
+    yield f"{BLD}run {RUN}{run_id}{NBL}"
 
     # The job.
     job = format_instance(run)
@@ -126,7 +126,7 @@ def format_run(run):
 
     # Rerun info.
     if run["rerun"] != run_id:
-        yield f"{b} rerun of run {RUN}{run['rerun']}{BLK}"
+        yield f"{b} rerun of run {RUN}{run['rerun']}{NBL}"
 
     # Current state and relevant time.
     time = lambda n: format_time(run["times"].get(n, ""))
@@ -140,11 +140,11 @@ def format_run(run):
     elapsed = run["meta"].get("elapsed")
     if elapsed is not None:
         time += " elapsed " + format_elapsed(elapsed).lstrip()
-    yield f"{STATE_COLOR[state]}{STATE_SYMBOL[state]} {state}{BLK} {time}"
+    yield f"{STATE_COLOR[state]}{STATE_SYMBOL[state]} {state}{NBL} {time}"
 
     # Message, if any.
     if run["message"] is not None:
-        yield f"➔ {WHT}{run['message']}{BLK}"
+        yield f"➔ {WHT}{run['message']}{NBL}"
     
     yield ""
 
@@ -208,11 +208,11 @@ def format_runs(runs, *, reruns=False):
     table = fixfmt.table.RowTable(RUNS_CFG)
     for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
         row = {
-            "run_id"    : RUN + run["run_id"] + BLK,
+            "run_id"    : RUN + run["run_id"] + NBL,
             "S"         : run["state"],
             "start"     : start_time(run),
             "elapsed"   : elapsed(run),
-            "job_id"    : JOB + run["job_id"] + BLK,
+            "job_id"    : JOB + run["job_id"] + NBL,
             "args"      : " ".join( f"{k}={v}" for k, v in run["args"].items() ),
           # **run["args"],
         }
@@ -227,7 +227,7 @@ def format_runs(runs, *, reruns=False):
         yield from table
 
     else:
-        yield f"{RED}No runs.{BLK}"
+        yield f"{RED}No runs.{NBL}"
 
     if not reruns:
         yield ""
