@@ -79,7 +79,6 @@ def auth(handler):
     @functools.wraps(handler)
     def wrapped(req, *args, **kw_args):
         token = req.headers.get("x-auth-token", None)
-        log.info(f"token: {token!r}")
         if token == req.app.token:
             return handler(req, *args, **kw_args)
         else:
