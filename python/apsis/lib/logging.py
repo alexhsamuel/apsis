@@ -7,11 +7,11 @@ from   .terminal import COLOR, BLK, BLD, NBL
 #-------------------------------------------------------------------------------
 
 LEVEL_NAMES = {
-    "DEBUG"     : COLOR(0xf9) + "[d]" + BLK,
-    "INFO"      : COLOR(0xf3) + "[i]" + BLK,
-    "WARNING"   : COLOR(0x64) + "[w]" + BLK,
-    "ERROR"     : COLOR(0x7d) + "[E]" + BLK,
-    "CRITICAL"  : COLOR(0xc4) + BLD + "[C]" + NBL + BLK,
+    "DEBUG"     : COLOR(0xf9) + "[d]" + NBL,
+    "INFO"      : COLOR(0xf3) + "[i]" + NBL,
+    "WARNING"   : COLOR(0x64) + "[w]" + NBL,
+    "ERROR"     : COLOR(0x7d) + "[E]" + NBL,
+    "CRITICAL"  : COLOR(0xc4) + BLD + "[C]" + NBL,
 }
 
 NAME_COLOR = COLOR(0x11)
