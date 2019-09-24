@@ -9,6 +9,7 @@ import socket
 import traceback
 import ujson
 
+from   apsis.lib.sys import get_username
 from   .processes import NoSuchProcessError
 
 log = logging.getLogger("api")
@@ -61,7 +62,7 @@ def proc_to_jso(proc):
         "start_time": None if proc.start_time is None else str(proc.start_time),
         "end_time"  : None if proc.end_time is None else str(proc.end_time),
         "hostname"  : socket.gethostname(),
-        "username"  : pwd.getpwuid(os.getuid()).pw_name,
+        "username"  : get_username(),
     }
 
 
@@ -123,6 +124,11 @@ async def processes_post(req):
     cwd     = Path(prog.get("cwd", "/")).absolute()
     env     = prog.get("env", None)
     stdin   = prog.get("stdin", None)
+
+    # We can only run procs for our own user.  Confirm that the request's
+    # username matches.
+    if prog["username"] != get_username():
+        return response("wrong username", 421)
 
     proc = req.app.processes.start(argv, cwd, env, stdin)
     return response({"process": proc_to_jso(proc)}, 201)

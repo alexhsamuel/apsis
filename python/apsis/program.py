@@ -10,6 +10,7 @@ import traceback
 from   .agent.client import Agent, NoSuchProcessError
 from   .lib.json import Typed, no_unexpected_keys
 from   .lib.py import or_none
+from   .lib.sys import get_username
 from   .runs import template_expand, join_args
 
 log = logging.getLogger(__name__)
@@ -177,7 +178,7 @@ class ProcessProgram:
 
         meta = {
             "hostname"  : socket.gethostname(),
-            "username"  : pwd.getpwuid(os.getuid()).pw_name,
+            "username"  : get_username(),
             "euid"      : pwd.getpwuid(os.geteuid()).pw_name,
         }
 
@@ -311,7 +312,7 @@ class AgentProgram:
 
         meta = {
             "apsis_hostname"  : socket.gethostname(),
-            "apsis_username"  : pwd.getpwuid(os.getuid()).pw_name,
+            "apsis_username"  : get_username(),
         }
 
         try:

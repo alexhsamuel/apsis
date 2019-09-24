@@ -9,7 +9,7 @@ import sys
 import warnings
 
 from   apsis.lib.py import if_none
-
+from   apsis.lib.sys import get_username
 try:
     # Older requests vendor urllib3.
     from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -156,7 +156,9 @@ class Agent:
     def __init__(self, host=None, user=None, *, connect=None):
         """
         :param host:
-          Host to run on, or `None` for local.
+          Host to run on, or none for local.
+        :param user:
+          User to run as, or none for the current user.
         :param connect:
           If true, connect to a running instance only.  If false, fail if an 
           instance is already running.
@@ -294,15 +296,17 @@ class Agent:
         Starts a process.
 
         :return:
-          The new process, which will either be in state "rub" or "err".
+          The new process, which will either be in state "run" or "err".
         """
+        username = get_username() if self.__user is None else self.__user
         rsp = await self.request(
             "POST", "/processes", data={
                 "program": {
-                    "argv"  : [ str(a) for a in argv ],
-                    "cwd"   : str(cwd),
-                    "env"   : env,
-                    "stdin" : stdin,
+                    "username"  : username,
+                    "argv"      : [ str(a) for a in argv ],
+                    "cwd"       : str(cwd),
+                    "env"       : env,
+                    "stdin"     : stdin,
                 },
             },
             restart=restart
