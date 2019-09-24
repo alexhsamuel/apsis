@@ -233,7 +233,14 @@ class Agent:
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore", category=InsecureRequestWarning)
-                    rsp = requests.request(method, url, json=data, verify=False)
+                    rsp = requests.request(
+                        method, url,
+                        json=data,
+                        verify=False,
+                        headers={
+                            "X-Auth-Token": token,
+                        }
+                    )
 
             except requests.ConnectionError:
                 # Try again.
@@ -244,9 +251,21 @@ class Agent:
                 continue
 
             else:
-                # Request submitted successfully.
                 log.debug(f"{method} {url} → {rsp.status_code}")
-                return rsp
+
+                if rsp.status_code == 403:
+                    # Forbidden.  A different agent is running on that port.  We
+                    # should start our own.
+                    log.info("wrong agent; reconnecting")
+
+                    # FIXME: Do this properly.
+                    async with self.__lock:
+                        self.__conn = None
+                    continue
+
+                else:
+                    # Request submitted successfully.
+                    return rsp
 
         else:
             # Ran out of connection attempts.

@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import logging
 import os
 from   pathlib import Path
@@ -68,6 +69,24 @@ def proc_to_jso(proc):
 
 API = sanic.Blueprint("v1")
 
+def auth(handler):
+    """
+    Wraps a handler to authorize the operation.
+
+    Checks x-auth-token in the request header.
+    """
+    @functools.wraps(handler)
+    def wrapped(req, *args, **kw_args):
+        token = req.headers.get("x-auth-token", None)
+        log.info(f"token: {token!r}")
+        if token == req.app.token:
+            return handler(req, *args, **kw_args)
+        else:
+            return error("forbidden", 403)
+
+    return wrapped
+
+
 @API.exception(NoSuchProcessError)
 def no_such_process_error(request, exception):
     return exc_error(exception, 404)
@@ -84,17 +103,20 @@ def exception_(request, exception):
 
 
 @API.route("/running", methods={"GET"})
+@auth
 async def process_running(req):
     return response({"running": True})
 
 
 @API.route("/processes", methods={"GET"})
+@auth
 async def processes_get(req):
     procs = req.app.processes
     return response({"processes": [ proc_to_jso(p) for p in procs ]})
 
 
 @API.route("/processes", methods={"POST"})
+@auth
 async def processes_post(req):
     prog    = req.json["program"]
     argv    = prog["argv"]
@@ -107,12 +129,14 @@ async def processes_post(req):
 
 
 @API.route("/processes/<proc_id>", methods={"GET"})
+@auth
 async def process_get(req, proc_id):
     proc = req.app.processes[proc_id]
     return response({"process": proc_to_jso(proc)})
 
     
 @API.route("/processes/<proc_id>/output", methods={"GET"})
+@auth
 async def process_get_output(req, proc_id):
     proc = req.app.processes[proc_id]
     with open(proc.proc_dir.out_path, "rb") as file:
@@ -122,12 +146,14 @@ async def process_get_output(req, proc_id):
 
 
 @API.route("/processes/<proc_id>/signal/<signum:int>", methods={"PUT"})
+@auth
 async def process_signal(req, proc_id, signum):
     req.app.processes.kill(proc_id, signum)
     return response({})
 
 
 @API.route("/processes/<proc_id>", methods={"DELETE"})
+@auth
 async def process_delete(req, proc_id):
     del req.app.processes[proc_id]
     stop = len(req.app.processes) == 0 and req.app.config.auto_stop is not None
@@ -137,6 +163,7 @@ async def process_delete(req, proc_id):
 
 
 @API.route("/stop", methods={"POST"})
+@auth
 async def process_stop(req):
     # FIXME: Add a query option to kill and stop, or another endpoint.
     stop = len(req.app.processes) == 0
