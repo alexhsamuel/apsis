@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import ora
 from   pathlib import Path
 import sys
 
@@ -12,7 +13,7 @@ import apsis.lib.logging
 from   apsis.service import DEFAULT_PORT
 import apsis.service.client
 import apsis.service.main
-from   apsis.sqlite import SqliteDB
+from   apsis.sqlite import SqliteDB, archive_runs
 
 #-------------------------------------------------------------------------------
 
@@ -31,6 +32,33 @@ parser.add_argument(
 def get_client(args):
     return apsis.service.client.Client((args.host, args.port))
 
+
+#-------------------------------------------------------------------------------
+# command: archive
+
+def cmd_archive(args):
+    db = SqliteDB.open(args.db)
+    archive_db = SqliteDB.create(args.archive_db)
+    time = ora.Time(args.time)
+
+    archive_runs(db, archive_db, time, delete=args.delete)
+    
+
+cmd = parser.add_command(
+    "archive", cmd_archive,
+    description="Moves old runs to an archive DB.")
+cmd.add_argument(
+    "db", metavar="DBPATH",
+    help="path to Apsis database")
+cmd.add_argument(
+    "archive_db", metavar="ARCPATH",
+    help="path to archive database")
+cmd.add_argument(
+    "time", metavar="TIME", type=ora.Time,
+    help="archive runs before TIME")
+cmd.add_argument(
+    "--delete", action="store_true", default=False,
+    help="delete archived runs from DBPATH")
 
 #-------------------------------------------------------------------------------
 # command: check-job

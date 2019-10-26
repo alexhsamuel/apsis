@@ -9,6 +9,7 @@ import sqlalchemy as sa
 import ujson
 
 from   .jobs import jso_to_job, job_to_jso, JobSpecificationError
+from   .lib import itr
 from   .runs import Instance, Run
 from   .program import program_to_jso, program_from_jso, Output, OutputMetadata
 
@@ -391,7 +392,7 @@ class OutputDB:
     be efficient.  See https://www.sqlite.org/intern-v-extern-blob.html.
     """
 
-    TBL_OUTPUT = sa.Table(
+    TABLE = sa.Table(
         "output", METADATA,
         sa.Column("run_id"      , sa.String()   , nullable=False),
         sa.Column("output_id"   , sa.String()   , nullable=False),
@@ -418,7 +419,7 @@ class OutputDB:
             "data"          : output.data,
         }
         with self.__engine.begin() as conn:
-            conn.execute(self.TBL_OUTPUT.insert().values(**values))
+            conn.execute(self.TABLE.insert().values(**values))
 
 
     def get_metadata(self, run_id) -> OutputMetadata:
@@ -429,7 +430,7 @@ class OutputDB:
           A mapping from output ID to `OutputMetadata` instances.  If no output
           is stored for `run_id`, returns an empty dict.
         """
-        cols    = self.TBL_OUTPUT.c
+        cols    = self.TABLE.c
         columns = [cols.output_id, cols.name, cols.content_type, cols.length]
         query   = sa.select(columns).where(cols.run_id == run_id)
         return {
@@ -439,7 +440,7 @@ class OutputDB:
 
 
     def get_data(self, run_id, output_id) -> bytes:
-        cols = self.TBL_OUTPUT.c
+        cols = self.TABLE.c
         query = (
             sa.select([cols.compression, cols.data])
             .where((cols.run_id == run_id) & ((cols.output_id == output_id)))
@@ -544,5 +545,56 @@ class SqliteDB:
             self.run_history_db.get_max_run_id_num(),
         )
 
+
+
+#-------------------------------------------------------------------------------
+
+def archive_runs(db, archive_db, time, *, delete=False):
+    """
+    Moves runs from `db` to `archive_db` that are older than `time`.
+    """
+    # FIXME
+    in_eng = db.run_db._RunDB__engine
+    arc_eng = archive_db.run_db._RunDB__engine
+
+    # Tables other than "runs" that need to be archived.
+    run_tables = (RunHistoryDB.TABLE, OutputDB.TABLE)
+
+    # Selection for runs in the runs table itself.
+    sel = TBL_RUNS.c.timestamp < dump_time(time)
+
+    def joined(table):
+        """
+        Returns `table` with matching runs selected.
+        """
+        return table.join(
+            TBL_RUNS,
+            sa.and_(table.c.run_id == TBL_RUNS.c.run_id, sel)
+        )
+
+    def copy(sel, tbl, chunk_size=16384):
+        """
+        Copies rows from `sel` to `tbl`.
+        """
+        for chunk in itr.chunks(in_eng.execute(sel), chunk_size):
+            with arc_eng.begin() as tx:
+                tx.execute(sa.insert(tbl), chunk)
+
+    # Copy rows corresponding to these runs in other tables.
+    for table in run_tables:
+        copy(sa.select(table.c).select_from(joined(table)), table)
+    # Copy the runs themselves.
+    copy(sa.select(TBL_RUNS.c).where(sel), TBL_RUNS)
+
+    if delete:
+        with in_eng.begin() as tx:
+            # Delete rows corresponding to these runs in other tables.
+            run_sel = sa.select([TBL_RUNS.c.run_id]).where(sel)
+            for table in run_tables:
+                q = table.delete().where(table.c.run_id == run_sel)
+                print(q)
+                tx.execute(q)
+            # Delete the runs themselves.
+            tx.execute(TBL_RUNS.delete().where(sel))
 
 
