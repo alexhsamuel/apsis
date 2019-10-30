@@ -94,6 +94,9 @@ cmd = parser.add_command(
 
 def cmd_serve(args):
     config = apsis.config.load(args.config)
+    for ovr in args.override:
+        name, val = ovr.split("=", 1)
+        config[name] = val
 
     restart = apsis.service.main.serve(
         config, host=args.host, port=args.port, debug=args.debug)
@@ -126,6 +129,9 @@ cmd.add_argument(
 cmd.add_argument(
     "--config", metavar="CFGFILE", nargs="?", type=Path, default=None,
     help="read config from CFGFILE")
+cmd.add_argument(
+    "--override", "-o", metavar="NAME=VAL", action="append", default=[],
+    help="override config NAME as VAL")
 
 
 #-------------------------------------------------------------------------------
