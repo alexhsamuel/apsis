@@ -7,8 +7,8 @@ if sys.stdout.isatty():
 else:
     SGR = lambda *cc: ""
 
+RES = SGR( 0)
 BLD = SGR( 1)
-NBL = SGR( 0)
 UND = SGR( 4)
 NUN = SGR(24)
 BLK = SGR(30)

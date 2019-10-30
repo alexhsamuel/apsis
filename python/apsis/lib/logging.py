@@ -2,19 +2,19 @@ import asyncio
 import logging
 import ora
 
-from   .terminal import COLOR, BLK, BLD, NBL
+from   .terminal import COLOR, BLD, RES
 
 #-------------------------------------------------------------------------------
 
 LEVEL_NAMES = {
-    "DEBUG"     : COLOR(0xf9) + "[d]" + BLK,
-    "INFO"      : COLOR(0xf3) + "[i]" + BLK,
-    "WARNING"   : COLOR(0x64) + "[w]" + BLK,
-    "ERROR"     : COLOR(0x7d) + "[E]" + BLK,
-    "CRITICAL"  : COLOR(0xc4) + BLD + "[C]" + NBL + BLK,
+    "DEBUG"     : COLOR(0xf9) + "[d]" + RES,
+    "INFO"      : COLOR(0xf3) + "[i]" + RES,
+    "WARNING"   : COLOR(0x64) + "[w]" + RES,
+    "ERROR"     : COLOR(0x7d) + "[E]" + RES,
+    "CRITICAL"  : COLOR(0xc4) + BLD + "[C]" + RES
 }
 
-NAME_COLOR = COLOR(0x11)
+NAME_COLOR = COLOR(0x18)
 ACCESS_COLOR = COLOR(0x3b)
 
 
@@ -24,7 +24,7 @@ class Formatter(logging.Formatter):
         time = ora.UNIX_EPOCH + record.created
         level = LEVEL_NAMES[record.levelname]
         return (
-            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{BLK} {level} "
+            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{RES} {level} "
             f"{record.message}"
         )
 
@@ -36,8 +36,8 @@ class AccessFormatter(logging.Formatter):
         time = ora.UNIX_EPOCH + record.created
         level = LEVEL_NAMES[record.levelname]
         return (
-            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{BLK} {level} "
-            f"{record.status} {ACCESS_COLOR}{record.request}{BLK} ({record.host})"
+            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{RES} {level} "
+            f"{record.status} {ACCESS_COLOR}{record.request}{RES} ({record.host})"
         )
 
 
