@@ -13,13 +13,14 @@ class Scheduler:
 
     HORIZON = 86400
 
-    def __init__(self, jobs, schedule, stop):
+    def __init__(self, cfg, jobs, schedule, stop):
         """
         :param jobs:
           The jobs repo.
         :param schedule:
           Function of `time, run` that schedules a run.
         """
+        self.__cfg = cfg
         self.__jobs = jobs
         self.__stop = stop
         self.__schedule = schedule
@@ -64,6 +65,11 @@ class Scheduler:
         Schedules runs until `stop`.
         """
         assert stop >= self.__stop
+
+        max_age = self.__cfg.get("schedule_max_age")
+        if max_age is not None and stop - self.__stop > float(max_age):
+            raise RuntimeError(
+                f"last scheduled more than schedule_max_age ({max_age} s) ago")
 
         log.debug(f"scheduling runs until {stop}")
         for time, run in self.get_runs(stop):
