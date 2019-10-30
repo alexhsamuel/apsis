@@ -582,8 +582,10 @@ def archive_runs(db, archive_db, time, *, delete=False):
 
     # Copy rows corresponding to these runs in other tables.
     for table in run_tables:
+        logging.info(f"copying {table}")
         copy(sa.select(table.c).select_from(joined(table)), table)
     # Copy the runs themselves.
+    logging.info("copying runs")
     copy(sa.select(TBL_RUNS.c).where(sel), TBL_RUNS)
 
     if delete:
@@ -591,12 +593,25 @@ def archive_runs(db, archive_db, time, *, delete=False):
             # Delete rows corresponding to these runs in other tables.
             run_sel = sa.select([TBL_RUNS.c.run_id]).where(sel)
             for table in run_tables:
-                q = table.delete().where(table.c.run_id == run_sel)
-                print(q)
-                tx.execute(q)
+                logging.info(f"deleting {table}")
+                tx.execute(table.delete().where(table.c.run_id == run_sel))
             # Delete the runs themselves.
+            logging.info("deleting runs")
             tx.execute(TBL_RUNS.delete().where(sel))
 
+        # Verify.
+        for table in run_tables:
+            logging.info(f"verifying {table}")
+            assert in_eng.execute(
+                sa.select([sa.func.count()])
+                .select_from(joined(table))
+            ).scalar() == 0
+        logging.info("verifying runs")
+        assert in_eng.execute(
+            sa.select([sa.func.count()])
+            .where(sel)
+        ).scalar() == 0
+        
+        logging.info("vacuuming")
         in_eng.execute("VACUUM")
-
 
