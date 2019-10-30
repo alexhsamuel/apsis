@@ -597,4 +597,6 @@ def archive_runs(db, archive_db, time, *, delete=False):
             # Delete the runs themselves.
             tx.execute(TBL_RUNS.delete().where(sel))
 
+        in_eng.execute("VACUUM")
+
 
