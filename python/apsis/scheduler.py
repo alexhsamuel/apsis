@@ -25,6 +25,12 @@ class Scheduler:
         self.__stop = stop
         self.__schedule = schedule
 
+        since = self.__cfg.get("schedule_since")
+        if since is not None:
+            since = Time(since)
+            if since > self.__stop:
+                self.__stop = since
+
 
     def get_runs(self, stop: Time):
         """
@@ -66,11 +72,6 @@ class Scheduler:
         """
         assert stop >= self.__stop
 
-        max_age = self.__cfg.get("schedule_max_age")
-        if max_age is not None and stop - self.__stop > float(max_age):
-            raise RuntimeError(
-                f"last scheduled more than schedule_max_age ({max_age} s) ago")
-
         log.debug(f"scheduling runs until {stop}")
         for time, run in self.get_runs(stop):
             await self.__schedule(time, run)
@@ -83,8 +84,21 @@ class Scheduler:
         Infinite loop that periodically schedules runs.
         """
         while True:
+            # Make sure we're not too old.
+            time = now()
             try:
-                await self.schedule(now() + self.HORIZON)
+                max_age = self.__cfg.get("schedule_max_age")
+            except KeyError:
+                pass
+            else:
+                if time - self.__stop > float(max_age):
+                    raise RuntimeError(
+                        f"last scheduled more than "
+                        f"schedule_max_age ({max_age} s) ago"
+                    )
+
+            try:
+                await self.schedule(time + self.HORIZON)
             except Exception:
                 log.critical("scheduler loop failed", exc_info=True)
                 raise SystemExit(1)
