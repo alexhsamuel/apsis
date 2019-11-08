@@ -12,6 +12,16 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- better logging on agent connection failures
+- get rid of home page
+- get rid of nav at top
+
+- UI for time range of runs list
+- don't redirect when rerunning
+
+- reload jobs without restarting
+
+
 - shut down agent cleanly, including canceling shutdown task
 
 - path navigation
