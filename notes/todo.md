@@ -12,6 +12,8 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- phase in interval scheduler
+- fuzz in interval scheduler
 - better logging on agent connection failures
 - get rid of home page
 - get rid of nav at top
