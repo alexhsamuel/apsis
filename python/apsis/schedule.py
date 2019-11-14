@@ -2,7 +2,6 @@ import bisect
 import logging
 import ora
 from   ora import Daytime, Time, TimeZone
-import random
 
 from   .lib.exc import SchemaError
 from   .lib.json import Typed, no_unexpected_keys
@@ -164,14 +163,12 @@ class IntervalSchedule:
 
     TYPE_NAME = "interval"
 
-    def __init__(self, interval, args, *, phase=0.0, jitter=0.0):
+    def __init__(self, interval, args, *, phase=0.0):
         self.interval   = float(interval)
         self.phase      = float(phase)
-        self.jitter     = float(jitter)
         self.args       = { str(k): str(v) for k, v in args.items() }
 
         assert 0 <= self.phase < self.interval
-        assert 0 <= self.jitter < self.interval
 
 
     def __repr__(self):
@@ -196,7 +193,7 @@ class IntervalSchedule:
         ) + self.phase
 
         while True:
-            yield time + random.random() * self.jitter, self.args
+            yield time, self.args
             time += self.interval
 
 
@@ -204,7 +201,6 @@ class IntervalSchedule:
         return {
             "interval"  : self.interval,
             "phase"     : self.phase,
-            "jitter"    : self.jitter,
             "args"      : self.args,
         }
 
@@ -217,15 +213,12 @@ class IntervalSchedule:
             raise SchemaError("missing interval")
         interval    = float(interval)
         phase       = float(jso.pop("phase", 0))
-        jitter      = float(jso.pop("jitter", 0))
         args        = jso.pop("args", {})
 
         if not (0 <= phase < interval):
             raise SchemaError("require 0 <= phase < interval")
-        if not (0 <= jitter < interval):
-            raise SchemaError("require 0 <= jitter < interval")
 
-        return Class(interval, args, phase=phase, jitter=jitter)
+        return Class(interval, args, phase=phase)
 
 
 
