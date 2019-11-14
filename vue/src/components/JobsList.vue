@@ -3,15 +3,15 @@ div
   table.widetable.joblist
     colgroup
       col(style="width: 15%")
-      col(style="min-width: 10%")
       col(style="width: 30%;")
+      col(style="min-width: 10%")
       col(style="width: 20%;")
 
     thead
       tr
         th Job
-        th Parameters
         th Description
+        th Parameters
         th Schedule
 
     tbody
@@ -53,12 +53,12 @@ div
                     path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
                 a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
 
+        td.description
+          div(v-if="job" v-html="markdown(job.metadata.description || '')")
+
         td.params
           span.params(v-if="job && job.params.length > 0")
             | {{ join(job.params, ', ') }}
-
-        td.description
-          div(v-if="job" v-html="markdown(job.metadata.description || '')")
 
         td.schedule
           ul(v-if="job")
