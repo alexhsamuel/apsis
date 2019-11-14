@@ -12,7 +12,7 @@ schedule:
 program: 
   type: program
   argv: 
-  - /Users/alex/dev/apsis/jobs/test0 
+  - /Users/alex/dev/apsis/jobs/test/test0 
   - "{{ message }}"
   host: "{{ host }}"
   user: "{{ user }}"
