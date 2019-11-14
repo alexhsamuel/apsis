@@ -228,12 +228,10 @@ export default {
   }
 
   .dir > td {
-    vertical-align: top;
     height: 48px;
   }
 
   .job > td {
-    vertical-align: top;
     height: 48px;
   }
 
