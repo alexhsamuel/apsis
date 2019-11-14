@@ -2,7 +2,7 @@
 div
   table.widetable.joblist
     colgroup
-      col(style="min-width: 10%")
+      col(style="width: 15%")
       col(style="min-width: 10%")
       col(style="width: 30%;")
       col(style="width: 20%;")
@@ -23,30 +23,35 @@ div
         td
           span(style="white-space: nowrap")
             //- indent
-            span(:style="{ display: 'inline-block', width: (24 * subpath.length) + 'px' }")
+            span(:style="{ display: 'inline-block', width: (28 * subpath.length) + 'px' }")
 
             //- a job
             span(v-if="job")
+              span.indent(style="display: inline-block; position: relative; left: -2px; top: -3px;")
+                svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
+                  path(d="M 100 600 L 1700 600 L 1700 1700 L 50 1700 L 100 600" stroke="#666" stroke-width="100" fill="transparent")
+                  path(d="M 100 600 L 250 1000 L 1550 1000 L 1700 600" stroke="#888" stroke-width="80" fill="transparent")
+                  path(d="M 500 600 a 200 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
+
               Job.name(:job-id="job.job_id" :name="name")
 
             //- a dir entry
             span.name(v-else)
               span(v-on:click="toggleCollapse(path)")
-                span.folder-icon(
+                span.indent.folder-icon(
                   v-if="isCollapsed(path)"
-                  uk-icon="icon: minus-circle" ratio="0.7"
-                  style="width: 24px"
+                  uk-icon="icon: triangle-right; ratio: 1.25"
+                  style="position: relative; left: -5px; top: -1px;"
                 )
-                span.folder-icon(
+                span.indent.folder-icon(
                   v-else
-                  uk-icon="icon: plus-circle" ratio="0.7"
-                  style="width: 24px"
+                  uk-icon="icon: triangle-down; ratio: 1.25"
+                  style="position: relative; left: -3px; top: 0px;"
                 )
-                | {{ name }} 
-              span.dirnav(
-                uk-icon="icon: play" ratio="0.7"
-                v-on:click="$emit('dir', path.join('/'))"
-              )
+                span.indent(style="display: inline-block; position: relative; left: -2px; top: -2px;")
+                  svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
+                    path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
+                a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
 
         td.params
           span.params(v-if="job && job.params.length > 0")
@@ -120,7 +125,7 @@ function* flattenTree(parts, tree, collapse, path = []) {
   for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
     const dirPath = parts.concat(path, [name])
     yield [dirPath, path, name, null]
-    if (collapse[dirPath])
+    if (!collapse[dirPath])
       yield* flattenTree(path, subtree, collapse, path.concat([name]))
   }
 
@@ -193,7 +198,7 @@ export default {
     },
 
     isCollapsed(path) {
-      return !this.collapse[path]
+      return this.collapse[path]
     }
   },
 }
@@ -207,13 +212,29 @@ export default {
 }
 
 .joblist {
+  span.indent {
+    width: 28px;
+  }
+
   th {
     text-align: left;
   }
 
+  a.dir {
+    color: inherit;
+    :hover {
+      color: inherit;
+    }
+  }
+
+  .dir > td {
+    vertical-align: top;
+    height: 48px;
+  }
+
   .job > td {
     vertical-align: top;
-    height: 60px;
+    height: 48px;
   }
 
   .job-title {
