@@ -12,8 +12,6 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- better logging on agent connection failures
-
 - get rid of home page
 - get rid of nav at top
 

@@ -8,6 +8,7 @@ import subprocess
 import sys
 import warnings
 
+from   apsis.lib.asyn import communicate
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
 try:
@@ -87,6 +88,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
         command = " ".join(argv)
         argv = [
             "/usr/bin/ssh",
+            "-v",
             *itertools.chain.from_iterable(
                 ["-o", f"{k}={v}"]
                 for k, v in SSH_OPTIONS.items()
@@ -123,9 +125,12 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=10):
     proc = await asyncio.create_subprocess_exec(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        out, err = await asyncio.wait_for(proc.communicate(), timeout)
-    except asyncio.TimeoutError:
-        raise AgentStartError(-1, "timeout")
+        out, err = await communicate(proc, timeout)
+    except asyncio.TimeoutError as exc:
+        raise AgentStartError(
+            -1,
+            f"timeout after {timeout} s\n" + exc.stderr.decode()
+        ) from None
 
     # Show the agent's log output.
     for line in err.decode().splitlines():
