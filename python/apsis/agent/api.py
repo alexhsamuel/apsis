@@ -1,9 +1,7 @@
 import asyncio
 import functools
 import logging
-import os
 from   pathlib import Path
-import pwd
 import sanic
 import socket
 import traceback
