@@ -80,7 +80,8 @@ information.
 Schedule
 --------
 
-FIXME: Write this.
+FIXME: Daily scheduler
+FIXME: Interval scheduler
 
 
 Conditions
