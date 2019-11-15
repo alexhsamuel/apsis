@@ -103,7 +103,11 @@ export function parseTime(str, end, timeZone) {
  * Parses a time offset and applies it to time.
  * 
  * Understands,
- * - "#d" where # is a number of days.
+ * - "#w" where # is number of weeks.
+ * - "#d" where # is number of days.
+ * - "#h" where # is number of hours.
+ * - "#m" where # is number of minutes.
+ * - "#s" where # is number of seconds.
  * 
  * @param {} str - string to parse
  * @param {*} sign - sign for date offset
@@ -112,10 +116,18 @@ export function parseTime(str, end, timeZone) {
 export function parseTimeOffset(str, sign, time) {
   if (!time)
     time = new Date()
-  const match = str.match(/^(\d+)(d)$/)
+  const match = str.match(/^(\d+)([wdhms])$/)
   if (match !== null) {
-    if (match[2] === 'd')
+    if (match[2] === 'w')
+      time.setDate(time.getDate() + sign * 7 * parseInt(match[1]))
+    else if (match[2] === 'd')
       time.setDate(time.getDate() + sign * parseInt(match[1]))
+    else if (match[2] === 'h')
+      time.setTime(time.getTime() + sign * 3600 * 1000 * parseInt(match[1]))
+    else if (match[2] === 'm')
+      time.setTime(time.getTime() + sign * 60 * 1000 * parseInt(match[1]))
+    else if (match[2] === 's')
+      time.setTime(time.getTime() + sign * 1000 * parseInt(match[1]))
     return time
   }
   return null
