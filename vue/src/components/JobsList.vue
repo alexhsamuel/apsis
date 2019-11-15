@@ -2,14 +2,29 @@
 div
   table.widetable.joblist
     colgroup
-      col(style="width: 15%")
-      col(style="width: 30%;")
-      col(style="min-width: 10%")
       col(style="width: 20%;")
+      col(style="width: 35%;")
+      col(style="width: 15%;")
+      col(style="width: 30%;")
 
     thead
       tr
-        th Job
+        th
+          a.expand-button
+            span(
+              uk-icon="icon: triangle-right; ratio: 1.25"
+              style="position: relative; left: -7px; top: 0px;"
+              v-on:click="collapseAll(true)"
+              uk-tooltip="Collapse All; delay: 1000; pos: bottom"
+            )
+          a.expand-button
+            span(
+              uk-icon="icon: triangle-down; ratio: 1.25"
+              style="position: relative; left: -4px; top: 0px;"
+              v-on:click="collapseAll(false)"
+              uk-tooltip="Expand All; delay: 1000; pos: bottom"
+            )
+          | Job
         th Description
         th Parameters
         th Schedule
@@ -199,7 +214,16 @@ export default {
 
     isCollapsed(path) {
       return this.collapse[path]
-    }
+    },
+
+    collapseAll(collapsed) {
+      for (const job of this.allJobs) {
+        const path = job.job_id.split('/')
+        path.pop()
+        if (path.length > 0)
+          this.$set(this.collapse, path, collapsed)
+      }
+    },
   },
 }
 </script>
@@ -218,6 +242,20 @@ export default {
 
   th {
     text-align: left;
+  }
+
+  .expand-button {
+    display: inline-block;
+    width: 18px;
+    padding-left: 2px;
+    margin-right: 6px;
+    color: black;
+
+    border-radius: 6px;
+    color: $global-color;
+    &:hover {
+      background: #ddd;
+    }
   }
 
   a.dir {

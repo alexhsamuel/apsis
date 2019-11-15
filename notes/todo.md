@@ -14,6 +14,8 @@ instance.  The run objects would become mucb more active.
 
 - get rid of home page
 - get rid of nav at top
+- job labels
+  - job label search
 
 - UI for time range of runs list
 - don't redirect when rerunning
