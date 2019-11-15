@@ -12,12 +12,16 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- runs filter
+  - UI for time range of runs list
+  - remove time, state filter from query args
+  - make time, state filter persistent?  (cookie?)
 - get rid of home page
 - get rid of nav at top
 - job labels
   - job label search
+- get rid of runs collapser in runs view (too many runs!)
 
-- UI for time range of runs list
 - don't redirect when rerunning
 
 - reload jobs without restarting
@@ -30,10 +34,6 @@ instance.  The run objects would become mucb more active.
 - path navigation
   - proper programmatic API in runFilter, to build query?
   - handle "/path" terms in search box specially
-
-- runs filter
-  - remove time, state filter to query args
-  - make time, state filter persistent?  (cookie?)
 
 - get rid of UIKit
   - something like [Tailwind](https://tailwindcss.com/)? [Tachyons](http://tachyons.io)?
