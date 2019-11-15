@@ -18,6 +18,7 @@ instance.  The run objects would become mucb more active.
   - make time, state filter persistent?  (cookie?)
 - get rid of home page
 - get rid of nav at top
+- "now" indicator (horizontal stripe?) in runs view
 - job labels
   - job label search
 - get rid of runs collapser in runs view (too many runs!)
