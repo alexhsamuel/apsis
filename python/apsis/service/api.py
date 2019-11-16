@@ -99,6 +99,12 @@ def _run_summary_to_jso(app, run):
     # Retry is available if the run didn't succeed.
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
+    # Terminate and kill are available for a running run.
+    if run.state == run.STATE.running:
+        actions["terminate"] = app.url_for(
+            "v1.run_signal", run_id=run.run_id, signal="SIGTERM")
+        actions["kill"] = app.url_for(
+            "v1.run_signal", run_id=run.run_id, signal="SIGKILL")
 
     jso = run._jso_cache = {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
@@ -364,7 +370,8 @@ async def run_rerun(request, run_id):
         return response_json(jso)
 
 
-@API.route("/runs/<run_id>/signal/<signal>", methods={"PUT"})
+# FIXME: PUT is probably right, but run actions currently are POST only.
+@API.route("/runs/<run_id>/signal/<signal>", methods={"PUT", "POST"})
 async def run_signal(request, run_id, signal):
     apsis = request.app.apsis
     _, run = apsis.runs.get(run_id)
