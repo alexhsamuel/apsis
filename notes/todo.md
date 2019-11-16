@@ -12,16 +12,12 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- runs filter
-  - UI for time range of runs list
-  - remove time, state filter from query args
-  - make time, state filter persistent?  (cookie?)
-- get rid of home page
-- get rid of nav at top
 - "now" indicator (horizontal stripe?) in runs view
 - job labels
   - job label search
 - get rid of runs collapser in runs view (too many runs!)
+
+- kill run from CLUI, web UI
 
 - don't redirect when rerunning
 
@@ -31,6 +27,10 @@ instance.  The run objects would become mucb more active.
 
 
 - shut down agent cleanly, including canceling shutdown task
+
+- runs filter
+  - remove time, state filter from query args
+  - make time, state filter persistent?  (cookie?)
 
 - path navigation
   - proper programmatic API in runFilter, to build query?

@@ -12,7 +12,7 @@ nav.uk-navbar-container.uk-navbar
         circle(cx="1.5em" cy="1.68em" r="4%" fill="#40c060")
 
     .uk-navbar-item.title
-      router-link(to="/") APSİS
+      | APSİS
 
     ul.uk-navbar-nav
       li: router-link(to="/jobs") Jobs

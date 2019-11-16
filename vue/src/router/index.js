@@ -4,7 +4,6 @@ import Router from 'vue-router'
 import ControlView  from '@/views/ControlView'
 import JobView      from '@/views/JobView'
 import JobsView     from '@/views/JobsView'
-import Overview     from '@/views/Overview'
 import RunView      from '@/views/RunView'
 import RunsView     from '@/views/RunsView'
 
@@ -15,8 +14,7 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'Overvue',
-      component: Overview,
+      redirect: '/jobs',
     },
     {
       path: '/control',
