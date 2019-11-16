@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import ora
+import re
 import sanic
 import ujson
 from   urllib.parse import unquote
@@ -160,18 +161,97 @@ def _output_metadata_to_jso(app, run_id, outputs):
 #-------------------------------------------------------------------------------
 # Jobs
 
+class JobLookupError(LookupError):
+    pass
+
+
+@API.exception(JobLookupError)
+def job_lookup_error(request, exception):
+    return error(exception, status=400)
+
+
+class AmbiguousJobError(ValueError):
+    pass
+
+
+@API.exception(AmbiguousJobError)
+def ambiguous_job_error(request, exception):
+    return error(exception, status=400)
+
+
+def match(choices, target):
+    """
+    Matches `target` to one of `choices`.
+
+    Splits the target and each choice into words.  Selects a choice such that
+    each word in the target appears as a word in the choice, at least as a
+    prefix.
+
+    :return:
+      The matching choice.
+    """
+    REGEX = re.compile(r"[^A-Za-z0-9]")
+
+    def words(target):
+        return set(REGEX.split(target))
+
+    target_words = words(target)
+
+    def match(choice):
+        choice_words = words(choice)
+        return all(
+            any( cw.startswith(sw) for cw in choice_words )
+            for sw in target_words
+        )
+
+    choices = { c for c in choices if match(c) }
+
+    if len(choices) == 0:
+        raise JobLookupError("no job id match: " + target)
+    elif len(choices) == 1:
+        return next(iter(choices))
+    else:
+        if len(choices) > 8:
+            choices = ", ".join(list(choices)[: 8]) + " …"
+        else:
+            choices = ", ".join(choices)
+        raise AmbiguousJobError("ambiguous job id: " + choices)
+
+
+def match_job_id(jobs, job_id):
+    """
+    Matches `job_id` as an exact or fuzzy match.
+    """
+    logging.info(f"match_job_id {job_id}")
+
+    # Try for an exact match first.a
+    try:
+        jobs.get_job(job_id)
+    except LookupError:
+        pass
+    else:
+        return job_id
+
+    # FIXME: Cache job ids (or word split job ids) to make this efficient.
+    job_ids = [ j.job_id for j in jobs.get_jobs(ad_hoc=False) ]
+    return match(job_ids, job_id)
+ 
+
 @API.route("/jobs/<job_id:path>")
 async def job(request, job_id):
+    jobs = request.app.apsis.jobs
     try:
-        job = request.app.apsis.jobs.get_job(unquote(job_id))
+        job_id = match_job_id(jobs, unquote(job_id))
     except LookupError:
         return error(f"no job_id {job_id}", status=404)
+    job = jobs.get_job(job_id)
     return response_json(job_to_jso(request.app, job))
 
 
 @API.route("/jobs/<job_id:path>/runs")
 async def job_runs(request, job_id):
-    when, runs = request.app.apsis.runs.query(job_id=unquote(job_id))
+    job_id = match_job_id(request.app.apsis.jobs, unquote(job_id))
+    when, runs = request.app.apsis.runs.query(job_id=job_id)
     jso = runs_to_jso(request.app, when, runs)
     return response_json(jso)
 
@@ -307,18 +387,22 @@ def _filter_runs(runs, args):
 
 @API.route("/runs")
 async def runs(request):
+    apsis = request.app.apsis
+
     # Get runs from the selected interval.
     args        = request.args
     summary,    = args.pop("summary", ("False", ))
     summary     = to_bool(summary)
     run_ids     = args.pop("run_id", None)
     job_id,     = args.pop("job_id", (None, ))
+    if job_id is not None:
+        job_id  = match_job_id(apsis.jobs, job_id)
     state,      = args.pop("state", (None, ))
     since,      = args.pop("since", (None, ))
     until,      = args.pop("until", (None, ))
     reruns,     = args.pop("reruns", ("False", ))
 
-    when, runs = request.app.apsis.runs.query(
+    when, runs = apsis.runs.query(
         run_ids =run_ids, 
         job_id  =job_id,
         state   =to_state(state),
@@ -381,6 +465,8 @@ async def websocket_runs(request, ws):
 
 @API.route("/runs", methods={"POST"})
 async def run_post(request):
+    apsis = request.app.apsis
+
     # The run may either contain a job ID, or a complete job.
     jso = request.json
     if "job" in jso:
@@ -392,7 +478,7 @@ async def run_post(request):
 
     elif "job_id" in jso:
         # Just a job ID.
-        job_id = jso["job_id"]
+        job_id = match_job_id(apsis.jobs, jso["job_id"])
 
     else:
         return error("missing job_id or job")
@@ -402,7 +488,7 @@ async def run_post(request):
 
     time = jso.get("times", {}).get("schedule", "now")
     time = None if time == "now" else ora.Time(time)
-    await request.app.apsis.schedule(time, run)
+    await apsis.schedule(time, run)
     jso = runs_to_jso(request.app, ora.now(), [run])
     return response_json(jso)
     

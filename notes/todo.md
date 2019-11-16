@@ -13,8 +13,6 @@ instance.  The run objects would become mucb more active.
 # Current
 
 - "now" indicator (horizontal stripe?) in runs view
-- job labels
-  - job label search
 - get rid of runs collapser in runs view (too many runs!)
 
 - kill run from CLUI, web UI
@@ -22,6 +20,8 @@ instance.  The run objects would become mucb more active.
 - don't redirect when rerunning
 
 - reload jobs without restarting
+
+- job label search
 
 - schedule time jitter
 
