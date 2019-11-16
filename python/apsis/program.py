@@ -141,6 +141,15 @@ class Program:
         """
 
 
+    async def signal(self, run_id, signum: str):
+        """
+        Sends a signal to the running program.
+
+        :param signum:
+          Signal name or number.
+        """
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -221,6 +230,11 @@ class ProcessProgram:
         else:
             message = f"program failed: return code {return_code}"
             raise ProgramFailure(message, meta=meta, outputs=outputs)
+
+
+    async def signal(self, run_id, signum: str):
+        # FIXME
+        raise NotImplementedError()
 
 
 
@@ -393,6 +407,12 @@ class AgentProgram:
     def reconnect(self, run_id, run_state):
         log.info(f"reconnect: {run_id}")
         return asyncio.ensure_future(self.wait(run_id, run_state))
+
+
+    async def signal(self, run_state, signum):
+        proc_id = run_state["proc_id"]
+        agent = self.__get_agent()
+        await agent.signal(proc_id, signum)
 
 
 

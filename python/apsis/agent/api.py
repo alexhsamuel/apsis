@@ -7,7 +7,7 @@ import socket
 import traceback
 import ujson
 
-from   apsis.lib.sys import get_username
+from   apsis.lib.sys import get_username, to_signal
 from   .processes import NoSuchProcessError
 
 log = logging.getLogger("api")
@@ -125,7 +125,7 @@ async def processes_post(req):
     # We can only run procs for our own user.  Confirm that the request's
     # username matches.
     if prog["username"] != get_username():
-        return response("wrong username", 421)
+        return error("wrong username", 421)
 
     proc = req.app.processes.start(argv, cwd, env, stdin)
     return response({"process": proc_to_jso(proc)}, 201)
@@ -148,9 +148,13 @@ async def process_get_output(req, proc_id):
     return sanic.response.raw(data, status=200)
 
 
-@API.route("/processes/<proc_id>/signal/<signum:int>", methods={"PUT"})
+@API.route("/processes/<proc_id>/signal/<signal>", methods={"PUT"})
 @auth
-async def process_signal(req, proc_id, signum):
+async def process_signal(req, proc_id, signal):
+    try:
+        signum = int(to_signal(signal))
+    except ValueError:
+        return error(f"invalid signal: {signal}", 400)
     req.app.processes.kill(proc_id, signum)
     return response({})
 

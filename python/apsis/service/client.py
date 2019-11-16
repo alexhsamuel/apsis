@@ -75,7 +75,7 @@ class Client:
             return resp.json()
         else:
             try:
-                error = resp.json()["error"]
+                error = " ".join( f"{k}={v!r}" for k, v in resp.json().items() )
             except Exception:
                 error = "unknown error"
             raise APIError(resp.status_code, error)
@@ -87,6 +87,10 @@ class Client:
 
     def __post(self, *path, data, **query):
         return self.__request("POST", *path, data=data, **query)
+
+
+    def __put(self, *path, data=None, **query):
+        return self.__request("PUT", *path, data=data, **query)
 
 
     def get_history(self, run_id):
@@ -107,10 +111,16 @@ class Client:
 
     def get_output(self, run_id, output_id) -> bytes:
         url = self.__url("/api/v1/runs", run_id, "output", output_id)
-        logging.debug(f"GET {url}")
         resp = requests.get(url)
         resp.raise_for_status()
         return resp.content
+
+
+    def signal(self, run_id, signal):
+        """
+        Sends `signal` to a running processes.
+        """
+        return self.__put("/api/v1/runs", run_id, "signal", str(signal))
 
 
     def get_runs(self, *, job_id=None, state=None, reruns=False,

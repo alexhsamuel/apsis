@@ -364,6 +364,21 @@ async def run_rerun(request, run_id):
         return response_json(jso)
 
 
+@API.route("/runs/<run_id>/signal/<signal>", methods={"PUT"})
+async def run_signal(request, run_id, signal):
+    apsis = request.app.apsis
+    _, run = apsis.runs.get(run_id)
+
+    if run.state not in {run.STATE.running}:
+        return error("invalid run state for signal", 409, state=run.state.name)
+    assert run.program is not None
+    try:
+        await run.program.signal(run.run_state, signal)
+    except RuntimeError as exc:
+        return error(str(exc), 400)  # FIXME: code?
+    return response_json({})
+
+
 def _filter_runs(runs, args):
     """
     Constructs a filter for runs from query args.

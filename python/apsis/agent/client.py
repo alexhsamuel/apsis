@@ -354,6 +354,18 @@ class Agent:
         return rsp.json()["stop"]
 
 
+    async def signal(self, proc_id, signal):
+        """
+        Sends a signal to a process.
+        """
+        rsp = await self.request("PUT", f"/processes/{proc_id}/signal/{signal}")
+        if rsp.status_code == 404:
+            raise NoSuchProcessError(proc_id)
+        elif 400 <= rsp.status_code < 500:
+            raise RuntimeError(rsp.json()["error"])
+        rsp.raise_for_status()
+
+
     async def stop(self):
         """
         Shuts down an agent, if there are no remaining processes.

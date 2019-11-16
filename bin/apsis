@@ -236,6 +236,21 @@ cmd.add_argument(
     "args", metavar="NAME=VAL", type=parse_arg, nargs="*",
     help="run JOB-ID with NAME=VAL")
 
+#--- command: signal -----------------------------------------------------------
+
+def cmd_signal(client, args):
+    client.signal(args.run_id, args.signum)
+
+
+cmd = parser.add_command(
+    "signal", cmd_signal,
+    description="Sends a signal to a running run.")
+cmd.add_argument(
+    "run_id", metavar="RUN-ID")
+cmd.add_argument(
+    "signum", metavar="SIGNAL", default="SIGTERM",
+    help="signal name or number")
+
 #--- test commands -------------------------------------------------------------
 
 def cmd_test0(client, args):
