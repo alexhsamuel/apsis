@@ -123,6 +123,11 @@ def jso_to_job(jso, job_id):
     metadata    = jso.pop("metadata", {})
     ad_hoc      = jso.pop("ad_hoc", False)
 
+    metadata["labels"] = [
+        str(l)
+        for l in tupleize(metadata.get("labels", []))
+    ]
+
     if len(jso) > 0:
         raise JobSpecificationError("unknown keys: " + ", ".join(jso))
 

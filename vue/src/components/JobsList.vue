@@ -49,6 +49,9 @@ div
 
               Job.name(:job-id="job.job_id" :name="name")
 
+              div(style="display: inline-block; margin-left: 16px;")
+                JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
+
             //- a dir entry
             span.name(v-else)
               span(v-on:click="toggleCollapse(path)")
@@ -83,6 +86,7 @@ div
 
 <script>
 import Job from './Job'
+import JobLabel from './JobLabel'
 import { every, filter, join, map, sortBy, trim } from 'lodash'
 import { markdown } from 'markdown'
 import Program from './Program'
@@ -162,6 +166,7 @@ export default {
 
   components: {
     Job,
+    JobLabel,
     Program,
   },
 
