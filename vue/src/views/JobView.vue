@@ -2,6 +2,9 @@
 div
   h1 {{ job_id }}
 
+  div(v-if="job && job.metadata.labels")
+    JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
+
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
   p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)")
 
@@ -55,6 +58,7 @@ div
 <script>
 import { join } from 'lodash'
 import { markdown } from 'markdown'
+import JobLabel from '@/components/JobLabel'
 import Program from '@/components/Program'
 import RunsList from '@/components/RunsList'
 import store from '@/store'
@@ -63,6 +67,7 @@ export default {
   props: ['job_id'],
 
   components: {
+    JobLabel,
     Program,
     RunsList,
   },
