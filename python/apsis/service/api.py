@@ -372,6 +372,8 @@ async def run_signal(request, run_id, signal):
     if run.state not in {run.STATE.running}:
         return error("invalid run state for signal", 409, state=run.state.name)
     assert run.program is not None
+
+    apsis.run_history.info(run, f"sending signal {signal}")
     try:
         await run.program.signal(run.run_state, signal)
     except RuntimeError as exc:
