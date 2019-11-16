@@ -2,7 +2,7 @@ import fixfmt.table
 from   ora import Time, Daytime, now, get_display_time_zone
 
 import apsis.lib.itr
-from   apsis.lib.terminal import COLOR, BLK, WHT, RED, BLD, RES
+from   apsis.lib.terminal import COLOR, WHT, RED, BLD, RES
 
 #-------------------------------------------------------------------------------
 
