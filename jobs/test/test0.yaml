@@ -1,3 +1,9 @@
+metadata:
+  description: "Test job #0."
+  labels:
+    - test
+    - deps
+
 params: [date, message]
 
 schedule:

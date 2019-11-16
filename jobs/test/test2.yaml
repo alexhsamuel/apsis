@@ -1,3 +1,7 @@
+metadata:
+  description: "Test job #2."
+  labels: test
+
 params: [tag, time]
 
 program: "sleep {{ time }}; echo '{{ tag }}'"

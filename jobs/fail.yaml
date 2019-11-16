@@ -1,2 +1,4 @@
-program: exit 1
+metadata:
+  labels: [test]
 
+program: exit 1
