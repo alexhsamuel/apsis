@@ -2,10 +2,10 @@
 div
   table.widetable.joblist
     colgroup
-      col(style="width: 20%;")
+      col(style="width: 300px;")
       col(style="width: 35%;")
-      col(style="width: 15%;")
-      col(style="width: 30%;")
+      col(style="width: 300px;")
+      col(style="")
 
     thead
       tr
