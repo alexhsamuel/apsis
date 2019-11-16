@@ -71,15 +71,6 @@ def format_instance(run):
 
 
 def format_job(job):
-    # fmt = lambda k, v: f"{k:12s}: {v}"
-    # yield fmt("job_id", job["job_id"])
-    # yield fmt("url", job["url"])
-    # yield fmt("params", ", ".join(job["params"]))
-    # yield "program"
-    # yield from format_program(job["program"], indent=2)
-    # yield "schedules"
-    # for schedule in job["schedules"]:
-    #     yield from format_schedule(schedule, indent=2)
     yield from _fmt(None, job)
 
 
