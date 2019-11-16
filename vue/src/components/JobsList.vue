@@ -10,21 +10,20 @@ div
     thead
       tr
         th
-          a.expand-button
-            span(
-              uk-icon="icon: triangle-right; ratio: 1.25"
-              style="position: relative; left: -7px; top: 0px;"
-              v-on:click="collapseAll(true)"
-              uk-tooltip="Collapse All; delay: 1000; pos: bottom"
-            )
-          a.expand-button
-            span(
-              uk-icon="icon: triangle-down; ratio: 1.25"
-              style="position: relative; left: -4px; top: 0px;"
-              v-on:click="collapseAll(false)"
-              uk-tooltip="Expand All; delay: 1000; pos: bottom"
-            )
           | Job
+          span(style="margin-left: 80px")
+            a.expand-button
+              span(
+                uk-icon="icon: triangle-right; ratio: 1.25"
+                style="position: relative; left: -2px; top: 0px;"
+                v-on:click="collapseAll(true)"
+              )
+            a.expand-button
+              span(
+                uk-icon="icon: triangle-down; ratio: 1.25"
+                style="position: relative; left: -1.5px; top: 0px;"
+                v-on:click="collapseAll(false)"
+              )
         th Description
         th Parameters
         th Schedule
@@ -244,14 +243,13 @@ export default {
     text-align: left;
   }
 
-  .expand-button {
+  a.expand-button {
     display: inline-block;
-    width: 18px;
-    padding-left: 2px;
-    margin-right: 6px;
+    width: 21px;
+    padding: 0 2px;
     color: black;
 
-    border-radius: 6px;
+    border-radius: 14px;
     color: $global-color;
     &:hover {
       background: #ddd;
