@@ -45,7 +45,7 @@ div
       td.no-padding: table.fields
         tr(
           v-for="(value, key) in job.metadata" 
-          v-if="key !== 'description'" 
+          v-if="key !== 'description' && key != 'labels'" 
           :key="key"
         )
           th {{ key }}
