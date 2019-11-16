@@ -12,14 +12,15 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- reload jobs without restarting
+
+- better actino UI
+  - proper button
+  - confirmation dialog
+  - no redirect
+
 - "now" indicator (horizontal stripe?) in runs view
 - get rid of runs collapser in runs view (too many runs!)
-
-- kill run from CLUI, web UI
-
-- don't redirect when rerunning
-
-- reload jobs without restarting
 
 - job label search
 
