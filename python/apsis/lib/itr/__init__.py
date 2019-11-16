@@ -76,7 +76,8 @@ def find_groups(items, group=lambda x: x):
                 yield "o" if last[2] else "l", last[0]
                 first = True
         last = i, g, first
-    yield "o" if last[2] else "l", last[0]
+    if last is not None:
+        yield "o" if last[2] else "l", last[0]
 
 
 def take_last(iterable):
