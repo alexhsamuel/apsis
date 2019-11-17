@@ -7,7 +7,7 @@ import traceback
 from   . import actions
 from   .exc import ConditionError
 from   .history import RunHistory
-from   .jobs import Jobs
+from   .jobs import Jobs, JobsDir
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
 from   . import runs
@@ -45,8 +45,12 @@ class Apsis:
         log.debug("creating Apsis instance")
         self.cfg = cfg
         self.__db = db
+
         self.run_history = RunHistory(self.__db.run_history_db)
         self.jobs = Jobs(jobs, db.job_db)
+
+        # Actions applied to all runs.
+        self.__actions = [ actions.action_from_jso(o) for o in cfg["actions"] ]
 
         try:
             runs_lookback = cfg["runs_lookback"]
@@ -63,9 +67,6 @@ class Apsis:
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
         self.__running_tasks = {}
-
-        # Actions applied to all runs.
-        self.__actions = [ actions.action_from_jso(o) for o in cfg["actions"] ]
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -193,7 +194,7 @@ class Apsis:
                     success = future.result()
                 except asyncio.CancelledError:
                     log.info(
-                        f"canceled waiting for run to complete: {run.run_id}")
+                        f"cancelled waiting for run to complete: {run.run_id}")
                     return
 
             except ProgramFailure as exc:
@@ -476,5 +477,54 @@ class Apsis:
         await self.runs.shut_down()
         log.info("Apsis shut down")
         
+
+
+#-------------------------------------------------------------------------------
+
+def reload(apsis):
+    # FIXME: Really need to refactor to avoid doing things like this.
+    old_jobs_dir    = apsis.jobs._Jobs__jobs_dir
+    job_db          = apsis.jobs._Jobs__job_db
+    jobs_path       = old_jobs_dir._JobsDir__path
+
+    log.info(f"reloading jobs from {jobs_path}")
+
+    # Reload the contents of the jobs dir.
+    # FIXME: Handle errors carefully.
+    new_jobs_dir    = JobsDir(jobs_path)
+
+    # Diff them.
+    old_jobs        = { j.job_id: j for j in old_jobs_dir.get_jobs(ad_hoc=False) }
+    new_jobs        = { j.job_id: j for j in new_jobs_dir.get_jobs(ad_hoc=False) }
+    old_job_ids     = frozenset(old_jobs)
+    new_job_ids     = frozenset(new_jobs)
+    for job_id in sorted(old_job_ids - new_job_ids):
+        log.info(f"job removed: {job_id}")
+    for job_id in sorted(new_job_ids - old_job_ids):
+        log.info(f"job added: {job_id}")
+    # FIXME: __eq__ jobs not implemented.
+
+    # Stop the old scheduler loop.
+    apsis._Apsis__scheduler_task.cancel()
+
+    # Use the new jobs.
+    apsis.jobs      = Jobs(new_jobs_dir, job_db)
+
+    # Build a new set of scheduled runs.
+    apsis.scheduled = ScheduledRuns(apsis._Apsis__db.clock_db, apsis._Apsis__wait)
+
+    # Restore (non-expected) scheduled runs from DB.
+    log.info("restoring scheduled runs")
+    _, scheduled_runs = apsis.runs.query(state=Run.STATE.scheduled)
+    for run in scheduled_runs:
+        if not run.expected:
+            apsis.scheduled.schedule_at(run.times["schedule"], run)
+
+    # Build a new scheduler, from the current time.
+    stop_time = apsis._Apsis__db.clock_db.get_time()
+    apsis.scheduler = Scheduler(apsis.cfg, apsis.jobs, apsis.schedule, stop_time)
+
+    # Start its scheduler loop.
+    apsis._Apsis__scheduler_task = asyncio.ensure_future(apsis.scheduler.loop())
 
 

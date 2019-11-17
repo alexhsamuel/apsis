@@ -195,6 +195,10 @@ class Client:
         return self.__schedule(time, {"program": str(command)})
         
 
+    def reload_jobs(self):
+        self.__post("/api/control/reload_jobs", data={})
+
+
     def shut_down(self, restart=False):
         query = {"restart": NO_ARG} if restart else {}
         self.__post("/api/control/shut_down", data={}, **query)

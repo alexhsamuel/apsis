@@ -4,6 +4,7 @@ import sanic
 import signal
 import urllib.parse
 
+from   apsis.apsis import reload
 from   apsis.lib.api import response_json
 
 log = logging.getLogger(__name__)
@@ -11,6 +12,13 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 API = sanic.Blueprint("control")
+
+@API.route("/reload_jobs", methods={"POST"})
+async def reload_jobs(request):
+    # FIXME: Handle errors.
+    reload(request.app.apsis)
+    return response_json({})
+
 
 @API.route("/shut_down", methods={"POST"})
 async def shut_down(request):

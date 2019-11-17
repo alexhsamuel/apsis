@@ -146,9 +146,20 @@ class ScheduledRuns:
             raise SystemExit(1)
 
 
+    def schedule_at(self, time: Time, run: Run):
+        """
+        Schedules `run` to start at `time`.
+        """
+        # Put it onto the schedule heap.
+        log.debug(f"schedule: {time} {run.run_id}")
+        entry = self.Entry(time, run)
+        heapq.heappush(self.__heap, entry)
+        self.__scheduled[run] = entry
+
+
     async def schedule(self, time: Time, run: Run):
         """
-        Schedule `run` to start at `time`.
+        Schedules `run` to start at `time`.
 
         If `time` is not in the future, starts the run now.
         """
@@ -157,13 +168,8 @@ class ScheduledRuns:
             # Job is current; start it now.
             log.info(f"run immediately: {time} {run.run_id}")
             await self.__start_run(run)
-
         else:
-            # Put it onto the schedule heap.
-            log.debug(f"schedule: {time} {run.run_id}")
-            entry = self.Entry(time, run)
-            heapq.heappush(self.__heap, entry)
-            self.__scheduled[run] = entry
+            self.schedule_at(time, run)
 
 
     def unschedule(self, run: Run) -> bool:

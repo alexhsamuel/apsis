@@ -107,6 +107,17 @@ cmd.add_argument(
     help="state file")
 
 #-------------------------------------------------------------------------------
+# command: reload_jobs
+
+def cmd_reload_jobs(args):
+    get_client(args).reload_jobs()
+
+
+cmd = parser.add_command(
+    "reload-jobs", cmd_reload_jobs,
+    description="Reloads jobs from the jobs dir.")
+
+#-------------------------------------------------------------------------------
 # command: restart
 
 def cmd_restart(args):
