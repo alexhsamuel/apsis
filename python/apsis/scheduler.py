@@ -84,21 +84,23 @@ class Scheduler:
         Infinite loop that periodically schedules runs.
         """
         while True:
-            # Make sure we're not too old.
-            time = now()
             try:
-                max_age = self.__cfg.get("schedule_max_age")
-            except KeyError:
-                pass
-            else:
-                if time - self.__stop > float(max_age):
-                    raise RuntimeError(
-                        f"last scheduled more than "
-                        f"schedule_max_age ({max_age} s) ago"
-                    )
+                # Make sure we're not too old.
+                time = now()
+                log.debug(f"scheduler loop: {time}")
+                try:
+                    max_age = self.__cfg.get("schedule_max_age")
+                except KeyError:
+                    pass
+                else:
+                    if max_age is not None and time - self.__stop > float(max_age):
+                        raise RuntimeError(
+                            f"last scheduled more than "
+                            f"schedule_max_age ({max_age} s) ago"
+                        )
 
-            try:
                 await self.schedule(time + self.HORIZON)
+
             except Exception:
                 log.critical("scheduler loop failed", exc_info=True)
                 raise SystemExit(1)
