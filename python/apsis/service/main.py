@@ -132,7 +132,9 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     server_task = asyncio.ensure_future(server)
 
     # Get Apsis running.
+    log.info("restoring")
     asyncio.ensure_future(apsis.restore())
+    log.info("starting loops")
     apsis.start_loops()
 
     # Shut down on signals; this is the correct way to request shutdown.
@@ -165,6 +167,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
 
         asyncio.ensure_future(stop())
 
+    log.info("setting signal handlers")
     signal.signal(signal.SIGINT , on_shutdown)  # instead of KeyboardInterrupt
     signal.signal(signal.SIGTERM, on_shutdown)
 
