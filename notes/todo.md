@@ -14,6 +14,8 @@ instance.  The run objects would become mucb more active.
 
 - reload jobs without restarting
 
+- configurable args columns in runs view (e.g. strat, date)
+
 - better actino UI
   - proper button
   - confirmation dialog
