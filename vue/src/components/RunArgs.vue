@@ -16,7 +16,6 @@ export default {
 
   computed: {
     pairs() {
-      console.log('this.args', this.args)
       return toPairs(this.args)
     },
   }
