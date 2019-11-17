@@ -34,7 +34,8 @@ div
           td.col-job
             Job(v-if="run.run_id === group.id" :job-id="run.job_id")
           td.col-args
-            span(v-if="run.run_id === group.id" ) {{ arg_str(run.args) }}
+            span(v-if="run.run_id === group.id")
+              RunArgs(:args="run.args")
           td.col-run
             Run(:run-id="run.run_id")
           td.col-state
@@ -69,13 +70,14 @@ div
 </template>
 
 <script>
-import { entries, filter, groupBy, join, map, sortBy, toPairs } from 'lodash'
+import { entries, filter, groupBy, map, sortBy } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
 import Job from './Job'
 import Pagination from './Pagination'
 import Run from './Run'
+import RunArgs from './RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import * as runsFilter from '@/runsFilter.js'
 import State from './State'
@@ -101,6 +103,7 @@ export default {
     Job,
     Pagination,
     Run,
+    RunArgs,
     RunElapsed,
     State,
     StatesSelect,
@@ -219,11 +222,6 @@ export default {
   },
 
   methods: {
-    // FIXME: Duplicated.
-    arg_str(args) {
-      return join(map(toPairs(args), ([k, v]) => k + '=' + v), ' ')
-    },
-
     getGroupCollapse(id) {
       let c = this.groupCollapse[id]
       if (c === undefined)

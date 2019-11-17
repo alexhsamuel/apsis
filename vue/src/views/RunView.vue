@@ -18,8 +18,7 @@ div
   div(v-if="run")
     div
       Job(:job-id="run.job_id")
-      |
-      | {{ arg_str }}
+      RunArgs(:args="run.args" style="margin-left: 12px;")
 
     table.fields
       tbody
@@ -79,12 +78,13 @@ div
 </template>
 
 <script>
-import { forEach, join, map, sortBy, toPairs } from 'lodash'
+import { forEach, sortBy, toPairs } from 'lodash'
 
 import ActionButton from '@/components/ActionButton'
 import Job from '@/components/Job'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
+import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunHistory from '@/components/RunHistory'
 import State from '@/components/State'
@@ -98,6 +98,7 @@ export default {
     Job,
     Program,
     Run,
+    RunArgs,
     RunElapsed,
     RunHistory,
     State,
@@ -117,10 +118,6 @@ export default {
   },
 
   computed: {
-    arg_str() {
-      return join(map(toPairs(this.run.args), ([k, v]) => k + '=' + v), ' ')
-    },
-
     run_times() {
       return sortBy(toPairs(this.run.times), ([k, v]) => v)
     },
