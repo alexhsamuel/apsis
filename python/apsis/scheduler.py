@@ -101,11 +101,18 @@ class Scheduler:
 
                 await self.schedule(time + self.HORIZON)
 
+                await asyncio.sleep(60)
+
+            except asyncio.CancelledError:
+                log.info("scheduler loop cancelled")
+                break
+
             except Exception:
                 log.critical("scheduler loop failed", exc_info=True)
                 raise SystemExit(1)
 
-            await asyncio.sleep(60)
+
+
 
 
 
