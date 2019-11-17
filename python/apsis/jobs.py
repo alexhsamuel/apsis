@@ -244,14 +244,14 @@ class Jobs:
     Combines a job dir and a job DB.
     """
 
-    def __init__(self, job_dir, job_db):
-        self.__job_dir = job_dir
+    def __init__(self, jobs_dir, job_db):
+        self.__jobs_dir = jobs_dir
         self.__job_db = job_db
 
 
     def get_job(self, job_id) -> Job:
         with suppress(LookupError):
-            return self.__job_dir.get_job(job_id)
+            return self.__jobs_dir.get_job(job_id)
         return self.__job_db.get(job_id)
 
 
@@ -265,7 +265,7 @@ class Jobs:
           if none, return all jobs.
         """
         if ad_hoc is None or not ad_hoc:
-            yield from self.__job_dir.get_jobs()
+            yield from self.__jobs_dir.get_jobs()
         # FIXME: Yield only job ids we haven't seen.
         yield from self.__job_db.query(ad_hoc=ad_hoc)
 
