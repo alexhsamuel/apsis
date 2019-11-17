@@ -9,14 +9,14 @@ async def cancel_task(task, name, log):
     """
     log.info(f"canceling {name} task")
     if task.cancelled():
-        log.info(f"{name} task already canceled")
+        log.info(f"{name} task already cancelled")
     else:
         task.cancel()
 
     try:
         return await task
     except asyncio.CancelledError:
-        log.info(f"{name} task canceled")
+        log.info(f"{name} task cancelled")
     except Exception:
         log.error(f"{name} task raised", exc_info=True)
 
