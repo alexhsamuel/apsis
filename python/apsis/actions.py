@@ -15,7 +15,6 @@ class Condition:
 
 
     def __call__(self, run):
-        log.debug(f"check condition for run state {run.state}")
         return (
             self.states is None or run.state in self.states
         )
