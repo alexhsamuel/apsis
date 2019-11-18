@@ -83,8 +83,8 @@ class Scheduler:
         """
         Infinite loop that periodically schedules runs.
         """
-        while True:
-            try:
+        try:
+            while True:
                 # Make sure we're not too old.
                 time = now()
                 log.debug(f"scheduler loop: {time}")
@@ -100,16 +100,14 @@ class Scheduler:
                         )
 
                 await self.schedule(time + self.HORIZON)
-
                 await asyncio.sleep(60)
 
-            except asyncio.CancelledError:
-                log.info("scheduler loop cancelled")
-                break
+        except asyncio.CancelledError:
+            log.info("scheduler loop cancelled")
 
-            except Exception:
-                log.critical("scheduler loop failed", exc_info=True)
-                raise SystemExit(1)
+        except Exception:
+            log.critical("scheduler loop failed", exc_info=True)
+            raise SystemExit(1)
 
 
 
