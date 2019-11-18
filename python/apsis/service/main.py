@@ -132,7 +132,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     server_task = asyncio.ensure_future(server)
 
     # Get Apsis running.
-    log.info("restoring")
+    log.info("scheduling restore")
     asyncio.ensure_future(apsis.restore())
     log.info("starting loops")
     apsis.start_loops()

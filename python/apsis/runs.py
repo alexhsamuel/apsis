@@ -399,6 +399,17 @@ class Runs:
             self.__queues.remove(queue)
 
 
+    def remove_expected(self):
+        """
+        Drops all expected runs.
+        """
+        self.__runs = {
+            run_id: r
+            for run_id, r in self.__runs.items()
+            if not r.expected
+        }
+
+
     async def shut_down(self):
         """
         Terminates any live queries.

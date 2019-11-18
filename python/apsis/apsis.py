@@ -79,6 +79,8 @@ class Apsis:
         """
         Restores scheduled, waiting, and running runs from DB.
         """
+        log.info("restoring")
+
         async def reschedule(run, time):
             # Bind job attributes to the run.
             if run.program is None:
@@ -120,6 +122,8 @@ class Apsis:
                 run, f"at startup, reconnecting to running {run.run_id}")
             future = run.program.reconnect(run.run_id, run.run_state)
             self.__finish(run, future)
+
+        log.info("restoring done")
 
 
     def start_loops(self):
@@ -507,6 +511,9 @@ def reload(apsis):
     # Stop the old scheduler loop.
     apsis._Apsis__scheduler_task.cancel()
 
+    # Remove expected runs from the run DB.
+    apsis.runs.remove_expected()
+
     # Use the new jobs.
     apsis.jobs      = Jobs(new_jobs_dir, job_db)
 
@@ -518,6 +525,7 @@ def reload(apsis):
     _, scheduled_runs = apsis.runs.query(state=Run.STATE.scheduled)
     for run in scheduled_runs:
         if not run.expected:
+            log.info(f"restoring run: {run}")
             apsis.scheduled.schedule_at(run.times["schedule"], run)
 
     # Build a new scheduler, from the current time.
