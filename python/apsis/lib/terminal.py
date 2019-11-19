@@ -2,7 +2,10 @@ import sys
 
 #-------------------------------------------------------------------------------
 
-if sys.stdout.isatty():
+# Fix this at import time.
+IS_TTY = sys.stdout.isatty()
+
+if IS_TTY:
     SGR = lambda *cc: "\x1b[" + ";".join( str(c) for c in cc ) + "m"
 else:
     SGR = lambda *cc: ""

@@ -30,6 +30,50 @@ RUN = COLOR( 36)
 JOB = COLOR( 30)
 ARG = COLOR( 60)
 
+TABLE_CFG = fixfmt.table.update_cfg(
+    fixfmt.table.UNICODE_CFG,
+    {
+        "header": {
+            "separator": {
+                "between": "  ",
+            },
+        },
+        "formatters": {
+            "default": {
+                "name_width": True,
+            },
+        },
+        "row": {
+            "separator": {
+                "between": "  ",
+            },
+        },
+        "underline": {
+            "separator": {
+                "between": "  ",
+            },
+        },
+    }
+)
+
+RUNS_TABLE_CFG = fixfmt.table.update_cfg(TABLE_CFG, {
+    "header": {
+        "separator": {
+            "between": " ",
+        },
+    },
+    "underline": {
+        "separator": {
+            "between": " ",
+        },
+    },
+    "row": {
+        "separator": {
+            "between": " ",
+        },
+    },
+})
+
 #-------------------------------------------------------------------------------
 
 def print_lines(lines):
@@ -75,7 +119,7 @@ def format_job(job):
 
 
 def format_jobs(jobs):
-    table = fixfmt.table.RowTable()
+    table = fixfmt.table.RowTable(cfg=TABLE_CFG)
     table.extend(
         {
             "job_id": job["job_id"],
@@ -141,7 +185,7 @@ def format_run(run):
 
 
 def format_run_history(run_history):
-    table = fixfmt.table.RowTable()
+    table = fixfmt.table.RowTable(cfg=TABLE_CFG)
     table.extend(
         {
             "timestamp": Time(h["timestamp"]),
@@ -152,24 +196,6 @@ def format_run_history(run_history):
     table.fmts["timestamp"] = format_time
     return table
 
-
-RUNS_CFG = fixfmt.table.update_cfg(fixfmt.table.RowTable.DEFAULT_CFG, {
-    "header": {
-        "separator": {
-            "between": " ",
-        },
-    },
-    "underline": {
-        "separator": {
-            "between": " ",
-        },
-    },
-    "row": {
-        "separator": {
-            "between": " ",
-        },
-    },
-})
 
 def format_runs(runs, *, reruns=False):
     # FIXME: Does this really make sense?
@@ -196,7 +222,7 @@ def format_runs(runs, *, reruns=False):
         else:
             return None
 
-    table = fixfmt.table.RowTable(RUNS_CFG)
+    table = fixfmt.table.RowTable(cfg=RUNS_TABLE_CFG)
     for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
         row = {
             "run_id"    : RUN + run["run_id"] + RES,
