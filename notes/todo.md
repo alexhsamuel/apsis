@@ -13,6 +13,8 @@ instance.  The run objects would become mucb more active.
 # Current
 
 - reload jobs without restarting
+  - disconnect web UI run query websockets on reload
+  - make web UI reload runs on reconnect (at long last)
 
 - configurable args columns in runs view (e.g. strat, date)
 
