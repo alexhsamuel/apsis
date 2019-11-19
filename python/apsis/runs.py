@@ -401,7 +401,7 @@ class Runs:
 
     def remove_expected(self):
         """
-        Drops all expected runs.
+        Discards all expected runs.
         """
         self.__runs = {
             run_id: r
