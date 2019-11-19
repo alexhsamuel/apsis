@@ -486,7 +486,7 @@ class Apsis:
 #-------------------------------------------------------------------------------
 
 def reload_jobs(apsis):
-    # FIXME: Really need to refactor to avoid doing things like this.
+    # FIXME: Refactor to avoid using private attributes and methods.
 
     old_jobs_dir    = apsis.jobs._Jobs__jobs_dir
     job_db          = apsis.jobs._Jobs__job_db
