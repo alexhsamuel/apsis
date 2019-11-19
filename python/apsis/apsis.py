@@ -485,8 +485,9 @@ class Apsis:
 
 #-------------------------------------------------------------------------------
 
-def reload(apsis):
+def reload_jobs(apsis):
     # FIXME: Really need to refactor to avoid doing things like this.
+
     old_jobs_dir    = apsis.jobs._Jobs__jobs_dir
     job_db          = apsis.jobs._Jobs__job_db
     jobs_path       = old_jobs_dir._JobsDir__path
@@ -508,8 +509,9 @@ def reload(apsis):
         log.info(f"job added: {job_id}")
     # FIXME: __eq__ jobs not implemented.
 
-    # Stop the old scheduler loop.
+    # Stop the old scheduler and scheduled loops.
     apsis._Apsis__scheduler_task.cancel()
+    apsis._Apsis__scheduled_task.cancel()
 
     # Remove expected runs from the run DB.
     apsis.runs.remove_expected()
@@ -532,7 +534,8 @@ def reload(apsis):
     stop_time = apsis._Apsis__db.clock_db.get_time()
     apsis.scheduler = Scheduler(apsis.cfg, apsis.jobs, apsis.schedule, stop_time)
 
-    # Start its scheduler loop.
+    # Start the scheduler and scheduled loops.
     apsis._Apsis__scheduler_task = asyncio.ensure_future(apsis.scheduler.loop())
+    apsis._Apsis__scheduled_task = asyncio.ensure_future(apsis.scheduled.loop())
 
 
