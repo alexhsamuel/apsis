@@ -7,6 +7,7 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
+from   apsis.apsis import reschedule_runs
 from   apsis.cond import cond_to_jso
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
@@ -128,6 +129,11 @@ def _run_summary_to_jso(app, run):
 
 
 def run_to_jso(app, run, summary=False):
+    if run.state is None:
+        # This run is being deleted.
+        # FIXME: Hack.
+        return {"run_id": run.run_id, "state": None}
+
     jso = _run_summary_to_jso(app, run)
 
     if not summary:
@@ -516,4 +522,10 @@ async def run_post(request):
     jso = runs_to_jso(request.app, ora.now(), [run])
     return response_json(jso)
     
+
+@API.route("/runs/reschedule/<job_id:path>", methods={"POST"})
+async def runs_reschedule_post(request, job_id):
+    await reschedule_runs(request.app.apsis, job_id)
+    return response_json({})
+
 

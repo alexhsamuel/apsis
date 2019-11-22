@@ -32,9 +32,14 @@ export default {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
     this.runsSocket = new RunsSocket((msg) => {
       const runs = this.store.state.runs
-      for (const runId in msg.runs)
-        // We never change the runs, so freeze them to avoid reactivity.
-        this.$set(runs, runId, Object.freeze(msg.runs[runId]))
+      for (const runId in msg.runs) {
+        const run = msg.runs[runId]
+        if (!run.state)
+          this.$delete(runs, runId)
+        else
+          // We never change the runs, so freeze them to avoid reactivity.
+          this.$set(runs, runId, Object.freeze(msg.runs[runId]))
+      }
       console.log('got', Object.keys(msg.runs).length)
     })
   },

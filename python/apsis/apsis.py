@@ -14,7 +14,7 @@ from   . import runs
 from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
-from   .scheduler import Scheduler
+from   .scheduler import Scheduler, get_runs_to_schedule
 from   .waiter import Waiter
 
 log = logging.getLogger(__name__)
@@ -538,4 +538,43 @@ def reload_jobs(apsis):
     apsis._Apsis__scheduler_task = asyncio.ensure_future(apsis.scheduler.loop())
     apsis._Apsis__scheduled_task = asyncio.ensure_future(apsis.scheduled.loop())
 
+
+def _unschedule_runs(apsis, job_id):
+    """
+    Deletes all scheduled expected runs of `job_id`.
+    """
+    _, runs = apsis.runs.query(job_id=job_id, state=Run.STATE.scheduled)
+    runs = [ r for r in runs if r.expected ]
+
+    for run in runs:
+        log.info(f"removing: {run.run_id}")
+        apsis.scheduled.unschedule(run)
+        apsis.runs.remove(run.run_id)
+
+
+async def reschedule_runs(apsis, job_id):
+    """
+    Reschedules runs of `job_id`.
+
+    Unschedules and deleltes existing scheduled runs.  Thenq rebuilds and
+    reschedules runs according to the current job schedules.
+    """
+    scheduler = apsis.scheduler
+    scheduled = apsis.scheduled
+
+    # Get the time up to which scheduled runs were started.
+    scheduled_time = scheduled.get_scheduled_time()
+    # Get the time up to which jobs were scheduled.
+    scheduler_time = scheduler.get_scheduler_time()
+
+    # Unschedule all runs of this job. 
+    _unschedule_runs(apsis, job_id)
+
+    # Restore scheduled runs, by rebuilding them between the scheduled time
+    # and the scheduler time.
+    job = apsis.jobs.get_job(job_id)
+    schedule = list(get_runs_to_schedule(job, scheduled_time, scheduler_time))
+    for time, run in schedule:
+        await apsis.schedule(time, run)
+        
 

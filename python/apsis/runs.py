@@ -325,6 +325,23 @@ class Runs:
         self.__send(timestamp, run)
 
 
+    def remove(self, run_id):
+        """
+        Removes run with `run_id`.
+
+        Only an expected run may be removed.
+        """
+        run = self.__runs[run_id]
+        assert run.expected, f"can't remove run {run_id}; not expected"
+
+        del self.__runs[run_id]
+        # Indicate deletion with none state.
+        # FIXME: What a horrible hack.
+        run.state = None
+        self.__send(now(), run)
+        return run
+
+
     def get(self, run_id):
         run = self.__runs[run_id]
         return now(), run
@@ -399,6 +416,7 @@ class Runs:
             self.__queues.remove(queue)
 
 
+    # FIXME: Remove this.
     def remove_expected(self):
         """
         Discards all expected runs.

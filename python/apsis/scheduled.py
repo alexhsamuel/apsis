@@ -94,6 +94,13 @@ class ScheduledRuns:
         return len(self.__heap)
 
 
+    def get_scheduled_time(self):
+        """
+        Returns the time through which scheduled runs have been started.
+        """
+        return self.__clock_db.get_time()
+
+
     async def loop(self):
         # The start loop sleeps until the time to start the next scheduled job,
         # or for LOOP_TIME, whichever comes first.  LOOP_TIME comes in to play
