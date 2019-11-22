@@ -14,7 +14,8 @@ instance.  The run objects would become mucb more active.
 
 - reload jobs without restarting
   - disconnect web UI run query websockets on reload
-  - make web UI reload runs on reconnect (at long last)
+
+- make web UI reload runs on reconnect (at long last)
 
 - configurable args columns in runs view (e.g. strat, date)
 
@@ -27,6 +28,8 @@ instance.  The run objects would become mucb more active.
 - get rid of runs collapser in runs view (too many runs!)
 
 - job label search
+
+- rip out reruns, replace with actions
 
 - schedule time jitter
 
