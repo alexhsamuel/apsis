@@ -1,13 +1,14 @@
 import ora
 from   ora import Date, Time, Daytime, UTC
 
-import apsis.schedule
+from   apsis.schedule import DailySchedule, IntervalSchedule
+from   apsis.schedule import schedule_eq
 
 #-------------------------------------------------------------------------------
 
 def test_daily_schedule_shift():
     z = "America/New_York"
-    sched = apsis.schedule.DailySchedule(
+    sched = DailySchedule(
         z,
         ora.get_calendar("Mon,Wed-Fri"),
         ["9:30:00", "16:00:00"],
@@ -72,7 +73,7 @@ def test_daily_schedule_shift():
 
 def test_interval_schedule_phase():
     # Every hour on the 15 min.
-    sched = apsis.schedule.IntervalSchedule(3600, {}, phase=900)
+    sched = IntervalSchedule(3600, {}, phase=900)
 
     st, _ = next(sched(Time(2019, 11, 13, 7, 5, 0, UTC)))
     assert st == Time(2019, 11, 13, 7, 15, 0, UTC)
@@ -95,7 +96,7 @@ def test_interval_schedule_phase_repeat():
     date = Date(2019, 11, 13)
 
     # Every 10 min with phase of 2 min.
-    sched = apsis.schedule.IntervalSchedule(600, args, phase=120)
+    sched = IntervalSchedule(600, args, phase=120)
     start = (date, Daytime(7, 33)) @ UTC
     times = iter(sched(start))
     assert next(times) == ((date, Daytime(7, 42)) @ UTC, args)
@@ -104,20 +105,56 @@ def test_interval_schedule_phase_repeat():
     assert next(times) == ((date, Daytime(8, 12)) @ UTC, args)
 
 
-def test_interval_schedule_jitter():
-    date = Date(2019, 11, 13)
+def test_daily_schedule_eq():
+    z1 = ora.TimeZone("America/New_York")
 
-    # Every hour on the half-hour with a 15 min jitter.
-    sched = apsis.schedule.IntervalSchedule(3600, {}, phase=1800, jitter=900)
-    start = (date, Daytime(7, 52)) @ UTC
-    times = iter(sched(start))
+    c0 = ora.get_calendar("Mon-Fri")
+    c1 = ora.get_calendar("all")
 
-    t0 = (date, Daytime(8, 30)) @ UTC
-    offs = [ next(times)[0] - t0 - i * 3600 for i in range(10000) ]
-    assert all( 0 <= o < 900 for o in offs )
-    # Statistically likely:
-    assert 0 <= min(offs) < 10
-    assert 890 < max(offs) < 900
+    a0 = dict(veg="tomato")
+    a1 = dict(veg="eggplant")
 
+    s0 = DailySchedule(ora.UTC, c0, ["9:30:00"], a0)
+    s1 = DailySchedule(ora.UTC, c0, ["9:30:00"], a0)
+    assert schedule_eq(s0, s1)
+
+    s2 = DailySchedule(z1, c0, ["9:30:00"], a0)
+    assert not schedule_eq(s0, s2)
+
+    s3 = DailySchedule(ora.UTC, c1, ["9:30:00"], a0)
+    assert not schedule_eq(s0, s3)
+
+    s4 = DailySchedule(ora.UTC, c0, ["9:45:00"], a0)
+    assert not schedule_eq(s0, s4)
+
+    s5 = DailySchedule(ora.UTC, c0, ["9:30:00", "16:00:00"], a0)
+    assert not schedule_eq(s0, s5)
+
+    s6 = DailySchedule(ora.UTC, c0, ["9:30:00"], a1)
+    assert not schedule_eq(s0, s6)
+
+    s7 = DailySchedule(ora.UTC, c0, ["9:30:00"], a1, date_shift=-1)
+    assert not schedule_eq(s0, s7)
+
+    s8 = DailySchedule(ora.UTC, c0, ["9:30:00"], a1, enabled=False)
+    assert not schedule_eq(s0, s8)
+
+
+def test_interval_schedule_eq():
+    s0 = IntervalSchedule(3600, {"foo": 42})
+    s1 = IntervalSchedule(3600, {"foo": 42})
+    assert schedule_eq(s0, s1)
+
+    s2 = IntervalSchedule(1800, {"foo": 42})
+    assert not schedule_eq(s0, s2)
+
+    s3 = IntervalSchedule(3600, {"foo": 17})
+    assert not schedule_eq(s0, s3)
+
+    s4 = IntervalSchedule(3600, {"foo": 42}, enabled=False)
+    assert not schedule_eq(s0, s4)
+
+    s5 = IntervalSchedule(3600, {"foo": 42}, phase=600)
+    assert not schedule_eq(s0, s5)
 
 

@@ -11,11 +11,25 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class DailySchedule:
+class Schedule:
+
+    def __init__(self, *, enabled=True):
+        self.enabled    = bool(enabled)
+
+
+    def __call__(self, start: Time):
+        raise NotImplementedError
+
+
+
+
+class DailySchedule(Schedule):
 
     TYPE_NAME = "daily"
 
-    def __init__(self, tz, calendar, daytimes, args, *, date_shift=0):
+    def __init__(
+            self, tz, calendar, daytimes, args, *, enabled=True, date_shift=0):
+        super().__init__(enabled=enabled)
         self.tz         = TimeZone(tz)
         self.calendar   = calendar
         self.daytimes   = tuple(sorted( Daytime(t) for t in daytimes ))
@@ -78,6 +92,7 @@ class DailySchedule:
 
     def to_jso(self):
         return {
+            "enabled"   : self.enabled,
             "tz"        : str(self.tz),
             "calendar"  : repr(self.calendar),  # FIXME
             "daytime"   : [ str(y) for y in self.daytimes ],
@@ -87,7 +102,9 @@ class DailySchedule:
 
 
     @classmethod
-    def from_jso(Class, jso):
+    def from_jso(cls, jso):
+        enabled = jso.pop("enabled", True)
+
         args = jso.pop("args", {})
 
         try:
@@ -107,17 +124,21 @@ class DailySchedule:
 
         date_shift = jso.pop("date_shift", 0)
 
-        return Class(tz, calendar, daytimes, args, date_shift=date_shift)
+        return cls(
+            tz, calendar, daytimes, args, 
+            enabled=enabled, date_shift=date_shift
+        )
 
 
 
 #-------------------------------------------------------------------------------
 
-class ExplicitSchedule:
+class ExplicitSchedule(Schedule):
 
     TYPE_NAME = "explicit"
 
-    def __init__(self, times, args={}):
+    def __init__(self, times, args={}, *, enabled=True):
+        super().__init__(enabled=enabled)
         self.times = tuple(sorted( Time(t) for t in times) )
         self.args = args
 
@@ -137,13 +158,15 @@ class ExplicitSchedule:
 
     def to_jso(self):
         return {
-            "times" : [ str(t) for t in self.times ],
-            "args"  : self.args,
+            "enabled"   : self.enabled,
+            "times"     : [ str(t) for t in self.times ],
+            "args"      : self.args,
         }
 
 
     @classmethod
-    def from_jso(Class, jso):
+    def from_jso(cls, jso):
+        enabled = jso.pop("enabled", True)
         try:
             times = jso.pop("times")
         except KeyError:
@@ -153,17 +176,18 @@ class ExplicitSchedule:
 
         args = jso.pop("args", {})
 
-        return Class(times, args)
+        return cls(times, args, enabled=enabled)
 
 
 
 #-------------------------------------------------------------------------------
 
-class IntervalSchedule:
+class IntervalSchedule(Schedule):
 
     TYPE_NAME = "interval"
 
-    def __init__(self, interval, args, *, phase=0.0):
+    def __init__(self, interval, args, *, enabled=True, phase=0.0):
+        super().__init__(enabled=enabled)
         self.interval   = float(interval)
         self.phase      = float(phase)
         self.args       = { str(k): str(v) for k, v in args.items() }
@@ -199,6 +223,7 @@ class IntervalSchedule:
 
     def to_jso(self):
         return {
+            "enabled"   : self.enabled,
             "interval"  : self.interval,
             "phase"     : self.phase,
             "args"      : self.args,
@@ -206,7 +231,8 @@ class IntervalSchedule:
 
 
     @classmethod
-    def from_jso(Class, jso):
+    def from_jso(cls, jso):
+        enabled     = jso.pop("enabled", True)
         try:
             interval = jso.pop("interval")
         except KeyError:
@@ -218,7 +244,7 @@ class IntervalSchedule:
         if not (0 <= phase < interval):
             raise SchemaError("require 0 <= phase < interval")
 
-        return Class(interval, args, phase=phase)
+        return cls(interval, args, enabled=enabled, phase=phase)
 
 
 
@@ -234,16 +260,15 @@ TYPES = Typed(
 )
 
 
-def schedule_to_jso(schedule):
-    jso = TYPES.to_jso(schedule)
-    jso["enabled"] = schedule.enabled
-    return jso
+schedule_to_jso = TYPES.to_jso
 
 
 def schedule_from_jso(jso):
     with no_unexpected_keys(jso):
-        schedule = TYPES.from_jso(jso)
-        schedule.enabled = jso.pop("enabled", True)
-    return schedule
+        return TYPES.from_jso(jso)
+
+
+def schedule_eq(schedule0, schedule1):
+    return schedule_to_jso(schedule0) == schedule_to_jso(schedule1)
 
 
