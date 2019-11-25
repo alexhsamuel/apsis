@@ -38,6 +38,7 @@ class MaxRunning(Condition):
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "count" : self.__count,
             "job_id": self.__job_id,
              "args" : self.__args,

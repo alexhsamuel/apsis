@@ -1,12 +1,15 @@
+from   apsis.lib.json import TypedJso
 from   apsis.runs import template_expand
 
 #-------------------------------------------------------------------------------
 
-class Condition:
+class Condition(TypedJso):
     """
     A boolean condition that blocks a run from starting.  The run waits until
     the condition evaluates true.
     """
+
+    TYPE_NAMES = TypedJso.TypeNames()
 
     def bind(self, run, jobs):
         """

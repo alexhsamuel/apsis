@@ -34,6 +34,7 @@ class Dependency(Condition):
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "job_id": self.job_id,
             "args"  : self.args,
             "states": [ s.name for s in self.states ],

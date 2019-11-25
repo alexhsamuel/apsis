@@ -8,7 +8,6 @@ from   urllib.parse import unquote
 import websockets
 
 from   apsis.apsis import reschedule_runs
-from   apsis.cond import cond_to_jso
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
@@ -64,7 +63,7 @@ def _job_to_jso(app, job):
         "params"        : list(sorted(job.params)),
         "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
         "program"       : program_to_jso(app, job.program),
-        "condition"     : [ cond_to_jso(c) for c in job.conds ],
+        "condition"     : [ c.to_jso() for c in job.conds ],
         "actions"       : [ action_to_jso(app, a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
