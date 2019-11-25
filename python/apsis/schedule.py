@@ -14,12 +14,18 @@ log = logging.getLogger(__name__)
 class Schedule:
 
     def __init__(self, *, enabled=True):
-        self.enabled    = bool(enabled)
+        self.enabled = bool(enabled)
 
 
     def __call__(self, start: Time):
         raise NotImplementedError
 
+
+    def __eq__(self, other):
+        return (
+            type(other) == type(self)
+            and schedule_to_jso(other) == schedule_to_jso(self)
+        )
 
 
 
@@ -262,13 +268,8 @@ TYPES = Typed(
 
 schedule_to_jso = TYPES.to_jso
 
-
 def schedule_from_jso(jso):
     with no_unexpected_keys(jso):
         return TYPES.from_jso(jso)
-
-
-def schedule_eq(schedule0, schedule1):
-    return schedule_to_jso(schedule0) == schedule_to_jso(schedule1)
 
 

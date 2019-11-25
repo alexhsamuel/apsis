@@ -2,7 +2,6 @@ import ora
 from   ora import Date, Time, Daytime, UTC
 
 from   apsis.schedule import DailySchedule, IntervalSchedule
-from   apsis.schedule import schedule_eq
 
 #-------------------------------------------------------------------------------
 
@@ -116,45 +115,45 @@ def test_daily_schedule_eq():
 
     s0 = DailySchedule(ora.UTC, c0, ["9:30:00"], a0)
     s1 = DailySchedule(ora.UTC, c0, ["9:30:00"], a0)
-    assert schedule_eq(s0, s1)
+    assert s0 == s1
 
     s2 = DailySchedule(z1, c0, ["9:30:00"], a0)
-    assert not schedule_eq(s0, s2)
+    assert s0 != s2
 
     s3 = DailySchedule(ora.UTC, c1, ["9:30:00"], a0)
-    assert not schedule_eq(s0, s3)
+    assert s0 != s3
 
     s4 = DailySchedule(ora.UTC, c0, ["9:45:00"], a0)
-    assert not schedule_eq(s0, s4)
+    assert s0 != s4
 
     s5 = DailySchedule(ora.UTC, c0, ["9:30:00", "16:00:00"], a0)
-    assert not schedule_eq(s0, s5)
+    assert s0 != s5
 
     s6 = DailySchedule(ora.UTC, c0, ["9:30:00"], a1)
-    assert not schedule_eq(s0, s6)
+    assert s0 != s6
 
     s7 = DailySchedule(ora.UTC, c0, ["9:30:00"], a1, date_shift=-1)
-    assert not schedule_eq(s0, s7)
+    assert s0 != s7
 
     s8 = DailySchedule(ora.UTC, c0, ["9:30:00"], a1, enabled=False)
-    assert not schedule_eq(s0, s8)
+    assert s0 != s8
 
 
 def test_interval_schedule_eq():
     s0 = IntervalSchedule(3600, {"foo": 42})
     s1 = IntervalSchedule(3600, {"foo": 42})
-    assert schedule_eq(s0, s1)
+    assert s0 == s1
 
     s2 = IntervalSchedule(1800, {"foo": 42})
-    assert not schedule_eq(s0, s2)
+    assert s0 != s2
 
     s3 = IntervalSchedule(3600, {"foo": 17})
-    assert not schedule_eq(s0, s3)
+    assert s0 != s3
 
     s4 = IntervalSchedule(3600, {"foo": 42}, enabled=False)
-    assert not schedule_eq(s0, s4)
+    assert s0 != s4
 
     s5 = IntervalSchedule(3600, {"foo": 42}, phase=600)
-    assert not schedule_eq(s0, s5)
+    assert s0 != s5
 
 
