@@ -33,6 +33,15 @@ class Reruns:
         self.max_delay  = None if max_delay is None else float(max_delay)
 
 
+    def __eq__(self, other):
+        return (
+            type(other) == type(self)
+            and other.count == self.count
+            and other.delay == self.delay
+            and other.max_delay == self.max_delay
+        )
+
+
 
 class Job:
 
@@ -56,6 +65,20 @@ class Job:
         self.actions    = actions
         self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
+
+
+    def __eq__(self, other):
+        return (
+                not self.ad_hoc
+            and not other.ad_hoc
+            and other.params    == self.params
+            and other.schedules == self.schedules
+            and other.program   == self.program
+            and other.conds     == self.conds
+            and other.reruns    == self.reruns
+            and other.actions   == self.actions
+            and other.meta      == self.meta
+        )            
 
 
 
