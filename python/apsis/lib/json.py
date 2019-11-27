@@ -194,4 +194,8 @@ class TypedJso:
         }
 
 
+    def __eq__(self, other):
+        return type(other) == type(self) and other.to_jso() == self.to_jso()
+
+
 

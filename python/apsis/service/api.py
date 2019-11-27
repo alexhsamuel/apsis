@@ -35,33 +35,10 @@ def to_state(state):
     return None if state is None else Run.STATE[state]
 
 
-def program_to_jso(app, program):
-    return {
-        **program.to_jso(),
-        "str"   : str(program),
-    }
-
-
-def schedule_to_jso(app, schedule):
-    return { 
-        "type"      : type(schedule).__qualname__,
-        "enabled"   : schedule.enabled,
-        "str"       : str(schedule),
-        **schedule.to_jso()
-    }
-
-
-def cond_to_jso(app, cond):
-    return {
-        **cond.to_jso(),
-        "str"       : str(cond),
-    }
-
-
-def action_to_jso(app, action):
-    return {
-        **action.to_jso(),
-        "str"       : str(action),
+def _to_jso(obj):
+    return None if obj is None else {
+        **obj.to_jso(),
+        "str": str(obj),
     }
 
 
@@ -69,10 +46,10 @@ def _job_to_jso(app, job):
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
-        "schedules"     : [ schedule_to_jso(app, s) for s in job.schedules ],
-        "program"       : program_to_jso(app, job.program),
-        "condition"     : [ c.to_jso() for c in job.conds ],
-        "actions"       : [ action_to_jso(app, a) for a in job.actions ],
+        "schedules"     : [ _to_jso(s) for s in job.schedules ],
+        "program"       : _to_jso(job.program),
+        "condition"     : [ _to_jso(c) for c in job.conds ],
+        "actions"       : [ _to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
@@ -147,10 +124,8 @@ def run_to_jso(app, run, summary=False):
         jso.update({
             "conds":
                 None if run.conds is None 
-                else [ cond_to_jso(c) for c in run.conds ],
-            "program":
-                None if run.program is None 
-                else program_to_jso(app, run.program),
+                else [ to_jso(c) for c in run.conds ],
+            "program": to_jso(run.program),
             # FIXME: Rename to metadata.
             "meta": run.meta,
         })

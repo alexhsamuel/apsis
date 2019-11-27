@@ -12,7 +12,7 @@ from   .cond import Condition
 from   .lib.json import to_array
 from   .lib.py import tupleize
 from   .program import Program
-from   .schedule import schedule_from_jso, schedule_to_jso
+from   .schedule import Schedule
 
 #-------------------------------------------------------------------------------
 
@@ -102,7 +102,7 @@ def jso_to_job(jso, job_id):
         else [] if schedules is None
         else schedules
     )
-    schedules = [ schedule_from_jso(s) for s in schedules ]
+    schedules = [ Schedule.from_jso(s) for s in schedules ]
 
     try:
         program = jso.pop("program")
@@ -146,7 +146,7 @@ def job_to_jso(job):
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
-        "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
+        "schedule"      : [ s.to_jso() for s in job.schedules ],
         "program"       : job.program.to_jso(),
         "condition"     : [ c.to_jso() for c in job.conds ],
         "action"        : [ a.to_jso() for a in job.actions ],

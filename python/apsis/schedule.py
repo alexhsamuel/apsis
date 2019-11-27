@@ -4,14 +4,16 @@ import ora
 from   ora import Daytime, Time, TimeZone
 
 from   .lib.exc import SchemaError
-from   .lib.json import Typed, no_unexpected_keys
+from   .lib.json import TypedJso
 from   .lib.py import format_ctor
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class Schedule:
+class Schedule(TypedJso):
+
+    TYPE_NAMES = TypedJso.TypeNames()
 
     def __init__(self, *, enabled=True):
         self.enabled = bool(enabled)
@@ -19,13 +21,6 @@ class Schedule:
 
     def __call__(self, start: Time):
         raise NotImplementedError
-
-
-    def __eq__(self, other):
-        return (
-            type(other) == type(self)
-            and schedule_to_jso(other) == schedule_to_jso(self)
-        )
 
 
 
@@ -98,6 +93,7 @@ class DailySchedule(Schedule):
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "enabled"   : self.enabled,
             "tz"        : str(self.tz),
             "calendar"  : repr(self.calendar),  # FIXME
@@ -141,8 +137,6 @@ class DailySchedule(Schedule):
 
 class ExplicitSchedule(Schedule):
 
-    TYPE_NAME = "explicit"
-
     def __init__(self, times, args={}, *, enabled=True):
         super().__init__(enabled=enabled)
         self.times = tuple(sorted( Time(t) for t in times) )
@@ -164,6 +158,7 @@ class ExplicitSchedule(Schedule):
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "enabled"   : self.enabled,
             "times"     : [ str(t) for t in self.times ],
             "args"      : self.args,
@@ -189,8 +184,6 @@ class ExplicitSchedule(Schedule):
 #-------------------------------------------------------------------------------
 
 class IntervalSchedule(Schedule):
-
-    TYPE_NAME = "interval"
 
     def __init__(self, interval, args, *, enabled=True, phase=0.0):
         super().__init__(enabled=enabled)
@@ -229,6 +222,7 @@ class IntervalSchedule(Schedule):
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "enabled"   : self.enabled,
             "interval"  : self.interval,
             "phase"     : self.phase,
@@ -256,20 +250,7 @@ class IntervalSchedule(Schedule):
 
 #-------------------------------------------------------------------------------
 
-TYPES = Typed(
-    {
-        "daily"     : DailySchedule,
-        "explicit"  : ExplicitSchedule,
-        "interval"  : IntervalSchedule,
-    }, 
-    default=DailySchedule
-)
-
-
-schedule_to_jso = TYPES.to_jso
-
-def schedule_from_jso(jso):
-    with no_unexpected_keys(jso):
-        return TYPES.from_jso(jso)
-
+Schedule.TYPE_NAMES.set(DailySchedule, "daily")
+Schedule.TYPE_NAMES.set(ExplicitSchedule, "explicit")
+Schedule.TYPE_NAMES.set(IntervalSchedule, "interval")
 
