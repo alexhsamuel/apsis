@@ -118,7 +118,7 @@ class TypedJso:
 
         class Base(TypedJso):
 
-            TYPE_NAMES = TypedJso.TypedNmaed()
+            TYPE_NAMES = TypedJso.TypeNames()
 
 
     In each concrete subtype:
