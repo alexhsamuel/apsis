@@ -1,7 +1,7 @@
 import logging
 
 from   . import runs
-from   .lib.json import Typed, no_unexpected_keys
+from   .lib.json import TypedJso, no_unexpected_keys
 from   .lib.py import tupleize
 
 log = logging.getLogger(__name__)
@@ -53,7 +53,24 @@ def states_to_jso(states):
 
 #-------------------------------------------------------------------------------
 
-class ScheduleAction:
+class Action(TypedJso):
+
+    TYPE_NAMES = TypedJso.TypeNames()
+
+    async def __call__(self, apsis, run):
+        """
+        Performs the action on `run`.
+        """
+        raise NotImplementedError
+
+
+
+#-------------------------------------------------------------------------------
+
+class ScheduleAction(Action):
+    """
+    Schedules a new run.
+    """
 
     # FIXME: Add schedule.
     def __init__(self, instance, *, condition=None):
@@ -86,34 +103,25 @@ class ScheduleAction:
 
     def to_jso(self):
         return {
-            "job_id": self.__inst.job_id,
-            "args": self.__inst.args,
-            "condition": self.__condition.to_jso()
+            **super().to_jso(),
+            "job_id"    : self.__inst.job_id,
+            "args"      : self.__inst.args,
+            "condition" : self.__condition.to_jso()
         }
 
 
     @classmethod
-    def from_jso(Class, jso):
-        with no_unexpected_keys(jso):
-            job_id = jso.pop("job_id")
-            args = jso.pop("args", {})
-            condition = Condition.from_jso(jso.pop("if", None))
-        return Class(runs.Instance(job_id, args), condition=condition)
+    def from_jso(cls, jso):
+        job_id      = jso.pop("job_id")
+        args        = jso.pop("args", {})
+        condition   = Condition.from_jso(jso.pop("if", None))
+        return cls(runs.Instance(job_id, args), condition=condition)
 
 
 
 #-------------------------------------------------------------------------------
 
-TYPES = Typed({
-    "schedule": ScheduleAction,
-})
-
-def action_from_jso(jso):
-    with no_unexpected_keys(jso):
-        return TYPES.from_jso(jso)
-
-
-action_to_jso = TYPES.to_jso
+Action.TYPE_NAMES.set(ScheduleAction, "schedule")
 
 
 def successor_from_jso(jso):

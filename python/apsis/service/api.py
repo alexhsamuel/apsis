@@ -11,7 +11,6 @@ from   apsis.apsis import reschedule_runs
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
-from   .. import actions
 from   ..jobs import jso_to_job, reruns_to_jso
 from   ..runs import Instance, Run, RunError
 
@@ -60,7 +59,10 @@ def cond_to_jso(app, cond):
 
 
 def action_to_jso(app, action):
-    return actions.action_to_jso(action)
+    return {
+        **action.to_jso(),
+        "str"       : str(action),
+    }
 
 
 def _job_to_jso(app, job):

@@ -7,6 +7,7 @@ import sys
 import yaml
 
 from   . import actions
+from   .actions import Action
 from   .cond import Condition
 from   .lib.json import to_array
 from   .lib.py import tupleize
@@ -113,7 +114,7 @@ def jso_to_job(jso, job_id):
     conds = [ Condition.from_jso(c) for c in conds ]
 
     acts = to_array(jso.pop("action", []))
-    acts = [ actions.action_from_jso(a) for a in acts ]
+    acts = [ Action.from_jso(a) for a in acts ]
 
     # Successors are syntactic sugar for actions.
     sucs = to_array(jso.pop("successors", []))
@@ -148,7 +149,7 @@ def job_to_jso(job):
         "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
         "program"       : job.program.to_jso(),
         "condition"     : [ c.to_jso() for c in job.conds ],
-        "action"        : [ actions.action_to_jso(a) for a in job.actions ],
+        "action"        : [ a.to_jso() for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,

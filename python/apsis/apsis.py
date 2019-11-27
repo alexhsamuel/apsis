@@ -4,7 +4,7 @@ from   ora import now, Time
 import sys
 import traceback
 
-from   . import actions
+from   .actions import Action
 from   .exc import ConditionError
 from   .history import RunHistory
 from   .jobs import Jobs, JobsDir
@@ -50,7 +50,7 @@ class Apsis:
         self.jobs = Jobs(jobs, db.job_db)
 
         # Actions applied to all runs.
-        self.__actions = [ actions.action_from_jso(o) for o in cfg["actions"] ]
+        self.__actions = [ Action.from_jso(o) for o in cfg["actions"] ]
 
         try:
             runs_lookback = cfg["runs_lookback"]
