@@ -10,7 +10,7 @@ from   . import actions
 from   .cond import Condition
 from   .lib.json import to_array
 from   .lib.py import tupleize
-from   .program import program_from_jso, program_to_jso
+from   .program import Program
 from   .schedule import schedule_from_jso, schedule_to_jso
 
 #-------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ def jso_to_job(jso, job_id):
         program = jso.pop("program")
     except KeyError:
         raise JobSpecificationError("missing program")
-    program = program_from_jso(program)
+    program = Program.from_jso(program)
 
     conds = to_array(jso.pop("condition", []))
     conds = [ Condition.from_jso(c) for c in conds ]
@@ -146,7 +146,7 @@ def job_to_jso(job):
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
         "schedule"      : [ schedule_to_jso(s) for s in job.schedules ],
-        "program"       : program_to_jso(job.program),
+        "program"       : job.program.to_jso(),
         "condition"     : [ c.to_jso() for c in job.conds ],
         "action"        : [ actions.action_to_jso(a) for a in job.actions ],
         "reruns"        : reruns_to_jso(job.reruns),

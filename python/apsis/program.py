@@ -8,7 +8,7 @@ import socket
 import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
-from   .lib.json import Typed, no_unexpected_keys
+from   .lib.json import TypedJso
 from   .lib.py import or_none
 from   .lib.sys import get_username
 from   .runs import template_expand, join_args
@@ -101,7 +101,9 @@ class ProgramFailure(RuntimeError):
 
 
 
-class Program:
+class Program(TypedJso):
+
+    TYPE_NAMES = TypedJso.TypeNames()
 
     def bind(self, args):
         """
@@ -150,12 +152,22 @@ class Program:
         """
 
 
+    @classmethod
+    def from_jso(cls, jso):
+        # Extend the default JSO typed resolution to accept a str or list.
+        return (
+                 AgentShellProgram(jso) if isinstance(jso, str) 
+            else AgentProgram(jso) if isinstance(jso, list)
+            else TypedJso.from_jso.__func__(cls, jso)
+        )
+
+
 
 #-------------------------------------------------------------------------------
 
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%kZ"
 
-class ProcessProgram:
+class ProcessProgram(Program):
 
     def __init__(self, argv):
         self.__argv = tuple( str(a) for a in argv )
@@ -172,13 +184,14 @@ class ProcessProgram:
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "argv"      : list(self.__argv),
         }
 
 
     @classmethod
-    def from_jso(Class, jso):
-        return Class(jso["argv"])
+    def from_jso(cls, jso):
+        return cls(jso["argv"])
 
 
     async def start(self, run_id):
@@ -258,13 +271,14 @@ class ShellCommandProgram(ProcessProgram):
 
     def to_jso(self):
         return {
+            **Program.to_jso(self),
             "command"   : self.__command,
         }
 
 
     @classmethod
-    def from_jso(Class, jso):
-        return Class(jso["command"])
+    def from_jso(cls, jso):
+        return cls(jso["command"])
 
 
 
@@ -280,7 +294,7 @@ def _get_agent(host, user):
     return _get_agent_fqdn(host, user)
 
 
-class AgentProgram:
+class AgentProgram(Program):
 
     def __init__(self, argv, *, host=None, user=None):
         self.__argv = tuple( str(a) for a in argv )
@@ -301,6 +315,7 @@ class AgentProgram:
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "argv"      : list(self.__argv),
             "host"      : self.__host,
             "user"      : self.__user,
@@ -308,8 +323,8 @@ class AgentProgram:
 
 
     @classmethod
-    def from_jso(Class, jso):
-        return Class(
+    def from_jso(cls, jso):
+        return cls(
             jso.pop("argv"), 
             host=jso.pop("host", None),
             user=jso.pop("user", None),
@@ -444,8 +459,8 @@ class AgentShellProgram(AgentProgram):
 
 
     @classmethod
-    def from_jso(Class, jso):
-        return Class(
+    def from_jso(cls, jso):
+        return cls(
             jso.pop("command"),
             host=jso.pop("host", None),
             user=jso.pop("user", None),
@@ -455,23 +470,6 @@ class AgentShellProgram(AgentProgram):
 
 #-------------------------------------------------------------------------------
 
-TYPES = Typed({
-    "program"       : AgentProgram,
-    "shell"         : AgentShellProgram,
-    "program_inproc": ProcessProgram,
-    "shell_inproc"  : ShellCommandProgram,
-})
-
-
-def program_from_jso(jso):
-    if isinstance(jso, str):
-        return AgentShellProgram(jso)
-    elif isinstance(jso, list):
-        return AgentProgram(jso)
-    else:
-        with no_unexpected_keys(jso):
-            return TYPES.from_jso(jso)
-
-
-program_to_jso = TYPES.to_jso
+Program.TYPE_NAMES.set(AgentProgram, "program")
+Program.TYPE_NAMES.set(AgentShellProgram, "shell")
 

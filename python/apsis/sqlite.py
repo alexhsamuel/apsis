@@ -11,7 +11,7 @@ import ujson
 from   .jobs import jso_to_job, job_to_jso, JobSpecificationError
 from   .lib import itr
 from   .runs import Instance, Run
-from   .program import program_to_jso, program_from_jso, Output, OutputMetadata
+from   .program import Program, Output, OutputMetadata
 
 log = logging.getLogger(__name__)
 
@@ -179,7 +179,7 @@ class RunDB:
                 meta, message, run_state, rerun, _
         ) in cursor:
             if program is not None:
-                program     = program_from_jso(ujson.loads(program))
+                program     = Program.from_jso(ujson.loads(program))
 
             times           = ujson.loads(times)
             times           = { n: ora.Time(t) for n, t in times.items() }
@@ -207,7 +207,7 @@ class RunDB:
 
         program = (
             None if run.program is None
-            else ujson.dumps(program_to_jso(run.program))
+            else ujson.dumps(run.program.to_jso())
         )
         # FIXME: Precos, same as program.
 
