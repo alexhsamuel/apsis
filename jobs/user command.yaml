@@ -11,7 +11,8 @@ program:
   user: "{{ user }}"
 
 schedule:
-- args: {message: "Hello from testuser.", user: "testuser"}
+- type: daily
+  args: {message: "Hello from testuser.", user: "testuser"}
   tz: US/Eastern
   daytime: 11:00:00
   enabled: false

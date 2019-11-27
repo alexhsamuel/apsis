@@ -1,6 +1,7 @@
 params: [date, message]
 
 schedule:
+  type: daily
   args: {message: "Hello, world!"}
   tz: US/Eastern
   daytime: 

@@ -7,14 +7,16 @@ metadata:
 params: [date, message]
 
 schedule:
-- args: {message: "Hello, world!"}
+- type: daily
+  args: {message: "Hello, world!"}
   tz: US/Mountain
   # calendar: Mon-Fri
   daytime: 
   - "09:50:00"
   - "09:30:00"
   - "12:00:00"
-- args: {message: "Good bye!"}
+- type: daily
+  args: {message: "Good bye!"}
   tz: US/Eastern
   calendar: Mon-Thu
   daytime: "16:00:00"
