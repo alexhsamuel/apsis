@@ -7,7 +7,8 @@ import traceback
 from   .actions import Action
 from   .exc import ConditionError
 from   .history import RunHistory
-from   .jobs import Jobs, JobsDir
+
+from   .jobs import Jobs, JobsDir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
 from   . import runs
@@ -499,15 +500,13 @@ def reload_jobs(apsis):
     new_jobs_dir    = JobsDir(jobs_path)
 
     # Diff them.
-    old_jobs        = { j.job_id: j for j in old_jobs_dir.get_jobs(ad_hoc=False) }
-    new_jobs        = { j.job_id: j for j in new_jobs_dir.get_jobs(ad_hoc=False) }
-    old_job_ids     = frozenset(old_jobs)
-    new_job_ids     = frozenset(new_jobs)
-    for job_id in sorted(old_job_ids - new_job_ids):
-        log.info(f"job removed: {job_id}")
-    for job_id in sorted(new_job_ids - old_job_ids):
-        log.info(f"job added: {job_id}")
-    # FIXME: __eq__ jobs not implemented.
+    del_jobs, add_jobs, chg_jobs = diff_jobs_dirs(old_jobs_dir, new_jobs_dir)
+    for job in sorted(del_jobs, key=lambda j: j.job_id):
+        log.info(f"job removed: {job.job_id}")
+    for job in sorted(add_jobs, key=lambda j: j.job_id):
+        log.info(f"job added: {job.job_id}")
+    for job in sorted(chg_jobs, key=lambda j: j.job_id):
+        log.info(f"job changed: {job.job_id}")
 
     # Stop the old scheduler and scheduled loops.
     apsis._Apsis__scheduler_task.cancel()
