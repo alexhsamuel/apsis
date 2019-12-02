@@ -7,7 +7,7 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
-from   apsis.apsis import reschedule_runs
+from   apsis.apsis import reschedule_runs, reload_jobs
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
@@ -505,6 +505,7 @@ async def run_post(request):
     return response_json(jso)
     
 
+# FIXME: Is there a need for this?
 @API.route("/runs/reschedule/<job_id:path>", methods={"POST"})
 async def runs_reschedule_post(request, job_id):
     await reschedule_runs(request.app.apsis, job_id)

@@ -90,6 +90,22 @@ class JobSpecificationError(Exception):
 
 
 
+class JobErrors(Exception):
+    """
+    One or more exceptions.
+    """
+
+    def __init__(self, msg, errors):
+        super().__init__(msg)
+        self.errors = tuple(errors)
+
+
+    def format(self):
+        for error in self.errors:
+            yield f"{error.path}: {error}"
+
+
+
 # FIXME: Do much better at handling errors when converting JSO.
 
 def jso_to_reruns(jso):
@@ -184,16 +200,20 @@ def load_yaml(file, job_id):
     return jso_to_job(jso, job_id)
 
 
-def load_yaml_files(dir_path):
+def load_yaml_file(path, job_id):
+    with open(path) as file:
+        return load_yaml(file, job_id)
+
+
+def list_yaml_files(dir_path):
     dir_path = Path(dir_path)
     for dir, _, names in os.walk(dir_path):
         dir = Path(dir)
         paths = ( dir / n for n in names if not n.startswith(".") )
         paths = ( p for p in paths if p.suffix == ".yaml" )
         for path in paths:
-            name = path.with_suffix("").relative_to(dir_path)
-            with open(path) as file:
-                yield load_yaml(file, name)
+            job_id = str(path.with_suffix("").relative_to(dir_path))
+            yield path, job_id
 
 
 def check_job_file(path):
@@ -231,13 +251,14 @@ class JobsDir:
 
     # FIXME: Mapping API?
 
-    def __init__(self, path):
-        self.__path = Path(path)
-        # FIXME: Detect duplicates.
-        self.__jobs = {
-            job.job_id: job
-            for job in load_yaml_files(path)
-        }
+    def __init__(self, path, jobs):
+        self.__path = path
+        self.__jobs = jobs
+
+
+    @property
+    def path(self):
+        return self.__path
 
 
     def get_job(self, job_id) -> Job:
@@ -257,6 +278,31 @@ class JobsDir:
             jobs = ( j for j in jobs if j.ad_hoc == ad_hoc )
         return jobs
 
+
+
+def load_jobs_dir(path):
+    """
+    Attempts to loads jobs from a jobs dir.
+
+    :return:
+      The successfully loaded `JobsDir`.
+    :raise JobErrors:
+      One or more errors while loading jobs.  The exception's `errors` attribute
+      contains the errors; each has a `path` attribute.
+    """
+    jobs_path = Path(path)
+    jobs = {}
+    errors = []
+    for path, job_id in list_yaml_files(jobs_path):
+        try:
+            jobs[job_id] = load_yaml_file(path, job_id)
+        except JobSpecificationError as exc:
+            exc.path = path
+            errors.append(exc)
+    if len(errors) > 0:
+        raise JobErrors(f"errors loading jobs in {jobs_path}", errors)
+    else:
+        return JobsDir(path, jobs)
 
 
 #-------------------------------------------------------------------------------

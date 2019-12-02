@@ -16,9 +16,11 @@ API = sanic.Blueprint("control")
 @API.route("/reload_jobs", methods={"POST"})
 async def on_reload_jobs(request):
     # FIXME: Handle errors.
-    apsis.apsis.reload_jobs(request.app.apsis)
+    await apsis.apsis.reload_jobs(request.app.apsis)
     return response_json({})
 
+
+# FIXME: Reload a single job id?
 
 @API.route("/shut_down", methods={"POST"})
 async def on_shut_down(request):

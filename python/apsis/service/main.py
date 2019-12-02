@@ -11,7 +11,7 @@ import websockets
 from   . import api, control
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
-from   ..jobs import JobsDir
+from   ..jobs import load_jobs_dir, JobErrors
 from   ..lib.asyn import cancel_task
 from   ..sqlite import SqliteDB
 import apsis.lib.logging
@@ -112,7 +112,12 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
 
     job_dir = cfg["job_dir"]
     log.info(f"opening jobs dir {job_dir}")
-    jobs    = JobsDir(job_dir)
+    try:
+        jobs = load_jobs_dir(job_dir)
+    except JobErrors as exc:
+        for text in exc.format():
+            log.error(text)
+        raise
 
     log.info("creating scheduler instance")
     apsis   = Apsis(cfg, jobs, db)

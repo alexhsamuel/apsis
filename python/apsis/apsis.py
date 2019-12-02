@@ -8,7 +8,7 @@ from   .actions import Action
 from   .exc import ConditionError
 from   .history import RunHistory
 
-from   .jobs import Jobs, JobsDir, diff_jobs_dirs
+from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
 from   . import runs
@@ -486,58 +486,6 @@ class Apsis:
 
 #-------------------------------------------------------------------------------
 
-def reload_jobs(apsis):
-    # FIXME: Refactor to avoid using private attributes and methods.
-
-    old_jobs_dir    = apsis.jobs._Jobs__jobs_dir
-    job_db          = apsis.jobs._Jobs__job_db
-    jobs_path       = old_jobs_dir._JobsDir__path
-
-    log.info(f"reloading jobs from {jobs_path}")
-
-    # Reload the contents of the jobs dir.
-    # FIXME: Handle errors carefully.
-    new_jobs_dir    = JobsDir(jobs_path)
-
-    # Diff them.
-    del_jobs, add_jobs, chg_jobs = diff_jobs_dirs(old_jobs_dir, new_jobs_dir)
-    for job in sorted(del_jobs, key=lambda j: j.job_id):
-        log.info(f"job removed: {job.job_id}")
-    for job in sorted(add_jobs, key=lambda j: j.job_id):
-        log.info(f"job added: {job.job_id}")
-    for job in sorted(chg_jobs, key=lambda j: j.job_id):
-        log.info(f"job changed: {job.job_id}")
-
-    # Stop the old scheduler and scheduled loops.
-    apsis._Apsis__scheduler_task.cancel()
-    apsis._Apsis__scheduled_task.cancel()
-
-    # Remove expected runs from the run DB.
-    apsis.runs.remove_expected()
-
-    # Use the new jobs.
-    apsis.jobs      = Jobs(new_jobs_dir, job_db)
-
-    # Build a new set of scheduled runs.
-    apsis.scheduled = ScheduledRuns(apsis._Apsis__db.clock_db, apsis._Apsis__wait)
-
-    # Restore (non-expected) scheduled runs from DB.
-    log.info("restoring scheduled runs")
-    _, scheduled_runs = apsis.runs.query(state=Run.STATE.scheduled)
-    for run in scheduled_runs:
-        if not run.expected:
-            log.info(f"restoring run: {run}")
-            apsis.scheduled.schedule_at(run.times["schedule"], run)
-
-    # Build a new scheduler, from the current time.
-    stop_time = apsis._Apsis__db.clock_db.get_time()
-    apsis.scheduler = Scheduler(apsis.cfg, apsis.jobs, apsis.schedule, stop_time)
-
-    # Start the scheduler and scheduled loops.
-    apsis._Apsis__scheduler_task = asyncio.ensure_future(apsis.scheduler.loop())
-    apsis._Apsis__scheduled_task = asyncio.ensure_future(apsis.scheduled.loop())
-
-
 def _unschedule_runs(apsis, job_id):
     """
     Deletes all scheduled expected runs of `job_id`.
@@ -576,4 +524,34 @@ async def reschedule_runs(apsis, job_id):
     for time, run in schedule:
         await apsis.schedule(time, run)
         
+
+async def reload_jobs(apsis):
+    # FIXME: Refactor to avoid using private attributes and methods.
+    jobs0       = apsis.jobs._Jobs__jobs_dir
+    job_db      = apsis.jobs._Jobs__job_db
+
+    # Reload the contents of the jobs dir.
+    log.info(f"reloading jobs from {jobs0.path}")
+    jobs1 = load_jobs_dir(jobs0.path)
+
+    # Diff them.
+    del_jobs, add_jobs, chg_jobs = diff_jobs_dirs(jobs0, jobs1)
+
+    for job in del_jobs:
+        log.info(f"unscheduling removed job: {job.job_id}")
+        _unschedule_runs(apsis, job.job_id)
+    for job in chg_jobs:
+        log.info(f"unscheduling changed job: {job.job_id}")
+        _unschedule_runs(apsis, job.job_id)
+
+    # Use the new jobs.
+    apsis.jobs = Jobs(jobs1, job_db)
+
+    for job in add_jobs:
+        log.info(f"scheduling added job: {job.job_id}")
+        await reschedule_runs(apsis, job.job_id)
+    for job in sorted(chg_jobs, key=lambda j: j.job_id):
+        log.info(f"scheduling changed: {job.job_id}")
+        await reschedule_runs(apsis, job.job_id)
+
 
