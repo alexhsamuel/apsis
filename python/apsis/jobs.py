@@ -196,7 +196,7 @@ def job_to_jso(job):
 
 
 def load_yaml(file, job_id):
-    jso = yaml.load(file, Loader=yaml.BaseLoader)
+    jso = yaml.load(file, Loader=yaml.SafeLoader)
     return jso_to_job(jso, job_id)
 
 
