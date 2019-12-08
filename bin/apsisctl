@@ -112,7 +112,7 @@ cmd.add_argument(
 # command: reload_jobs
 
 def cmd_reload_jobs(args):
-    result = get_client(args).reload_jobs()
+    result = get_client(args).reload_jobs(dry_run=args.dry_run)
 
     if not args.quiet:
         def section(name):
@@ -126,11 +126,17 @@ def cmd_reload_jobs(args):
         
         if section("removed") + section("added") + section("changed") == 0:
             print("no changes")
+        elif result["dry_run"]:
+            print(terminal.MAG + "Dry run; no changes made." + terminal.RES)
+            
 
 
 cmd = parser.add_command(
     "reload-jobs", cmd_reload_jobs,
     description="Reloads jobs from the jobs dir.")
+cmd.add_argument(
+    "--dry-run", action="store_true", default=False,
+    help="determine job changes but don't apply them")
 cmd.add_argument(
     "--quiet", action="store_true", default=False,
     help="don't print job changes")

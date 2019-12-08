@@ -7,7 +7,7 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
-from   apsis.apsis import reschedule_runs, reload_jobs
+from   apsis.apsis import reschedule_runs
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
 from   apsis.lib.timing import Timer

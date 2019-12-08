@@ -5,7 +5,7 @@ import signal
 import urllib.parse
 
 import apsis.apsis
-from   apsis.lib.api import response_json
+from   apsis.lib.api import to_bool, response_json
 
 log = logging.getLogger(__name__)
 
@@ -15,12 +15,15 @@ API = sanic.Blueprint("control")
 
 @API.route("/reload_jobs", methods={"POST"})
 async def on_reload_jobs(request):
-    # FIXME: Handle errors.
-    rem_ids, add_ids, chg_ids = await apsis.apsis.reload_jobs(request.app.apsis)
+    dry_run, = request.args.pop("dry_run", False)
+    dry_run = to_bool(dry_run)
+    rem_ids, add_ids, chg_ids = await apsis.apsis.reload_jobs(
+        request.app.apsis, dry_run=dry_run)
     return response_json({
         "removed"   : rem_ids,
         "added"     : add_ids,
         "changed"   : chg_ids,
+        "dry_run"   : dry_run,
     })
 
 

@@ -195,8 +195,8 @@ class Client:
         return self.__schedule(time, {"program": str(command)})
         
 
-    def reload_jobs(self):
-        return self.__post("/api/control/reload_jobs", data={})
+    def reload_jobs(self, *, dry_run=False):
+        return self.__post("/api/control/reload_jobs", data={}, dry_run=dry_run)
 
 
     def shut_down(self, restart=False):

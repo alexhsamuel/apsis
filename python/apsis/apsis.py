@@ -525,8 +525,10 @@ async def reschedule_runs(apsis, job_id):
         await apsis.schedule(time, run)
         
 
-async def reload_jobs(apsis):
+async def reload_jobs(apsis, *, dry_run=False):
     """
+    :param dry_run:
+      If true, determine changes but don't apply them.
     :return:
       Job IDs that have been removed, job IDs that have been added, and job IDs
       that have changed.
@@ -542,22 +544,23 @@ async def reload_jobs(apsis):
     # Diff them.
     rem_ids, add_ids, chg_ids = diff_jobs_dirs(jobs0, jobs1)
 
-    for job_id in rem_ids:
-        log.info(f"unscheduling removed job: {job_id}")
-        _unschedule_runs(apsis, job_id)
-    for job_id in chg_ids:
-        log.info(f"unscheduling changed job: {job_id}")
-        _unschedule_runs(apsis, job_id)
+    if not dry_run:
+        for job_id in rem_ids:
+            log.info(f"unscheduling removed job: {job_id}")
+            _unschedule_runs(apsis, job_id)
+        for job_id in chg_ids:
+            log.info(f"unscheduling changed job: {job_id}")
+            _unschedule_runs(apsis, job_id)
 
-    # Use the new jobs.
-    apsis.jobs = Jobs(jobs1, job_db)
+        # Use the new jobs.
+        apsis.jobs = Jobs(jobs1, job_db)
 
-    for job_id in add_ids:
-        log.info(f"scheduling added job: {job_id}")
-        await reschedule_runs(apsis, job_id)
-    for job_id in sorted(chg_ids):
-        log.info(f"scheduling changed: {job_id}")
-        await reschedule_runs(apsis, job_id)
+        for job_id in add_ids:
+            log.info(f"scheduling added job: {job_id}")
+            await reschedule_runs(apsis, job_id)
+        for job_id in sorted(chg_ids):
+            log.info(f"scheduling changed: {job_id}")
+            await reschedule_runs(apsis, job_id)
 
     return rem_ids, add_ids, chg_ids
 
