@@ -526,6 +526,11 @@ async def reschedule_runs(apsis, job_id):
         
 
 async def reload_jobs(apsis):
+    """
+    :return:
+      Job IDs that have been removed, job IDs that have been added, and job IDs
+      that have changed.
+    """
     # FIXME: Refactor to avoid using private attributes and methods.
     jobs0       = apsis.jobs._Jobs__jobs_dir
     job_db      = apsis.jobs._Jobs__job_db
@@ -535,23 +540,25 @@ async def reload_jobs(apsis):
     jobs1 = load_jobs_dir(jobs0.path)
 
     # Diff them.
-    del_jobs, add_jobs, chg_jobs = diff_jobs_dirs(jobs0, jobs1)
+    rem_ids, add_ids, chg_ids = diff_jobs_dirs(jobs0, jobs1)
 
-    for job in del_jobs:
-        log.info(f"unscheduling removed job: {job.job_id}")
-        _unschedule_runs(apsis, job.job_id)
-    for job in chg_jobs:
-        log.info(f"unscheduling changed job: {job.job_id}")
-        _unschedule_runs(apsis, job.job_id)
+    for job_id in rem_ids:
+        log.info(f"unscheduling removed job: {job_id}")
+        _unschedule_runs(apsis, job_id)
+    for job_id in chg_ids:
+        log.info(f"unscheduling changed job: {job_id}")
+        _unschedule_runs(apsis, job_id)
 
     # Use the new jobs.
     apsis.jobs = Jobs(jobs1, job_db)
 
-    for job in add_jobs:
-        log.info(f"scheduling added job: {job.job_id}")
-        await reschedule_runs(apsis, job.job_id)
-    for job in sorted(chg_jobs, key=lambda j: j.job_id):
-        log.info(f"scheduling changed: {job.job_id}")
-        await reschedule_runs(apsis, job.job_id)
+    for job_id in add_ids:
+        log.info(f"scheduling added job: {job_id}")
+        await reschedule_runs(apsis, job_id)
+    for job_id in sorted(chg_ids):
+        log.info(f"scheduling changed: {job_id}")
+        await reschedule_runs(apsis, job_id)
+
+    return rem_ids, add_ids, chg_ids
 
 

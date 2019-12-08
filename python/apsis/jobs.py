@@ -361,8 +361,8 @@ def diff_jobs_dirs(jobs_dir0, jobs_dir1):
     Finds differences between job dirs.
 
     :return:
-      A set of jobs that have been removed, a set of jobs that have been added, and
-      a set of jobs that have changed.
+      Job IDs that have been removed, job IDs that have been added, and job IDs
+      that have changed.
     """
     jobs0 = { j.job_id: j for j in jobs_dir0.get_jobs(ad_hoc=False) }
     jobs1 = { j.job_id: j for j in jobs_dir1.get_jobs(ad_hoc=False) }
@@ -370,9 +370,9 @@ def diff_jobs_dirs(jobs_dir0, jobs_dir1):
     job_ids1 = frozenset(jobs1)
     ids = job_ids0 & job_ids1
     return (
-        { jobs0[i] for i in job_ids0 - job_ids1 },
-        { jobs1[i] for i in job_ids1 - job_ids0 },
-        { jobs1[i] for i in ids if jobs1[i] != jobs0[i] },
+        job_ids0 - job_ids1,
+        job_ids1 - job_ids0,
+        frozenset( i for i in ids if jobs1[i] != jobs0[i] ),
     )
 
 

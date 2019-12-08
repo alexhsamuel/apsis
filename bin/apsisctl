@@ -7,9 +7,11 @@ import ora
 from   pathlib import Path
 import sys
 
+import apsis.cmdline
 import apsis.config
 import apsis.lib.argparse
 import apsis.lib.logging
+from   apsis.lib import terminal
 from   apsis.service import DEFAULT_PORT
 import apsis.service.client
 import apsis.service.main
@@ -110,12 +112,28 @@ cmd.add_argument(
 # command: reload_jobs
 
 def cmd_reload_jobs(args):
-    get_client(args).reload_jobs()
+    result = get_client(args).reload_jobs()
+
+    if not args.quiet:
+        def section(name):
+            job_ids = result[name]
+            if len(job_ids) > 0:
+                print(terminal.UND + "Jobs " + name + terminal.RES)
+                for job_id in job_ids:
+                    print("  " + apsis.cmdline.JOB + job_id + terminal.RES)
+                print()
+            return len(job_ids)
+        
+        if section("removed") + section("added") + section("changed") == 0:
+            print("no changes")
 
 
 cmd = parser.add_command(
     "reload-jobs", cmd_reload_jobs,
     description="Reloads jobs from the jobs dir.")
+cmd.add_argument(
+    "--quiet", action="store_true", default=False,
+    help="don't print job changes")
 
 #-------------------------------------------------------------------------------
 # command: restart

@@ -196,7 +196,7 @@ class Client:
         
 
     def reload_jobs(self):
-        self.__post("/api/control/reload_jobs", data={})
+        return self.__post("/api/control/reload_jobs", data={})
 
 
     def shut_down(self, restart=False):
