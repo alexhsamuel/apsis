@@ -302,7 +302,7 @@ def load_jobs_dir(path):
     if len(errors) > 0:
         raise JobErrors(f"errors loading jobs in {jobs_path}", errors)
     else:
-        return JobsDir(path, jobs)
+        return JobsDir(jobs_path, jobs)
 
 
 #-------------------------------------------------------------------------------
