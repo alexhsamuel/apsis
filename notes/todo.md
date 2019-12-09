@@ -15,6 +15,7 @@ instance.  The run objects would become mucb more active.
 - apsis reload jobs web UI
 - job labels in runs view
 - make web UI reload runs on reconnect (at long last)
+- attach job to run when scheduling, rather than loading jobs later
 
 - configurable args columns in runs view (e.g. strat, date)
 
