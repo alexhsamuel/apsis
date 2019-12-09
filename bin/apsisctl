@@ -215,7 +215,8 @@ args = parser.parse_args()
 try:
     args.cmd(args)
 except apsis.service.client.APIError as err:
-    print(err, file=sys.stderr)
+    apsis.cmdline.print_lines(
+        apsis.cmdline.format_api_error(err), file=sys.stderr)
     raise SystemExit(1)
 except (KeyboardInterrupt, BrokenPipeError):
     pass

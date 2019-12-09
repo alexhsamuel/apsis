@@ -7,8 +7,7 @@ import random
 import sys
 import yaml
 
-from   apsis.cmdline import format_job, format_jobs, format_run, format_runs, \
-                            format_run_history
+import apsis.cmdline
 from   apsis.cmdline import parse_at_time, print_lines
 import apsis.jobs
 import apsis.lib.argparse
@@ -56,7 +55,7 @@ def cmd_adhoc(client, args):
         run = client.schedule_shell_program(time, command)
     else:
         run = client.schedule_program(time, args.command)
-    print_lines(format_run(run))
+    print_lines(apsis.cmdline.format_run(run))
 
 
 cmd = parser.add_command(
@@ -77,7 +76,7 @@ cmd.add_argument(
 def cmd_history(client, args):
     run_history = client.get_history(args.run_id)
     if args.format is None:
-        print_lines(format_run_history(run_history))
+        print_lines(apsis.cmdline.format_run_history(run_history))
     else:
         dump_format(run_history, args.format)
 
@@ -95,7 +94,7 @@ def cmd_job(client, args):
     job_id = args.job  # FIXME
     job = client.get_job(job_id)
     if args.format is None:
-        print_lines(format_job(job))
+        print_lines(apsis.cmdline.format_job(job))
     else:
         dump_format(job, args.format)
 
@@ -112,7 +111,7 @@ add_dump_format_option(cmd)
 
 def cmd_jobs(client, args):
     jobs = client.get_jobs()
-    print_lines(format_jobs(jobs))
+    print_lines(apsis.cmdline.format_jobs(jobs))
     print()
 
 
@@ -139,7 +138,7 @@ cmd.add_argument(
 def cmd_rerun(client, arg):
     run = client.rerun(arg.run_id)
     if args.format is None:
-        print_lines(format_run(run))
+        print_lines(apsis.cmdline.format_run(run))
     else:
         dump_format(run, args.format)
 
@@ -157,7 +156,7 @@ def cmd_run(client, args):
     for run_id in args.run_id:
         run = client.get_run(run_id)
         if args.format is None:
-            print_lines(format_run(run))
+            print_lines(apsis.cmdline.format_run(run))
         else:
             dump_format(run, args.format)
 
@@ -181,9 +180,9 @@ def cmd_runs(client, arg):
 
     if args.summary:
         for run in runs.values():
-            print_lines(format_run(run))
+            print_lines(apsis.cmdline.format_run(run))
     elif args.format is None:
-        print_lines(format_runs(runs, reruns=args.reruns))
+        print_lines(apsis.cmdline.format_runs(runs, reruns=args.reruns))
     else:
         dump_format(runs, args.format)
 
@@ -215,7 +214,7 @@ add_dump_format_option(grp)
 
 def cmd_schedule(client, args):
     run = client.schedule(args.job_id, dict(args.args), args.time)
-    print_lines(format_run(run))
+    print_lines(apsis.cmdline.format_run(run))
 
 
 def parse_arg(arg):
@@ -277,7 +276,7 @@ client = apsis.service.client.Client((args.host, args.port))
 try:
     args.cmd(client, args)
 except apsis.service.client.APIError as err:
-    print(err, file=sys.stderr)
+    print_lines(apsis.cmdline.format_api_error(err), file=sys.stderr)
     raise SystemExit(1)
 except (KeyboardInterrupt, BrokenPipeError):
     pass

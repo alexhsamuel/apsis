@@ -13,6 +13,7 @@ from   .lib.json import to_array
 from   .lib.py import tupleize
 from   .program import Program
 from   .schedule import Schedule
+from   apsis.lib.exc import SchemaError
 
 #-------------------------------------------------------------------------------
 
@@ -84,12 +85,6 @@ class Job:
 
 #-------------------------------------------------------------------------------
 
-class JobSpecificationError(Exception):
-
-    pass
-
-
-
 class JobErrors(Exception):
     """
     One or more exceptions.
@@ -102,7 +97,7 @@ class JobErrors(Exception):
 
     def format(self):
         for error in self.errors:
-            yield f"{error.path}: {error}"
+            yield f"{error.job_id}: {error}"
 
 
 
@@ -146,7 +141,7 @@ def jso_to_job(jso, job_id):
     try:
         program = jso.pop("program")
     except KeyError:
-        raise JobSpecificationError("missing program")
+        raise SchemaError("missing program")
     program = Program.from_jso(program)
 
     conds = to_array(jso.pop("condition", []))
@@ -169,7 +164,7 @@ def jso_to_job(jso, job_id):
     ]
 
     if len(jso) > 0:
-        raise JobSpecificationError("unknown keys: " + ", ".join(jso))
+        raise SchemaError("unknown keys: " + ", ".join(jso))
 
     return Job(
         job_id, params, schedules, program,
@@ -236,7 +231,7 @@ def check_job_file(path):
 
         try:
             job = jso_to_job(jso, job_id)
-        except JobSpecificationError as exc:
+        except SchemaError as exc:
             error(f"failed to parse job: {exc}")
             return None
 
@@ -296,8 +291,8 @@ def load_jobs_dir(path):
     for path, job_id in list_yaml_files(jobs_path):
         try:
             jobs[job_id] = load_yaml_file(path, job_id)
-        except JobSpecificationError as exc:
-            exc.path = path
+        except SchemaError as exc:
+            exc.job_id = job_id
             errors.append(exc)
     if len(errors) > 0:
         raise JobErrors(f"errors loading jobs in {jobs_path}", errors)

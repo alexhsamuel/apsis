@@ -8,7 +8,7 @@ from   pathlib import Path
 import sqlalchemy as sa
 import ujson
 
-from   .jobs import jso_to_job, job_to_jso, JobSpecificationError
+from   .jobs import jso_to_job, job_to_jso
 from   .lib import itr
 from   .runs import Instance, Run
 from   .program import Program, Output, OutputMetadata
@@ -120,7 +120,7 @@ class JobDB:
                 # FIXME: Filter ad hoc jobs in the query.
                 try:
                     job = jso_to_job(ujson.loads(job), job_id)
-                except JobSpecificationError as exc:
+                except Exception as exc:
                     logging.error(f"failed to load job from DB: {exc}")
                     continue
                 if ad_hoc is None or job.ad_hoc == ad_hoc:

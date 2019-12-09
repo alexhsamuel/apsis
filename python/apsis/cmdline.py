@@ -1,5 +1,6 @@
 import fixfmt.table
 from   ora import Time, Daytime, now, get_display_time_zone
+import sys
 
 import apsis.lib.itr
 from   apsis.lib.terminal import COLOR, WHT, RED, BLD, RES
@@ -76,9 +77,14 @@ RUNS_TABLE_CFG = fixfmt.table.update_cfg(TABLE_CFG, {
 
 #-------------------------------------------------------------------------------
 
-def print_lines(lines):
+def indent(string, indent):
+    ind = " " * indent
+    return "\n".join( ind + l for l in string.splitlines() )
+
+
+def print_lines(lines, *, file=sys.stdout):
     for line in lines:
-        print(line)
+        print(line, file=file)
 
 
 def prefix(prefix, lines):
@@ -263,6 +269,23 @@ def format_elapsed(secs):
 format_elapsed.width = 8
 
 
+def format_api_error(err):
+    yield (
+        RED + BLD + "Error: " + RES + BLD
+        + str(err) + RES
+        + f" [API status: {err.status}]"
+    )
+
+    try:
+        job_errors = err.jso["job_errors"]
+    except KeyError:
+        pass
+    else:
+        for job_id, msg in job_errors:
+            yield "- " + JOB + job_id + RES
+            yield indent(msg, 2)
+
+
 #-------------------------------------------------------------------------------
 
 def parse_at_time(string):
@@ -296,7 +319,7 @@ def parse_at_time(string):
 
 
 def format_time(time):
-    return "" if time is "" else format(Time(time), "%D %C@")
+    return "" if time == "" else format(Time(time), "%D %C@")
 
 format_time.width = 19
 

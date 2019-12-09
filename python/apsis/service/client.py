@@ -33,9 +33,10 @@ def get_address() -> Address:
 
 class APIError(RuntimeError):
 
-    def __init__(self, status, error):
-        super().__init__(f"{error} [API status {status}]")
+    def __init__(self, status, error, jso):
+        super().__init__(error)
         self.status = status
+        self.jso = jso
 
 
 
@@ -75,10 +76,12 @@ class Client:
             return resp.json()
         else:
             try:
-                error = " ".join( f"{k}={v!r}" for k, v in resp.json().items() )
+                jso = resp.json()
+                error = jso.get("error", "unknown error")
             except Exception:
+                jso = {}
                 error = "unknown error"
-            raise APIError(resp.status_code, error)
+            raise APIError(resp.status_code, error, jso)
 
 
     def __get(self, *path, **query):
