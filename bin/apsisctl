@@ -120,7 +120,7 @@ def cmd_reload_jobs(args):
             if len(job_ids) > 0:
                 print(terminal.UND + "Jobs " + name + terminal.RES)
                 for job_id in job_ids:
-                    print("  " + apsis.cmdline.JOB + job_id + terminal.RES)
+                    print("- " + apsis.cmdline.JOB + job_id + terminal.RES)
                 print()
             return len(job_ids)
         
