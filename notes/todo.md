@@ -12,6 +12,8 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- host groups
+
 - apsis reload jobs web UI
 - job labels in runs view
 - make web UI reload runs on reconnect (at long last)
@@ -52,6 +54,7 @@ instance.  The run objects would become mucb more active.
   - add endpoint to forefully shut down
   - automatically clean up abandoned processes after a certain time
   - occasionally poll childen explicitly, to catch silently died processes
+  - shut down agent cleanly, including canceling shutdown task
 
 - send debug log to file, from config
 
