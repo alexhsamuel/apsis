@@ -161,8 +161,8 @@ def main():
         "--no-stop", action="store_true", default=False,
         help="don't stop automatically after last process")
     parser.add_argument(
-        "--stop-time", metavar="SECS", default=3600,
-        help="wait SECS after last process before stopping [def: 3600]")
+        "--stop-time", metavar="SECS", default=300,
+        help="wait SECS after last process before stopping [def: 300]")
     args = parser.parse_args()
 
     state_dir = get_state_dir()
