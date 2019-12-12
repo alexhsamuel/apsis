@@ -12,14 +12,17 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- apsis reload jobs web UI
+- host groups
+
 - job labels in runs view
 - make web UI reload runs on reconnect (at long last)
 - attach job to run when scheduling, rather than loading jobs later
 
+- apsis reload jobs web UI (?)
+
 - configurable args columns in runs view (e.g. strat, date)
 
-- better actino UI
+- better action UI
   - proper button
   - confirmation dialog
   - no redirect
@@ -52,6 +55,7 @@ instance.  The run objects would become mucb more active.
   - add endpoint to forefully shut down
   - automatically clean up abandoned processes after a certain time
   - occasionally poll childen explicitly, to catch silently died processes
+  - shut down agent cleanly, including canceling shutdown task
 
 - send debug log to file, from config
 
