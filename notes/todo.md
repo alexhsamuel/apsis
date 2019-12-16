@@ -12,6 +12,7 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- env vars for running jobs
 - host groups
 
 - apsis reload jobs web UI
