@@ -15,14 +15,15 @@ instance.  The run objects would become mucb more active.
 - env vars for running jobs
 - host groups
 
-- apsis reload jobs web UI
 - job labels in runs view
 - make web UI reload runs on reconnect (at long last)
 - attach job to run when scheduling, rather than loading jobs later
 
+- apsis reload jobs web UI (?)
+
 - configurable args columns in runs view (e.g. strat, date)
 
-- better actino UI
+- better action UI
   - proper button
   - confirmation dialog
   - no redirect

@@ -348,7 +348,7 @@ class Jobs:
         job.job_id = self.__get_job_id()
 
         self.__job_db.insert(job)
-                
+
 
 
 def diff_jobs_dirs(jobs_dir0, jobs_dir1):
