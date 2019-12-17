@@ -14,29 +14,22 @@ instance.  The run objects would become mucb more active.
 
 - env vars for running jobs
 - host groups
-
 - job labels in runs view
+- rip out reruns, replace with actions
 - make web UI reload runs on reconnect (at long last)
 - attach job to run when scheduling, rather than loading jobs later
-
 - apsis reload jobs web UI (?)
-
 - configurable args columns in runs view (e.g. strat, date)
-
 - better action UI
   - proper button
   - confirmation dialog
   - no redirect
 
-- "now" indicator (horizontal stripe?) in runs view
 - get rid of runs collapser in runs view (too many runs!)
 
 - job label search
 
-- rip out reruns, replace with actions
-
 - schedule time jitter
-
 
 - shut down agent cleanly, including canceling shutdown task
 
@@ -59,6 +52,7 @@ instance.  The run objects would become mucb more active.
   - shut down agent cleanly, including canceling shutdown task
 
 - send debug log to file, from config
+- "now" indicator (horizontal stripe?) in runs view
 
 - handle more runs
   - retire old runs from memory
@@ -119,7 +113,6 @@ instance.  The run objects would become mucb more active.
 - change --host, --port to --bind
 - job YAML template
 - favicon
-- better rerun model
 - indicate a run/job as ad hoc
 - in runs list, break out args into columns if showing only one job, or if runs have mostly the same params
 - prevent the same instance from running more than once... HOW?
