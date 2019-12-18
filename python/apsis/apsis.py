@@ -172,7 +172,7 @@ class Apsis:
 
     async def __start(self, run):
         try:
-            running, coro = await run.program.start(run)
+            running, coro = await run.program.start(run.run_id)
 
         except ProgramError as exc:
             # Program failed to start.

@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import logging
+import os
 from   pathlib import Path
 import sanic
 import socket
@@ -64,6 +65,30 @@ def proc_to_jso(proc):
     }
 
 
+def build_env(inherit, vars, *, base=None):
+    """
+    :param inherit:
+      True to start with the base env; else start with empty.
+    :param vars:
+      Mapping of env vars.  A value of none indicates delete; a value of true
+      indicates inherit; all other values must be strings.
+    :param base:
+      Base env; none for current process env.
+    """
+    base = os.environ if base is None else base
+    env = dict(base) if inherit else {}
+    for name, val in vars.items():
+        if val is True:
+            val = base.get(name, None)
+        if val is None:
+            env.pop(name, None)
+        elif isinstance(val, str):
+            env[name] = val
+        else:
+            raise TypeError(f"value: {val!r}")
+    return env
+
+
 #-------------------------------------------------------------------------------
 
 API = sanic.Blueprint("v1")
@@ -119,8 +144,13 @@ async def processes_post(req):
     prog    = req.json["program"]
     argv    = prog["argv"]
     cwd     = Path(prog.get("cwd", "/")).absolute()
-    env     = prog.get("env", None)
+    env     = prog.get("env", {})
     stdin   = prog.get("stdin", None)
+
+    # Build the environment.
+    inherit = env.get("inherit", True)
+    vars    = env.get("vars", {})
+    env     = build_env(inherit, vars)
 
     # We can only run procs for our own user.  Confirm that the request's
     # username matches.

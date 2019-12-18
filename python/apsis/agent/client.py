@@ -296,7 +296,7 @@ class Agent:
 
 
     async def start_process(
-            self, argv, cwd="/", env=None, stdin=None, restart=False):
+            self, argv, cwd="/", env={}, stdin=None, restart=False):
         """
         Starts a process.
 

@@ -339,6 +339,14 @@ class AgentProgram(Program):
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
+        env = {
+            "inherit": True,
+            "vars": {
+                "APSIS_RUN_ID": run_id,
+                # FIXME: Other things?
+            },
+        }
+
         meta = {
             "apsis_hostname"  : socket.gethostname(),
             "apsis_username"  : get_username(),
@@ -346,7 +354,7 @@ class AgentProgram(Program):
 
         try:
             agent = self.__get_agent()
-            proc = await agent.start_process(argv, restart=True)
+            proc = await agent.start_process(argv, env=env, restart=True)
 
         except Exception as exc:
             log.error("failed to start process", exc_info=True)
