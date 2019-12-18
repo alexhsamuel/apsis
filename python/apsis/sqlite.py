@@ -594,7 +594,7 @@ def archive_runs(db, archive_db, time, *, delete=False):
             run_sel = sa.select([TBL_RUNS.c.run_id]).where(sel)
             for table in run_tables:
                 logging.info(f"deleting {table}")
-                tx.execute(table.delete().where(table.c.run_id == run_sel))
+                tx.execute(table.delete().where(table.c.run_id.in_(run_sel)))
             # Delete the runs themselves.
             logging.info("deleting runs")
             tx.execute(TBL_RUNS.delete().where(sel))

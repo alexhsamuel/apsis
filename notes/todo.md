@@ -12,10 +12,9 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- env vars for running jobs
-- fix archive
-- host groups
 - job labels in runs view
+
+- host groups
 - rip out reruns, replace with actions
 - make web UI reload runs on reconnect (at long last)
 - attach job to run when scheduling, rather than loading jobs later
@@ -44,6 +43,8 @@ instance.  The run objects would become mucb more active.
 
 - get rid of UIKit
   - something like [Tailwind](https://tailwindcss.com/)? [Tachyons](http://tachyons.io)?
+
+- better env vars in running programs
 
 - agent cleanup
   - add endpoint to kill a process
