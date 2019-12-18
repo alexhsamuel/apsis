@@ -13,6 +13,7 @@ instance.  The run objects would become mucb more active.
 # Current
 
 - env vars for running jobs
+- fix archive
 - host groups
 - job labels in runs view
 - rip out reruns, replace with actions
