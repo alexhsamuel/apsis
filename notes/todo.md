@@ -12,8 +12,6 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- job labels in runs view
-
 - host groups
 - rip out reruns, replace with actions
 - make web UI reload runs on reconnect (at long last)
