@@ -12,15 +12,12 @@ export default {
 
 <style lang="scss">
 span.job-label {
+  margin-left: 4px;
   border: 1px solid #ddd;
-  border-radius: 6px;
-  background: white;
-  color: #aaa;
-  padding: 2px 8px;
-
-  &+ span.job-label {
-    margin-left: 4px;
-  }
+  border-radius: 12px;
+  background: #ccc;
+  color: white;
+  padding: 1px 8px;
 }
 
 </style>
