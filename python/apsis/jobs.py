@@ -79,7 +79,7 @@ class Job:
             and other.reruns    == self.reruns
             and other.actions   == self.actions
             and other.meta      == self.meta
-        )            
+        )
 
 
 
