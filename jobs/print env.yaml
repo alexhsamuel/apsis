@@ -1,0 +1,4 @@
+program:
+  type: shell
+  command: env | sort
+
