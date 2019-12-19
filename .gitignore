@@ -2,7 +2,9 @@
 .pytest_cache
 Makefile.local
 apsis.db
+apsis~*.db
 apsis.log
+archive-*.db
 doc
 env.sh
 work/
