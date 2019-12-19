@@ -32,7 +32,13 @@ div
           :class="{ 'run-group-next': index > 0 }"
         )
           td.col-job
-            Job(v-if="run.run_id === group.id" :job-id="run.job_id")
+            div(v-if="run.run_id === group.id")
+              Job(:job-id="run.job_id")
+              JobLabel(
+                v-for="label in run.labels || []"
+                :label="label"
+                :key="label"
+              )
           td.col-args
             span(v-if="run.run_id === group.id")
               RunArgs(:args="run.args")
@@ -74,13 +80,14 @@ import { entries, filter, groupBy, map, sortBy } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
-import Job from './Job'
+import Job from '@/components/Job'
+import JobLabel from '@/components/JobLabel'
 import Pagination from './Pagination'
-import Run from './Run'
-import RunArgs from './RunArgs'
+import Run from '@/components/Run'
+import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import * as runsFilter from '@/runsFilter.js'
-import State from './State'
+import State from '@/components/State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
@@ -101,6 +108,7 @@ export default {
   components: {
     ActionButton,
     Job,
+    JobLabel,
     Pagination,
     Run,
     RunArgs,
@@ -187,6 +195,8 @@ export default {
       groups = map(groups, ([key, runs]) => {
         // Sort runs within each group.
         runs = sortBy(runs, sortTime)
+        if (runs)
+          console.log(runs[0])
 
         // Select the principal run for this group.
         // - new/scheduled: the earliest run
