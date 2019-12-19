@@ -211,7 +211,7 @@ class Apsis:
 
     def __prepare_run(self, run):
         """
-        Prepares a run for schedule or restore.
+        Prepares a run for schedule or restore, using its job.
 
         The run must already be in the run DB.
 
@@ -238,7 +238,8 @@ class Apsis:
                 return False
 
         # Attach job labels to the run.
-        # run.labels.update(job.labels)
+        if run.meta.get("labels") is None:
+            run.meta["labels"] = job.meta.get("labels", [])
 
         return True
 

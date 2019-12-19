@@ -108,6 +108,7 @@ def _run_summary_to_jso(app, run):
         "rerun"         : run.rerun,
         "expected"      : run.expected,
         "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
+        "labels"        : run.meta.get("labels", []),
     }
     return jso
 
