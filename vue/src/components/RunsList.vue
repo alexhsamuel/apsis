@@ -195,8 +195,6 @@ export default {
       groups = map(groups, ([key, runs]) => {
         // Sort runs within each group.
         runs = sortBy(runs, sortTime)
-        if (runs)
-          console.log(runs[0])
 
         // Select the principal run for this group.
         // - new/scheduled: the earliest run
