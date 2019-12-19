@@ -5,7 +5,6 @@ import sys
 import traceback
 
 from   .actions import Action
-from   .exc import ConditionError
 from   .history import RunHistory
 
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
@@ -83,16 +82,8 @@ class Apsis:
         log.info("restoring")
 
         async def reschedule(run, time):
-            # Bind job attributes to the run.
-            if run.program is None:
-                run.program = self.__get_program(run)
-            if run.conds is None:
-                try:
-                    run.conds = list(self.__get_conds(run))
-                except Exception:
-                    self._run_exc(run, message="invalid condition")
-                    return
-
+            if not self.__prepare_run(run):
+                return
             if time is None:
                 self.run_history.info(run, f"restored: waiting")
                 await self.__waiter.start(run)
@@ -141,18 +132,6 @@ class Apsis:
         self.__waiter_task = asyncio.ensure_future(self.__waiter.loop())
 
 
-    def __get_conds(self, run):
-        """
-        Constructs conditions for a run, with arguments bound.
-        """
-        job = self.jobs.get_job(run.inst.job_id)
-        for cond in job.conds:
-            try:
-                yield cond.bind(run, self.jobs)
-            except Exception:
-                raise ConditionError(str(cond))
-
-
     async def __wait(self, run):
         """
         Waits `run`, if it has pending conditions, otherwise starts it.
@@ -160,14 +139,6 @@ class Apsis:
         log.info(f"waiting: {run}")
         self._transition(run, run.STATE.waiting)
         await self.__waiter.start(run)
-
-
-    def __get_program(self, run):
-        """
-        Constructs the program for a run, with arguments bound.
-        """
-        job = self.jobs.get_job(run.inst.job_id)
-        return job.program.bind(get_bind_args(run))
 
 
     async def __start(self, run):
@@ -236,6 +207,40 @@ class Apsis:
 
         self.__running_tasks[run.run_id] = future
         future.add_done_callback(done)
+
+
+    def __prepare_run(self, run):
+        """
+        Prepares a run for schedule or restore.
+
+        The run must already be in the run DB.
+
+        On failure, transitions the run to error and returns false.
+        """
+        try:
+            job = self._validate_run(run)
+        except Exception as exc:
+            self._run_exc(run, message=str(exc))
+            return False
+
+        if run.program is None:
+            try:
+                run.program = job.program.bind(get_bind_args(run))
+            except Exception as exc:
+                self._run_exc(run, message=f"invalid program: {exc}")
+                return False
+
+        if run.conds is None:
+            try:
+                run.conds = [ c.bind(run, self.jobs) for c in job.conds ]
+            except Exception as exc:
+                self._run_exc(run, message=f"invalid condition: {exc}")
+                return False
+
+        # Attach job labels to the run.
+        # run.labels.update(job.labels)
+
+        return True
 
 
     def __rerun(self, run):
@@ -374,6 +379,8 @@ class Apsis:
         if extra:
             raise ExtraArgumentError(run, *extra)
 
+        return job
+
 
     def _propagate_args(self, old_args, inst):
         job = self.jobs.get_job(inst.job_id)
@@ -393,28 +400,13 @@ class Apsis:
           The schedule time at which to run the run.  If `None`, the run
           is run now, instead of scheduled.
         :return:
-          The scheduled run.
+          The run, either scheduled or error.
         """
-        self.runs.add(run)
-
         time = None if time is None else Time(time)
-        times = {} if time is None else {"schedule": time}
 
-        try:
-            self._validate_run(run)
-        except RuntimeError:
-            self._run_exc(run, message="invalid run")
+        self.runs.add(run)
+        if not self.__prepare_run(run):
             return run
-
-        # Bind job attributes to the run.
-        if run.program is None:
-            run.program = self.__get_program(run)
-        if run.conds is None:
-            try:
-                run.conds = list(self.__get_conds(run))
-            except Exception:
-                self._run_exc(run, message="invalid condition")
-                return run
 
         if time is None:
             self.run_history.info(run, "scheduling for immediate run")
@@ -422,7 +414,7 @@ class Apsis:
             return run
         else:
             self.run_history.info(run, f"scheduling for {time}")
-            self._transition(run, run.STATE.scheduled, times=times)
+            self._transition(run, run.STATE.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
             return run
 
