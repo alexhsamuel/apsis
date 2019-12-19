@@ -474,6 +474,7 @@ class SqliteDB:
         self.run_db         = RunDB(engine)
         self.run_history_db = RunHistoryDB(engine)
         self.output_db      = OutputDB(engine)
+        self._engine        = engine
 
 
     @classmethod
@@ -549,13 +550,43 @@ class SqliteDB:
 
 #-------------------------------------------------------------------------------
 
+def check(db):
+    """
+    Checks `db` for consistency.
+    """
+    ok = True
+
+    def error(msg):
+        nonlocal ok
+        logging.error(msg)
+        ok = False
+
+    engine = db._engine
+    run_tables = (RunHistoryDB.TABLE, OutputDB.TABLE)
+
+    # Check run tables for valid run ID (referential integrity).
+    for tbl in run_tables:
+        sel = (
+            sa.select([tbl.c.run_id])
+            .distinct(tbl.c.run_id)
+            .select_from(tbl.outerjoin(
+                TBL_RUNS,
+                tbl.c.run_id == TBL_RUNS.c.run_id
+            )).where(TBL_RUNS.c.run_id == None)
+        )
+        log.debug(f"query:\n{sel}")
+        res = engine.execute(sel)
+        run_ids = [ r for (r, ) in res ]
+        if len(run_ids) > 0:
+            error(f"unknown run IDs in {tbl}: {itr.join_truncated(8, run_ids)}")
+
+
 def archive_runs(db, archive_db, time, *, delete=False):
     """
     Moves runs from `db` to `archive_db` that are older than `time`.
     """
-    # FIXME
-    in_eng = db.run_db._RunDB__engine
-    arc_eng = archive_db.run_db._RunDB__engine
+    in_eng = db._engine
+    arc_eng = archive_db._engine
 
     # Tables other than "runs" that need to be archived.
     run_tables = (RunHistoryDB.TABLE, OutputDB.TABLE)

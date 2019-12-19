@@ -15,7 +15,8 @@ from   apsis.lib import terminal
 from   apsis.service import DEFAULT_PORT
 import apsis.service.client
 import apsis.service.main
-from   apsis.sqlite import SqliteDB, archive_runs
+import apsis.sqlite
+from   apsis.sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
 
@@ -38,16 +39,16 @@ def get_client(args):
 #-------------------------------------------------------------------------------
 # command: archive
 
-def cmd_archive(args):
+def cmd_archive_runs(args):
     db = SqliteDB.open(args.db)
     archive_db = SqliteDB.create(args.archive_db)
     time = ora.Time(args.time)
 
-    archive_runs(db, archive_db, time, delete=args.delete)
-    
+    apsis.sqlite.archive_runs(db, archive_db, time, delete=args.delete)
+
 
 cmd = parser.add_command(
-    "archive", cmd_archive,
+    "archive-runs", cmd_archive_runs,
     description="Moves old runs to an archive DB.")
 cmd.add_argument(
     "db", metavar="DBPATH",
@@ -61,6 +62,22 @@ cmd.add_argument(
 cmd.add_argument(
     "--delete", action="store_true", default=False,
     help="delete archived runs from DBPATH")
+
+#-------------------------------------------------------------------------------
+# command: check-db
+
+def cmd_check_db(args):
+    db = SqliteDB.open(args.db)
+
+    apsis.sqlite.check(db)
+
+
+cmd = parser.add_command(
+    "check-db", cmd_check_db,
+    description="Checks DB for consistency.")
+cmd.add_argument(
+    "db", metavar="DBPATH",
+    help="path to Apsis database")
 
 #-------------------------------------------------------------------------------
 # command: check-job
@@ -128,7 +145,6 @@ def cmd_reload_jobs(args):
             print("no changes")
         elif result["dry_run"]:
             print(terminal.MAG + "Dry run; no changes made." + terminal.RES)
-            
 
 
 cmd = parser.add_command(
@@ -205,7 +221,7 @@ def cmd_shut_down(args):
 
 
 cmd = parser.add_command(
-    "shut_down", cmd_shut_down,
+    "shut-down", cmd_shut_down,
     description="Shuts down the Apsis service.")
 
 #-------------------------------------------------------------------------------
