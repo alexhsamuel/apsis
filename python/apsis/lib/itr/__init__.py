@@ -148,7 +148,7 @@ def join_truncated(max, items, sep=" ", ellipsis="…"):
     items = list(items)
     result = sep.join(items[: max])
     if len(items) > max:
-        result += ellipsis
+        result += ellipsis + f" ({len(items)} items)"
     return result
 
 
