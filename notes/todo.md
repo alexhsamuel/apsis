@@ -13,17 +13,23 @@ instance.  The run objects would become mucb more active.
 # Current
 
 - host groups
-- rip out reruns, replace with actions
-- make web UI reload runs on reconnect (at long last)
-- attach job to run when scheduling, rather than loading jobs later
-- apsis reload jobs web UI (?)
-- configurable args columns in runs view (e.g. strat, date)
+
 - better action UI
   - proper button
   - confirmation dialog
   - no redirect
 
+- label for ad-hoc jobs
+
+- rip out reruns, replace with actions
+
+- make web UI reload runs on reconnect (at long last)
+
+- attach job to run when scheduling, rather than loading jobs later
+
 - get rid of runs collapser in runs view (too many runs!)
+
+- configurable args columns in runs view (e.g. strat, date)
 
 - job label search
 
@@ -42,10 +48,9 @@ instance.  The run objects would become mucb more active.
 - get rid of UIKit
   - something like [Tailwind](https://tailwindcss.com/)? [Tachyons](http://tachyons.io)?
 
-- better env vars in running programs
+- better env vars in running programs, ala `APSIS_RUN_ID`.
 
 - agent cleanup
-  - add endpoint to kill a process
   - add endpoint to forefully shut down
   - automatically clean up abandoned processes after a certain time
   - occasionally poll childen explicitly, to catch silently died processes
@@ -64,18 +69,21 @@ instance.  The run objects would become mucb more active.
 - check out: FastAPI, uvicorn, Starlett
 
 - click on args in run list to add an arg query term
-- not (!) in run query
+
 - clean up command line UI
   - implement `apsis runs --times`
   - nicer run list
   - nice job display
+
 - convert `run.times` to log, with schema (timestamp, message, state)
   - retire run/transition message
   - retire times in run?  or hide from UI
-- `apsisctl` script 
-  - check job *dir*
+
+- `apsisctl check-job` for a directory
+
 - configuration
   - provide a way to add functions to jinja2 eval namespace
+
 - refactor runs websocket into event stream
   - contains:
     - run updates
@@ -84,34 +92,46 @@ instance.  The run objects would become mucb more active.
     - other things?
   - watch runs live in CLUI
   - connection indicator in web UI
+
 - watch jobs for changes
-- when a job has changed, cancel and reschedule all future runs?
+
 - gzip output
   - in agent
+
 - release
   - update web UI
   - conda recipe
   - intro docs in README
   - job docs
+
 - sudo support in programs
+
 - normalize environment for another user, locally and by ssh
+
 - use token to authenticate with agent
+
 - SSL for Apsis
+
 - control page
   - reload jobs
   - clear live logs when reconnecting
   - auto-scroll live logs to bottom
   - reconnect live log when disconnected
   - show toast when live log disconnected
-- kill button for running run
+
 - factor out Vue API client code into module
   - error handling
+
 - integrate [ansi-to-html](https://www.npmjs.com/package/ansi-to-html) for run output
-- time range in runs search: design it better
+
 - a good set of demo jobs
+
 - in collapsed run group, show schedule time of original job
+
 - change --host, --port to --bind
+
 - job YAML template
+
 - favicon
 - indicate a run/job as ad hoc
 - in runs list, break out args into columns if showing only one job, or if runs have mostly the same params
