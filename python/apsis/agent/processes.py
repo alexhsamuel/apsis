@@ -2,10 +2,10 @@ import _posixsubprocess  # Yes, we use an internal API here.
 import asyncio
 import builtins
 from   contextlib import contextmanager
+import datetime
 import errno
 import itertools
 import logging
-import ora
 import os
 from   pathlib import Path
 import pwd
@@ -28,6 +28,15 @@ class NoSuchProcessError(LookupError):
 
 
 #-------------------------------------------------------------------------------
+
+# We don't use ora here, to allow the agent to run as many places as possible.
+# Possibly, relax this.
+def now():
+    """
+    Returns the current UTC time in ISO format.
+    """
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
 
 def start(argv, cwd, env, stdin_fd, out_fd):
     """
@@ -289,7 +298,7 @@ class Processes:
             euid = pwd.getpwuid(os.geteuid())
             logging.info(f"start: uid={uid.pw_uid}/{uid.pw_name} euid={euid.pw_uid}/{euid.pw_name}")
 
-            proc.start_time = ora.now()
+            proc.start_time = now()
 
             with proc_dir.get_stdin_fd(stdin) as stdin_fd, \
                  proc_dir.get_out_fd() as out_fd:
@@ -348,7 +357,7 @@ class Processes:
             log.error(f"reaped child in state {proc.state}")
 
         proc.state = "done"
-        proc.end_time = ora.now()
+        proc.end_time = now()
         proc.status = status
         proc.rusage = rusage
         return True
