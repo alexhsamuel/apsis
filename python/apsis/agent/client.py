@@ -88,7 +88,6 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
         command = " ".join(argv)
         argv = [
             "/usr/bin/ssh",
-            "-v",
             *itertools.chain.from_iterable(
                 ["-o", f"{k}={v}"]
                 for k, v in SSH_OPTIONS.items()
