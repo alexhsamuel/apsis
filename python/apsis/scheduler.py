@@ -45,15 +45,15 @@ class Scheduler:
 
     HORIZON = 86400
 
-    def __init__(self, cfg, jobs, schedule, stop):
+    def __init__(self, cfg, get_jobs, schedule, stop):
         """
-        :param jobs:
-          The jobs repo.
+        :param get_jobs:
+          Function that returns iterable of jobs to schedule.  Called each loop.
         :param schedule:
           Function of `time, run` that schedules a run.
         """
         self.__cfg = cfg
-        self.__jobs = jobs
+        self.__get_jobs = get_jobs
         self.__stop = stop
         self.__schedule = schedule
 
@@ -81,7 +81,7 @@ class Scheduler:
             return
 
         log.debug(f"scheduling runs until {stop}")
-        for job in self.__jobs.get_jobs():
+        for job in self.__get_jobs():
             for time, run in get_runs_to_schedule(job, self.__stop, stop):
                 await self.__schedule(time, run)
 

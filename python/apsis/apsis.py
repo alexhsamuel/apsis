@@ -72,7 +72,8 @@ class Apsis:
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
         log.info(f"scheduling runs from {stop_time}")
-        self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
+        self.scheduler = Scheduler(
+            cfg, self.jobs.get_jobs, self.schedule, stop_time)
 
 
     async def restore(self):
