@@ -172,13 +172,13 @@ cmd = parser.add_command(
 # command: serve
 
 def cmd_serve(args):
-    config = apsis.config.load(args.config)
+    cfg = apsis.config.load(args.config)
     for ovr in args.override:
         name, val = ovr.split("=", 1)
-        config[name] = val
+        cfg[name] = val
 
     restart = apsis.service.main.serve(
-        config, host=args.host, port=args.port, debug=args.debug)
+        cfg, host=args.host, port=args.port, debug=args.debug)
 
     if restart:
         # Start all over.
