@@ -7,6 +7,7 @@ import traceback
 from   .actions import Action
 from   .history import RunHistory
 
+from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
@@ -44,6 +45,7 @@ class Apsis:
     def __init__(self, cfg, jobs, db):
         log.debug("creating Apsis instance")
         self.cfg = cfg
+        config_host_groups(cfg)
         self.__db = db
 
         self.run_history = RunHistory(self.__db.run_history_db)
@@ -144,7 +146,7 @@ class Apsis:
 
     async def __start(self, run):
         try:
-            running, coro = await run.program.start(run.run_id)
+            running, coro = await run.program.start(run.run_id, self.cfg)
 
         except ProgramError as exc:
             # Program failed to start.

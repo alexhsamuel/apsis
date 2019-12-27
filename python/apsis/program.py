@@ -8,6 +8,7 @@ import socket
 import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
+from   .host_group import expand_host
 from   .lib.json import TypedJso
 from   .lib.py import or_none
 from   .lib.sys import get_username
@@ -113,7 +114,7 @@ class Program(TypedJso):
 
     # FIXME: Find a better way to get run_id into logging without passing it in.
 
-    async def start(self, run_id):
+    async def start(self, run_id, cfg):
         """
         Starts the run.
 
@@ -121,6 +122,8 @@ class Program(TypedJso):
 
         :param run_id:
           The run ID; used for logging only.
+        :param cfg:
+          The global config.
         :raise ProgramError:
           The program failed to start.
         :return:
@@ -194,7 +197,7 @@ class ProcessProgram(Program):
         return cls(jso["argv"])
 
 
-    async def start(self, run_id):
+    async def start(self, run_id, cfg):
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
@@ -335,7 +338,13 @@ class AgentProgram(Program):
         return _get_agent(self.__host, self.__user)
 
 
-    async def start(self, run_id):
+    async def start(self, run_id, cfg):
+        # Expand the host name, if necessary.
+        new_host = expand_host(self.__host, cfg)
+        if new_host != self.__host:
+            log.debug(f"using host: {self.__host} → {new_host}")
+            self.__host = new_host
+
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
