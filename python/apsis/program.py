@@ -8,7 +8,6 @@ import socket
 import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
-from   .host_group import HostGroup
 from   .lib.json import TypedJso
 from   .lib.py import or_none
 from   .lib.sys import get_username
@@ -298,14 +297,8 @@ def _get_agent(host, user):
 class AgentProgram(Program):
 
     def __init__(self, argv, *, host=None, user=None):
-        """
-        :param host:
-          None to run in process, or a hostname, or a `HostGroup`.
-        """
-        assert host is None or isinstance(host, (str, HostGroup))
-
         self.__argv = tuple( str(a) for a in argv )
-        self.__host = host
+        self.__host = or_none(str)(host)
         self.__user = or_none(str)(user)
 
 
@@ -313,41 +306,18 @@ class AgentProgram(Program):
         return join_args(self.__argv)
 
 
-    @staticmethod
-    def _jso_to_host(jso):
-        return (
-            None if jso is None
-            else jso if isinstance(jso, str)
-            else HostGroup.from_jso(jso)
-        )
-
-
-    def _bind_host(self, args):
-        host = self.__host
-        return (
-            None if host is None
-            else template_expand(host, args) if isinstance(host, str)
-            else host.bind(args)
-        )
-
-
     def bind(self, args):
         argv = tuple( template_expand(a, args) for a in self.__argv )
-        host = self._bind_host(args)
+        host = or_none(template_expand)(self.__host, args)
         user = or_none(template_expand)(self.__user, args)
         return type(self)(argv, host=host, user=user)
 
 
     def to_jso(self):
-        host = (
-            None if self.__host is None
-            else self.__host if isinstance(self.__host, str)
-            else self.__host.to_jso()
-        )
         return {
             **super().to_jso(),
             "argv"      : list(self.__argv),
-            "host"      : host,
+            "host"      : self.__host,
             "user"      : self.__user,
         }
 
@@ -356,7 +326,7 @@ class AgentProgram(Program):
     def from_jso(cls, jso):
         return cls(
             jso.pop("argv"), 
-            host=cls._jso_to_host(jso.pop("host", None)),
+            host=jso.pop("host", None),
             user=jso.pop("user", None),
         )
 
@@ -366,11 +336,6 @@ class AgentProgram(Program):
 
 
     async def start(self, run_id):
-        if not (self.__host is None or isinstance(self.__host, str)):
-            # Commit to a host.
-            self.__host = self.__host.choose()
-            log.info(f"host group choice: {self.__host}")
-
         argv = self.__argv
         log.info(f"starting program: {join_args(argv)}")
 
@@ -485,7 +450,7 @@ class AgentShellProgram(AgentProgram):
 
     def bind(self, args):
         command = template_expand(self.__command, args)
-        host = self._bind_host(args)
+        host = or_none(template_expand)(self._AgentProgram__host, args)
         user = or_none(template_expand)(self._AgentProgram__user, args)
         return type(self)(command, host=host, user=user)
 
@@ -505,7 +470,7 @@ class AgentShellProgram(AgentProgram):
     def from_jso(cls, jso):
         return cls(
             jso.pop("command"),
-            host=cls._jso_to_host(jso.pop("host", None)),
+            host=jso.pop("host", None),
             user=jso.pop("user", None),
         )
 
