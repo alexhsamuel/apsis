@@ -3,6 +3,13 @@ from   apsis.lib import itr
 
 #-------------------------------------------------------------------------------
 
+def test_single_from_jso():
+    g = hg.HostGroup.from_jso("foobar")
+    assert isinstance(g, hg.SingleHost)
+    assert g.host == "foobar"
+    assert g.choose() == "foobar"
+
+
 def test_random_from_jso():
     g = hg.HostGroup.from_jso({
         "type": "apsis.host_group.RandomHostGroup",

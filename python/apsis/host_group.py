@@ -18,6 +18,16 @@ class HostGroup(TypedJso):
         assert all( isinstance(h, str) for h in self.__hosts )
 
 
+    @classmethod
+    def from_jso(cls, jso):
+        # Accept a single host or a list of hosts.
+        return (
+            SingleHost(jso) if isinstance(jso, str)
+            else RandomHostGroup(jso) if isinstance(jso, list)
+            else TypedJso.from_jso.__func__(cls, jso)
+        )
+
+
     @property
     def hosts(self):
         return self.__hosts
@@ -26,6 +36,35 @@ class HostGroup(TypedJso):
     def bind(self, args):
         hosts = tuple( template_expand(a, args) for a in self.__hosts )
         return type(self)(hosts)
+
+
+
+class SingleHost(HostGroup):
+    """
+    Single fixed host.
+    """
+
+    def __init__(self, host):
+        super().__init__([host])
+
+
+    @property
+    def host(self):
+        return self.hosts[0]
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        # Special case: just use the host.
+        return cls(jso.pop("host"))
+
+
+    def to_jso(self):
+        return self.host
+
+
+    def choose(self):
+        return self.host
 
 
 
@@ -82,6 +121,26 @@ class RandomHostGroup(HostGroup):
 
 
 # Aliases.
+HostGroup.TYPE_NAMES.set(SingleHost, "single")
 HostGroup.TYPE_NAMES.set(RoundRobinHostGroup, "round-robin")
 HostGroup.TYPE_NAMES.set(RandomHostGroup, "random")
+
+#-------------------------------------------------------------------------------
+
+def config_host_groups(cfg):
+    cfg["host_groups"] = {
+        n: HostGroup.from_jso(g)
+        for n, g in cfg.get("host_groups", {}).items()
+    }
+
+
+def expand_host(host, cfg):
+    host_groups = cfg["host_groups"]
+    try:
+        host_group = host_groups[host]
+    except KeyError:
+        return host
+    else:
+        return host_group.choose()
+
 
