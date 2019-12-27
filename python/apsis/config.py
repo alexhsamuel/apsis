@@ -46,4 +46,3 @@ def load(path):
         return check(cfg, path.parent.absolute())
 
 
-
