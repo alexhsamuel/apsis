@@ -1,4 +1,5 @@
 from   contextlib import suppress
+import logging
 import os
 from   pathlib import Path
 import random
@@ -14,6 +15,8 @@ from   .lib.py import tupleize
 from   .program import Program
 from   .schedule import Schedule
 from   apsis.lib.exc import SchemaError
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -289,6 +292,7 @@ def load_jobs_dir(path):
     jobs = {}
     errors = []
     for path, job_id in list_yaml_files(jobs_path):
+        log.debug(f"loading: {path}")
         try:
             jobs[job_id] = load_yaml_file(path, job_id)
         except SchemaError as exc:
