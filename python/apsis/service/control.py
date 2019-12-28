@@ -14,6 +14,12 @@ log = logging.getLogger(__name__)
 
 API = sanic.Blueprint("control")
 
+@API.route("/debug")
+async def on_debug(request):
+    breakpoint()
+    return response_json({})
+
+
 @API.route("/reload_jobs", methods={"POST"})
 async def on_reload_jobs(request):
     dry_run, = request.args.pop("dry_run", False)
@@ -55,10 +61,9 @@ async def on_shut_down(request):
     return response_json({})
 
 
-@API.route("/debug")
-async def on_debug(request):
-    breakpoint()
-    return response_json({})
+@API.route("/version")
+async def on_version(request):
+    return response_json({"version": apsis.__version__})
 
 
 # ws /control/log
