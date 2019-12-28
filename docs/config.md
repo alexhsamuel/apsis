@@ -18,6 +18,3 @@ schedule_max_age: 86400  # 1 day
 database: /path/to/apsis.db
 ```
 
-
-
-
