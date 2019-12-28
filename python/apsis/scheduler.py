@@ -74,7 +74,6 @@ class Scheduler:
     async def schedule(self, stop):
         """
         Advances scheduler time to `stop` by scheduling runs.
-
         """
         if stop <= self.__stop:
             # Nothing to do.
