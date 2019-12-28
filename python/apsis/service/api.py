@@ -57,17 +57,9 @@ def _job_to_jso(app, job):
     }
 
 
-# FIXME: Attach to the apsis object?
-_job_jso_cache = {}
-
-def job_to_jso(app, job):
-    # Cache jobs' JSO.  Jobs don't change for the lifetime of a process.
-    try:
-        return _job_jso_cache[job.job_id]
-    except KeyError:
-        pass
-    _job_jso_cache[job.job_id] = jso = _job_to_jso(app, job)
-    return jso
+# FIXME: Clean up, or put back caching.
+# No caching; jobs may change.
+job_to_jso = _job_to_jso
 
 
 def _run_summary_to_jso(app, run):
