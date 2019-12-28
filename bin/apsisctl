@@ -225,6 +225,20 @@ cmd = parser.add_command(
     description="Shuts down the Apsis service.")
 
 #-------------------------------------------------------------------------------
+# command: version
+
+def cmd_version(args):
+    version = get_client(args).version()["version"]
+    print(f"server address: {addr.host}:{addr.port}")
+    print(f"server version: {version}")
+    print(f"client version: {apsis.__version__}")
+
+
+cmd = parser.add_command(
+    "version", cmd_version,
+    description="Prints the version information.")
+
+#-------------------------------------------------------------------------------
 
 args = parser.parse_args()
 

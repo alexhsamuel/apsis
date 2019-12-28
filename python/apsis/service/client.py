@@ -207,4 +207,11 @@ class Client:
         self.__post("/api/control/shut_down", data={}, **query)
 
 
+    def version(self):
+        """
+        Returns a version info structure.
+        """
+        return self.__get("/api/control/version")
+
+
 
