@@ -74,8 +74,8 @@ class Apsis:
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
         log.info(f"scheduling runs from {stop_time}")
-        self.scheduler = Scheduler(
-            cfg, self.jobs.get_jobs, self.schedule, stop_time)
+
+        self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
 
     async def restore(self):
@@ -548,8 +548,9 @@ async def reload_jobs(apsis, *, dry_run=False):
             log.info(f"unscheduling changed job: {job_id}")
             _unschedule_runs(apsis, job_id)
 
-        # Use the new jobs.
+        # Use the new jobs, including for scheduling.
         apsis.jobs = Jobs(jobs1, job_db)
+        apsis.scheduler.set_jobs(apsis.jobs)
 
         for job_id in add_ids:
             log.info(f"scheduling added job: {job_id}")
