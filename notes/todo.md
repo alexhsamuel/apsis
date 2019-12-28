@@ -14,6 +14,8 @@ instance.  The run objects would become mucb more active.
 
 - host groups
 
+- add date to apsis log
+
 - bumpversion
 - add version to UI
 
