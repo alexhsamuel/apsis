@@ -14,10 +14,15 @@ instance.  The run objects would become mucb more active.
 
 - host groups
 
+- bumpversion
+- add version to UI
+
 - better action UI
   - proper button
   - confirmation dialog
   - no redirect
+
+- migrate to sanic 1.0 (or aiohttp maybe)
 
 - label for ad-hoc jobs
 
