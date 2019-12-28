@@ -14,21 +14,24 @@ instance.  The run objects would become mucb more active.
 
 - host groups
 
-- add date to apsis log
+- bug: don't fuzzy-match job IDs in API when called from web UI
 
-- bumpversion
-- add version to UI
+- favicon: animated!
 
 - better action UI
   - proper button
   - confirmation dialog
   - no redirect
 
+- add date to apsis log
+
+- add version to web UI
+
+- rip out reruns, replace with actions
+
 - migrate to sanic 1.0 (or aiohttp maybe)
 
 - label for ad-hoc jobs
-
-- rip out reruns, replace with actions
 
 - make web UI reload runs on reconnect (at long last)
 
@@ -139,7 +142,6 @@ instance.  The run objects would become mucb more active.
 
 - job YAML template
 
-- favicon
 - indicate a run/job as ad hoc
 - in runs list, break out args into columns if showing only one job, or if runs have mostly the same params
 - prevent the same instance from running more than once... HOW?
