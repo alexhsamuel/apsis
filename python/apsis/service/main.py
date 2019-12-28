@@ -8,13 +8,14 @@ import signal
 import ujson as json
 import websockets
 
+from   apsis import __version__
+import apsis.lib.logging
 from   . import api, control
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import load_jobs_dir, JobErrors
 from   ..lib.asyn import cancel_task
 from   ..sqlite import SqliteDB
-import apsis.lib.logging
 
 log = logging.getLogger(__name__)
 
@@ -105,6 +106,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     # Install the websocket logging handler.
     root_log = logging.getLogger()
     root_log.handlers.append(WS_HANDLER)
+    log.info(f"starting Apsis {__version__} service")
 
     db_path = cfg["database"]
     log.info(f"opening state file {db_path}")
