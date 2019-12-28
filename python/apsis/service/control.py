@@ -55,5 +55,11 @@ async def on_shut_down(request):
     return response_json({})
 
 
+@API.route("/debug")
+async def on_debug(request):
+    breakpoint()
+    return response_json({})
+
+
 # ws /control/log
 
