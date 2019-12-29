@@ -126,8 +126,7 @@ class Client:
         return self.__put("/api/v1/runs", run_id, "signal", str(signal))
 
 
-    def get_runs(self, *, job_id=None, state=None, reruns=False,
-                 since=None, until=None):
+    def get_runs(self, *, job_id=None, state=None, reruns=False, since=None):
         return self.__get(
             "/api/v1/runs",
             job_id  =job_id,

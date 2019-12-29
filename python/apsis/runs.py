@@ -348,7 +348,7 @@ class Runs:
 
 
     def query(self, *, run_ids=None, job_id=None, state=None, rerun=None, 
-              since=None, until=None, reruns=True, args=None, with_args=None):
+              since=None, reruns=True, args=None, with_args=None):
         """
         :param state:
           Limits results to runs in the specified state(s).
@@ -376,8 +376,6 @@ class Runs:
             runs = ( r for r in runs if r.rerun == rerun )
         if since is not None:
             runs = ( r for r in runs if r.timestamp >= since )
-        if until is not None:
-            runs = ( r for r in runs if r.timestamp < until )
         if args is not None:
             runs = ( r for r in runs if r.inst.args == args )
         if with_args is not None:

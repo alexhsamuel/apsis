@@ -283,19 +283,17 @@ class RunDB:
         return run
 
 
-    def query(self, *, job_id=None, since=None, until=None, min_timestamp=None):
+    def query(self, *, job_id=None, since=None, min_timestamp=None):
         """
         :param min_timestamp:
           If not none, limits to runs with timestamp not less than this.
         """
-        log.debug(f"query job_id={job_id} since={since} until={until}")
+        log.debug(f"query job_id={job_id} since={since}")
         where = []
         if job_id is not None:
             where.append(TBL_RUNS.c.job_id == job_id)
         if since is not None:
             where.append(TBL_RUNS.c.rowid >= int(since))
-        if until is not None:
-            where.append(TBL_RUNS.c.rowid < int(until))
         if min_timestamp is not None:
             where.append(TBL_RUNS.c.timestamp >= dump_time(min_timestamp))
 
