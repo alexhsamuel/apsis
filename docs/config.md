@@ -18,3 +18,35 @@ schedule_max_age: 86400  # 1 day
 database: /path/to/apsis.db
 ```
 
+
+### Host groups
+
+A host groups enables a job to run a program on one of a group of hosts, rather
+than on a fixed host.  You can specify a host group name in place of a host
+name.  Host groups are configured globally.
+
+```yaml
+host_groups:
+  # Group of three hosts.
+  my_group:
+  - host1
+  - host2
+  - host3
+
+  # Group of a single host; effectively an alias.
+  my_alias: host4
+```
+
+The default behavior is to choose a host at random for each run.  For
+round-robin scheduling,
+```yaml
+host_groups
+  my_group:
+    type: round-robin
+    hosts:
+    - host1
+    - host2
+    - host3
+```
+
+
