@@ -334,19 +334,13 @@ class AgentProgram(Program):
         )
 
 
-    def __get_agent(self):
-        return _get_agent(self.__host, self.__user)
-
-
     async def start(self, run_id, cfg):
-        # Expand the host name, if necessary.
-        new_host = expand_host(self.__host, cfg)
-        if new_host != self.__host:
-            log.debug(f"using host: {self.__host} → {new_host}")
-            self.__host = new_host
-
+        host = expand_host(self.__host, cfg)
         argv = self.__argv
-        log.info(f"starting program: {join_args(argv)}")
+
+        loc = "" if host is None else " on " + host
+        cmd = join_args(argv)
+        log.info(f"starting program{loc}: {cmd}")
 
         env = {
             "inherit": True,
@@ -362,7 +356,7 @@ class AgentProgram(Program):
         }
 
         try:
-            agent = self.__get_agent()
+            agent = _get_agent(host, self.__user)
             proc = await agent.start_process(argv, env=env, restart=True)
 
         except Exception as exc:
@@ -378,6 +372,7 @@ class AgentProgram(Program):
             log.info(f"program running: {run_id} as {proc['proc_id']}")
 
             run_state = {
+                "host"          : host,
                 "proc_id"       : proc["proc_id"],
                 "pid"           : proc["pid"],
             }
@@ -401,7 +396,7 @@ class AgentProgram(Program):
 
     async def wait(self, run_id, run_state):
         proc_id = run_state["proc_id"]
-        agent = self.__get_agent()
+        agent = _get_agent(run_state["host"], self.__user)
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
@@ -443,7 +438,7 @@ class AgentProgram(Program):
 
     async def signal(self, run_state, signum):
         proc_id = run_state["proc_id"]
-        agent = self.__get_agent()
+        agent = _get_agent(run_state["host"], self.__user)
         await agent.signal(proc_id, signum)
 
 
