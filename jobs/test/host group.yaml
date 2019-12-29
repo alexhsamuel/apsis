@@ -1,0 +1,16 @@
+metadata:
+  description: |
+    Host group test job.
+  labels:
+    - test
+
+schedule:
+  type: interval
+  interval: 3600
+  enabled: true
+
+program:
+  type: shell
+  command: echo "$APSIS_RUN_ID running on $(hostname --long)"
+  host: local
+
