@@ -73,15 +73,15 @@ class DailySchedule(Schedule):
 
         # Now generate.
         common_args = {
-            **self.args,
             "calendar": str(self.calendar),
             "tz": str(self.tz),
+            **self.args,
         }
         while True:
             sched_date = date + self.date_shift
             time = (sched_date, self.daytimes[i]) @ self.tz
             assert time >= start
-            args = {**common_args, "date": str(date)}
+            args = {"date": str(date), "time": time, **common_args}
             yield time, args
 
             i += 1
@@ -153,7 +153,10 @@ class ExplicitSchedule(Schedule):
 
     def __call__(self, start: Time):
         i = bisect.bisect_left(self.times, start)
-        return ( (t, self.args) for t in self.times[i:] )
+        return (
+            (t, {"time": t, **self.args})
+            for t in self.times[i:]
+        )
 
 
     def to_jso(self):
@@ -216,7 +219,7 @@ class IntervalSchedule(Schedule):
         ) + self.phase
 
         while True:
-            yield time, self.args
+            yield time, {"time": str(time), **self.args}
             time += self.interval
 
 
