@@ -351,7 +351,7 @@ class Runs:
               since=None, until=None, reruns=True, args=None, with_args=None):
         """
         :param state:
-          Lkimits results to runs in the specified state(s).
+          Limits results to runs in the specified state(s).
         :param reruns:
           If true, include all reruns; otherwise, includes only the latest run
           in each rerun group.
