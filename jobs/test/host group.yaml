@@ -11,6 +11,6 @@ schedule:
 
 program:
   type: shell
-  command: echo "$APSIS_RUN_ID running on $(hostname --long)"
+  command: echo "$APSIS_RUN_ID running on $(hostname)"
   host: local
 
