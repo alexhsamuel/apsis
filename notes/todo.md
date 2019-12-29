@@ -10,6 +10,16 @@ Maybe we should just bite our tounges and attach the apsis object to each run
 instance.  The run objects would become mucb more active.
 
 
+# Redis
+
+- refactor on master:
+  - rename `Runs` to `RunStore`
+  - split out run ID allocator
+  - configure Redis instance in config.yaml
+  - add a `RedisRunStore` and populate it from `RunStore.add` / `.remove`
+  - add async `query()` and `subscribe()` methods
+
+
 # Current
 
 - bug: don't fuzzy-match job IDs in API when called from web UI
