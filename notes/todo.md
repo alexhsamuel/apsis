@@ -12,8 +12,6 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
-- host groups
-
 - bug: don't fuzzy-match job IDs in API when called from web UI
 
 - favicon: animated!
