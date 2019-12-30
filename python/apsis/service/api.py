@@ -238,7 +238,7 @@ async def job(request, job_id):
 @API.route("/jobs/<job_id:path>/runs")
 async def job_runs(request, job_id):
     job_id = match_job_id(request.app.apsis.jobs, unquote(job_id))
-    when, runs = request.app.apsis.runs.query(job_id=job_id)
+    when, runs = request.app.apsis.run_store.query(job_id=job_id)
     jso = runs_to_jso(request.app, when, runs)
     return response_json(jso)
 
@@ -261,7 +261,7 @@ async def jobs(request):
 @API.route("/runs/<run_id>", methods={"GET"})
 async def run(request, run_id):
     try:
-        when, run = request.app.apsis.runs.get(run_id)
+        when, run = request.app.apsis.run_store.get(run_id)
     except KeyError:
         return error(f"unknown run {run_id}", 404)
             
@@ -311,14 +311,14 @@ async def run_output(request, run_id, output_id):
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
 async def run_state_get(request, run_id):
-    _, run = request.app.apsis.runs.get(run_id)
+    _, run = request.app.apsis.run_store.get(run_id)
     return response_json({"state": run.state})
 
 
 @API.route("/runs/<run_id>/cancel", methods={"POST"})
 async def run_cancel(request, run_id):
     state = request.app.apsis
-    _, run = state.runs.get(run_id)
+    _, run = state.run_store.get(run_id)
     if run.state == run.STATE.scheduled:
         await state.cancel(run)
         return response_json({})
@@ -329,7 +329,7 @@ async def run_cancel(request, run_id):
 @API.route("/runs/<run_id>/start", methods={"POST"})
 async def run_start(request, run_id):
     state = request.app.apsis
-    _, run = state.runs.get(run_id)
+    _, run = state.run_store.get(run_id)
     if run.state == run.STATE.scheduled:
         await state.start(run)
         return response_json({})
@@ -340,7 +340,7 @@ async def run_start(request, run_id):
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
 async def run_rerun(request, run_id):
     state = request.app.apsis
-    _, run = state.runs.get(run_id)
+    _, run = state.run_store.get(run_id)
     if run.state not in {run.STATE.failure, run.STATE.error, run.STATE.success}:
         return error("invalid run state for rerun", 409, state=run.state)
     else:
@@ -355,7 +355,7 @@ async def run_rerun(request, run_id):
 @API.route("/runs/<run_id>/signal/<signal>", methods={"PUT", "POST"})
 async def run_signal(request, run_id, signal):
     apsis = request.app.apsis
-    _, run = apsis.runs.get(run_id)
+    _, run = apsis.run_store.get(run_id)
 
     if run.state not in {run.STATE.running}:
         return error("invalid run state for signal", 409, state=run.state.name)
@@ -407,7 +407,7 @@ async def runs(request):
     until,      = args.pop("until", (None, ))
     reruns,     = args.pop("reruns", ("False", ))
 
-    when, runs = apsis.runs.query(
+    when, runs = apsis.run_store.query(
         run_ids =run_ids, 
         job_id  =job_id,
         state   =to_state(state),
@@ -424,7 +424,7 @@ async def websocket_runs(request, ws):
     since, = request.args.pop("since", (None, ))
 
     log.info("live runs connect")
-    with request.app.apsis.runs.query_live(since=since) as queue:
+    with request.app.apsis.run_store.query_live(since=since) as queue:
         while True:
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.  Not sure how to do this.  ws.ping()

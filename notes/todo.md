@@ -13,7 +13,6 @@ instance.  The run objects would become mucb more active.
 # Redis
 
 - refactor on master:
-  - rename `Runs` to `RunStore`
   - split out run ID allocator
   - configure Redis instance in config.yaml
   - add a `RedisRunStore` and populate it from `RunStore.add` / `.remove`

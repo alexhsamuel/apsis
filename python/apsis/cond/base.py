@@ -24,12 +24,10 @@ class Condition(TypedJso):
         """
 
 
-    def check_runs(self, runs):
+    def check_runs(self, run_store):
         """
         Checks whether all run conditions are met.
 
-        :param runs:
-          The run DB.
         :return:
           True if dependencies are met.
         """

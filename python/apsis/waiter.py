@@ -13,8 +13,8 @@ class Waiter:
     # FIXME: Primitive first cut: just store all runs with their blockers,
     # by run ID, and reevaluate all of them every time.
 
-    def __init__(self, runs, start, run_history):
-        self.__runs = runs
+    def __init__(self, run_store, start, run_history):
+        self.__run_store = run_store
         self.__start = start
         self.__run_history = run_history
 
@@ -36,7 +36,7 @@ class Waiter:
           A list of conditions; mutated.
         """
         while len(conds) > 0:
-            if conds[0].check_runs(self.__runs):
+            if conds[0].check_runs(self.__run_store):
                 # Not blocking.
                 conds.pop(0)
             else:

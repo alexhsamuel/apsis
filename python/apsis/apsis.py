@@ -12,7 +12,7 @@ from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
 from   . import runs
-from   .runs import Run, Runs, MissingArgumentError, ExtraArgumentError
+from   .runs import Run, RunStore, MissingArgumentError, ExtraArgumentError
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
@@ -60,11 +60,11 @@ class Apsis:
             min_timestamp = None
         else:
             min_timestamp = now() - runs_lookback
-        self.runs = Runs(db, min_timestamp=min_timestamp)
+        self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
-        self.__waiter = Waiter(self.runs, self.__start, self.run_history)
+        self.__waiter = Waiter(self.run_store, self.__start, self.run_history)
         # For now, expose the output database directly.
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
@@ -96,20 +96,20 @@ class Apsis:
 
         # Restore scheduled runs from DB.
         log.info("restoring scheduled runs")
-        _, scheduled_runs = self.runs.query(state=Run.STATE.scheduled)
+        _, scheduled_runs = self.run_store.query(state=Run.STATE.scheduled)
         for run in scheduled_runs:
             assert not run.expected
             await reschedule(run, run.times["schedule"])
 
         # Restore waiting runs from DB.
         log.info("restoring waiting runs")
-        _, waiting_runs = self.runs.query(state=Run.STATE.waiting)
+        _, waiting_runs = self.run_store.query(state=Run.STATE.waiting)
         for run in waiting_runs:
             assert not run.expected
             await reschedule(run, None)
 
         # Reconnect to running runs.
-        _, running_runs = self.runs.query(state=Run.STATE.running)
+        _, running_runs = self.run_store.query(state=Run.STATE.running)
         log.info(f"reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
@@ -257,7 +257,7 @@ class Apsis:
             return
         
         # Collect all reruns of this run, including the original run.
-        _, runs = self.runs.query(rerun=run.rerun)
+        _, runs = self.run_store.query(rerun=run.rerun)
         runs = list(runs)
 
         if len(runs) > job.reruns.count:
@@ -359,7 +359,7 @@ class Apsis:
             self.__db.output_db.add(run.run_id, output_id, output)
 
         # Persist the new state.  
-        self.runs.update(run, time)
+        self.run_store.update(run, time)
 
         if state == run.STATE.failure:
             self.__rerun(run)
@@ -408,7 +408,7 @@ class Apsis:
         """
         time = None if time is None else Time(time)
 
-        self.runs.add(run)
+        self.run_store.add(run)
         if not self.__prepare_run(run):
             return run
 
@@ -448,7 +448,7 @@ class Apsis:
         Returns history log for a run.
         """
         # Make sure the run ID is valid.
-        self.runs.get(run_id)
+        self.run_store.get(run_id)
         return self.__db.run_history_db.query(run_id=run_id)
 
 
@@ -475,7 +475,7 @@ class Apsis:
         await cancel_task(self.__waiter_task, "waiter", log)
         for run_id, task in self.__running_tasks.items():
             await cancel_task(task, f"run {run_id}", log)
-        await self.runs.shut_down()
+        await self.run_store.shut_down()
         log.info("Apsis shut down")
         
 
@@ -486,13 +486,13 @@ def _unschedule_runs(apsis, job_id):
     """
     Deletes all scheduled expected runs of `job_id`.
     """
-    _, runs = apsis.runs.query(job_id=job_id, state=Run.STATE.scheduled)
+    _, runs = apsis.run_store.query(job_id=job_id, state=Run.STATE.scheduled)
     runs = [ r for r in runs if r.expected ]
 
     for run in runs:
         log.info(f"removing: {run.run_id}")
         apsis.scheduled.unschedule(run)
-        apsis.runs.remove(run.run_id)
+        apsis.run_store.remove(run.run_id)
 
 
 async def reschedule_runs(apsis, job_id):

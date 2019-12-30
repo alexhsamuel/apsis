@@ -247,7 +247,7 @@ def get_bind_args(run):
 
 #-------------------------------------------------------------------------------
 
-class Runs:
+class RunStore:
     """
     Stores run state.
 
