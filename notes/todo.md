@@ -14,9 +14,9 @@ instance.  The run objects would become much more active.
 
 - refactor on master:
   - split out run ID allocator
-  - configure Redis instance in config.yaml
   - add a `RedisRunStore` and populate it from `RunStore.add` / `.remove`
   - add async `query()` and `subscribe()` methods
+  - configure Redis instance in config.yaml
 
 
 # Current
