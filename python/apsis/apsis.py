@@ -42,11 +42,12 @@ class Apsis:
 
     """
 
-    def __init__(self, cfg, jobs, db):
+    def __init__(self, cfg, jobs, db, redis_store):
         log.debug("creating Apsis instance")
         self.cfg = cfg
         config_host_groups(cfg)
         self.__db = db
+        self.__redis_store = redis_store
 
         self.run_history = RunHistory(self.__db.run_history_db)
         self.jobs = Jobs(jobs, db.job_db)
@@ -360,6 +361,10 @@ class Apsis:
 
         # Persist the new state.  
         self.run_store.update(run, time)
+        # Also persist to Redis.
+        if self.__redis_store is not None:
+            # FIXME: Don't just future and abandon this.
+            asyncio.ensure_future(self.__redis_store.update(run))
 
         if state == run.STATE.failure:
             self.__rerun(run)
@@ -477,7 +482,7 @@ class Apsis:
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
         log.info("Apsis shut down")
-        
+
 
 
 #-------------------------------------------------------------------------------
