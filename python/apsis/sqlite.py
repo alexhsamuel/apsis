@@ -300,7 +300,7 @@ class RunDB:
         with self.__engine.begin() as conn:
             # FIMXE: Return only the last record for each run_id?
             runs = list(self.__query_runs(conn, sa.and_(*where)))
-        
+
         log.debug(f"query returned {len(runs)} runs")
         return runs
 
