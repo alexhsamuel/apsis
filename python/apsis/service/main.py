@@ -1,3 +1,4 @@
+import aioredis
 import asyncio
 import logging
 from   pathlib import Path
@@ -10,6 +11,7 @@ import websockets
 
 from   apsis import __version__
 import apsis.lib.logging
+from   apsis.redis import RunStore
 from   . import api, control
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
@@ -121,8 +123,16 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
             log.error(text)
         raise
 
+    loop = asyncio.get_event_loop()
+
+    # FIXME
+    log.info("connecting to Redis")
+    redis = loop.run_until_complete(
+        aioredis.create_redis_pool("redis://localhost"))
+    redis_store = RunStore(redis)
+
     log.info("creating scheduler instance")
-    apsis   = Apsis(cfg, jobs, db)
+    apsis = Apsis(cfg, jobs, db, redis_store)
 
     app.apsis = apsis
     # Flag to indicate whether to restart after shutting down.
@@ -179,7 +189,6 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     signal.signal(signal.SIGTERM, on_shutdown)
 
     log.info("service ready to run")
-    loop = asyncio.get_event_loop()
     try:
         loop.run_forever()
     finally:
