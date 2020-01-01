@@ -7,6 +7,7 @@ import logging
 from   ora import now, Time
 import shlex
 
+from   .lib.api import time_to_jso
 from   .lib.memo import memoize
 from   .lib.py import format_ctor, iterize
 
@@ -178,8 +179,9 @@ class Run:
 
         self.rerun      = rerun
 
-        # Cached summary JSO object.
-        self._jso_cache = None
+        # Cached JSO representation.
+        self.__jso_summary = None
+        self.__jso      = None
 
 
     def __hash__(self):
@@ -197,6 +199,41 @@ class Run:
 
     def __str__(self):
         return f"{self.run_id} {self.state.name} {self.inst}"
+
+
+    def to_jso_summary(self):
+        if self.__jso_summary is not None:
+            return self.__jso_summary
+
+        times = { n: time_to_jso(t) for n, t in self.times.items() }
+        jso = self.__jso_summary = {
+            "job_id"        : self.inst.job_id,
+            "args"          : self.inst.args,
+            "run_id"        : self.run_id,
+            "timestamp"     : time_to_jso(self.timestamp),
+            "state"         : self.state.name,
+            "times"         : times,
+            "message"       : self.message,
+            "rerun"         : self.rerun,
+            "expected"      : self.expected,
+        }
+        return jso
+
+
+    def to_jso(self):
+        if self.__jso is not None:
+            return self.__jso
+
+        program = None if self.program is None else self.program.to_jso()
+        conds = [] if self.conds is None else self.conds
+        jso = self.__jso = {
+            **self.to_jso_summary(),
+            "conds"         : [ c.to_jso() for c in conds ],
+            "program"       : program,
+            "meta"          : self.meta,
+            "run_state"     : self.run_state,
+        }
+        return jso
 
 
     def _transition(self, timestamp, state, *, meta={}, times={}, 
@@ -228,7 +265,7 @@ class Run:
         self.state = state
 
         # Discard cached JSO.  Used by run_summary_to_json().
-        self._jso_cache = None
+        self.__jso_summary = self.__jso = None
 
 
 
