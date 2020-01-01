@@ -48,25 +48,30 @@ def run_to_jso(run):
 
 #-------------------------------------------------------------------------------
 
+async def progress_gather(bar, tasks):
+    """
+    Gathers `tasks` with progress `bar`.
+    """
+    async def do(task):
+        await task
+        bar.next()
+
+    with bar:
+        return await asyncio.gather(*[ do(t) for t in tasks ])
+
+
 async def run_to_redis(run, redis):
     key = f"apsis.runs.{run.run_id}".encode()
     await redis.set(key, ujson.dumps(run_to_jso(run)).encode())
 
 
-async def runs_to_redis(run_db, redis):
-    runs = run_db.query()
-
-    with progress.bar.Bar("to Redis", max=len(runs)) as bar:
-        async def upload(run):
-            await run_to_redis(run, redis)
-            bar.next()
-
-        await asyncio.gather(*( upload(r) for r in runs ))
-
+#-------------------------------------------------------------------------------
 
 async def upload(db):
     redis = await aioredis.create_redis_pool("redis://localhost")
-    await runs_to_redis(db.run_db, redis)
+    runs = db.run_db.query()
+    with progress.bar.Bar(max=len(runs)) as bar:
+        await progress_gather(bar, ( run_to_redis(r, redis) for r in runs ))
 
 
 def main():
