@@ -35,14 +35,30 @@ def run_to_jso(run):
 
 #-------------------------------------------------------------------------------
 
-# class RunStore:
+# Enable all key notification events:
+#   redis-cli CONFIG SET notify-keyspace-events KEA
+#
+# (We almost certainly don't need all of them though.)
 
-#     def __init__(self, redis):
-#         self.__redis = redis
+class RunStore:
+
+    def __init__(self, redis):
+        self.__redis = redis
 
 
-#     async def update(self, run):
-#         val = ujson.dumps(run_to_jso(run))
+    @staticmethod
+    def get_run_key(run):
+        return f"apsis.runs.{run.run_id}".encode()
+
+
+    def update(self, run):
+        """
+        Returns a run update coro.
+        """
+        return self.__redis.set(
+            self.get_run_key(run),
+            ujson.dumps(run_to_jso(run))
+        )
 
 
 
