@@ -48,16 +48,19 @@ def run_to_jso(run):
 
 #-------------------------------------------------------------------------------
 
-async def progress_gather(bar, tasks):
+async def progress_gather(bar, coros):
     """
-    Gathers `tasks` with progress `bar`.
+    Gathers `coros` with progress `bar`.
     """
-    async def do(task):
-        await task
-        bar.next()
+    next = lambda _: bar.next()
+
+    def setup(coro):
+        fut = asyncio.ensure_future(coro)
+        fut.add_done_callback(next)
+        return fut
 
     with bar:
-        return await asyncio.gather(*[ do(t) for t in tasks ])
+        return await asyncio.gather(*( setup(c) for c in coros ))
 
 
 async def run_to_redis(run, redis):
