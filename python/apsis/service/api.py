@@ -62,20 +62,18 @@ def _job_to_jso(app, job):
 job_to_jso = _job_to_jso
 
 
-def _run_summary_to_jso(app, run):
-    jso = run._jso_cache
-    if jso is not None:
-        # Use the cached JSO.
-        return jso
-
+def _get_actions(app, run):
     actions = {}
+
     # Start a scheduled job now.
     if run.state == run.STATE.scheduled:
         actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
         actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
+
     # Retry is available if the run didn't succeed.
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
+
     # Terminate and kill are available for a running run.
     if run.state == run.STATE.running:
         actions["terminate"] = app.url_for(
@@ -83,26 +81,7 @@ def _run_summary_to_jso(app, run):
         actions["kill"] = app.url_for(
             "v1.run_signal", run_id=run.run_id, signal="SIGKILL")
 
-    jso = run._jso_cache = {
-        "url"           : app.url_for("v1.run", run_id=run.run_id),
-        "job_id"        : run.inst.job_id,
-        "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
-        "args"          : run.inst.args,
-        "run_id"        : run.run_id,
-        "state"         : run.state.name,
-        "message"       : run.message,
-        "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
-        "time_range"    : None if len(run.times) == 0 else [
-            time_to_jso(min(run.times.values())),
-            time_to_jso(max(run.times.values())),
-        ],
-        "actions"       : actions,
-        "rerun"         : run.rerun,
-        "expected"      : run.expected,
-        "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
-        "labels"        : run.meta.get("labels", []),
-    }
-    return jso
+    return actions
 
 
 def run_to_jso(app, run, summary=False):
@@ -111,19 +90,23 @@ def run_to_jso(app, run, summary=False):
         # FIXME: Hack.
         return {"run_id": run.run_id, "state": None}
 
-    jso = _run_summary_to_jso(app, run)
-
-    if not summary:
-        jso.update({
-            "conds":
-                None if run.conds is None 
-                else [ c.to_jso() for c in run.conds ],
-            "program": None if run.program is None else run.program.to_jso(),
-            # FIXME: Rename to metadata.
-            "meta": run.meta,
-        })
-
-    return jso
+    # FIXME: Run.to_jso() already does caching.  Cache this too?
+    jso = run.to_jso_summary() if summary else run.to_jso()
+    time_range = None if len(run.times) == 0 else [
+        time_to_jso(min(run.times.values())),
+        time_to_jso(max(run.times.values())),
+    ]
+    return {
+        **jso,
+        "url"           : app.url_for("v1.run", run_id=run.run_id),
+        "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
+        "actions"       : _get_actions(app, run),
+        "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
+        # FIXME: Get rid of this.
+        "time_range"    : time_range,
+        # FIXME: Get rid of this.
+        "labels"        : run.meta.get("labels", []),
+    }
 
 
 def runs_to_jso(app, when, runs, summary=False):
