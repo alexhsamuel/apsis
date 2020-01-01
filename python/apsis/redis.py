@@ -1,5 +1,6 @@
+import aioredis
+import asyncio
 import progress.bar
-from   redis import Redis
 import ujson
 
 import apsis.sqlite
@@ -34,29 +35,38 @@ def run_to_jso(run):
 
 #-------------------------------------------------------------------------------
 
-class RunStore:
+# class RunStore:
 
-    def __init__(self, redis):
-        self.__redis = redis
+#     def __init__(self, redis):
+#         self.__redis = redis
 
 
-    async def update(self, run):
-        val = ujson.dumps(run_to_jso(run))
+#     async def update(self, run):
+#         val = ujson.dumps(run_to_jso(run))
 
 
 
 #-------------------------------------------------------------------------------
 
-def run_to_redis(run, redis):
+async def run_to_redis(run, redis):
     key = f"apsis.runs.{run.run_id}".encode()
-    redis.set(key, ujson.dumps(run_to_jso(run)).encode())
+    await redis.set(key, ujson.dumps(run_to_jso(run)).encode())
 
 
-def runs_to_redis(run_db, redis):
+async def runs_to_redis(run_db, redis):
     runs = run_db.query()
-    for run in progress.bar.Bar("to Redis", max=len(runs)).iter(runs):
-        assert not run.expected
-        run_to_redis(run, redis)
+
+    with progress.bar.Bar("to Redis", max=len(runs)) as bar:
+        async def upload(run):
+            await run_to_redis(run, redis)
+            bar.next()
+
+        await asyncio.gather(*( upload(r) for r in runs ))
+
+
+async def upload(db):
+    redis = await aioredis.create_redis_pool("redis://localhost")
+    await runs_to_redis(db.run_db, redis)
 
 
 def main():
@@ -67,10 +77,7 @@ def main():
     args = parser.parse_args()
 
     db = apsis.sqlite.SqliteDB.open(args.db)
-    redis = Redis()
-
-    runs_to_redis(db.run_db, redis)
-
+    asyncio.run(upload(db))
 
 
 if __name__ == "__main__":
