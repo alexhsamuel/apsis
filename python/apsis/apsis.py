@@ -439,7 +439,7 @@ class Apsis:
         """
         assert run.expected
 
-        self.run_store.remove(run.run_id)
+        self.run_store.delete(run.run_id)
         if self.__redis_store is not None:
             await self.__redis_store.delete(run)
 
