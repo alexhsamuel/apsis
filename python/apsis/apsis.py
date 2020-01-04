@@ -431,6 +431,19 @@ class Apsis:
             return run
 
 
+    async def delete(self, run):
+        """
+        Deletes a run without changing its state.
+
+        The run must be expected.
+        """
+        assert run.expected
+
+        self.run_store.remove(run.run_id)
+        if self.__redis_store is not None:
+            await self.__redis_store.delete(run)
+
+
     async def cancel(self, run):
         """
         Cancels a scheduled run.
@@ -490,7 +503,7 @@ class Apsis:
 
 #-------------------------------------------------------------------------------
 
-def _unschedule_runs(apsis, job_id):
+async def _unschedule_runs(apsis, job_id):
     """
     Deletes all scheduled expected runs of `job_id`.
     """
@@ -500,7 +513,7 @@ def _unschedule_runs(apsis, job_id):
     for run in runs:
         log.info(f"removing: {run.run_id}")
         apsis.scheduled.unschedule(run)
-        apsis.run_store.remove(run.run_id)
+        await apsis.delete(run)
 
 
 async def reschedule_runs(apsis, job_id):
@@ -519,7 +532,7 @@ async def reschedule_runs(apsis, job_id):
     scheduler_time = scheduler.get_scheduler_time()
 
     # Unschedule all runs of this job. 
-    _unschedule_runs(apsis, job_id)
+    await _unschedule_runs(apsis, job_id)
 
     # Restore scheduled runs, by rebuilding them between the scheduled time
     # and the scheduler time.

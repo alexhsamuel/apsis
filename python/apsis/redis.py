@@ -3,36 +3,6 @@ import asyncio
 import progress.bar
 import ujson
 
-import apsis.sqlite
-
-#-------------------------------------------------------------------------------
-# FIXME: These should be part of Run, and merge with apsis.service.api.
-
-from   apsis.lib.api import time_to_jso
-
-def run_to_jso(run):
-    conds = [] if run.conds is None else run.conds
-    return {
-        "job_id"        : run.inst.job_id,
-        "args"          : run.inst.args,
-        "run_id"        : run.run_id,
-        "timestamp"     : time_to_jso(run.timestamp),
-        "state"         : run.state.name,
-        "conds"         : [ c.to_jso() for c in conds ],
-        "program"       : None if run.program is None else run.program.to_jso(),
-        "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
-        "meta": run.meta,
-        "message"       : run.message,
-        "time_range"    : None if len(run.times) == 0 else [
-            time_to_jso(min(run.times.values())),
-            time_to_jso(max(run.times.values())),
-        ],
-        "run_state"     : run.run_state,
-        "rerun"         : run.rerun,
-        "expected"      : run.expected,
-    }
-
-
 #-------------------------------------------------------------------------------
 
 class RunStore:
@@ -42,26 +12,45 @@ class RunStore:
 
 
     @staticmethod
-    def get_run_key(run):
-        return f"apsis.runs.{run.run_id}".encode()
+    def get_run_key(run_id):
+        return f"apsis.runs.{run_id}".encode()
 
 
+    # async
     def update(self, run):
         """
-        Returns a run update coro.
+        :return:
+          A coro.
         """
-        jso = ujson.dumps(run_to_jso(run))
+        json = ujson.dumps(run.to_jso())
 
         tx = self.__redis.multi_exec()
-        tx.set(self.get_run_key(run), jso)
-        tx.publish("apsis.runs", jso)
+        tx.set(self.get_run_key(run.run_id), json)
+        tx.publish("apsis.runs.update", json)
+        return tx.execute()
+
+
+    # async
+    def delete(self, run):
+        """
+        :return:
+          A coro.
+        """
+        json = ujson.dumps(run.to_jso())
+
+        tx = self.__redis.multi_exec()
+        tx.delete(self.get_run_key(run.run_id))
+        tx.publish("apsis.runs.delete", json)
         return tx.execute()
 
 
     async def watch_all(self):
-        channel, = await self.__redis.subscribe("apsis.runs")
-        async for msg in channel.iter():
-            yield ujson.decode(msg)
+        channel, = await self.__redis.psubscribe("apsis.runs.*")
+        async for name, json in channel.iter():
+            assert name.startswith(b"apsis.runs.")
+            cmd = name[11 :].decode()
+            jso = ujson.decode(json)
+            yield cmd, jso
 
 
 
@@ -82,9 +71,10 @@ async def progress_gather(bar, coros):
         return await asyncio.gather(*( setup(c) for c in coros ))
 
 
+# FIXME: Remove; use run store.
 async def run_to_redis(run, redis):
     key = f"apsis.runs.{run.run_id}".encode()
-    await redis.set(key, ujson.dumps(run_to_jso(run)).encode())
+    await redis.set(key, ujson.dumps(run.to_jso()).encode())
 
 
 #-------------------------------------------------------------------------------
@@ -100,12 +90,12 @@ async def watch_all():
     redis = await aioredis.create_redis_pool("redis://localhost")
     run_store = RunStore(redis)
     run_jsos = run_store.watch_all()
-    async for r in run_jsos:
+    async for cmd, r in run_jsos:
         run_id  = r["run_id"]
         state   = r["state"]
         job_id  = r["job_id"]
         args    = " ".join( f"{k}={v}" for k, v in r["args"].items() )
-        print(f"{run_id} {state:10s}: {job_id} {args}")
+        print(f"{cmd} {run_id} {state:10s}: {job_id} {args}")
 
 
 def main():

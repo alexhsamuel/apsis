@@ -211,7 +211,7 @@ class Run:
             "args"          : self.inst.args,
             "run_id"        : self.run_id,
             "timestamp"     : time_to_jso(self.timestamp),
-            "state"         : self.state.name,
+            "state"         : None if self.state is None else self.state.name,
             "times"         : times,
             "message"       : self.message,
             "rerun"         : self.rerun,
