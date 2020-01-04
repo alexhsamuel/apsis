@@ -35,11 +35,6 @@ def run_to_jso(run):
 
 #-------------------------------------------------------------------------------
 
-# Enable all key notification events:
-#   redis-cli CONFIG SET notify-keyspace-events KEA
-#
-# (We almost certainly don't need all of them though.)
-
 class RunStore:
 
     def __init__(self, redis):
@@ -55,22 +50,18 @@ class RunStore:
         """
         Returns a run update coro.
         """
-        return self.__redis.set(
-            self.get_run_key(run),
-            ujson.dumps(run_to_jso(run))
-        )
+        jso = ujson.dumps(run_to_jso(run))
+
+        tx = self.__redis.multi_exec()
+        tx.set(self.get_run_key(run), jso)
+        tx.publish("apsis.runs", jso)
+        return tx.execute()
 
 
     async def watch_all(self):
-        prefix = b"__keyspace@0__:apsis.runs"
-        channel, = await self.__redis.psubscribe(prefix + b".*")
+        channel, = await self.__redis.subscribe("apsis.runs")
         async for msg in channel.iter():
-            key, op = msg
-            assert key.startswith(prefix)
-            _, key = key.rsplit(b":", 1)
-            # FIXME: Race.
-            jso = await self.__redis.get(key)
-            yield ujson.decode(jso)
+            yield ujson.decode(msg)
 
 
 
@@ -110,10 +101,11 @@ async def watch_all():
     run_store = RunStore(redis)
     run_jsos = run_store.watch_all()
     async for r in run_jsos:
-        state = r["state"]
-        job_id = r["job_id"]
-        args = " ".join( f"{k}={v}" for k, v in r["args"].items() )
-        print(f"{state:10s}: {job_id} {args}")
+        run_id  = r["run_id"]
+        state   = r["state"]
+        job_id  = r["job_id"]
+        args    = " ".join( f"{k}={v}" for k, v in r["args"].items() )
+        print(f"{run_id} {state:10s}: {job_id} {args}")
 
 
 def main():
