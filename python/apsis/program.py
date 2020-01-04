@@ -128,8 +128,8 @@ class Program(TypedJso):
           The program failed to start.
         :return:
           `running, done`, where `running` is a `ProgramRunning` instance and
-          `done` is a coroutine or future that returns `ProgramSuccess` when the
-          program is complete.
+          `done` is a coroutine hat returns `ProgramSuccess` when the program is
+          complete.
         """
 
 
@@ -142,7 +142,7 @@ class Program(TypedJso):
         :param run_state:
           State information for the running program.
         :return:
-          A coroutine or future for the program completion, as `start`.
+          A coroutine for the program completion, as `start`.
         """
 
 
@@ -433,7 +433,7 @@ class AgentProgram(Program):
 
     def reconnect(self, run_id, run_state):
         log.info(f"reconnect: {run_id}")
-        return asyncio.ensure_future(self.wait(run_id, run_state))
+        return self.wait(run_id, run_state)
 
 
     async def signal(self, run_state, signum):
