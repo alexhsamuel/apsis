@@ -362,6 +362,7 @@ class RunStore:
         self.__send(timestamp, run)
 
 
+    # FIXME: Rename to delete().
     def remove(self, run_id):
         """
         Removes run with `run_id`.
