@@ -61,6 +61,18 @@ class RunStore:
         )
 
 
+    async def watch_all(self):
+        prefix = b"__keyspace@0__:apsis.runs"
+        channel, = await self.__redis.psubscribe(prefix + b".*")
+        async for msg in channel.iter():
+            key, op = msg
+            assert key.startswith(prefix)
+            _, key = key.rsplit(b":", 1)
+            # FIXME: Race.
+            jso = await self.__redis.get(key)
+            yield ujson.decode(jso)
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -93,15 +105,35 @@ async def upload(db):
         await progress_gather(bar, ( run_to_redis(r, redis) for r in runs ))
 
 
-def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "db", default="apsis.db")
-    args = parser.parse_args()
+async def watch_all():
+    redis = await aioredis.create_redis_pool("redis://localhost")
+    run_store = RunStore(redis)
+    run_jsos = run_store.watch_all()
+    async for r in run_jsos:
+        state = r["state"]
+        job_id = r["job_id"]
+        args = " ".join( f"{k}={v}" for k, v in r["args"].items() )
+        print(f"{state:10s}: {job_id} {args}")
 
-    db = apsis.sqlite.SqliteDB.open(args.db)
-    asyncio.run(upload(db))
+
+def main():
+    import apsis.lib.argparse
+    parser = apsis.lib.argparse.CommandArgumentParser()
+
+    def cmd_upload(args):
+        db = apsis.sqlite.SqliteDB.open(args.db)
+        asyncio.run(upload(db))
+
+    cmd = parser.add_command("upload", cmd_upload)
+    cmd.add_argument("db", default="apsis.db")
+
+    def cmd_watch_all(args):
+        asyncio.run(watch_all())
+
+    cmd = parser.add_command("watch-all", cmd_watch_all)
+
+    args = parser.parse_args()
+    args.cmd(args)
 
 
 if __name__ == "__main__":
