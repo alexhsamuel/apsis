@@ -86,7 +86,7 @@ class Apsis:
         log.info("restoring")
 
         async def reschedule(run, time):
-            if not self.__prepare_run(run):
+            if not await self.__prepare_run(run):
                 return
             if time is None:
                 self.run_history.info(run, f"restored: waiting")
@@ -116,8 +116,8 @@ class Apsis:
             assert run.program is not None
             self.run_history.record(
                 run, f"at startup, reconnecting to running {run.run_id}")
-            future = run.program.reconnect(run.run_id, run.run_state)
-            self.__finish(run, future)
+            wait_coro = run.program.reconnect(run.run_id, run.run_state)
+            self.__finish(run, wait_coro)
 
         log.info("restoring done")
 
@@ -141,18 +141,18 @@ class Apsis:
         Waits `run`, if it has pending conditions, otherwise starts it.
         """
         log.info(f"waiting: {run}")
-        self._transition(run, run.STATE.waiting)
+        await self._transition(run, run.STATE.waiting)
         await self.__waiter.start(run)
 
 
     async def __start(self, run):
         try:
-            running, coro = await run.program.start(run.run_id, self.cfg)
+            running, wait_coro = await run.program.start(run.run_id, self.cfg)
 
         except ProgramError as exc:
             # Program failed to start.
             self.run_history.exc(run, "program start")
-            self._transition(
+            await self._transition(
                 run, run.STATE.error, 
                 meta    =exc.meta,
                 times   =exc.times,
@@ -162,16 +162,15 @@ class Apsis:
         else:
             # Program started successfully.
             self.run_history.info(run, "program started")
-            self._transition(run, run.STATE.running, **running.__dict__)
-            future = asyncio.ensure_future(coro)
-            self.__finish(run, future)
+            await self._transition(run, run.STATE.running, **running.__dict__)
+            self.__finish(run, wait_coro)
 
 
-    def __finish(self, run, future):
-        def done(future):
+    def __finish(self, run, wait_coro):
+        async def finish():
             try:
                 try:
-                    success = future.result()
+                    success = await wait_coro
                 except asyncio.CancelledError:
                     log.info(
                         f"cancelled waiting for run to complete: {run.run_id}")
@@ -180,7 +179,7 @@ class Apsis:
             except ProgramFailure as exc:
                 # Program ran and failed.
                 self.run_history.record(run, f"program failure: {exc.message}")
-                self._transition(
+                await self._transition(
                     run, run.STATE.failure, 
                     meta    =exc.meta,
                     times   =exc.times,
@@ -190,7 +189,7 @@ class Apsis:
             except ProgramError as exc:
                 # Program failed to start.
                 self.run_history.record(run, f"program error: {exc.message}")
-                self._transition(
+                await self._transition(
                     run, run.STATE.error, 
                     meta    =exc.meta,
                     times   =exc.times,
@@ -200,7 +199,7 @@ class Apsis:
             else:
                 # Program ran and completed successfully.
                 self.run_history.record(run, f"program success")
-                self._transition(
+                await self._transition(
                     run, run.STATE.success,
                     meta    =success.meta,
                     times   =success.times,
@@ -209,11 +208,11 @@ class Apsis:
 
             del self.__running_tasks[run.run_id]
 
-        self.__running_tasks[run.run_id] = future
-        future.add_done_callback(done)
+        fut = asyncio.ensure_future(finish())
+        self.__running_tasks[run.run_id] = fut
 
 
-    def __prepare_run(self, run):
+    async def __prepare_run(self, run):
         """
         Prepares a run for schedule or restore, using its job.
 
@@ -224,21 +223,21 @@ class Apsis:
         try:
             job = self._validate_run(run)
         except Exception as exc:
-            self._run_exc(run, message=str(exc))
+            await self._run_exc(run, message=str(exc))
             return False
 
         if run.program is None:
             try:
                 run.program = job.program.bind(get_bind_args(run))
             except Exception as exc:
-                self._run_exc(run, message=f"invalid program: {exc}")
+                await self._run_exc(run, message=f"invalid program: {exc}")
                 return False
 
         if run.conds is None:
             try:
                 run.conds = [ c.bind(run, self.jobs) for c in job.conds ]
             except Exception as exc:
-                self._run_exc(run, message=f"invalid condition: {exc}")
+                await self._run_exc(run, message=f"invalid condition: {exc}")
                 return False
 
         # Attach job labels to the run.
@@ -310,9 +309,13 @@ class Apsis:
 
     # --- Internal API ---------------------------------------------------------
 
+    # async
     def _run_exc(self, run, *, message=None):
         """
         Transitions `run` to error, with the current exception attached.
+
+        :return:
+          Coro.
         """
         self.run_history.exc(run, message)
 
@@ -327,7 +330,7 @@ class Apsis:
                 tb
             )
 
-        self._transition(
+        return self._transition(
             run, run.STATE.error,
             times={"error": now()},
             message=message,
@@ -335,7 +338,7 @@ class Apsis:
         )
 
 
-    def _transition(self, run, state, *, outputs={}, **kw_args):
+    async def _transition(self, run, state, *, outputs={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
         """
@@ -363,8 +366,7 @@ class Apsis:
         self.run_store.update(run, time)
         # Also persist to Redis.
         if self.__redis_store is not None:
-            # FIXME: Don't just future and abandon this.
-            asyncio.ensure_future(self.__redis_store.update(run))
+            await self.__redis_store.update(run)
 
         if state == run.STATE.failure:
             self.__rerun(run)
@@ -414,7 +416,7 @@ class Apsis:
         time = None if time is None else Time(time)
 
         self.run_store.add(run)
-        if not self.__prepare_run(run):
+        if not await self.__prepare_run(run):
             return run
 
         if time is None:
@@ -423,7 +425,8 @@ class Apsis:
             return run
         else:
             self.run_history.info(run, f"scheduling for {time}")
-            self._transition(run, run.STATE.scheduled, times={"schedule": time})
+            await self._transition(
+                run, run.STATE.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
             return run
 
@@ -436,7 +439,7 @@ class Apsis:
         """
         self.scheduled.unschedule(run)
         self.run_history.info(run, "cancelled")
-        self._transition(run, run.STATE.error, message="cancelled")
+        await self._transition(run, run.STATE.error, message="cancelled")
 
 
     async def start(self, run):
