@@ -1,0 +1,7 @@
+params: [time, exit]
+
+metadata:
+  description: Sleeps for `time` secs, then returns `exit`.
+
+program: '/bin/sleep {{ time }}; exit {{ exit }}'
+
