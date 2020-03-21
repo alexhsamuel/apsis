@@ -106,7 +106,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
     return argv
 
 
-async def start_agent(*, host=None, user=None, connect=None, timeout=10):
+async def start_agent(*, host=None, user=None, connect=None, timeout=30):
     """
     Starts the agent on `host` as `user`.
 
