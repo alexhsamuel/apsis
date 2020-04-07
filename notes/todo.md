@@ -7,7 +7,7 @@ might not have to reach back and call Apsis methods to transition runs; instead
 they would just return instructions and Apsis would do the work.
 
 Maybe we should just bite our tounges and attach the apsis object to each run
-instance.  The run objects would become mucb more active.
+instance.  The run objects would become much more active.
 
 
 # Redis
@@ -21,6 +21,23 @@ instance.  The run objects would become mucb more active.
 
 # Current
 
+- support configured extension symbols in `template_expand`
+
+- "wait" functionality in CLUI
+  - `apsis wait r12345`
+  - `apsis output --wait r12345`
+  - `apsis run --wait ...`
+  - `apsis run --output ...`
+
+- rip out reruns, replace with actions
+- document reruns
+- document actions
+
+- check out: https://beepb00p.xyz/scheduler.html (and comment?)
+- check out: https://github.com/jhuckaby/Cronicle
+- check out: https://github.com/huginn/huginn
+- check out: https://apscheduler.readthedocs.io/en/stable/
+
 - bug: don't fuzzy-match job IDs in API when called from web UI
 
 - favicon: animated!
@@ -33,8 +50,6 @@ instance.  The run objects would become mucb more active.
 - add date to apsis log
 
 - add version to web UI
-
-- rip out reruns, replace with actions
 
 - migrate to sanic 1.0 (or aiohttp maybe)
 
