@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 # Logging handler that queues up log messages for serving to clients.
 WS_HANDLER = apsis.lib.logging.QueueHandler(
-    10000, 
+    4096, 
     logging.Formatter(
         fmt="%(asctime)s.%(msecs)03d %(name)-24s [%(levelname)-7s] %(message)s",
         datefmt="%H:%M:%S",
