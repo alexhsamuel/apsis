@@ -34,9 +34,9 @@ async def on_reload_jobs(request):
         )
     else:
         return response_json({
-            "removed"   : rem_ids,
-            "added"     : add_ids,
-            "changed"   : chg_ids,
+            "removed"   : sorted(rem_ids),
+            "added"     : sorted(add_ids),
+            "changed"   : sorted(chg_ids),
             "dry_run"   : dry_run,
         })
 
