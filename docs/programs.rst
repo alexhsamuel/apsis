@@ -27,6 +27,7 @@ For example, consider this job config:
     - fruit
 
     program:
+        type: shell
         command: "echo The color of {{ fruit }} is {{ color }}."
 
 When Apsis creates a run with `color: red` and `fruit: apple`, it expands the
@@ -35,6 +36,7 @@ program to,
 .. code:: yaml
 
     program:
+        type: shell
         command: "echo The color of apple is red."
 
 
@@ -46,6 +48,7 @@ The `shell` program executes shell command, given in the `command` key.
 .. code:: yaml
 
     program:
+        type: shell
         command: /usr/bin/echo 'Hello, world!'
 
 Note the following:
@@ -76,10 +79,11 @@ Specify the `user` and `host` keys.
 .. code:: yaml
 
     program:
-        command: >
-            echo I am $(whoami) and I am running on $(hostname -s). 
+        type: shell
         user: devacct
         host: dev3.example.net
+        command: >
+            echo I am $(whoami) and I am running on $(hostname -s). 
 
 The `host` key may specify any host name understood by SSH, or a host group
 name.  Host groups are configured in the Apsis config file.
@@ -103,7 +107,7 @@ used like this in a job config:
 
     program:
         type: acme.ext.BatchProgram
-        # ... other config specific to BatchProgram
+        # other config keys specific to BatchProgram
 
 
 
