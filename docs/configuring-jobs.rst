@@ -1,17 +1,22 @@
 Configuring Jobs
 ================
 
-Specify a job with a file in the jobs directory.  The Apsis config file
-specifies the path to the jobs directory, by default `jobs/` next to the Apsis
-config file itself.
+Jobs are configured by files in the jobs directory.  The jobs directory may
+contain subdirectories, to organize jobs.  Each job file uses the `.yaml` file
+suffix, and specifies one job, with a unique job ID, in YAML format.
 
-Each job file specifies one job, with a unique job ID.  The job may be scheduled
-to run many times, however, with various arguments,
+The Apsis config file specifies the location of the jobs directory; see
+[[config]].
+
 
 Job ID
 ------
 
-The job's ID is given by the filename, without the .yaml extension.
+The job's ID is given by the path under the jobs directory, with the `.yaml`
+suffix removed.  For example, if the jobs directory is `/path/to/jobs`, the job
+file `/path/to/jobs/data/pipeline/start.yaml` has the job ID
+`data/pipeline/start`.
+
 
 Parameters
 ----------
@@ -34,17 +39,21 @@ or equivalently,
 
     params: ["date", "message"]
 
-If `params` is omitted, the job has no parameters.  Parameters aren't required;
-a job without parameters can be run repeatedly, just like a cron job.
+If `params` is omitted, the job has no parameters.
+
+Parameters aren't required; a job without parameters can be run repeatedly, just
+like a cron job.
 
     
 Metadata
 --------
 
 A job can store arbitrary metadata, such as descriptive text, tags, and operator
-instructions.  The `metadata` key accepts arbitrary subkeys.  Currently, Apsis
-only understands the `description` metadata key; others are preserved but not
-used.
+instructions.  The `metadata` key accepts arbitrary subkeys.  None affect how
+runs of the job are executed.
+
+Apsis does understand certain metadata keys.  The `description` key contains
+descriptive Markdown text shown in the UI.
 
 .. code:: yaml
 
@@ -55,12 +64,23 @@ used.
             Removes temporary files that have been created within the last 24
             hours.
 
+The `labels` key is an array of string labels, also shown in the UI.
+
+.. code:: yaml
+
+    metadata:
+        labels:
+            - test
+            - blue-team
+
+Any other metadata keys are preserved but ignored by Apsis.
+
 
 Program
 -------
 
 A job's program describes how the job executes.  Apsis provides several types of
-programs, and you may implement additional program types as well.
+programs, and you may extend Apsis with additional program types as well.
 
 The most common program type is a shell command.  Use the `program` tag, and
 simply specify the shell command as a string.

@@ -3,3 +3,107 @@
 Programs
 ========
 
+Apsis provides a number of ways to specify a job's program.  
+
+A job's program is configured with the top-level `program` key.  The subkey
+`type` indicates the program type; remaining keys are specific to the
+configuration of each program type.
+
+
+Binding
+```````
+
+When Apsis creates a specific run for a job, it **binds** the run's arguments in
+the program config.  Each string-valued config field is expanded as a `jinja2
+template <https://jinja.palletsprojects.com/en/2.11.x/templates/>`_.  The run's
+args are available as substitution variables.
+
+For example, consider this job config:
+
+.. code:: yaml
+
+    params:
+    - color
+    - fruit
+
+    program:
+        command: "echo The color of {{ fruit }} is {{ color }}."
+
+When Apsis creates a run with `color: red` and `fruit: apple`, it expands the
+program to,
+
+.. code:: yaml
+
+    program:
+        command: "echo The color of apple is red."
+
+
+Shell commands
+``````````````
+
+The `shell` program executes shell command, given in the `command` key. 
+
+.. code:: yaml
+
+    program:
+        command: /usr/bin/echo 'Hello, world!'
+
+Note the following:
+
+- The command is a string.  YAML provides multiple syntaxes for specifying
+  strings, each with different rules for line breaks, whitespace, and special
+  characters.  See, for example,
+  `yaml-multiline.info <https://yaml-multiline.info/>`_.
+
+- The command actually a short program, executed by a new shell instance.
+  Generally the shell is
+  `bash <https://www.gnu.org/software/bash/manual/bash.html>`_.  All shell
+  quoting, escaping, variable expansion, etc. rules apply.
+
+- The command may be multiline, execute multiple programs, use shell flow
+  control constructs, etc.
+
+- Binding happens after the YAML is parsed by Apsis (when job config is loaded),
+  but before the shell interprets the command (when a run starts).
+
+
+Users and hosts
+```````````````
+
+Apsis can run shell commands and programs as another user, or on another host.
+Specify the `user` and `host` keys.
+
+.. code:: yaml
+
+    program:
+        command: >
+            echo I am $(whoami) and I am running on $(hostname -s). 
+        user: devacct
+        host: dev3.example.net
+
+The `host` key may specify any host name understood by SSH, or a host group
+name.  Host groups are configured in the Apsis config file.
+
+The remote program is launched via SSH and monitored by an agent program.
+FIXME: Document this better.
+
+
+Extending
+`````````
+
+To add an additional program type to Apsis, extend the `apsis.program.Program`
+class and implement its methods.  Ensure that the custom program class is in a
+module that is importable by Apsis, e.g. in an installed package or elsewhere in
+the import path.  Specify the full import path to the class in the `type` key.
+
+For example, a custom program class `BatchProgram` in the module `acme.ext` is
+used like this in a job config:
+
+.. code:: yaml
+
+    program:
+        type: acme.ext.BatchProgram
+        # ... other config specific to BatchProgram
+
+
+
