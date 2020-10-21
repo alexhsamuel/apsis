@@ -8,6 +8,15 @@ suffix, and specifies one job, with a unique job ID, in YAML format.
 The Apsis config file specifies the location of the jobs directory; see
 [[config]].
 
+Each job includes:
+
+- a job ID, for referring to the job
+- a list of parameter names (which may be empty)
+- a program, which specifies what to run 
+- a schedule, which specifies when to schedule runs
+- optionally, conditions that must be met for a run
+- optionally, actions to take when a run changes state
+
 
 Job ID
 ------
@@ -45,6 +54,43 @@ Parameters aren't required; a job without parameters can be run repeatedly, just
 like a cron job.
 
     
+Program
+-------
+
+The `program` key program describes how a run executes.  Apsis provides several
+types of programs, and you may extend Apsis with additional program types as
+well.
+
+See :ref:`programs` for more information.
+
+
+Schedule
+--------
+
+The `schedule` key pspecifies when new runs are created and for when they are
+scheduled.
+
+A job may have a single schedule, given as a dict, or multiple schedules, as a
+list of dicts.
+
+.. code:: yaml
+
+    # Single schedule
+    schedule:
+        type: interval
+        interval: 3600
+
+    # Two schedules
+    schedule:
+      - type: interval
+        interval: 3600
+      - type: daily
+        tz: UTC
+        daytime: 12:00:00
+
+See :ref:`schedules` for more information.
+
+
 Metadata
 --------
 
@@ -74,34 +120,6 @@ The `labels` key is an array of string labels, also shown in the UI.
             - blue-team
 
 Any other metadata keys are preserved but ignored by Apsis.
-
-
-Program
--------
-
-A job's program describes how the job executes.  Apsis provides several types of
-programs, and you may extend Apsis with additional program types as well.
-
-The most common program type is a shell command.  Use the `program` tag, and
-simply specify the shell command as a string.
-
-.. code:: yaml
-
-    program: "/bin/echo 'Hello, world!'"
-
-Be careful of YAML's string quoting rules.  Multiple-line commands or scripts
-are allowed.  Apsis runs the script you specify directly in bash.
-
-Apsis provides other types of programs too, and a job's programs may access
-argument values and other special features.  See :ref:`programs` for more
-information.
-
-
-Schedule
---------
-
-FIXME: Daily scheduler
-FIXME: Interval scheduler
 
 
 Conditions

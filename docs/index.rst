@@ -7,6 +7,8 @@ Apsis, a scheduler
 
    configuring-jobs
    programs
+   schedules
+   extending
 
 
 Back matter

@@ -92,22 +92,3 @@ The remote program is launched via SSH and monitored by an agent program.
 FIXME: Document this better.
 
 
-Extending
-`````````
-
-To add an additional program type to Apsis, extend the `apsis.program.Program`
-class and implement its methods.  Ensure that the custom program class is in a
-module that is importable by Apsis, e.g. in an installed package or elsewhere in
-the import path.  Specify the full import path to the class in the `type` key.
-
-For example, a custom program class `BatchProgram` in the module `acme.ext` is
-used like this in a job config:
-
-.. code:: yaml
-
-    program:
-        type: acme.ext.BatchProgram
-        # other config keys specific to BatchProgram
-
-
-
