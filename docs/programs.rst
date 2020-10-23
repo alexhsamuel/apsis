@@ -70,6 +70,26 @@ Note the following:
   but before the shell interprets the command (when a run starts).
 
 
+Programs
+````````
+
+The `program` program runs a process from an argument vector, skipping
+execution through a shell.  Instead of a shell command, give `argv`, a list of
+strings containing the arguments.  The first argument is the executable.
+
+.. code:: yaml
+
+    program:
+        type: program
+        argv:
+        - /usr/bin/echo
+        - Hello, world!
+
+Since no shell evaluation takes place, there is no quoting, escaping, argument
+splitting, or substitution.  Note Apsis still performs `Binding`_ on the `argv`
+strings, as described above.
+
+
 Users and hosts
 ```````````````
 
@@ -89,6 +109,7 @@ The `host` key may specify any host name understood by SSH, or a host group
 name.  Host groups are configured in the Apsis config file.
 
 The remote program is launched via SSH and monitored by an agent program.
+
 FIXME: Document this better.
 
 
