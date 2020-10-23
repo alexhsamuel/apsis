@@ -59,7 +59,7 @@ Note the following:
   `yaml-multiline.info <https://yaml-multiline.info/>`_.
 
 - The command actually a short program, executed by a new shell instance.
-  Generally the shell is
+  The shell is
   `bash <https://www.gnu.org/software/bash/manual/bash.html>`_.  All shell
   quoting, escaping, variable expansion, etc. rules apply.
 
