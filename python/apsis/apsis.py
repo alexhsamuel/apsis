@@ -88,7 +88,7 @@ class Apsis:
             if not self.__prepare_run(run):
                 return
             if time is None:
-                self.run_history.info(run, f"restored: waiting")
+                self.run_history.info(run, "restored: waiting")
                 await self.__waiter.start(run)
             else:
                 self.run_history.info(run, f"restored: scheduled for {time}")
@@ -110,7 +110,7 @@ class Apsis:
 
         # Reconnect to running runs.
         _, running_runs = self.run_store.query(state=Run.STATE.running)
-        log.info(f"reconnecting running runs")
+        log.info("reconnecting running runs")
         for run in running_runs:
             assert run.program is not None
             self.run_history.record(
@@ -152,7 +152,7 @@ class Apsis:
             # Program failed to start.
             self.run_history.exc(run, "program start")
             self._transition(
-                run, run.STATE.error, 
+                run, run.STATE.error,
                 meta    =exc.meta,
                 times   =exc.times,
                 outputs =exc.outputs,
@@ -180,7 +180,7 @@ class Apsis:
                 # Program ran and failed.
                 self.run_history.record(run, f"program failure: {exc.message}")
                 self._transition(
-                    run, run.STATE.failure, 
+                    run, run.STATE.failure,
                     meta    =exc.meta,
                     times   =exc.times,
                     outputs =exc.outputs,
@@ -190,7 +190,7 @@ class Apsis:
                 # Program failed to start.
                 self.run_history.record(run, f"program error: {exc.message}")
                 self._transition(
-                    run, run.STATE.error, 
+                    run, run.STATE.error,
                     meta    =exc.meta,
                     times   =exc.times,
                     outputs =exc.outputs,
@@ -198,7 +198,7 @@ class Apsis:
 
             else:
                 # Program ran and completed successfully.
-                self.run_history.record(run, f"program success")
+                self.run_history.record(run, "program success")
                 self._transition(
                     run, run.STATE.success,
                     meta    =success.meta,
@@ -255,7 +255,7 @@ class Apsis:
         if job.reruns.count == 0:
             # No reruns.
             return
-        
+
         # Collect all reruns of this run, including the original run.
         _, runs = self.run_store.query(rerun=run.rerun)
         runs = list(runs)
@@ -510,7 +510,7 @@ async def reschedule_runs(apsis, job_id):
     # Get the time up to which jobs were scheduled.
     scheduler_time = scheduler.get_scheduler_time()
 
-    # Unschedule all runs of this job. 
+    # Unschedule all runs of this job.
     _unschedule_runs(apsis, job_id)
 
     # Restore scheduled runs, by rebuilding them between the scheduled time
@@ -519,7 +519,7 @@ async def reschedule_runs(apsis, job_id):
     schedule = list(get_runs_to_schedule(job, scheduled_time, scheduler_time))
     for time, run in schedule:
         await apsis.schedule(time, run)
-        
+
 
 async def reload_jobs(apsis, *, dry_run=False):
     """
