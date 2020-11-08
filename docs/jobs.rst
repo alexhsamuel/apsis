@@ -10,12 +10,13 @@ The Apsis config file specifies the location of the jobs directory; see
 
 Each job includes:
 
-- a job ID, for referring to the job
-- a list of parameter names (which may be empty)
-- a program, which specifies what to run 
-- a schedule, which specifies when to schedule runs
-- optionally, conditions that must be met for a run
-- optionally, actions to take when a run changes state
+- a **job ID**, for referring to the job
+- option **parameters**
+- a **program**, which specifies what to run 
+- a **schedule**, which specifies when to schedule runs
+- **metadata**, additional information not interpreted by Apsis
+- optional **conditions** that must be met for a run
+- optional **actions** to take when a run changes state
 
 
 Job ID
@@ -31,10 +32,15 @@ Parameters
 ----------
 
 A job may be parametrized, to customize the behaviors of its runs.  Each run of
-a job will provide an argument for each parameter.  Arguments are always
-strings, though the job may interpret parameters specially.
+a job provides an **argument** for each parameter.  Arguments are always
+strings, though the job may interpret parameters as other types.
 
-The `params` key takes a list of parameter names.  For example,
+For example, a "report" job might have a "date" param, specifying the date for
+which to generate the report.  Each run of this job then provides a "date" arg.
+For example, a run might be `report(date=2020-11-09)`.
+
+The `params` key in the job config takes a list of parameter names.  For
+example,
 
 .. code:: yaml
 
@@ -160,12 +166,6 @@ given state.  Specify the job ID of the dependency, and any arguments.
 The arguments are template-expanded.  If the dependency job shares a param with
 the dependent job, it may be omitted; the same arg is used.
 
-
-
-Reruns
-------
-
-FIXME: Write this.
 
 
 Actions
