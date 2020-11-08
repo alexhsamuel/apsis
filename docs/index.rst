@@ -5,6 +5,7 @@ Apsis, a scheduler
    :maxdepth: 1
    :caption: Contents
 
+   concepts
    jobs
    programs
    schedules

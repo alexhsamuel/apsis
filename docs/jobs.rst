@@ -31,14 +31,6 @@ file `/path/to/jobs/data/pipeline/start.yaml` has the job ID
 Parameters
 ----------
 
-A job may be parametrized, to customize the behaviors of its runs.  Each run of
-a job provides an **argument** for each parameter.  Arguments are always
-strings, though the job may interpret parameters as other types.
-
-For example, a "report" job might have a "date" param, specifying the date for
-which to generate the report.  Each run of this job then provides a "date" arg.
-For example, a run might be `report(date=2020-11-09)`.
-
 The `params` key in the job config takes a list of parameter names.  For
 example,
 
@@ -73,7 +65,7 @@ See :ref:`programs` for more information.
 Schedule
 --------
 
-The `schedule` key pspecifies when new runs are created and for when they are
+The `schedule` key specifies when new runs are created and for when they are
 scheduled.
 
 A job may have a single schedule, given as a dict, or multiple schedules, as a
