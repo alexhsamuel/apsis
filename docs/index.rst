@@ -5,7 +5,7 @@ Apsis, a scheduler
    :maxdepth: 1
    :caption: Contents
 
-   configuring-jobs
+   jobs
    programs
    schedules
    extending
