@@ -1,12 +1,13 @@
 .. _schedules:
 
-Schedules
-=========
+Configuring Schedules
+=====================
 
 
 Interval schedule
-`````````````````
+-----------------
 
 
 Daily schedule
-``````````````
+--------------
+

@@ -1,7 +1,7 @@
 .. _programs:
 
-Programs
-========
+Configurating Programs
+======================
 
 Apsis provides a number of ways to specify a job's program.  
 
@@ -10,38 +10,8 @@ A job's program is configured with the top-level `program` key.  The subkey
 configuration of each program type.
 
 
-Binding
-```````
-
-When Apsis creates a specific run for a job, it **binds** the run's arguments in
-the program config.  Each string-valued config field is expanded as a `jinja2
-template <https://jinja.palletsprojects.com/en/2.11.x/templates/>`_.  The run's
-args are available as substitution variables.
-
-For example, consider this job config:
-
-.. code:: yaml
-
-    params:
-    - color
-    - fruit
-
-    program:
-        type: shell
-        command: "echo The color of {{ fruit }} is {{ color }}."
-
-When Apsis creates a run with `color: red` and `fruit: apple`, it expands the
-program to,
-
-.. code:: yaml
-
-    program:
-        type: shell
-        command: "echo The color of apple is red."
-
-
 Shell commands
-``````````````
+--------------
 
 The `shell` program executes shell command, given in the `command` key. 
 
@@ -71,7 +41,7 @@ Note the following:
 
 
 Programs
-````````
+--------
 
 The `program` program runs a process from an argument vector, skipping
 execution through a shell.  Instead of a shell command, give `argv`, a list of
@@ -91,7 +61,7 @@ strings, as described above.
 
 
 Users and hosts
-```````````````
+---------------
 
 Apsis can run shell commands and programs as another user, or on another host.
 Specify the `user` and `host` keys.

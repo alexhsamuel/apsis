@@ -1,5 +1,5 @@
-Jobs
-====
+Configuring Jobs
+================
 
 Jobs are configured by files in the jobs directory.  The jobs directory may
 contain subdirectories, to organize jobs.  Each job file uses the `.yaml` file
@@ -8,15 +8,14 @@ suffix, and specifies one job, with a unique job ID, in YAML format.
 The Apsis config file specifies the location of the jobs directory; see
 [[config]].
 
-Each job includes:
+A job config contains these top-level keys:
 
-- a **job ID**, for referring to the job
-- option **parameters**
-- a **program**, which specifies what to run 
-- a **schedule**, which specifies when to schedule runs
-- **metadata**, additional information not interpreted by Apsis
-- optional **conditions** that must be met for a run
-- optional **actions** to take when a run changes state
+- `params` (optional)
+- `program`, which specifies what to run 
+- `schedule`, which specifies when to schedule runs
+- `metadata` (optional), additional information not interpreted by Apsis
+- `conditions` (optional) that must be met for a run
+- `actions` (optional) to take when a run changes state
 
 
 Job ID
@@ -28,8 +27,8 @@ file `/path/to/jobs/data/pipeline/start.yaml` has the job ID
 `data/pipeline/start`.
 
 
-Parameters
-----------
+Params
+------
 
 The `params` key in the job config takes a list of parameter names.  For
 example,
@@ -164,5 +163,37 @@ Actions
 -------
 
 FIXME: Write this.
+
+
+.. _binding:
+
+Binding
+-------
+
+When Apsis creates a specific run for a job, it **binds** the run's arguments in
+the program config.  Each string-valued config field is expanded as a `jinja2
+template <https://jinja.palletsprojects.com/en/2.11.x/templates/>`_.  The run's
+args are available as substitution variables.
+
+For example, consider this job config:
+
+.. code:: yaml
+
+    params:
+    - color
+    - fruit
+
+    program:
+        type: shell
+        command: "echo The color of {{ fruit }} is {{ color }}."
+
+When Apsis creates a run with `color: red` and `fruit: apple`, it expands the
+program to,
+
+.. code:: yaml
+
+    program:
+        type: shell
+        command: "echo The color of apple is red."
 
 
