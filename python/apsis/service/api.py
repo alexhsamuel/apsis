@@ -404,7 +404,6 @@ async def runs(request):
         job_id  = match_job_id(apsis.jobs, job_id)
     state,      = args.pop("state", (None, ))
     since,      = args.pop("since", (None, ))
-    until,      = args.pop("until", (None, ))
     reruns,     = args.pop("reruns", ("False", ))
 
     when, runs = apsis.run_store.query(
@@ -413,7 +412,6 @@ async def runs(request):
         state   =to_state(state),
         since   =since, 
         reruns  =to_bool(reruns),
-        until   =until,
     )
 
     return response_json(runs_to_jso(request.app, when, runs, summary=summary))
