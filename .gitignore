@@ -9,6 +9,7 @@ doc
 env
 env.sh
 work/
+python/apsis.egg-info
 .cache/
 
 config.yaml
