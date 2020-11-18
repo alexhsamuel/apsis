@@ -6,6 +6,7 @@ apsis~*.db
 apsis.log
 archive-*.db
 doc
+env
 env.sh
 work/
 .cache/
