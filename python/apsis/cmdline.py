@@ -228,6 +228,8 @@ def format_runs(runs, *, reruns=False):
         else:
             return None
 
+    one_job = len({ r["job_id"] for r in runs }) == 1
+
     table = fixfmt.table.RowTable(cfg=RUNS_TABLE_CFG)
     for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
         row = {
@@ -236,9 +238,11 @@ def format_runs(runs, *, reruns=False):
             "start"     : start_time(run),
             "elapsed"   : elapsed(run),
             "job_id"    : JOB + run["job_id"] + RES,
-            "args"      : " ".join( f"{k}={v}" for k, v in run["args"].items() ),
-          # **run["args"],
         }
+        if one_job:
+            row.update(**run["args"])
+        else:
+            row["args"] = " ".join( f"{k}={v}" for k, v in run["args"].items() )
         table.append(**row)
         if reruns and pos in "lo":
             table.text("")
@@ -247,6 +251,11 @@ def format_runs(runs, *, reruns=False):
         table.fmts["S"] = format_state_symbol
         table.fmts["start"] = format_time
         table.fmts["elapsed"] = format_elapsed
+
+        if one_job:
+            # Single job.
+            table.fmts["job_id"] = None
+
         yield from table
 
     else:
