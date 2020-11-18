@@ -19,6 +19,15 @@ instance.  The run objects would become much more active.
   - add async `query()` and `subscribe()` methods
 
 
+# Docs
+
+- organize config into chapter?
+- schedule config
+- actions
+- CLUI
+- web UI
+
+
 # Current
 
 - support configured extension symbols in `template_expand`
