@@ -135,6 +135,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
         host        =host,
         port        =port,
         debug       =debug,
+        return_asyncio_server=True,
     )
     server_task = asyncio.ensure_future(server)
 

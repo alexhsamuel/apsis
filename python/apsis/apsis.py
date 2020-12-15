@@ -258,7 +258,6 @@ class Apsis:
 
         # Collect all reruns of this run, including the original run.
         _, runs = self.run_store.query(rerun=run.rerun)
-        runs = list(runs)
 
         if len(runs) > job.reruns.count:
             # No further reruns.

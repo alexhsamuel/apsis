@@ -120,7 +120,7 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=30):
     """
     log.info(f"starting agent on {host}")
     argv = _get_agent_argv(host=host, user=user, connect=connect)
-    log.info(" ".join(argv))
+    log.debug(" ".join(argv))
     proc = await asyncio.create_subprocess_exec(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
@@ -141,6 +141,7 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=30):
         try:
             data, = out.decode().splitlines()
             port, token = data.split()
+            log.debug(f"agent running on port {host}:{port}")
             return int(port), token
         except (TypeError, ValueError):
             raise AgentStartError(proc.returncode, out.decode())
@@ -245,7 +246,8 @@ class Agent:
                         verify=False,
                         headers={
                             "X-Auth-Token": token,
-                        }
+                        },
+                        timeout=1,
                     )
 
             except requests.ConnectionError:
