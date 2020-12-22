@@ -14,7 +14,7 @@ div
 
     thead
       tr
-        th.col-job Job
+        th.col-job(v-if="showJob") Job
         th.col-args Args
         th.col-run Run
         th.col-state State
@@ -31,7 +31,7 @@ div
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
-          td.col-job
+          td.col-job(v-if="showJob")
             div(v-if="run.run_id === group.id")
               Job(:job-id="run.job_id")
               JobLabel(
@@ -103,6 +103,7 @@ export default {
     query: {type: String, default: ''},
     path: {type: String, default: null},
     pageSize: {type: Number, default: null},
+    showJob: {type: Boolean, default: true},
   },
 
   components: {
@@ -118,7 +119,7 @@ export default {
     Timestamp,
   },
 
-  data() { 
+  data() {
     return { 
       groupCollapse: {},
       page: this.p,
