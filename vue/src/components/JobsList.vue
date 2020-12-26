@@ -71,7 +71,7 @@ div
                 a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
 
         td.description
-          div(v-if="job" v-html="markdown(job.metadata.description || '')")
+          div(v-if="job" v-html="markdown(exerptDescription(job.metadata.description || ''))")
 
         td.params
           span.params(v-if="job && job.params.length > 0")
@@ -88,8 +88,8 @@ div
 import Job from './Job'
 import JobLabel from './JobLabel'
 import { every, filter, join, map, sortBy, trim } from 'lodash'
-import { markdown } from 'markdown'
 import Program from './Program'
+import showdown from 'showdown'
 
 export function makePredicate(query) {
   const parts = filter(map(query.split(' '), trim))
@@ -209,7 +209,17 @@ export default {
   },
 
   methods: {
-    markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
+    // Returns a shortened form of the description Markdown `src`.
+    exerptDescription(src) {
+      var paragraph = src.split('\n\n')[0]
+      if (paragraph.length > 256)
+        paragraph = paragraph.substring(0, 256) + '…'
+      return paragraph
+    },
+
+    // Converts Markdown `src` to HTML.
+    markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
+
     join,
 
     toggleCollapse(path) {

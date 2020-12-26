@@ -57,10 +57,10 @@ div
 
 <script>
 import { join } from 'lodash'
-import { markdown } from 'markdown'
 import JobLabel from '@/components/JobLabel'
 import Program from '@/components/Program'
 import RunsList from '@/components/RunsList'
+import showdown from 'showdown'
 import store from '@/store'
 
 export default {
@@ -104,7 +104,7 @@ export default {
   },
 
   methods: {
-    markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
+    markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
   },
 
 }
