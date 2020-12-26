@@ -1,5 +1,5 @@
 <template lang="pug">
-  span
+  span(class="tooltip")
     span( 
       v-bind:style="'color: ' + color"
       v-bind:uk-icon="'icon: ' + icon + '; ratio: 1.0'"
@@ -9,6 +9,7 @@
       class="name"
       v-bind:style="'color: ' + color"
     ) {{ state }}
+    span(class="tooltiptext") {{ state.toUpperCase() }}
 </template>
 
 <script>

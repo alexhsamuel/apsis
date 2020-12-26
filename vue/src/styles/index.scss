@@ -89,3 +89,33 @@ table.fields {
   }
 }
 
+// To use tooltips:
+//
+//   <div class="tooltip">
+//     normal contents
+//     <span class="tooltiptext">tooltip text<span>
+//   </div>
+//
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltiptext { 
+  visibility: hidden;
+  background-color: #fffff0;
+  color: #606060;
+  text-align: center;
+  font-size: 80%;
+  padding: 3px 8px;
+  border: 2px solid #e0e0ef;
+  border-radius: 8px;
+
+  position: absolute;
+  left: 24px;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
