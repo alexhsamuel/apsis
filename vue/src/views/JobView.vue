@@ -51,7 +51,7 @@ div
           th {{ key }}
           td {{ value }}
 
-  RunsList(:query="query" :showJob="false").uk-margin-bottom
+  RunsList(:query="query" :showJob="false" :argColumns="true").uk-margin-bottom
 
 </template>
 

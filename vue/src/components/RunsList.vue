@@ -2,11 +2,13 @@
 div
   table.widetable.runlist
     colgroup
-      col(style="min-width: 10rem; max-width: 12rem;")
-      col(style="min-width: 10rem; max-width: 100%;")
+      col(v-if="showJob" style="min-width: 10rem")
+      template(v-if="argColumns")
+        col(v-for="param in params")
+      col(v-else style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
       col(style="width: 4rem")
-      col(style="width: 4rem")
+      col(style="width: 5rem")
       col(style="width: 10rem")
       col(style="width: 10rem")
       col(style="width: 6rem")
@@ -15,7 +17,9 @@ div
     thead
       tr
         th.col-job(v-if="showJob") Job
-        th.col-args Args
+        template(v-if="argColumns ")
+          th.col-arg(v-for="param in params") {{ param }}
+        th.col-args(v-else) Args
         th.col-run Run
         th.col-state State
         th.col-reruns Runs
@@ -31,6 +35,7 @@ div
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
+          // Show job name if enabled by 'showJob'.
           td.col-job(v-if="showJob")
             div(v-if="run.run_id === group.id")
               Job(:job-id="run.job_id")
@@ -39,9 +44,14 @@ div
                 :label="label"
                 :key="label"
               )
-          td.col-args
+          // If 'argColumns ', show each arg in a separate column.
+          template(v-if="argColumns ")
+            td(v-for="param in params") {{ run.args[param] || '' }}
+          // Else all together.
+          td.col-args(v-else)
             span(v-if="run.run_id === group.id")
               RunArgs(:args="run.args")
+
           td.col-run
             Run(:run-id="run.run_id")
           td.col-state
@@ -76,7 +86,7 @@ div
 </template>
 
 <script>
-import { entries, filter, groupBy, map, sortBy } from 'lodash'
+import { entries, filter, flatten, groupBy, keys, map, sortBy, uniq } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
@@ -104,6 +114,7 @@ export default {
     path: {type: String, default: null},
     pageSize: {type: Number, default: null},
     showJob: {type: Boolean, default: true},
+    argColumns : {type: Boolean, default: false},
   },
 
   components: {
@@ -155,6 +166,10 @@ export default {
       }
 
       return filter(runs, this.jobPredicate)
+    },
+  
+    params() {
+      return uniq(flatten(map(this.runs, run => keys(run.args))))
     },
 
     // Array of rerun groups, each an array of runs that are reruns of the
@@ -258,7 +273,7 @@ export default {
 
 <style lang="scss">
 table.runlist {
-  .col-job, .col-args, .col-schedule-time, .col-start-time {
+  .col-job, .col-args, .col-arg, .col-schedule-time, .col-start-time {
     text-align: left;
   }
 
