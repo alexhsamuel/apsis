@@ -1,20 +1,34 @@
 <template lang="pug">
 div
   table.fields
-    tr(v-for="(value, key) in program" :key="key")
+    tr(v-for="[key, value] in fields" :key="key")
       th {{ key }}
       td(:class="getClass(key)") {{ value }}
 
 </template>
 
 <script>
+import { toPairs } from 'lodash'
+
 export default {
   props: ['program'],
+
+  computed: {
+    fields() {
+      var x = toPairs(this.program)
+        .filter(([key, value]) => key !== 'str')
+        .sort((a, b) => a[0] === 'type' ? -1 : b[0] === 'type' ? 1 : 0)
+      console.log(x)
+      return x
+    },
+  },
 
   methods: {
     getClass(key) {
       if (key === 'command')
         return ['code', 'multiline']
+      else if (key === 'argv')
+        return ['code']
       else
         return ''
     },
