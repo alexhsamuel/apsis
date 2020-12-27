@@ -318,7 +318,7 @@ class Apsis:
         if sys.exc_info()[0] is not None:
             # Attach the exception traceback as run output.
             tb = traceback.format_exc().encode()
-            # FIXME: For now, use the name "output" as this is the only one 
+            # FIXME: For now, use the name "output" as this is the only one
             # the UIs render.  In the future, change to "traceback".
             outputs["output"] = Output(
                 OutputMetadata("output", len(tb), content_type="text/plain"),
@@ -342,7 +342,7 @@ class Apsis:
         # A run is no longer expected once it is no longer scheduled.
         if run.expected and state not in {
                 run.STATE.new,
-                run.STATE.scheduled, 
+                run.STATE.scheduled,
         }:
             self.__db.run_history_db.flush(run.run_id)
             run.expected = False
@@ -357,7 +357,7 @@ class Apsis:
         for output_id, output in outputs.items():
             self.__db.output_db.add(run.run_id, output_id, output)
 
-        # Persist the new state.  
+        # Persist the new state.
         self.run_store.update(run, time)
 
         if state == run.STATE.failure:
@@ -476,7 +476,7 @@ class Apsis:
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
         log.info("Apsis shut down")
-        
+
 
 
 #-------------------------------------------------------------------------------
