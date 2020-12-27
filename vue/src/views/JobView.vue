@@ -6,7 +6,7 @@ div
     JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
 
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
-  p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)")
+  p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)" class="description")
 
   table.fields(v-if="job"): tbody
     tr
@@ -123,5 +123,10 @@ h1 {
   th, td {
     line-height: 1;
   }
+}
+
+.description {
+  border: 1px solid #e5e5e5;
+  padding: 12px 16px 0px 16px;
 }
 </style>
