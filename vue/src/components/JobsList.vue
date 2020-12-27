@@ -279,11 +279,11 @@ export default {
   }
 
   .dir > td {
-    height: 48px;
+    height: 36px;
   }
 
   .job > td {
-    height: 48px;
+    height: 36px;
   }
 
   .job-title {
