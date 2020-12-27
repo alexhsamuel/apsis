@@ -1,0 +1,13 @@
+metadata:
+  description: "Test job #0."
+  labels:
+    - test
+    - deps
+
+program:
+  type: program-alias
+  host: fennel
+  command: 'echo $hostname'
+
+
+
