@@ -15,11 +15,9 @@ export default {
 
   computed: {
     fields() {
-      var x = toPairs(this.program)
+      return toPairs(this.program)
         .filter(([key, value]) => key !== 'str')
         .sort((a, b) => a[0] === 'type' ? -1 : b[0] === 'type' ? 1 : 0)
-      console.log(x)
-      return x
     },
   },
 
