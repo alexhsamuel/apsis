@@ -16,7 +16,7 @@ def normalize_path(path, base_path: Path):
 
 
 def check(cfg, base_path: Path):
-    job_dir = normalize_path(cfg.get("job_dir", "jobs"), base_path) 
+    job_dir = normalize_path(cfg.get("job_dir", "jobs"), base_path)
     if not job_dir.exists():
         log.error(f"missing job directory: {job_dir}")
     cfg["job_dir"] = job_dir
