@@ -26,6 +26,7 @@ def get_runs_to_schedule(job, start, stop):
                 for a, v in args.items() 
                 if a in job.params
             }
+            # FIXME: Check that all params are satisfied by args.  If not...?
             # FIXME: Store additional args for later expansion.
             inst = Instance(job.job_id, args)
 

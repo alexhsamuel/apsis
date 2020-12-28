@@ -1,5 +1,6 @@
 from   contextlib import suppress
 import logging
+import ora
 import os
 from   pathlib import Path
 import random
@@ -223,6 +224,7 @@ def check_job_file(path):
     """
     path = Path(path)
     job_id = path.with_suffix("").name
+    now = ora.now()
 
     error = lambda msg: print(msg, file=sys.stdout)
     with open(path) as file:
@@ -237,6 +239,14 @@ def check_job_file(path):
         except SchemaError as exc:
             error(f"failed to parse job: {exc}")
             return None
+
+        # Try scheduling some runs.
+        for schedule in job.schedules:
+            _, args = next(schedule(now))
+            missing_args = set(job.params) - set(args)
+            if len(missing_args) > 0:
+                error(f"missing args in schedule: {' '.join(missing_args)}")
+                return None
 
         # FIXME: Additional checks here?
 
