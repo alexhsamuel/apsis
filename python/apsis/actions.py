@@ -1,7 +1,7 @@
 import logging
 
 from   . import runs
-from   .lib.json import TypedJso, no_unexpected_keys
+from   .lib.json import TypedJso, check_schema
 from   .lib.py import tupleize
 
 log = logging.getLogger(__name__)
@@ -21,13 +21,12 @@ class Condition:
 
 
     @classmethod
-    def from_jso(Class, jso):
+    def from_jso(cls, jso):
         if jso is None:
             return None
-
-        with no_unexpected_keys(jso):
-            states = states_from_jso(jso.pop("states", None))
-        return Class(states=states)
+        with check_schema(jso) as pop:
+            states = pop("states", states_from_jso, default=None)
+        return cls(states=states)
 
 
     def to_jso(self):
@@ -112,9 +111,10 @@ class ScheduleAction(Action):
 
     @classmethod
     def from_jso(cls, jso):
-        job_id      = jso.pop("job_id")
-        args        = jso.pop("args", {})
-        condition   = Condition.from_jso(jso.pop("if", None))
+        with check_schema(jso) as pop:
+            job_id      = pop("job_id")
+            args        = pop("args", default={})
+            condition   = Condition.from_jso(pop("if", default=None))
         return cls(runs.Instance(job_id, args), condition=condition)
 
 
@@ -134,9 +134,9 @@ def successor_from_jso(jso):
     if isinstance(jso, str):
         jso = {"job_id": jso}
 
-    with no_unexpected_keys(jso):
-        job_id = jso.pop("job_id")
-        args = jso.pop("args", {})
+    with check_schema(jso) as pop:
+        job_id  = pop("job_id")
+        args    = pop("args", default={})
     return ScheduleAction(
         runs.Instance(job_id, args),
         condition=Condition(states=[runs.Run.STATE.success])

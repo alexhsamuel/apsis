@@ -4,7 +4,7 @@ import ora
 from   ora import Daytime, Time, TimeZone
 
 from   .lib.exc import SchemaError
-from   .lib.json import TypedJso
+from   .lib.json import TypedJso, check_schema
 from   .lib.py import format_ctor
 
 log = logging.getLogger(__name__)
@@ -107,27 +107,15 @@ class DailySchedule(Schedule):
 
     @classmethod
     def from_jso(cls, jso):
-        enabled = jso.pop("enabled", True)
-
-        args = jso.pop("args", {})
-
-        try:
-            tz = jso.pop("tz")
-        except KeyError:
-            raise SchemaError("missing time zone")
-        tz = TimeZone(tz)
-
-        calendar = ora.get_calendar(jso.pop("calendar", "all"))
-
-        try:
-            daytimes = jso.pop("daytime")
-        except KeyError:
-            raise SchemaError("missing daytime")
-        daytimes = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
-        daytimes = [ Daytime(d) for d in daytimes ]
-
-        date_shift = jso.pop("date_shift", 0)
-
+        with check_schema(jso) as pop:
+            enabled     = pop("enabled", bool, default=True)
+            args        = pop("args", default={})
+            tz          = pop("tz", TimeZone)
+            calendar    = ora.get_calendar(pop("calendar", default="all"))
+            daytimes    = pop("daytime")
+            daytimes    = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
+            daytimes    = [ Daytime(d) for d in daytimes ]
+            date_shift  = pop("date_shift", int, default=0)
         return cls(
             tz, calendar, daytimes, args, 
             enabled=enabled, date_shift=date_shift
@@ -172,16 +160,12 @@ class ExplicitSchedule(Schedule):
 
     @classmethod
     def from_jso(cls, jso):
-        enabled = jso.pop("enabled", True)
-        try:
-            times = jso.pop("times")
-        except KeyError:
-            raise SchemaError("missing times")
-        times = times if isinstance(times, list) else [times]
-        times = [ Time(t) for t in times ]
-
-        args = jso.pop("args", {})
-
+        with check_schema(jso) as pop:
+            enabled     = pop("enabled", bool, default=True)
+            times       = pop("times")
+            times       = times if isinstance(times, list) else [times]
+            times       = [ Time(t) for t in times ]
+            args        = pop("args", default={})
         return cls(times, args, enabled=enabled)
 
 
@@ -237,18 +221,12 @@ class IntervalSchedule(Schedule):
 
     @classmethod
     def from_jso(cls, jso):
-        enabled     = jso.pop("enabled", True)
-        try:
-            interval = jso.pop("interval")
-        except KeyError:
-            raise SchemaError("missing interval")
-        interval    = float(interval)
-        phase       = float(jso.pop("phase", 0))
-        args        = jso.pop("args", {})
-
-        if not (0 <= phase < interval):
-            raise SchemaError("require 0 <= phase < interval")
-
+        with check_schema(jso) as pop:
+            enabled     = pop("enabled", bool, default=True)
+            interval    = pop("interval", int)
+            phase       = pop("phase", float, 0)
+            assert 0 <= phase < interval, "phase not between 0 and interval"
+            args        = pop("args", default={})
         return cls(interval, args, enabled=enabled, phase=phase)
 
 

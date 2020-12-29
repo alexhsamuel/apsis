@@ -9,7 +9,7 @@ import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
 from   .host_group import expand_host
-from   .lib.json import TypedJso
+from   .lib.json import TypedJso, check_schema
 from   .lib.py import or_none
 from   .lib.sys import get_username
 from   .runs import template_expand, join_args
@@ -327,11 +327,11 @@ class AgentProgram(Program):
 
     @classmethod
     def from_jso(cls, jso):
-        return cls(
-            jso.pop("argv"), 
-            host=jso.pop("host", None),
-            user=jso.pop("user", None),
-        )
+        with check_schema(jso) as pop:
+            argv    = pop("argv")
+            host    = pop("host", str, None)
+            user    = pop("user", str, None)
+        return cls(argv, host=host, user=user)
 
 
     async def start(self, run_id, cfg):
@@ -472,11 +472,11 @@ class AgentShellProgram(AgentProgram):
 
     @classmethod
     def from_jso(cls, jso):
-        return cls(
-            jso.pop("command"),
-            host=jso.pop("host", None),
-            user=jso.pop("user", None),
-        )
+        with check_schema(jso) as pop:
+            command = pop("command", str)
+            host    = pop("host", str, None)
+            user    = pop("user", str, None)
+        return cls(command, host=host, user=user)
 
 
 
