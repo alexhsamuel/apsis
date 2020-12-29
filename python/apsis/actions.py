@@ -8,16 +8,29 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+STATE = runs.Run.STATE
+ALL_STATES = frozenset(STATE)
+
+def states_from_jso(jso):
+    return frozenset( runs.Run.STATE[s] for s in tupleize(jso) )
+
+
+def states_to_jso(states):
+    states = frozenset(states)
+    return (
+        None if states == ALL_STATES
+        else [ s.name for s in states ]
+    )
+
+
 class Condition:
 
     def __init__(self, *, states=None):
-        self.states = None if states is None else frozenset(states)
+        self.states = frozenset(states)
 
 
     def __call__(self, run):
-        return (
-            self.states is None or run.state in self.states
-        )
+        return run.state in self.states
 
 
     @classmethod
@@ -25,7 +38,7 @@ class Condition:
         if jso is None:
             return None
         with check_schema(jso) as pop:
-            states = pop("states", states_from_jso, default=None)
+            states = pop("states", states_from_jso, default=ALL_STATES)
         return cls(states=states)
 
 
@@ -34,20 +47,6 @@ class Condition:
             "states": states_to_jso(self.states),
         }
 
-
-
-def states_from_jso(jso):
-    return (
-        None if jso is None
-        else tuple( runs.Run.STATE[s] for s in tupleize(jso) )
-    )
-
-
-def states_to_jso(states):
-    return (
-        None if states is None
-        else [ s.name for s in states ]
-    )
 
 
 #-------------------------------------------------------------------------------
