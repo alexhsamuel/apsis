@@ -6,26 +6,40 @@ from   .imp import import_fqname, get_type_fqname
 
 #------------------------------------------------------------------------------
 
+NO_DEFAULT = object()
+
 def to_array(obj):
     return obj if isinstance(obj, list) else [obj]
 
 
 @contextlib.contextmanager
-def no_unexpected_keys(jso):
+def check_schema(jso):
     """
-    On exit, checks that all JSO keys have been popped.
+    Wraps a JSO dict in a `pop` function.  On exit, checks for no remaining
+    keys.
+    """
+    copy = dict(jso)
 
-    :raise SchemaError:
-      The JSO is not empty at the end of the context body.
-    """
-    original = dict(jso)
-    yield jso
-    if len(jso) > 0:
-        keys = ", ".join( f'"{k}"' for k in jso )
-        raise SchemaError(
-            f"unexpected {keys} in structure:\n"
-            + ujson.dumps(original, indent=2)
-        )
+    def pop(key, type=None, default=NO_DEFAULT):
+        try:
+            value = copy.pop(key)
+        except KeyError:
+            if default is NO_DEFAULT:
+                raise SchemaError(f"missing key: {key}") from None
+            else:
+                value = default
+        else:
+            if type is not None:
+                value = type(value)
+        return value
+
+    try:
+        yield pop
+    except Exception as exc:
+        raise SchemaError(str(exc))
+
+    if len(copy) > 0:
+        raise SchemaError(f"unexpected keys: {' '.join(copy)}")
 
 
 #-------------------------------------------------------------------------------
@@ -92,20 +106,19 @@ class TypedJso:
 
     @classmethod
     def from_jso(cls, jso):
-        with no_unexpected_keys(jso):
-            try:
-                name = jso.pop("type")
+        try:
+            name = jso.pop("type")
 
-            except KeyError:
-                # No type field specified.
-                raise SchemaError("missing type")
+        except KeyError:
+            # No type field specified.
+            raise SchemaError("missing type")
 
-            else:
-                type = cls.TYPE_NAMES.get_type(name)
-                if not issubclass(type, cls):
-                    raise SchemaError(f"type {type} not a {cls}")
+        else:
+            type = cls.TYPE_NAMES.get_type(name)
+            if not issubclass(type, cls):
+                raise SchemaError(f"type {type} not a {cls}")
 
-            return type.from_jso(jso)
+        return type.from_jso(jso)
 
 
     def to_jso(self):
