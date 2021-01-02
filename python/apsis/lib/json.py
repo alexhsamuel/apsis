@@ -1,5 +1,4 @@
 import contextlib
-import ujson
 
 from   .exc import SchemaError
 from   .imp import import_fqname, get_type_fqname
@@ -93,7 +92,10 @@ class TypedJso:
             try:
                 return self.__by_name[name]
             except KeyError:
-                return import_fqname(name)
+                try:
+                    return import_fqname(name)
+                except ImportError as exc:
+                    raise LookupError(exc)
 
 
         def get_name(self, type):
@@ -114,7 +116,10 @@ class TypedJso:
             raise SchemaError("missing type")
 
         else:
-            type = cls.TYPE_NAMES.get_type(name)
+            try:
+                type = cls.TYPE_NAMES.get_type(name)
+            except LookupError as exc:
+                raise SchemaError(f"bad type: {exc}")
             if not issubclass(type, cls):
                 raise SchemaError(f"type {type} not a {cls}")
 
