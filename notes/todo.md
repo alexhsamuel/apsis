@@ -1,3 +1,9 @@
+- To finish `check-job`, we need to remove the program, schedule, action, cond
+  aliases from `config.yaml` and move them to a config file specific to the job
+  dir.
+  
+
+
 # Idle thoughts
 
 It might be better for the scheduler, scheduled, and waiter loops to be managed
