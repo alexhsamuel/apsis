@@ -220,7 +220,7 @@ def check_job_file(path):
     error = lambda msg: print(msg, file=sys.stdout)
     with open(path) as file:
         try:
-            jso = yaml.load(file)
+            jso = yaml.load(file, Loader=yaml.SafeLoader)
         except yaml.YAMLError as exc:
             error(f"failed to parse YAML: {exc}")
             return None
