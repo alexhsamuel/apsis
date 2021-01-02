@@ -98,6 +98,27 @@ cmd.add_argument(
     help="check the job file PATH")
 
 #-------------------------------------------------------------------------------
+# command: check-jobs
+
+def cmd_check_jobs(args):
+    status = 0
+    for err in apsis.jobs.check_job_dir(args.path):
+        print(err, file=sys.stderr)
+        status = 1
+    return status    
+
+
+cmd = parser.add_command(
+    "check-jobs", cmd_check_jobs,
+    description="Checks jobs in a directory.")
+cmd.add_argument(
+    "path", metavar="DIR", type=Path,
+    help="check the jobs in DIR")
+cmd.add_argument(
+    "--config", metavar="CFGFILE", nargs="?", type=Path, default=None,
+    help="read config from CFGFILE")
+
+#-------------------------------------------------------------------------------
 # command: create
 
 def cmd_create(args):
@@ -245,11 +266,13 @@ cmd = parser.add_command(
 args = parser.parse_args()
 
 try:
-    args.cmd(args)
+    status = args.cmd(args)
 except apsis.service.client.APIError as err:
     apsis.cmdline.print_lines(
         apsis.cmdline.format_api_error(err), file=sys.stderr)
     raise SystemExit(1)
 except (KeyboardInterrupt, BrokenPipeError):
     pass
+else:
+    raise SystemExit(0 if status is None else status)
 

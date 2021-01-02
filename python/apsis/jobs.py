@@ -287,7 +287,7 @@ def load_jobs_dir(path):
       The successfully loaded `JobsDir`.
     :raise JobErrors:
       One or more errors while loading jobs.  The exception's `errors` attribute
-      contains the errors; each has a `path` attribute.
+      contains the errors; each has a `job_id` attribute.
     """
     jobs_path = Path(path)
     jobs = {}
@@ -303,6 +303,54 @@ def load_jobs_dir(path):
         raise JobErrors(f"errors loading jobs in {jobs_path}", errors)
     else:
         return JobsDir(jobs_path, jobs)
+
+
+def check_jobs_dir(jobs_dir):
+    """
+    Performs consistency checks on jobs in `jobs_dir`.
+
+    :return:
+      Generator of errors.
+    """
+    now = ora.now()
+
+    for job in jobs_dir.get_jobs():
+        # Check all job ids in actions and conditions, by checking each action
+        # and condition class for a job_id attribute.
+        for action in job.actions:
+            try:
+                jobs_dir.get_job(action.job_id)
+            except LookupError:
+                yield(f"{job.job_id}: no job in action: {action.job_id}")
+        for cond in job.conds:
+            try:
+                jobs_dir.get_job(cond.job_id)
+            except LookupError:
+                yield(f"{job.job_id}: no job in condition: {cond.job_id}")
+
+        # Try scheduling a run for each schedule of each job.
+        for schedule in job.schedules:
+            _, args = next(schedule(now))
+            missing_args = set(job.params) - set(args)
+            if len(missing_args) > 0:
+                yield(f"missing args in schedule: {' '.join(missing_args)}")
+
+
+def check_job_dir(path):
+    """
+    Loads jobs in dir at `path` and checks validity.
+
+    :return:
+      Generator of errors.
+    """
+    try:
+        jobs_dir = load_jobs_dir(path)
+    except JobErrors as exc:
+        for err in exc.errors:
+            yield f"{err.job_id}: {err}"
+        return
+
+    yield from check_jobs_dir(jobs_dir)
 
 
 #-------------------------------------------------------------------------------
