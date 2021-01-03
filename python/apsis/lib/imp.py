@@ -59,13 +59,13 @@ def import_fqname(name):
     while True:
         try:
             module = import_module(modname)
-        except ImportError:
+        except ImportError as exc:
             # Failed to import.  Try removing the last component.
             try:
                 modname, part = modname.rsplit(".", 1)
             except ValueError:
                 # No module name left.
-                raise ImportError(modname)
+                raise ImportError(exc)
             else:
                 # The last component becomes part of the qualname.
                 qualname = join(part, qualname)

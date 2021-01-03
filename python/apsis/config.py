@@ -50,22 +50,3 @@ def load(path):
         return check(cfg, path.parent.absolute())
 
 
-def config_globals(cfg):
-    """
-    Configures global config from `cfg`.
-    """
-    # Set global type aliases.
-    for Cls, cfg_name in (
-            (Program, "program_types"),
-            (Schedule, "schedule_types"),
-            (Action, "action_types"),
-    ):
-        for alias, fullname in cfg.get(cfg_name, {}).items():
-            try:
-                cls = import_fqname(fullname)
-            except ImportError:
-                raise ValueError(f"can't import class in {cfg_name}: {fullname}")
-            else:
-                Cls.TYPE_NAMES.set(cls, alias)
-
-

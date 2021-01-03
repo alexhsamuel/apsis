@@ -1,3 +1,9 @@
+- To finish `check-job`, we need to remove the program, schedule, action, cond
+  aliases from `config.yaml` and move them to a config file specific to the job
+  dir.
+  
+
+
 # Idle thoughts
 
 It might be better for the scheduler, scheduled, and waiter loops to be managed
@@ -60,7 +66,7 @@ instance.  The run objects would become much more active.
 
 - add version to web UI
 
-- migrate to sanic 1.0 (or aiohttp maybe)
+- migrate to aiohttp
 
 - label for ad-hoc jobs
 
@@ -69,8 +75,6 @@ instance.  The run objects would become much more active.
 - attach job to run when scheduling, rather than loading jobs later
 
 - get rid of runs collapser in runs view (too many runs!)
-
-- configurable args columns in runs view (e.g. strat, date)
 
 - job label search
 
