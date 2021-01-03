@@ -63,6 +63,7 @@ class Dependency(Condition):
     def check_runs(self, run_store):
         _, deps = run_store.query(
             job_id=self.job_id, args=self.args, state=self.states)
+        deps = iter(deps)
         try:
             dep = next(deps)
         except StopIteration:

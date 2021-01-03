@@ -4,10 +4,10 @@ program: 'echo "dep3 label={{ label }} label0={{ label0 }}"'
 
 condition:
 - type: dependency
-  job_id: dep1
+  job_id: test/dep/dep1
   args: {foo: -1}
 - type: dependency
-  job_id: dep0
+  job_id: test/dep/dep0
   args:
     label: "{{ label0 }}"
 

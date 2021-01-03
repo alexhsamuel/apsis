@@ -4,5 +4,5 @@ program: 'echo "dep1 label={{ label }} foo={{ foo }}"'
 
 condition:
   type: dependency
-  job_id: dep0
+  job_id: test/dep/dep0
 
