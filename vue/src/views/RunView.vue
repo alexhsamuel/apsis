@@ -125,7 +125,6 @@ export default {
 
   computed: {
     run_times() {
-      console.log(this.run.conds)
       return sortBy(toPairs(this.run.times), ([k, v]) => v)
     },
 
