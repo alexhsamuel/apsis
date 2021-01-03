@@ -80,24 +80,6 @@ cmd.add_argument(
     help="path to Apsis database")
 
 #-------------------------------------------------------------------------------
-# command: check-job
-
-def cmd_check_job(args):
-    path = args.path
-    job = apsis.jobs.check_job_file(path)
-    if job is not None:
-        # FIXME: Use something nicer.
-        json.dump(apsis.jobs.job_to_jso(job), sys.stdout, indent=2)
-
-
-cmd = parser.add_command(
-    "check-job", cmd_check_job,
-    description="Checks a job file.")
-cmd.add_argument(
-    "path", metavar="PATH",
-    help="check the job file PATH")
-
-#-------------------------------------------------------------------------------
 # command: check-jobs
 
 def cmd_check_jobs(args):
