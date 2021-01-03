@@ -45,7 +45,7 @@ class Apsis:
     def __init__(self, cfg, jobs, db):
         log.debug("creating Apsis instance")
         self.cfg = cfg
-        # FIXME: This should go in `apsis.config.config_globals`.
+        # FIXME: This should go in `apsis.config.config_globals` or similar.
         config_host_groups(cfg)
         self.__db = db
 
