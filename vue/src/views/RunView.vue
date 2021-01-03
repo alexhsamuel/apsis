@@ -38,6 +38,12 @@ div
           th rerun of
           td: Run(:run-id="run.rerun")
 
+        tr(v-if="run.conds && run.conds.length > 0")
+          th condition
+          td.no-padding: table.fields: tbody
+            tr(v-for="cond in run.conds" :key="cond.str")
+              td(style="padding-left: 0") {{ cond.str }}
+
         tr
           th times
           td.no-padding: table.fields: tbody
@@ -119,6 +125,7 @@ export default {
 
   computed: {
     run_times() {
+      console.log(this.run.conds)
       return sortBy(toPairs(this.run.times), ([k, v]) => v)
     },
 
