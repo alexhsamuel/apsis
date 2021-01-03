@@ -1,3 +1,6 @@
+- Factor loop watchers (`log.critical`) into a common pattern.
+- Clean up the restore task.
+
 - To finish `check-job`, we need to remove the program, schedule, action, cond
   aliases from `config.yaml` and move them to a config file specific to the job
   dir.
