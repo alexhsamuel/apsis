@@ -86,7 +86,6 @@ export default {
 
   computed: {
     params() {
-      console.log(this.job)
       return join(this.job.params, ', ')
     },
 
