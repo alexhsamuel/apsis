@@ -83,8 +83,6 @@ class Apsis:
         """
         Restores scheduled, waiting, and running runs from DB.
         """
-        log.info("restoring")
-
         async def reschedule(run, time):
             if not self.__prepare_run(run):
                 return
@@ -95,31 +93,38 @@ class Apsis:
                 self.run_history.info(run, f"restored: scheduled for {time}")
                 await self.scheduled.schedule(time, run)
 
-        # Restore scheduled runs from DB.
-        log.info("restoring scheduled runs")
-        _, scheduled_runs = self.run_store.query(state=Run.STATE.scheduled)
-        for run in scheduled_runs:
-            assert not run.expected
-            await reschedule(run, run.times["schedule"])
+        try:
+            log.info("restoring")
 
-        # Restore waiting runs from DB.
-        log.info("restoring waiting runs")
-        _, waiting_runs = self.run_store.query(state=Run.STATE.waiting)
-        for run in waiting_runs:
-            assert not run.expected
-            await reschedule(run, None)
+            # Restore scheduled runs from DB.
+            log.info("restoring scheduled runs")
+            _, scheduled_runs = self.run_store.query(state=Run.STATE.scheduled)
+            for run in scheduled_runs:
+                assert not run.expected
+                await reschedule(run, run.times["schedule"])
 
-        # Reconnect to running runs.
-        _, running_runs = self.run_store.query(state=Run.STATE.running)
-        log.info("reconnecting running runs")
-        for run in running_runs:
-            assert run.program is not None
-            self.run_history.record(
-                run, f"at startup, reconnecting to running {run.run_id}")
-            future = run.program.reconnect(run.run_id, run.run_state)
-            self.__finish(run, future)
+            # Restore waiting runs from DB.
+            log.info("restoring waiting runs")
+            _, waiting_runs = self.run_store.query(state=Run.STATE.waiting)
+            for run in waiting_runs:
+                assert not run.expected
+                await reschedule(run, None)
 
-        log.info("restoring done")
+            # Reconnect to running runs.
+            _, running_runs = self.run_store.query(state=Run.STATE.running)
+            log.info("reconnecting running runs")
+            for run in running_runs:
+                assert run.program is not None
+                self.run_history.record(
+                    run, f"at startup, reconnecting to running {run.run_id}")
+                future = run.program.reconnect(run.run_id, run.run_state)
+                self.__finish(run, future)
+
+            log.info("restoring done")
+
+        except Exception:
+            log.critical("restore failed", exc_info=True)
+            raise SystemExit(1)
 
 
     def start_loops(self):
