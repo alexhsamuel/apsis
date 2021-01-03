@@ -65,6 +65,10 @@ def or_none(fn):
     return wrapped
 
 
+nstr = or_none(str)
+nint = or_none(int)
+
+
 def is_seq(obj):
     """
     Returns true if `obj` is a non-string sequence.
