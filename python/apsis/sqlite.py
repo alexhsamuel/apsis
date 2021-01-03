@@ -476,13 +476,13 @@ class SqliteDB:
 
 
     @classmethod
-    def __get_engine(Class, path):
+    def __get_engine(cls, path):
         url = "sqlite://" if path is None else f"sqlite:///{path}"
         return sa.create_engine(url)
 
 
     @classmethod
-    def create(Class, path):
+    def create(cls, path):
         """
         Creates a new database.
 
@@ -496,13 +496,13 @@ class SqliteDB:
             if path.exists():
                 raise FileExistsError(path)
         
-        engine  = Class.__get_engine(path)
+        engine  = cls.__get_engine(path)
         METADATA.create_all(engine)
-        return Class(engine)
+        return cls(engine)
 
 
     @classmethod
-    def migrate(Class, path):
+    def migrate(cls, path):
         """
         (Attempts to) migrate the database at `path`.
         """
@@ -511,7 +511,7 @@ class SqliteDB:
         if not path.exists():
             raise FileNotFoundError(path)
 
-        engine = Class.__get_engine(path)
+        engine = cls.__get_engine(path)
         METADATA.create_all(engine)
 
         # Clean up expected runs; these used to be persisted.
@@ -523,15 +523,15 @@ class SqliteDB:
 
 
     @classmethod
-    def open(Class, path):
+    def open(cls, path):
         if path is not None:
             path = Path(path).absolute()
             if not path.exists():
                 raise FileNotFoundError(path)
 
-        engine  = Class.__get_engine(path)
+        engine  = cls.__get_engine(path)
         # FIXME: Check that tables exist.
-        return Class(engine)
+        return cls(engine)
 
 
     def get_max_run_id_num(self):
