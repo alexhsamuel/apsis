@@ -315,16 +315,24 @@ def check_jobs_dir(jobs_dir):
     now = ora.now()
 
     for job in jobs_dir.get_jobs():
+        log.info(f"checking: {job.job_id}")
+
         # Check all job ids in actions and conditions, by checking each action
         # and condition class for a job_id attribute.
         for action in job.actions:
             try:
                 jobs_dir.get_job(action.job_id)
+            except AttributeError:
+                # That's OK; it doesn't have an associated job id.
+                pass
             except LookupError:
                 yield(f"{job.job_id}: no job in action: {action.job_id}")
         for cond in job.conds:
             try:
                 jobs_dir.get_job(cond.job_id)
+            except AttributeError:
+                # That's OK; it doesn't have an associated job id.
+                pass
             except LookupError:
                 yield(f"{job.job_id}: no job in condition: {cond.job_id}")
 
