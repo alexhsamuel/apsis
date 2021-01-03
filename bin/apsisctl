@@ -80,22 +80,25 @@ cmd.add_argument(
     help="path to Apsis database")
 
 #-------------------------------------------------------------------------------
-# command: check-job
+# command: check-jobs
 
-def cmd_check_job(args):
-    path = args.path
-    job = apsis.jobs.check_job_file(path)
-    if job is not None:
-        # FIXME: Use something nicer.
-        json.dump(apsis.jobs.job_to_jso(job), sys.stdout, indent=2)
+def cmd_check_jobs(args):
+    status = 0
+    for err in apsis.jobs.check_job_dir(args.path):
+        print(err, file=sys.stderr)
+        status = 1
+    return status    
 
 
 cmd = parser.add_command(
-    "check-job", cmd_check_job,
-    description="Checks a job file.")
+    "check-jobs", cmd_check_jobs,
+    description="Checks jobs in a directory.")
 cmd.add_argument(
-    "path", metavar="PATH",
-    help="check the job file PATH")
+    "path", metavar="DIR", type=Path,
+    help="check the jobs in DIR")
+cmd.add_argument(
+    "--config", metavar="CFGFILE", nargs="?", type=Path, default=None,
+    help="read config from CFGFILE")
 
 #-------------------------------------------------------------------------------
 # command: create
@@ -177,8 +180,6 @@ def cmd_serve(args):
         name, val = ovr.split("=", 1)
         cfg[name] = val
 
-    apsis.config.config_globals(cfg)
-
     restart = apsis.service.main.serve(
         cfg, host=args.host, port=args.port, debug=args.debug)
 
@@ -245,11 +246,13 @@ cmd = parser.add_command(
 args = parser.parse_args()
 
 try:
-    args.cmd(args)
+    status = args.cmd(args)
 except apsis.service.client.APIError as err:
     apsis.cmdline.print_lines(
         apsis.cmdline.format_api_error(err), file=sys.stderr)
     raise SystemExit(1)
 except (KeyboardInterrupt, BrokenPipeError):
     pass
+else:
+    raise SystemExit(0 if status is None else status)
 

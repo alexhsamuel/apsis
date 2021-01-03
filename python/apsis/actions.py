@@ -70,22 +70,22 @@ class ScheduleAction(Action):
     Schedules a new run.
     """
 
-    # FIXME: Add schedule.
     def __init__(self, instance, *, condition=None):
-        self.__inst = instance
-        self.__condition = condition
+        self.job_id     = instance.job_id
+        self.args       = instance.args
+        self.condition  = condition
 
 
     async def __call__(self, apsis, run):
-        if self.__condition is not None and not self.__condition(run):
+        if self.condition is not None and not self.condition(run):
             return
 
         # Expand args templates.
         args = { 
             n: runs.template_expand(v, run.inst.args)
-            for n, v in self.__inst.args.items()
+            for n, v in self.args.items()
         }
-        inst = runs.Instance(self.__inst.job_id, args)
+        inst = runs.Instance(self.job_id, args)
         # Propagate missing args.
         inst = apsis._propagate_args(run.inst.args, inst)
 
@@ -102,9 +102,9 @@ class ScheduleAction(Action):
     def to_jso(self):
         return {
             **super().to_jso(),
-            "job_id"    : self.__inst.job_id,
-            "args"      : self.__inst.args,
-            "condition" : self.__condition.to_jso()
+            "job_id"    : self.job_id,
+            "args"      : self.args,
+            "condition" : self.condition.to_jso()
         }
 
 

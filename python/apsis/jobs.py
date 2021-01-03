@@ -206,44 +206,6 @@ def list_yaml_files(dir_path):
             yield path, job_id
 
 
-def check_job_file(path):
-    """
-    Parses job file at `path`, checks validity, and logs errors.
-
-    :return:
-      The job, if successfully loaded and checked, or none.
-    """
-    path = Path(path)
-    job_id = path.with_suffix("").name
-    now = ora.now()
-
-    error = lambda msg: print(msg, file=sys.stdout)
-    with open(path) as file:
-        try:
-            jso = yaml.load(file, Loader=yaml.SafeLoader)
-        except yaml.YAMLError as exc:
-            error(f"failed to parse YAML: {exc}")
-            return None
-
-        try:
-            job = jso_to_job(jso, job_id)
-        except SchemaError as exc:
-            error(f"failed to parse job: {exc}")
-            return None
-
-        # Try scheduling some runs.
-        for schedule in job.schedules:
-            _, args = next(schedule(now))
-            missing_args = set(job.params) - set(args)
-            if len(missing_args) > 0:
-                error(f"missing args in schedule: {' '.join(missing_args)}")
-                return None
-
-        # FIXME: Additional checks here?
-
-        return job
-
-
 #-------------------------------------------------------------------------------
 
 class JobsDir:
@@ -287,7 +249,7 @@ def load_jobs_dir(path):
       The successfully loaded `JobsDir`.
     :raise JobErrors:
       One or more errors while loading jobs.  The exception's `errors` attribute
-      contains the errors; each has a `path` attribute.
+      contains the errors; each has a `job_id` attribute.
     """
     jobs_path = Path(path)
     jobs = {}
@@ -303,6 +265,60 @@ def load_jobs_dir(path):
         raise JobErrors(f"errors loading jobs in {jobs_path}", errors)
     else:
         return JobsDir(jobs_path, jobs)
+
+
+def check_job(jobs_dir, job):
+    """
+    Performs consistency checks on `job` in `jobs_dir`.
+
+    :return:
+      Generator of errors.
+    """
+    # Check all job ids in actions and conditions, by checking each action
+    # and condition class for a job_id attribute.
+    for action in job.actions:
+        try:
+            jobs_dir.get_job(action.job_id)
+        except AttributeError:
+            # That's OK; it doesn't have an associated job id.
+            pass
+        except LookupError:
+            yield(f"{job.job_id}: no job in action: {action.job_id}")
+    for cond in job.conds:
+        try:
+            jobs_dir.get_job(cond.job_id)
+        except AttributeError:
+            # That's OK; it doesn't have an associated job id.
+            pass
+        except LookupError:
+            yield(f"{job.job_id}: no job in condition: {cond.job_id}")
+
+    # Try scheduling a run for each schedule of each job.
+    now = ora.now()
+    for schedule in job.schedules:
+        _, args = next(schedule(now))
+        missing_args = set(job.params) - set(args)
+        if len(missing_args) > 0:
+            yield(f"missing args in schedule: {' '.join(missing_args)}")
+
+
+def check_job_dir(path):
+    """
+    Loads jobs in dir at `path` and checks validity.
+
+    :return:
+      Generator of errors.
+    """
+    try:
+        jobs_dir = load_jobs_dir(path)
+    except JobErrors as exc:
+        for err in exc.errors:
+            yield f"{err.job_id}: {err}"
+        return
+
+    for job in jobs_dir.get_jobs():
+        log.info(f"checking: {job.job_id}")
+        yield from check_job(jobs_dir, job)
 
 
 #-------------------------------------------------------------------------------

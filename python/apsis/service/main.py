@@ -117,8 +117,8 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     try:
         jobs = load_jobs_dir(job_dir)
     except JobErrors as exc:
-        for text in exc.format():
-            log.error(text)
+        for err in exc.errors:
+            log.error(f"{err.job_id}: {err}")
         raise
 
     log.info("creating scheduler instance")
