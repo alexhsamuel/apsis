@@ -21,6 +21,11 @@ div
       th schedule
       td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
 
+    tr
+      th conditions
+      td
+        .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
+
     tr(v-if="job.actions && job.actions.length > 0")
       th actions
       td.no-padding
@@ -81,6 +86,7 @@ export default {
 
   computed: {
     params() {
+      console.log(this.job)
       return join(this.job.params, ', ')
     },
 
@@ -123,6 +129,9 @@ h1 {
   th, td {
     line-height: 1;
   }
+}
+
+.condition {
 }
 
 .description {
