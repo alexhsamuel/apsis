@@ -118,13 +118,17 @@ add_dump_format_option(cmd)
 
 def cmd_jobs(client, args):
     jobs = client.get_jobs()
-    print_lines(apsis.cmdline.format_jobs(jobs))
-    print()
+    if args.format is None:
+        print_lines(apsis.cmdline.format_jobs(jobs))
+        print()
+    else:
+        dump_format(jobs, args.format)
 
 
 cmd = parser.add_command(
     "jobs", cmd_jobs,
     description="Lists all jobs.")
+add_dump_format_option(cmd)
 
 #--- command: output -----------------------------------------------------------
 
