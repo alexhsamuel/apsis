@@ -2,7 +2,7 @@
 
 strat=$1
 date=$2
-file=$(dirname $0)/../work/open_day.$strat
+file=$(dirname $0)/../../work/open_day.$strat
 
 if [[ ! -f $file ]]; then
     echo "day is not open" >&2
