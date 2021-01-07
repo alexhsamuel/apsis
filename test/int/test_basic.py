@@ -66,6 +66,7 @@ class ApsisInstance:
     def wait_for_serve(self):
         # FIXME: This is horrible.
         while True:
+            assert self.is_running()
             with self.get_log() as log:
                 if any( "service ready to run" in l for l in log ):
                     return True
@@ -76,11 +77,11 @@ class ApsisInstance:
         if self.srv_proc is None:
             return False
         try:
-            self.srv_proc.wait(timeout=0)
-        except subprocess.TimeoutExpired:
-            return False
-        else:
+            ret = self.srv_proc.wait(timeout=0)
+        except subprocess.TimeoutExpired as exc:
             return True
+        else:
+            return False
 
 
     @contextmanager
