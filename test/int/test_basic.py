@@ -39,7 +39,7 @@ class ApsisInstance:
     def write_cfg(self, cfg):
         self.cfg = {
             "database": str(self.db_path),
-            "jobs": str(self.jobs_dir),
+            "job_dir": str(self.jobs_dir),
             **cfg
         }
         with open(self.cfg_path, "w") as file:
@@ -143,10 +143,14 @@ def test_create_db(inst):
 
 
 def test_cfg(inst):
-    inst.write_cfg({})
+    jobs_dir = Path(__file__).parent / "jobs_basic"
+    inst.write_cfg({
+        "job_dir": str(jobs_dir),
+    })
     assert inst.cfg_path.is_file()
     with open(inst.cfg_path) as file:
-        yaml.load(file, yaml.SafeLoader)
+        cfg = yaml.load(file, yaml.SafeLoader)
+    print(cfg)
 
 
 def test_start_serve(inst):
@@ -154,10 +158,13 @@ def test_start_serve(inst):
     inst.wait_for_serve()
 
 
-def test_jobs_empty(inst):
-    ret, out = inst.run_apsis_json("jobs")
+def test_jobs(inst):
+    ret, jobs = inst.run_apsis_json("jobs")
     assert ret == 0
-    assert len(out) == 0
+    assert len(jobs) == 1
+
+    job = jobs[0]
+    assert job["job_id"] == "job1"
 
 
 def test_stop_serve(inst):
