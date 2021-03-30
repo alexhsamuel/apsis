@@ -133,23 +133,24 @@ function jobsToTree(jobs) {
  * Flattens a tree into items for rendering.
  * 
  * Generates [path, subpath, name, job] items, where job is null
- * for directory items.
+ * for directory items.  
  * 
- * @param parts - path parts corresponding to `tree`
+ * @param basePath - path corresponding to `tree`, as array of parts
  * @param tree - the tree node to flatten
+ * @param collapse - lookup of collapsed tree paths
  */
-function* flattenTree(parts, tree, collapse, path = []) {
+function* flattenTree(basePath, tree, collapse, path = []) {
   const [subtrees, items] = tree
 
   for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
-    const dirPath = parts.concat(path, [name])
+    const dirPath = basePath.concat(path, [name])
     yield [dirPath, path, name, null]
     if (!collapse[dirPath])
-      yield* flattenTree(parts, subtree, collapse, path.concat([name]))
+      yield* flattenTree(basePath, subtree, collapse, path.concat([name]))
   }
 
   for (const [name, item] of sortBy(Object.entries(items)))
-    yield [parts.concat(path, [name]), path, name, item]
+    yield [basePath.concat(path, [name]), path, name, item]
 }
 
 export default {
