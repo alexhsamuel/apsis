@@ -31,7 +31,7 @@ class OutputMetadata:
           MIME type of output.
         """
         self.name           = str(name)
-        self.length         = len(self.data) if length is None else int(length)
+        self.length         = int(length)
         self.content_type   = str(content_type)
 
 
