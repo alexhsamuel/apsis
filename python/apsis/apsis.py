@@ -202,6 +202,23 @@ class Apsis:
                     outputs =exc.outputs,
                 )
 
+            except Exception as exc:
+                # Program raised some other exception.
+                log.error(
+                    f"exception waiting for run: {run.run_id}", exc_info=True)
+                self.run_history.record(
+                    run, f"internal error in program: {exc}")
+                tb = traceback.format_exc().encode()
+                self._transition(
+                    run, run.STATE.error,
+                    outputs ={
+                        "output": Output(
+                            OutputMetadata("traceback", length=len(tb)),
+                            tb
+                        ),
+                    }
+                )
+
             else:
                 # Program ran and completed successfully.
                 self.run_history.record(run, "program success")
