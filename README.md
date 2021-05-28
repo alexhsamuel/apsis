@@ -3,6 +3,8 @@ times, including recurring tasks.  It also tracks running tasks, and the state
 of completed tasks.  It supports simple and complex schedules, such as once an
 hour, or 4:00 PM US/Eastern on the day before every US holiday.
 
+[Docs in readthedocs.](https://apsis-scheduler.readthedocs.io/en/latest/)
+
 
 ### Components
 

@@ -1,5 +1,6 @@
 from   contextlib import suppress
 import logging
+import ora
 import os
 from   pathlib import Path
 import random
@@ -10,7 +11,7 @@ import yaml
 from   . import actions
 from   .actions import Action
 from   .cond import Condition
-from   .lib.json import to_array
+from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize
 from   .program import Program
 from   .schedule import Schedule
@@ -123,51 +124,42 @@ def reruns_to_jso(reruns):
 
 
 def jso_to_job(jso, job_id):
-    # FIXME: no_unexpected_types
-    jso = dict(jso)
+    with check_schema(jso) as pop:
+        # FIXME: job_id here at all?
+        assert pop("job_id", default=job_id) == job_id, f"JSON job_id mismatch {job_id}"
 
-    # FIXME: job_id here at all?
-    assert jso.pop("job_id", job_id) == job_id, f"JSON job_id mismatch {job_id}"
+        params      = pop("params", default=[])
+        params      = [params] if isinstance(params, str) else params
 
-    params = jso.pop("params", [])
-    params = [params] if isinstance(params, str) else params
+        # FIXME: 'schedules' for backward compatibility; remove in a while.
+        schedules   = pop("schedule", default=())
+        schedules   = (
+            [schedules] if isinstance(schedules, dict) 
+            else [] if schedules is None
+            else schedules
+        )
+        schedules   = [ Schedule.from_jso(s) for s in schedules ]
 
-    # FIXME: 'schedules' for backward compatibility; remove in a while.
-    schedules = jso.pop("schedule", jso.pop("schedules", ()))
-    schedules = (
-        [schedules] if isinstance(schedules, dict) 
-        else [] if schedules is None
-        else schedules
-    )
-    schedules = [ Schedule.from_jso(s) for s in schedules ]
+        program     = pop("program", Program.from_jso)
 
-    try:
-        program = jso.pop("program")
-    except KeyError:
-        raise SchemaError("missing program")
-    program = Program.from_jso(program)
+        conds       = pop("condition", to_array, default=[])
+        conds       = [ Condition.from_jso(c) for c in conds ]
 
-    conds = to_array(jso.pop("condition", []))
-    conds = [ Condition.from_jso(c) for c in conds ]
+        acts        = pop("action", to_array, default=[])
+        acts        = [ Action.from_jso(a) for a in acts ]
 
-    acts = to_array(jso.pop("action", []))
-    acts = [ Action.from_jso(a) for a in acts ]
+        # Successors are syntactic sugar for actions.
+        sucs        = pop("successors", to_array, default=[])
+        acts.extend([ actions.successor_from_jso(s) for s in sucs ])
 
-    # Successors are syntactic sugar for actions.
-    sucs = to_array(jso.pop("successors", []))
-    acts.extend([ actions.successor_from_jso(s) for s in sucs ])
+        reruns      = jso_to_reruns(pop("reruns", default={}))
+        metadata    = pop("metadata", default={})
+        metadata["labels"] = [
+            str(l)
+            for l in tupleize(metadata.get("labels", []))
+        ]
 
-    reruns      = jso_to_reruns(jso.pop("reruns", {}))
-    metadata    = jso.pop("metadata", {})
-    ad_hoc      = jso.pop("ad_hoc", False)
-
-    metadata["labels"] = [
-        str(l)
-        for l in tupleize(metadata.get("labels", []))
-    ]
-
-    if len(jso) > 0:
-        raise SchemaError("unknown keys: " + ", ".join(jso))
+        ad_hoc      = pop("ad_hoc", bool, default=False)
 
     return Job(
         job_id, params, schedules, program,
@@ -214,35 +206,6 @@ def list_yaml_files(dir_path):
             yield path, job_id
 
 
-def check_job_file(path):
-    """
-    Parses job file at `path`, checks validity, and logs errors.
-
-    :return:
-      The job, if successfully loaded and checked, or none.
-    """
-    path = Path(path)
-    job_id = path.with_suffix("").name
-
-    error = lambda msg: print(msg, file=sys.stdout)
-    with open(path) as file:
-        try:
-            jso = yaml.load(file)
-        except yaml.YAMLError as exc:
-            error(f"failed to parse YAML: {exc}")
-            return None
-
-        try:
-            job = jso_to_job(jso, job_id)
-        except SchemaError as exc:
-            error(f"failed to parse job: {exc}")
-            return None
-
-        # FIXME: Additional checks here?
-
-        return job
-
-
 #-------------------------------------------------------------------------------
 
 class JobsDir:
@@ -286,7 +249,7 @@ def load_jobs_dir(path):
       The successfully loaded `JobsDir`.
     :raise JobErrors:
       One or more errors while loading jobs.  The exception's `errors` attribute
-      contains the errors; each has a `path` attribute.
+      contains the errors; each has a `job_id` attribute.
     """
     jobs_path = Path(path)
     jobs = {}
@@ -302,6 +265,60 @@ def load_jobs_dir(path):
         raise JobErrors(f"errors loading jobs in {jobs_path}", errors)
     else:
         return JobsDir(jobs_path, jobs)
+
+
+def check_job(jobs_dir, job):
+    """
+    Performs consistency checks on `job` in `jobs_dir`.
+
+    :return:
+      Generator of errors.
+    """
+    # Check all job ids in actions and conditions, by checking each action
+    # and condition class for a job_id attribute.
+    for action in job.actions:
+        try:
+            jobs_dir.get_job(action.job_id)
+        except AttributeError:
+            # That's OK; it doesn't have an associated job id.
+            pass
+        except LookupError:
+            yield(f"{job.job_id}: no job in action: {action.job_id}")
+    for cond in job.conds:
+        try:
+            jobs_dir.get_job(cond.job_id)
+        except AttributeError:
+            # That's OK; it doesn't have an associated job id.
+            pass
+        except LookupError:
+            yield(f"{job.job_id}: no job in condition: {cond.job_id}")
+
+    # Try scheduling a run for each schedule of each job.
+    now = ora.now()
+    for schedule in job.schedules:
+        _, args = next(schedule(now))
+        missing_args = set(job.params) - set(args)
+        if len(missing_args) > 0:
+            yield(f"missing args in schedule: {' '.join(missing_args)}")
+
+
+def check_job_dir(path):
+    """
+    Loads jobs in dir at `path` and checks validity.
+
+    :return:
+      Generator of errors.
+    """
+    try:
+        jobs_dir = load_jobs_dir(path)
+    except JobErrors as exc:
+        for err in exc.errors:
+            yield f"{err.job_id}: {err}"
+        return
+
+    for job in jobs_dir.get_jobs():
+        log.info(f"checking: {job.job_id}")
+        yield from check_job(jobs_dir, job)
 
 
 #-------------------------------------------------------------------------------

@@ -15,6 +15,11 @@ code {
   letter-spacing: -0.02rem;
 }
 
+pre {
+  border: none;
+  background: #f8f8f8;
+}
+
 tt {
   font-family: $base-code-font-family;
 }

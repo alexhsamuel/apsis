@@ -10,10 +10,16 @@ schedule:
   daytime:
   - 12:00:00
 
+- type: daily
+  args: {message: "Hello from fennel.", host: soho.indetermi.net, user: alex}
+  tz: US/Eastern
+  daytime:
+  - 12:00:00
+
 program: 
   type: program
   argv: 
-  - /Users/alex/dev/apsis/jobs/test/test0 
+  - /home/alex/dev/apsis/jobs/test/test0 
   - "{{ message }}"
   host: "{{ host }}"
   user: "{{ user }}"

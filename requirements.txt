@@ -1,1 +1,9 @@
-.
+fixfmt
+jinja2
+numpy
+ora
+pyyaml
+requests
+sanic >=1
+sqlalchemy
+ujson

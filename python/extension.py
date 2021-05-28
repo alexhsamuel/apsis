@@ -32,14 +32,12 @@ class EmailAction:
 
 
     @classmethod
-    def from_jso(Class, jso):
-        with apsis.lib.json.no_unexpected_keys(jso):
-            cnd = apsis.actions.Condition.from_jso(jso.pop("if", None))
-            return Class(
-                jso.pop("to"),
-                from_       =jso.pop("from"),
-                condition   =cnd,
-            )
+    def from_jso(cls, jso):
+        with apsis.lib.json.check_schema(jso) as pop:
+            to      = pop("to", str)
+            from_   = pop("from", str)
+            cnd     = pop("if", apsis.actions.Condition.from_jso, default=None)
+        return cls(to, from_=from_, condition=cnd)
             
 
     def to_jso(self):

@@ -3,7 +3,7 @@ from   ora import Time, Daytime, now, get_display_time_zone
 import sys
 
 import apsis.lib.itr
-from   apsis.lib.terminal import COLOR, WHT, RED, BLD, RES
+from   apsis.lib.terminal import COLOR, WHT, RED, BLD, UND, RES
 
 #-------------------------------------------------------------------------------
 
@@ -105,8 +105,16 @@ def format_state_symbol(state):
 format_state_symbol.width = 1
 
 
-def format_program(program, indent=0):
-    yield from format_jso(program, indent=indent)
+def format_program(program, *, style=1, indent=0):
+    if style <= 1:
+        yield f"{BLD}{program['type']}:{RES} {program.get('command', '')}"
+    elif style == 2:
+        yield f"{BLD}{program['type']}{RES}"
+        for k, v in program.items():
+            if k != "type":
+                yield f"{COLOR(244)}{k:12s}:{RES} {v}"
+    else:
+        yield from format_jso(program, indent=indent)
 
 
 def format_schedule(schedule, indent=0):
@@ -115,8 +123,9 @@ def format_schedule(schedule, indent=0):
 
 def format_instance(run):
     return (
-        f"{JOB}{run['job_id']}{RES} "
-        + " ".join( f"{k}={ARG}{v}{RES}" for k, v in run["args"].items() )
+        f"{JOB}{run['job_id']}{RES}("
+        + ", ".join( f"{k}={ARG}{v}{RES}" for k, v in run["args"].items() )
+        + ")"
     )
 
 
@@ -154,34 +163,57 @@ def _fmt(name, val, width=16, indent=-2):
         yield prefix + fixfmt.pad(name, width - indent) + ": " + str(val)
 
 
-def format_run(run):
+def format_run(run, *, style=1):
     b = "✦"
 
     # Run ID.
     run_id = run["run_id"]
-    yield f"{BLD}run {RUN}{run_id}{RES}"
-
-    # The job.
     job = format_instance(run)
-    yield f"{b} job {job}"
+    yield f"{BLD}run {RUN}{run_id}{RES} {job}"
 
     # Rerun info.
     if run["rerun"] != run_id:
         yield f"{b} rerun of run {RUN}{run['rerun']}{RES}"
 
+    def header(title):
+        if style >= 2:
+            yield ""
+            yield f"{UND}{title}{RES}"
+
     # Current state and relevant time.
-    time = lambda n: format_time(run["times"].get(n, ""))
-    state = run["state"]
-    if state == "scheduled":
-        time = "for " + time("schedule")
-    elif state == "running":
-        time = "since " + time("running")
-    else:
-        time = "at " + time(state)
+    fmt_time = lambda n: format_time(run["times"].get(n, ""))
     elapsed = run["meta"].get("elapsed")
-    if elapsed is not None:
-        time += " elapsed " + format_elapsed(elapsed).lstrip()
-    yield f"{STATE_COLOR[state]}{STATE_SYMBOL[state]} {state}{RES} {time}"
+    elapsed = "" if elapsed is None else format_elapsed(elapsed).lstrip()
+
+    # Format the program.
+    yield from header("Program")
+    yield from format_program(run["program"], style=style)
+
+    if style <= 1:
+        state = run["state"]
+        if state == "scheduled":
+            time = "for " + fmt_time("schedule")
+        elif state == "running":
+            time = "since " + fmt_time("running")
+        else:
+            time = "at " + fmt_time(state)
+        if elapsed is not None:
+            time += " elapsed " + elapsed
+        state = f"{STATE_COLOR[state]}{STATE_SYMBOL[state]} {state}{RES}"
+        yield f"{state} {time}"
+
+    else:
+        yield from header("History")
+        for d, t in sorted(run["times"].items(), key=lambda i: i[1]):
+            e = (
+                f" elapsed {elapsed}" if d in ("failure", "success")
+                else ""
+            )
+            if d == "schedule":
+                d = "scheduled for"
+            else:
+                d = f"{STATE_COLOR[d]}{d:9s}{RES} at "
+            yield f"{d} {format_time(t)}{e}"
 
     # Message, if any.
     if run["message"] is not None:
@@ -228,6 +260,8 @@ def format_runs(runs, *, reruns=False):
         else:
             return None
 
+    one_job = len({ r["job_id"] for r in runs }) == 1
+
     table = fixfmt.table.RowTable(cfg=RUNS_TABLE_CFG)
     for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
         row = {
@@ -236,9 +270,11 @@ def format_runs(runs, *, reruns=False):
             "start"     : start_time(run),
             "elapsed"   : elapsed(run),
             "job_id"    : JOB + run["job_id"] + RES,
-            "args"      : " ".join( f"{k}={v}" for k, v in run["args"].items() ),
-          # **run["args"],
         }
+        if one_job:
+            row.update(**run["args"])
+        else:
+            row["args"] = " ".join( f"{k}={v}" for k, v in run["args"].items() )
         table.append(**row)
         if reruns and pos in "lo":
             table.text("")
@@ -247,6 +283,11 @@ def format_runs(runs, *, reruns=False):
         table.fmts["S"] = format_state_symbol
         table.fmts["start"] = format_time
         table.fmts["elapsed"] = format_elapsed
+
+        if one_job:
+            # Single job.
+            table.fmts["job_id"] = None
+
         yield from table
 
     else:

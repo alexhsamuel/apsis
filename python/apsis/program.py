@@ -9,8 +9,8 @@ import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
 from   .host_group import expand_host
-from   .lib.json import TypedJso
-from   .lib.py import or_none
+from   .lib.json import TypedJso, check_schema
+from   .lib.py import or_none, nstr
 from   .lib.sys import get_username
 from   .runs import template_expand, join_args
 
@@ -31,7 +31,7 @@ class OutputMetadata:
           MIME type of output.
         """
         self.name           = str(name)
-        self.length         = len(self.data) if length is None else int(length)
+        self.length         = int(length)
         self.content_type   = str(content_type)
 
 
@@ -301,8 +301,8 @@ class AgentProgram(Program):
 
     def __init__(self, argv, *, host=None, user=None):
         self.__argv = tuple( str(a) for a in argv )
-        self.__host = or_none(str)(host)
-        self.__user = or_none(str)(user)
+        self.__host = nstr(host)
+        self.__user = nstr(user)
 
 
     def __str__(self):
@@ -327,11 +327,11 @@ class AgentProgram(Program):
 
     @classmethod
     def from_jso(cls, jso):
-        return cls(
-            jso.pop("argv"), 
-            host=jso.pop("host", None),
-            user=jso.pop("user", None),
-        )
+        with check_schema(jso) as pop:
+            argv    = pop("argv")
+            host    = pop("host", nstr, None)
+            user    = pop("user", nstr, None)
+        return cls(argv, host=host, user=user)
 
 
     async def start(self, run_id, cfg):
@@ -395,17 +395,18 @@ class AgentProgram(Program):
 
 
     async def wait(self, run_id, run_state):
+        host = run_state["host"]
         proc_id = run_state["proc_id"]
-        agent = _get_agent(run_state["host"], self.__user)
+        agent = _get_agent(host, self.__user)
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
         while True:
-            log.debug(f"polling proc: {proc_id}")
+            log.debug(f"polling proc: {run_id}: {proc_id} @ {host}")
             try:
                 proc = await agent.get_process(proc_id, restart=True)
             except NoSuchProcessError:
-                # Agent doens't know about this process anymore.
+                # Agent doesn't know about this process anymore.
                 raise ProgramError(f"program lost: {run_id}")
             if proc["state"] == "run":
                 await asyncio.sleep(POLL_INTERVAL)
@@ -472,11 +473,11 @@ class AgentShellProgram(AgentProgram):
 
     @classmethod
     def from_jso(cls, jso):
-        return cls(
-            jso.pop("command"),
-            host=jso.pop("host", None),
-            user=jso.pop("user", None),
-        )
+        with check_schema(jso) as pop:
+            command = pop("command", str)
+            host    = pop("host", nstr, None)
+            user    = pop("user", nstr, None)
+        return cls(command, host=host, user=user)
 
 
 

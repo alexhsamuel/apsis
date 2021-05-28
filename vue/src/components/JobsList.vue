@@ -71,7 +71,7 @@ div
                 a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
 
         td.description
-          div(v-if="job" v-html="markdown(job.metadata.description || '')")
+          div(v-if="job" v-html="markdown(exerptDescription(job.metadata.description || ''))")
 
         td.params
           span.params(v-if="job && job.params.length > 0")
@@ -88,8 +88,8 @@ div
 import Job from './Job'
 import JobLabel from './JobLabel'
 import { every, filter, join, map, sortBy, trim } from 'lodash'
-import { markdown } from 'markdown'
 import Program from './Program'
+import showdown from 'showdown'
 
 export function makePredicate(query) {
   const parts = filter(map(query.split(' '), trim))
@@ -133,22 +133,24 @@ function jobsToTree(jobs) {
  * Flattens a tree into items for rendering.
  * 
  * Generates [path, subpath, name, job] items, where job is null
- * for directory items.
+ * for directory items.  
  * 
+ * @param basePath - path corresponding to `tree`, as array of parts
  * @param tree - the tree node to flatten
+ * @param collapse - lookup of collapsed tree paths
  */
-function* flattenTree(parts, tree, collapse, path = []) {
+function* flattenTree(basePath, tree, collapse, path = []) {
   const [subtrees, items] = tree
 
   for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
-    const dirPath = parts.concat(path, [name])
+    const dirPath = basePath.concat(path, [name])
     yield [dirPath, path, name, null]
     if (!collapse[dirPath])
-      yield* flattenTree(path, subtree, collapse, path.concat([name]))
+      yield* flattenTree(basePath, subtree, collapse, path.concat([name]))
   }
 
   for (const [name, item] of sortBy(Object.entries(items)))
-    yield [parts.concat(path, [name]), path, name, item]
+    yield [basePath.concat(path, [name]), path, name, item]
 }
 
 export default {
@@ -209,7 +211,17 @@ export default {
   },
 
   methods: {
-    markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
+    // Returns a shortened form of the description Markdown `src`.
+    exerptDescription(src) {
+      var paragraph = src.split('\n\n')[0]
+      if (paragraph.length > 256)
+        paragraph = paragraph.substring(0, 256) + '…'
+      return paragraph
+    },
+
+    // Converts Markdown `src` to HTML.
+    markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
+
     join,
 
     toggleCollapse(path) {
@@ -269,11 +281,11 @@ export default {
   }
 
   .dir > td {
-    height: 48px;
+    height: 36px;
   }
 
   .job > td {
-    height: 48px;
+    height: 36px;
   }
 
   .job-title {

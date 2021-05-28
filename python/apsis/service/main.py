@@ -119,8 +119,8 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     try:
         jobs = load_jobs_dir(job_dir)
     except JobErrors as exc:
-        for text in exc.format():
-            log.error(text)
+        for err in exc.errors:
+            log.error(f"{err.job_id}: {err}")
         raise
 
     loop = asyncio.get_event_loop()
@@ -145,12 +145,13 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
         host        =host,
         port        =port,
         debug       =debug,
+        return_asyncio_server=True,
     )
     server_task = asyncio.ensure_future(server)
 
     # Get Apsis running.
     log.info("scheduling restore")
-    asyncio.ensure_future(apsis.restore())
+    restore_task = asyncio.ensure_future(apsis.restore())
     log.info("starting loops")
     apsis.start_loops()
 
@@ -171,6 +172,8 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
                 log.info("shutting down run websockets")
                 WS_HANDLER.shut_down()
 
+                # Clean up the restore task.
+                await cancel_task(restore_task, "restore", log)
                 # Shut down the Sanic web service.
                 await cancel_task(server_task, "Sanic", log)
 

@@ -13,6 +13,7 @@ import shlex
 import signal
 from   subprocess import SubprocessError
 import tempfile
+import uuid
 
 log = logging.getLogger("processes")
 
@@ -229,8 +230,6 @@ class Processes:
     Manages running and terminated processes.
     """
 
-    __proc_ids = ( str(i) for i in itertools.count() )
-
     class Process:
 
         def __init__(self, proc_id):
@@ -280,7 +279,7 @@ class Processes:
         """
         Starts a process.
         """
-        proc = self.Process(next(self.__proc_ids))
+        proc = self.Process(str(uuid.uuid4()))
         proc.program = {
             "argv"  : [ str(a) for a in argv ],  # FIXME?
             "cwd"   : str(cwd),

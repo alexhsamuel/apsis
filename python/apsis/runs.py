@@ -434,7 +434,7 @@ class RunStore:
                 for g in groups.values()
             )
 
-        return now(), runs
+        return now(), list(runs)
 
 
     @contextmanager

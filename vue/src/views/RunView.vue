@@ -38,6 +38,13 @@ div
           th rerun of
           td: Run(:run-id="run.rerun")
 
+        //- FIXME: Do better here.
+        tr(v-if="run.conds && run.conds.length > 0")
+          th conditions
+          td.no-padding: table.fields: tbody
+            tr(v-for="cond in run.conds" :key="cond.str")
+              td(style="padding-left: 0") {{ cond.str }}
+
         tr
           th times
           td.no-padding: table.fields: tbody

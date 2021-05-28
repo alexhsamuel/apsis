@@ -45,6 +45,7 @@ class Apsis:
     def __init__(self, cfg, jobs, db, redis_store):
         log.debug("creating Apsis instance")
         self.cfg = cfg
+        # FIXME: This should go in `apsis.config.config_globals` or similar.
         config_host_groups(cfg)
         self.__db = db
         self.__redis_store = redis_store
@@ -83,43 +84,48 @@ class Apsis:
         """
         Restores scheduled, waiting, and running runs from DB.
         """
-        log.info("restoring")
-
         async def reschedule(run, time):
             if not await self.__prepare_run(run):
                 return
             if time is None:
-                self.run_history.info(run, f"restored: waiting")
+                self.run_history.info(run, "restored: waiting")
                 await self.__waiter.start(run)
             else:
                 self.run_history.info(run, f"restored: scheduled for {time}")
                 await self.scheduled.schedule(time, run)
 
-        # Restore scheduled runs from DB.
-        log.info("restoring scheduled runs")
-        _, scheduled_runs = self.run_store.query(state=Run.STATE.scheduled)
-        for run in scheduled_runs:
-            assert not run.expected
-            await reschedule(run, run.times["schedule"])
+        try:
+            log.info("restoring")
 
-        # Restore waiting runs from DB.
-        log.info("restoring waiting runs")
-        _, waiting_runs = self.run_store.query(state=Run.STATE.waiting)
-        for run in waiting_runs:
-            assert not run.expected
-            await reschedule(run, None)
+            # Restore scheduled runs from DB.
+            log.info("restoring scheduled runs")
+            _, scheduled_runs = self.run_store.query(state=Run.STATE.scheduled)
+            for run in scheduled_runs:
+                assert not run.expected
+                await reschedule(run, run.times["schedule"])
 
-        # Reconnect to running runs.
-        _, running_runs = self.run_store.query(state=Run.STATE.running)
-        log.info(f"reconnecting running runs")
-        for run in running_runs:
-            assert run.program is not None
-            self.run_history.record(
-                run, f"at startup, reconnecting to running {run.run_id}")
-            wait_coro = run.program.reconnect(run.run_id, run.run_state)
-            self.__finish(run, wait_coro)
+            # Restore waiting runs from DB.
+            log.info("restoring waiting runs")
+            _, waiting_runs = self.run_store.query(state=Run.STATE.waiting)
+            for run in waiting_runs:
+                assert not run.expected
+                await reschedule(run, None)
 
-        log.info("restoring done")
+            # Reconnect to running runs.
+            _, running_runs = self.run_store.query(state=Run.STATE.running)
+            log.info("reconnecting running runs")
+            for run in running_runs:
+                assert run.program is not None
+                self.run_history.record(
+                    run, f"at startup, reconnecting to running {run.run_id}")
+                future = run.program.reconnect(run.run_id, run.run_state)
+                self.__finish(run, future)
+
+            log.info("restoring done")
+
+        except Exception:
+            log.critical("restore failed", exc_info=True)
+            raise SystemExit(1)
 
 
     def start_loops(self):
@@ -196,9 +202,26 @@ class Apsis:
                     outputs =exc.outputs,
                 )
 
+            except Exception as exc:
+                # Program raised some other exception.
+                log.error(
+                    f"exception waiting for run: {run.run_id}", exc_info=True)
+                self.run_history.record(
+                    run, f"internal error in program: {exc}")
+                tb = traceback.format_exc().encode()
+                self._transition(
+                    run, run.STATE.error,
+                    outputs ={
+                        "output": Output(
+                            OutputMetadata("traceback", length=len(tb)),
+                            tb
+                        ),
+                    }
+                )
+
             else:
                 # Program ran and completed successfully.
-                self.run_history.record(run, f"program success")
+                self.run_history.record(run, "program success")
                 await self._transition(
                     run, run.STATE.success,
                     meta    =success.meta,
@@ -255,10 +278,9 @@ class Apsis:
         if job.reruns.count == 0:
             # No reruns.
             return
-        
+
         # Collect all reruns of this run, including the original run.
         _, runs = self.run_store.query(rerun=run.rerun)
-        runs = list(runs)
 
         if len(runs) > job.reruns.count:
             # No further reruns.
@@ -323,7 +345,7 @@ class Apsis:
         if sys.exc_info()[0] is not None:
             # Attach the exception traceback as run output.
             tb = traceback.format_exc().encode()
-            # FIXME: For now, use the name "output" as this is the only one 
+            # FIXME: For now, use the name "output" as this is the only one
             # the UIs render.  In the future, change to "traceback".
             outputs["output"] = Output(
                 OutputMetadata("output", len(tb), content_type="text/plain"),
@@ -347,7 +369,7 @@ class Apsis:
         # A run is no longer expected once it is no longer scheduled.
         if run.expected and state not in {
                 run.STATE.new,
-                run.STATE.scheduled, 
+                run.STATE.scheduled,
         }:
             self.__db.run_history_db.flush(run.run_id)
             run.expected = False
@@ -362,7 +384,7 @@ class Apsis:
         for output_id, output in outputs.items():
             self.__db.output_db.add(run.run_id, output_id, output)
 
-        # Persist the new state.  
+        # Persist the new state.
         self.run_store.update(run, time)
         # Also persist to Redis.
         if self.__redis_store is not None:
@@ -540,7 +562,7 @@ async def reschedule_runs(apsis, job_id):
     schedule = list(get_runs_to_schedule(job, scheduled_time, scheduler_time))
     for time, run in schedule:
         await apsis.schedule(time, run)
-        
+
 
 async def reload_jobs(apsis, *, dry_run=False):
     """

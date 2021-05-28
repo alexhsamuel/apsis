@@ -1,33 +1,45 @@
 import logging
 
 from   . import runs
-from   .lib.json import TypedJso, no_unexpected_keys
+from   .lib.json import TypedJso, check_schema
 from   .lib.py import tupleize
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+STATE = runs.Run.STATE
+ALL_STATES = frozenset(STATE)
+
+def states_from_jso(jso):
+    return frozenset( runs.Run.STATE[s] for s in tupleize(jso) )
+
+
+def states_to_jso(states):
+    states = frozenset(states)
+    return (
+        None if states == ALL_STATES
+        else [ s.name for s in states ]
+    )
+
+
 class Condition:
 
     def __init__(self, *, states=None):
-        self.states = None if states is None else frozenset(states)
+        self.states = frozenset(states)
 
 
     def __call__(self, run):
-        return (
-            self.states is None or run.state in self.states
-        )
+        return run.state in self.states
 
 
     @classmethod
-    def from_jso(Class, jso):
+    def from_jso(cls, jso):
         if jso is None:
             return None
-
-        with no_unexpected_keys(jso):
-            states = states_from_jso(jso.pop("states", None))
-        return Class(states=states)
+        with check_schema(jso) as pop:
+            states = pop("states", states_from_jso, default=ALL_STATES)
+        return cls(states=states)
 
 
     def to_jso(self):
@@ -35,20 +47,6 @@ class Condition:
             "states": states_to_jso(self.states),
         }
 
-
-
-def states_from_jso(jso):
-    return (
-        None if jso is None
-        else tuple( runs.Run.STATE[s] for s in tupleize(jso) )
-    )
-
-
-def states_to_jso(states):
-    return (
-        None if states is None
-        else [ s.name for s in states ]
-    )
 
 
 #-------------------------------------------------------------------------------
@@ -72,22 +70,22 @@ class ScheduleAction(Action):
     Schedules a new run.
     """
 
-    # FIXME: Add schedule.
     def __init__(self, instance, *, condition=None):
-        self.__inst = instance
-        self.__condition = condition
+        self.job_id     = instance.job_id
+        self.args       = instance.args
+        self.condition  = condition
 
 
     async def __call__(self, apsis, run):
-        if self.__condition is not None and not self.__condition(run):
+        if self.condition is not None and not self.condition(run):
             return
 
         # Expand args templates.
         args = { 
             n: runs.template_expand(v, run.inst.args)
-            for n, v in self.__inst.args.items()
+            for n, v in self.args.items()
         }
-        inst = runs.Instance(self.__inst.job_id, args)
+        inst = runs.Instance(self.job_id, args)
         # Propagate missing args.
         inst = apsis._propagate_args(run.inst.args, inst)
 
@@ -104,17 +102,18 @@ class ScheduleAction(Action):
     def to_jso(self):
         return {
             **super().to_jso(),
-            "job_id"    : self.__inst.job_id,
-            "args"      : self.__inst.args,
-            "condition" : self.__condition.to_jso()
+            "job_id"    : self.job_id,
+            "args"      : self.args,
+            "condition" : self.condition.to_jso()
         }
 
 
     @classmethod
     def from_jso(cls, jso):
-        job_id      = jso.pop("job_id")
-        args        = jso.pop("args", {})
-        condition   = Condition.from_jso(jso.pop("if", None))
+        with check_schema(jso) as pop:
+            job_id      = pop("job_id")
+            args        = pop("args", default={})
+            condition   = Condition.from_jso(pop("if", default=None))
         return cls(runs.Instance(job_id, args), condition=condition)
 
 
@@ -134,9 +133,9 @@ def successor_from_jso(jso):
     if isinstance(jso, str):
         jso = {"job_id": jso}
 
-    with no_unexpected_keys(jso):
-        job_id = jso.pop("job_id")
-        args = jso.pop("args", {})
+    with check_schema(jso) as pop:
+        job_id  = pop("job_id")
+        args    = pop("args", default={})
     return ScheduleAction(
         runs.Instance(job_id, args),
         condition=Condition(states=[runs.Run.STATE.success])

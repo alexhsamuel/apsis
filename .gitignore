@@ -2,12 +2,12 @@
 .pytest_cache
 Makefile.local
 apsis.db
-apsis~*.db
 apsis.log
 archive-*.db
 doc
+env
 env.sh
 work/
+python/apsis.egg-info
 .cache/
-
 config.yaml

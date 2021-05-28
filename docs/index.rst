@@ -2,11 +2,14 @@ Apsis, a scheduler
 ==================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents
 
-   configuring-jobs
+   concepts
+   jobs
    programs
+   schedules
+   extending
 
 
 Back matter

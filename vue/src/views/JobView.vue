@@ -6,7 +6,7 @@ div
     JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
 
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
-  p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)")
+  p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)" class="description")
 
   table.fields(v-if="job"): tbody
     tr
@@ -20,6 +20,11 @@ div
     tr
       th schedule
       td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+
+    tr
+      th conditions
+      td
+        .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
 
     tr(v-if="job.actions && job.actions.length > 0")
       th actions
@@ -51,16 +56,16 @@ div
           th {{ key }}
           td {{ value }}
 
-  RunsList(:query="query").uk-margin-bottom
+  RunsList(:query="query" :showJob="false" :argColumns="true").uk-margin-bottom
 
 </template>
 
 <script>
 import { join } from 'lodash'
-import { markdown } from 'markdown'
 import JobLabel from '@/components/JobLabel'
 import Program from '@/components/Program'
 import RunsList from '@/components/RunsList'
+import showdown from 'showdown'
 import store from '@/store'
 
 export default {
@@ -104,7 +109,7 @@ export default {
   },
 
   methods: {
-    markdown(src) { return src.trim() === '' ? '' : markdown.toHTML(src) },
+    markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
   },
 
 }
@@ -123,5 +128,13 @@ h1 {
   th, td {
     line-height: 1;
   }
+}
+
+.condition {
+}
+
+.description {
+  border: 1px solid #e5e5e5;
+  padding: 12px 16px 0px 16px;
 }
 </style>
