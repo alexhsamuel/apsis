@@ -64,8 +64,10 @@ def send_message(to, msg, *, from_=None, smtp_cfg={}):
     with SMTP(host, port) as smtp:
         if ssl == "starttls":
             smtp.starttls()
+            log.debug("SMTP STARTTLS successful")
         if auth is not None:
             smtp.login(auth["username"], auth["password"])
+            log.debug("SMTP login successful")
         smtp.send_message(msg, from_, to)
     log.debug("email sent successfully")
 

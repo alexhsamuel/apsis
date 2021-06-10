@@ -7,7 +7,7 @@ $ apsisctl create apsis.db
 
 To run the back end,
 ```
-$ apsisctl serve jobs apsis.db
+$ apsisctl serve --config config.yaml
 ```
 
 The Vue front end was set up with the [webpack vuejs

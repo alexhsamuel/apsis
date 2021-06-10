@@ -398,7 +398,7 @@ class OutputDB:
         sa.Column("content_type", sa.String()   , nullable=False),
         sa.Column("length"      , sa.Integer()  , nullable=False),
         sa.Column("compression" , sa.String()   , nullable=True),
-        sa.Column("data"        , sa.Binary()   , nullable=False),
+        sa.Column("data"        , sa.BINARY()   , nullable=False),
         sa.PrimaryKeyConstraint("run_id", "output_id")
     )
 

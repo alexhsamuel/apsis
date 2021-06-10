@@ -1,8 +1,8 @@
 import logging
 
 from   apsis.lib.py import format_ctor, iterize
-from   apsis.runs import Run, Instance, get_bind_args
-from   .base import Condition, _bind
+from   apsis.runs import Run, Instance, get_bind_args, bind_params
+from   .base import Condition
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class Dependency(Condition):
     def bind(self, run, jobs):
         job = jobs[self.job_id]
         bind_args = get_bind_args(run)
-        args = _bind(job, self.args, run.inst.args, bind_args)
+        args = bind_params(job, self.args, run.inst.args, bind_args)
         return type(self)(self.job_id, args, self.states)
 
 

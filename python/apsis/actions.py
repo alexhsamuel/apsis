@@ -23,7 +23,7 @@ def states_to_jso(states):
     )
 
 
-class Condition:
+class ActionCondition:
 
     def __init__(self, *, states=None):
         self.states = frozenset(states)
@@ -55,6 +55,17 @@ class Action(TypedJso):
 
     TYPE_NAMES = TypedJso.TypeNames()
 
+    def bind(self, run, jobs):
+        """
+        Binds the action to `run`.
+
+        :param run:
+          The run to bind to.
+        :param jobs:
+          The jobs DB.
+        """
+
+
     async def __call__(self, apsis, run):
         """
         Performs the action on `run`.
@@ -74,6 +85,14 @@ class ScheduleAction(Action):
         self.job_id     = instance.job_id
         self.args       = instance.args
         self.condition  = condition
+
+
+    def bind(self, run, jobs):
+        job = jobs[self.job_id]
+        bind_args = runs.get_bind_args(run)
+        args = runs.bind_params(job, self.args, run.inst.args, bind_args)
+        condition = self.condition.bind(run, jobs)
+        return type(self)(self.job_id, args, condition)
 
 
     async def __call__(self, apsis, run):
@@ -113,7 +132,7 @@ class ScheduleAction(Action):
         with check_schema(jso) as pop:
             job_id      = pop("job_id")
             args        = pop("args", default={})
-            condition   = Condition.from_jso(pop("if", default=None))
+            condition   = ActionCondition.from_jso(pop("if", default=None))
         return cls(runs.Instance(job_id, args), condition=condition)
 
 
@@ -138,7 +157,7 @@ def successor_from_jso(jso):
         args    = pop("args", default={})
     return ScheduleAction(
         runs.Instance(job_id, args),
-        condition=Condition(states=[runs.Run.STATE.success])
+        condition=ActionCondition(states=[runs.Run.STATE.success])
     )
 
 

@@ -166,6 +166,7 @@ class Run:
         self.state      = Run.STATE.new
         self.expected   = bool(expected)
         self.conds      = None
+        self.actions    = None
         self.program    = None
         # Timestamps for state transitions and other events.
         self.times      = {}
@@ -243,6 +244,28 @@ def get_bind_args(run):
         "job_id": run.inst.job_id,
         **run.inst.args,
     }    
+
+
+def bind_params(job, obj_args, inst_args, bind_args):
+    """
+    Binds args to `params`.
+
+    Binds `obj_args` and `inst_args` to params by name.  `obj_args` take
+    precedence, and are template-expanded with `bind_args`; `inst_args` are
+    not expanded.
+    """
+    def get(name):
+        try:
+            return template_expand(obj_args[name], bind_args)
+        except KeyError:
+            pass
+        try:
+            return inst_args[name]
+        except KeyError:
+            pass
+        raise LookupError(f"no value for param {name} of job {job.job_id}")
+
+    return { n: get(n) for n in job.params }
 
 
 #-------------------------------------------------------------------------------

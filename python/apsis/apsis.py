@@ -263,6 +263,13 @@ class Apsis:
                 self._run_exc(run, message=f"invalid condition: {exc}")
                 return False
 
+        if run.actions is None:
+            try:
+                run.actions = [ a.bind(run, self.jobs) for a in job.actions ]
+            except Exception as exc:
+                self._run_exc(run, message=f"invalid action: {exc}")
+                return False
+
         # Attach job labels to the run.
         if run.meta.get("labels") is None:
             run.meta["labels"] = job.meta.get("labels", [])
