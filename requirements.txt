@@ -4,6 +4,6 @@ numpy
 ora
 pyyaml
 requests
-sanic >=1
+sanic >=21.3
 sqlalchemy
 ujson

@@ -50,12 +50,12 @@ class Router(sanic.router.Router):
 
     CATCH_ALL_PATH = "/index.html"
 
-    def get(self, request):
-        logging.info(request.url)
+    def get(self, path, method, host):
+        logging.info(f"{method} {path}")
         try:
-            return super().get(request)
+            return super().get(path, method, host)
         except sanic.router.NotFound:
-            return self._get(self.CATCH_ALL_PATH, request.method, "")
+            return self._get(self.CATCH_ALL_PATH, method, "")
 
 
 
