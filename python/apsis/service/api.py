@@ -115,9 +115,6 @@ def run_to_jso(app, run, summary=False):
 
     if not summary:
         jso.update({
-            "conds":
-                [] if run.conds is None 
-                else [ _to_jso(c) for c in run.conds ],
             "program": None if run.program is None else run.program.to_jso(),
             # FIXME: Rename to metadata.
             "meta": run.meta,
