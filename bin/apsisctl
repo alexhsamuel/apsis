@@ -83,9 +83,12 @@ cmd.add_argument(
 
 def cmd_check_jobs(args):
     status = 0
-    for err in apsis.jobs.check_job_dir(args.path):
-        print(err, file=sys.stderr)
-        status = 1
+    try:
+        for err in apsis.jobs.check_job_dir(args.path):
+            print(err, file=sys.stderr)
+            status = 1
+    except NotADirectoryError as exc:
+        parser.error(exc)
     return status    
 
 

@@ -309,6 +309,9 @@ def check_job_dir(path):
     :return:
       Generator of errors.
     """
+    if not Path(path).is_dir():
+        raise NotADirectoryError(f"not a directory: {path}")
+
     try:
         jobs_dir = load_jobs_dir(path)
     except JobErrors as exc:
