@@ -1,5 +1,4 @@
 params: [host]
-x: foo
 
 program: ping -n -c 1 {{ host }}
 
