@@ -4,7 +4,6 @@ import builtins
 from   contextlib import contextmanager
 import datetime
 import errno
-import itertools
 import logging
 import os
 from   pathlib import Path
@@ -14,6 +13,7 @@ import signal
 from   subprocess import SubprocessError
 import tempfile
 import uuid
+import sys
 
 log = logging.getLogger("processes")
 
@@ -67,25 +67,53 @@ def start(argv, cwd, env, stdin_fd, out_fd):
                 env_list = None  # Use execv instead of execve.
 
             executables = (os.fsencode(executable), )
-            pid = _posixsubprocess.fork_exec(
-                argv, 
-                executables,
-                True,                   # close_fds
-                (err_write, ),          # pass_fds
-                str(cwd), 
-                env_list,
-                stdin_fd,               # stdin read
-                -1,                     # stdin write
-                -1,                     # stdout read
-                out_fd,                 # stdout write
-                -1,                     # stderr read
-                out_fd,                 # stderr write
-                err_read, 
-                err_write,
-                True,                   # restore_signals
-                True,                   # start_new_session
-                None,                   # preexec_fn
-            )
+            
+            # FIXME: Clean up.
+            if sys.version_info.minor > 7:
+                pid = _posixsubprocess.fork_exec(
+                    argv, 
+                    executables,
+                    True,                   # close_fds
+                    (err_write, ),          # pass_fds
+                    str(cwd), 
+                    env_list,
+                    stdin_fd,               # stdin read
+                    -1,                     # stdin write
+                    -1,                     # stdout read
+                    out_fd,                 # stdout write
+                    -1,                     # stderr read
+                    out_fd,                 # stderr write
+                    err_read, 
+                    err_write,
+                    True,                   # restore_signals
+                    True,                   # start_new_session
+                    None,                   # gid
+                    None,                   # gids
+                    None,                   # uid
+                    -1,                     # umask
+                    None,                   # preexec_fn
+                )
+            else:
+                # Python 3.7 API.
+                pid = _posixsubprocess.fork_exec(
+                    argv, 
+                    executables,
+                    True,                   # close_fds
+                    (err_write, ),          # pass_fds
+                    str(cwd), 
+                    env_list,
+                    stdin_fd,               # stdin read
+                    -1,                     # stdin write
+                    -1,                     # stdout read
+                    out_fd,                 # stdout write
+                    -1,                     # stderr read
+                    out_fd,                 # stderr write
+                    err_read, 
+                    err_write,
+                    True,                   # restore_signals
+                    True,                   # start_new_session
+                    None,                   # preexec_fn
+                )
         finally:
             # be sure the FD is closed no matter what
             os.close(err_write)
