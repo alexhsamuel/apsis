@@ -76,6 +76,7 @@ class ProgramRunning:
 class ProgramError(RuntimeError):
 
     def __init__(self, message, *, meta={}, times={}, outputs={}):
+        super().__init__(message)
         self.message    = message
         self.meta       = meta
         self.times      = times
