@@ -29,11 +29,13 @@ class MaxRunning(Condition):
 
 
     def __str__(self):
-        args = (
-            None if self.__args is None
-            else " ".join( f"{k}={v}" for k, v in self.__args.items() )
-        )
-        return f"max {self.__count} running {self.__job_id}({args})"
+        msg = f"max {self.__count} running"
+        if self.__job_id is not None:
+            msg += f" {self.__job_id}"
+            if self.__args is not None:
+                args = " ".join( f"{k}={v}" for k, v in self.__args.items() )
+                msg += f"({args})"
+        return msg
 
 
     def to_jso(self):
