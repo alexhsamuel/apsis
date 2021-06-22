@@ -142,6 +142,28 @@ def tupleize(obj):
             return (obj, )
 
 
+def to_front(items, order):
+    """
+    Reorders `items` so that `order` appears up front.
+
+      >>> to_front(range(8), [6, 4, 2])
+      [6, 4, 2, 0, 1, 3, 5, 7]
+
+    """
+    order = tuple(order)
+    MISSING = object()
+    front = [MISSING] * len(order)
+    rest = []
+    for item in items:
+        try:
+            i = order.index(item)
+        except ValueError:
+            rest.append(item)
+        else:
+            front[i] = item
+    return [ f for f in front if f is not MISSING ] + rest
+
+
 def format_call(__fn, *args, **kw_args):
     """
     Formats a function call, with arguments, as a string.

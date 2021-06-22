@@ -42,6 +42,10 @@ def _to_jso(obj):
     }
 
 
+def _to_jsos(objs):
+    return [] if objs is None else [ _to_jso(o) for o in objs ]
+
+
 def _job_to_jso(app, job):
     return {
         "job_id"        : job.job_id,
@@ -115,9 +119,10 @@ def run_to_jso(app, run, summary=False):
 
     if not summary:
         jso.update({
-            "program": None if run.program is None else run.program.to_jso(),
+            "conds": _to_jsos(run.conds),
             # FIXME: Rename to metadata.
             "meta": run.meta,
+            "program": _to_jso(run.program),
         })
 
     return jso

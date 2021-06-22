@@ -3,6 +3,7 @@ from   ora import Time, Daytime, now, get_display_time_zone
 import sys
 
 import apsis.lib.itr
+import apsis.lib.py
 from   apsis.lib.terminal import COLOR, WHT, RED, BLD, UND, RES
 
 #-------------------------------------------------------------------------------
@@ -95,8 +96,9 @@ def prefix(prefix, lines):
 def format_jso(jso, indent=0):
     ind = " " * indent
     wid = 12 - indent
-    for key, value in jso.items():
-        yield f"{ind}{key:{wid}s}: {value}"
+    keys = ( k for k in jso if k not in {"str"} )
+    for key in apsis.lib.py.to_front(keys, ("type", )):
+        yield f"{ind}{COLOR(244)}{key:{wid}s}:{RES} {jso[key]}"
 
 
 def format_state_symbol(state):
@@ -105,14 +107,18 @@ def format_state_symbol(state):
 format_state_symbol.width = 1
 
 
+def format_cond(cond, *, style=1):
+    if style <= 1:
+        pass
+    else:
+        yield "- " + cond["str"]
+        if 2 <= style:
+            yield from format_jso(cond, indent=2)
+
+
 def format_program(program, *, style=1, indent=0):
     if style <= 1:
-        yield f"{BLD}{program['type']}:{RES} {program.get('command', '')}"
-    elif style == 2:
-        yield f"{BLD}{program['type']}{RES}"
-        for k, v in program.items():
-            if k != "type":
-                yield f"{COLOR(244)}{k:12s}:{RES} {v}"
+        yield f"{program['type']}: {BLD}{program['str']}{RES}"
     else:
         yield from format_jso(program, indent=indent)
 
@@ -188,6 +194,12 @@ def format_run(run, *, style=1):
     # Format the program.
     yield from header("Program")
     yield from format_program(run["program"], style=style)
+
+    # Format conds.
+    if len(run["conds"]) > 0:
+        yield from header("Conditions")
+        for cond in run["conds"]:
+            yield from format_cond(cond, style=style)
 
     if style <= 1:
         state = run["state"]
