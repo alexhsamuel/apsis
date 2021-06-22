@@ -107,17 +107,17 @@ def format_state_symbol(state):
 format_state_symbol.width = 1
 
 
-def format_cond(cond, *, style=1):
-    if style <= 1:
+def format_cond(cond, *, verbosity=1):
+    if verbosity <= 1:
         pass
     else:
         yield "- " + cond["str"]
-        if 2 <= style:
+        if 2 <= verbosity:
             yield from format_jso(cond, indent=2)
 
 
-def format_program(program, *, style=1, indent=0):
-    if style <= 1:
+def format_program(program, *, verbosity=1, indent=0):
+    if verbosity <= 1:
         yield f"{program['type']}: {BLD}{program['str']}{RES}"
     else:
         yield from format_jso(program, indent=indent)
@@ -169,7 +169,7 @@ def _fmt(name, val, width=16, indent=-2):
         yield prefix + fixfmt.pad(name, width - indent) + ": " + str(val)
 
 
-def format_run(run, *, style=1):
+def format_run(run, *, verbosity=1):
     b = "✦"
 
     # Run ID.
@@ -182,7 +182,7 @@ def format_run(run, *, style=1):
         yield f"{b} rerun of run {RUN}{run['rerun']}{RES}"
 
     def header(title):
-        if style >= 2:
+        if verbosity >= 2:
             yield ""
             yield f"{UND}{title}{RES}"
 
@@ -193,15 +193,15 @@ def format_run(run, *, style=1):
 
     # Format the program.
     yield from header("Program")
-    yield from format_program(run["program"], style=style)
+    yield from format_program(run["program"], verbosity=verbosity)
 
     # Format conds.
     if len(run["conds"]) > 0:
         yield from header("Conditions")
         for cond in run["conds"]:
-            yield from format_cond(cond, style=style)
+            yield from format_cond(cond, verbosity=verbosity)
 
-    if style <= 1:
+    if verbosity <= 1:
         state = run["state"]
         if state == "scheduled":
             time = "for " + fmt_time("schedule")
