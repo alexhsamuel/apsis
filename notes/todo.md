@@ -19,6 +19,12 @@ Maybe we should just bite our tounges and attach the apsis object to each run
 instance.  The run objects would become much more active.
 
 
+# Tools
+
+- https://rich.readthedocs.io/en/latest/index.html for console output
+- https://github.com/wildfoundry/dataplicity-lomond for websockets
+
+
 # Redis
 
 - refactor on master:
