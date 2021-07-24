@@ -98,10 +98,17 @@ def test_interval_schedule_phase_repeat():
     sched = IntervalSchedule(600, args, phase=120)
     start = (date, Daytime(7, 33)) @ UTC
     times = iter(sched(start))
-    assert next(times) == ((date, Daytime(7, 42)) @ UTC, args)
-    assert next(times) == ((date, Daytime(7, 52)) @ UTC, args)
-    assert next(times) == ((date, Daytime(8,  2)) @ UTC, args)
-    assert next(times) == ((date, Daytime(8, 12)) @ UTC, args)
+    for y in [
+            Daytime(7, 42),
+            Daytime(7, 52),
+            Daytime(8,  2),
+            Daytime(8, 12),
+    ]:
+        time = (date, y) @ UTC
+        assert next(times) == (time, {
+            **args,
+            "time": str(time),
+        })
 
 
 def test_daily_schedule_eq():
