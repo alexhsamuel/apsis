@@ -1,5 +1,7 @@
+import itertools
 import ora
 from   ora import Date, Time, Daytime, UTC
+import pytest
 
 from   apsis.schedule import DailySchedule, IntervalSchedule
 
@@ -69,6 +71,50 @@ def test_daily_schedule_shift():
     assert st == Time(2019, 1, 20, 9, 30, 0, z)
     assert a["date"] == "2019-01-21"
 
+
+# @pytest.mark.parametrize("date_shift", [-5, -2, -1, 0, 1, 2, 5])
+# @pytest.mark.parametrize("cal_shift", [-5, -2, -1, 0, 1, 2, 5])
+@pytest.mark.parametrize("date_shift", [0])
+@pytest.mark.parametrize("cal_shift", [1])
+@pytest.mark.parametrize("start_y", ["00:00:00", "02:00:00", "10:00:00", "15:00:00", "22:15:00"])
+def test_daily_schedule_cal_shift(date_shift, cal_shift, start_y):
+    z = ora.TimeZone("America/New_York")
+    c = ora.get_calendar("Mon,Wed-Fri")
+    start = ("2019-05-11", start_y) @ z
+    sched_y = ["2:30:00", "12:00:00", "22:00:00"]
+    args = {"foo": "bar"}
+    n = 6
+
+    def shift_date(t, shift):
+        d, y = t @ z
+        return (d + shift, y) @ z
+
+    def shift_cal(t, shift):
+        d, y = t @ z
+        return (c.shift(d, shift), y) @ z
+
+    sched0 = DailySchedule(z, c, sched_y, args)
+    # Generate a long piece of schedule.
+    times0 = sched0(shift_date(start, -20))
+    times0 = [
+        t
+        for t, _ in itertools.islice(times0, n + 300)
+    ]
+
+    sched1 = DailySchedule(
+        z, c, sched_y, args,
+        date_shift=date_shift, cal_shift=cal_shift,
+    )
+    times1 = [ t for t, _ in itertools.islice(sched1(start), n) ]
+    from pprint import pprint
+    pprint(times1)
+    expected = [
+        shift_date(shift_cal(t, cal_shift), date_shift)
+        for t in times0
+    ]
+    pprint([ t for t in expected if t >= start ][: n])
+    assert times1 == [ t for t in expected if t >= start ][: n]
+    
 
 def test_interval_schedule_phase():
     # Every hour on the 15 min.
