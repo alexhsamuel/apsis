@@ -87,8 +87,16 @@ class DailySchedule(Schedule):
         }
         while True:
             sched_date = self.calendar.shift(date, self.cal_shift)
-            sched_date = date + self.date_shift
-            time = (sched_date, self.daytimes[i]) @ self.tz
+            sched_date = sched_date + self.date_shift
+            try:
+                time = (sched_date, self.daytimes[i]) @ self.tz
+            except ora.NonexistentDateDaytime:
+                # Landed in a DST transition.
+                log.warning(
+                    "skipping nonexistent schedule time "
+                    f"{sched_date} {self.daytimes[i]} {self.tz}"
+                )
+                continue
             assert time >= start
             args = {"date": str(date), "time": time, **common_args}
             yield time, args
