@@ -45,8 +45,8 @@ class DailySchedule(Schedule):
         daytimes = ", ".join( format(y, "%C") for y in self.daytimes )
         res = f"{self.calendar} at {daytimes} {self.tz}"
         if self.date_shift != 0:
-            res += f" {self.cal_shift:+d} 'cal days'"
-            res += f" {self.date_shift:+d} 'days'"
+            res += f" {self.cal_shift:+d} cal days"
+            res += f" {self.date_shift:+d} days"
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
             res = "(" + args + ") " + res
@@ -116,6 +116,7 @@ class DailySchedule(Schedule):
             "calendar"  : repr(self.calendar),  # FIXME
             "daytime"   : [ str(y) for y in self.daytimes ],
             "date_shift": self.date_shift,
+            "cal_shift" : self.cal_shift,
             "args"      : self.args,
         }
 
@@ -131,9 +132,10 @@ class DailySchedule(Schedule):
             daytimes    = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
             daytimes    = [ Daytime(d) for d in daytimes ]
             date_shift  = pop("date_shift", int, default=0)
+            cal_shift   = pop("cal_shift", int, default=0)
         return cls(
             tz, calendar, daytimes, args, 
-            enabled=enabled, date_shift=date_shift
+            enabled=enabled, date_shift=date_shift, cal_shift=cal_shift,
         )
 
 
