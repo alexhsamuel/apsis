@@ -1,0 +1,19 @@
+metadata:
+  description: |
+    Runs MWF but on the next cal date.
+
+params: [date]
+
+program:
+  type: shell
+  command:
+    date
+    echo running for $date
+
+schedule:
+  type: daily
+  calendar: Mon,Wed,Fri
+  daytime: [9:30:00, 17:00:00]
+  tz: America/New_York
+  cal_shift: 1
+
