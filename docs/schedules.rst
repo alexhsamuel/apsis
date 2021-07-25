@@ -109,8 +109,8 @@ details.
 The daily schedule will automatically provide args for `time` and `date`
 params, using corresponding values.
 
-Date shift
-``````````
+Date and calendar shift
+```````````````````````
 
 You can shift the schedule time for each run entire days backward or forward.
 This will result in the schedule time for the run occurring on a different date
@@ -131,5 +131,27 @@ its arg will be `date=2020-11-10`.
         tz: UTC
         calendar: Mon
         date_shift: -1
+
+You can also specify a shift in calendar days; this shifts days according to the
+job's calendar.  If you specify both date and calendar shifts, the calendar
+shift is applied before the physical shift.
+
+The job below runs for every weekday, Monday through Friday.  The job is
+scheduled for the same day at 20:00 UTC, except that Friday jobs run on the
+following Sundays instead.  This is because a Friday is shifted forward one day
+in the calendar to Monday, and then shifted one physical day backward to Sunday.
+
+.. code:: yaml
+
+    params: [date]
+
+    schedule:
+        schedule:
+            type: daily
+            daytime: 20:00:00
+            tz: UTC
+            calendar: Mon-Fri
+            cal_shift: 1
+            date_shift: -1
 
 

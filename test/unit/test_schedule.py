@@ -1,5 +1,7 @@
+import itertools
 import ora
 from   ora import Date, Time, Daytime, UTC
+import pytest
 
 from   apsis.schedule import DailySchedule, IntervalSchedule
 
@@ -70,6 +72,50 @@ def test_daily_schedule_shift():
     assert a["date"] == "2019-01-21"
 
 
+@pytest.mark.parametrize("date_shift", [-5, -2, -1, 0, 1, 2, 5])
+@pytest.mark.parametrize("cal_shift", [-5, -2, -1, 0, 1, 2, 5])
+@pytest.mark.parametrize("start_y", ["00:00:00", "02:00:00", "10:00:00", "15:00:00", "22:15:00"])
+def test_daily_schedule_cal_shift(date_shift, cal_shift, start_y):
+    z = ora.TimeZone("America/New_York")
+    c = ora.get_calendar("Mon,Wed-Fri")
+    start = ("2019-03-11", start_y) @ z
+    sched_y = ["2:30:00", "12:00:00", "22:00:00"]
+    args = {"foo": "bar"}
+    n = 20
+
+    def shift_date(t, shift):
+        d, y = t @ z
+        return (d + shift, y) @ z
+
+    def shift_cal(t, shift):
+        d, y = t @ z
+        return (c.shift(d, shift), y) @ z
+
+    sched0 = DailySchedule(z, c, sched_y, args)
+    # Generate a long piece of schedule.
+    times0 = sched0(shift_date(start, -20))
+    times0 = [
+        t
+        for t, _ in itertools.islice(times0, n + 300)
+    ]
+
+    sched1 = DailySchedule(
+        z, c, sched_y, args,
+        date_shift=date_shift, cal_shift=cal_shift,
+    )
+    times1 = [ t for t, _ in itertools.islice(sched1(start), n) ]
+
+    def shift(t):
+        try:
+            return shift_date(shift_cal(t, cal_shift), date_shift)
+        except ora.NonexistentDateDaytime:
+            return None
+
+    expected = [ shift(t) for t in times0 ]
+    expected = [ t for t in expected if t is not None and t >= start ][: n]
+    assert times1 == expected
+
+
 def test_interval_schedule_phase():
     # Every hour on the 15 min.
     sched = IntervalSchedule(3600, {}, phase=900)
@@ -98,10 +144,17 @@ def test_interval_schedule_phase_repeat():
     sched = IntervalSchedule(600, args, phase=120)
     start = (date, Daytime(7, 33)) @ UTC
     times = iter(sched(start))
-    assert next(times) == ((date, Daytime(7, 42)) @ UTC, args)
-    assert next(times) == ((date, Daytime(7, 52)) @ UTC, args)
-    assert next(times) == ((date, Daytime(8,  2)) @ UTC, args)
-    assert next(times) == ((date, Daytime(8, 12)) @ UTC, args)
+    for y in [
+            Daytime(7, 42),
+            Daytime(7, 52),
+            Daytime(8,  2),
+            Daytime(8, 12),
+    ]:
+        time = (date, y) @ UTC
+        assert next(times) == (time, {
+            **args,
+            "time": str(time),
+        })
 
 
 def test_daily_schedule_eq():

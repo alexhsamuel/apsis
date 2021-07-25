@@ -29,20 +29,24 @@ class DailySchedule(Schedule):
     TYPE_NAME = "daily"
 
     def __init__(
-            self, tz, calendar, daytimes, args, *, enabled=True, date_shift=0):
+            self, tz, calendar, daytimes, args, *,
+            enabled=True, date_shift=0, cal_shift=0,
+    ):
         super().__init__(enabled=enabled)
         self.tz         = TimeZone(tz)
         self.calendar   = calendar
         self.daytimes   = tuple(sorted( Daytime(t) for t in daytimes ))
         self.args       = { str(k): str(v) for k, v in args.items() }
         self.date_shift = int(date_shift)
+        self.cal_shift  = int(cal_shift)
 
 
     def __str__(self):
         daytimes = ", ".join( format(y, "%C") for y in self.daytimes )
         res = f"{self.calendar} at {daytimes} {self.tz}"
         if self.date_shift != 0:
-            res += f" {self.date_shift:+d} {'days' if abs(self.date_shift) else 'day'}"
+            res += f" {self.cal_shift:+d} cal days"
+            res += f" {self.date_shift:+d} days"
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
             res = "(" + args + ") " + res
@@ -60,6 +64,7 @@ class DailySchedule(Schedule):
 
         if start_date in self.calendar:
             date = start_date
+            date = self.calendar.shift(date, -self.cal_shift)
             # Find the next daytime.
             for i, daytime in enumerate(self.daytimes):
                 if start_daytime <= daytime:
@@ -71,6 +76,7 @@ class DailySchedule(Schedule):
         else:
             # Start at the beginning of the next date.
             date = self.calendar.after(start_date)
+            date = self.calendar.shift(date, -self.cal_shift)
             i = 0
 
         # Now generate.
@@ -80,8 +86,17 @@ class DailySchedule(Schedule):
             **self.args,
         }
         while True:
-            sched_date = date + self.date_shift
-            time = (sched_date, self.daytimes[i]) @ self.tz
+            sched_date = self.calendar.shift(date, self.cal_shift)
+            sched_date = sched_date + self.date_shift
+            try:
+                time = (sched_date, self.daytimes[i]) @ self.tz
+            except ora.NonexistentDateDaytime:
+                # Landed in a DST transition.
+                log.warning(
+                    "skipping nonexistent schedule time "
+                    f"{sched_date} {self.daytimes[i]} {self.tz}"
+                )
+                continue
             assert time >= start
             args = {"date": str(date), "time": time, **common_args}
             yield time, args
@@ -101,6 +116,7 @@ class DailySchedule(Schedule):
             "calendar"  : repr(self.calendar),  # FIXME
             "daytime"   : [ str(y) for y in self.daytimes ],
             "date_shift": self.date_shift,
+            "cal_shift" : self.cal_shift,
             "args"      : self.args,
         }
 
@@ -116,9 +132,10 @@ class DailySchedule(Schedule):
             daytimes    = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
             daytimes    = [ Daytime(d) for d in daytimes ]
             date_shift  = pop("date_shift", int, default=0)
+            cal_shift   = pop("cal_shift", int, default=0)
         return cls(
             tz, calendar, daytimes, args, 
-            enabled=enabled, date_shift=date_shift
+            enabled=enabled, date_shift=date_shift, cal_shift=cal_shift,
         )
 
 
