@@ -50,7 +50,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'apsis'
-copyright = '2019, Alex Samuel'
+copyright = '2021, Alex Samuel'
 author = 'Alex Samuel'
 
 # The version info for the project you're documenting, acts as replacement for
