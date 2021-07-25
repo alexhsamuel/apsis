@@ -72,18 +72,16 @@ def test_daily_schedule_shift():
     assert a["date"] == "2019-01-21"
 
 
-# @pytest.mark.parametrize("date_shift", [-5, -2, -1, 0, 1, 2, 5])
-# @pytest.mark.parametrize("cal_shift", [-5, -2, -1, 0, 1, 2, 5])
-@pytest.mark.parametrize("date_shift", [0])
-@pytest.mark.parametrize("cal_shift", [1])
+@pytest.mark.parametrize("date_shift", [-5, -2, -1, 0, 1, 2, 5])
+@pytest.mark.parametrize("cal_shift", [-5, -2, -1, 0, 1, 2, 5])
 @pytest.mark.parametrize("start_y", ["00:00:00", "02:00:00", "10:00:00", "15:00:00", "22:15:00"])
 def test_daily_schedule_cal_shift(date_shift, cal_shift, start_y):
     z = ora.TimeZone("America/New_York")
     c = ora.get_calendar("Mon,Wed-Fri")
-    start = ("2019-05-11", start_y) @ z
+    start = ("2019-03-11", start_y) @ z
     sched_y = ["2:30:00", "12:00:00", "22:00:00"]
     args = {"foo": "bar"}
-    n = 6
+    n = 20
 
     def shift_date(t, shift):
         d, y = t @ z
@@ -106,15 +104,17 @@ def test_daily_schedule_cal_shift(date_shift, cal_shift, start_y):
         date_shift=date_shift, cal_shift=cal_shift,
     )
     times1 = [ t for t, _ in itertools.islice(sched1(start), n) ]
-    from pprint import pprint
-    pprint(times1)
-    expected = [
-        shift_date(shift_cal(t, cal_shift), date_shift)
-        for t in times0
-    ]
-    pprint([ t for t in expected if t >= start ][: n])
-    assert times1 == [ t for t in expected if t >= start ][: n]
-    
+
+    def shift(t):
+        try:
+            return shift_date(shift_cal(t, cal_shift), date_shift)
+        except ora.NonexistentDateDaytime:
+            return None
+
+    expected = [ shift(t) for t in times0 ]
+    expected = [ t for t in expected if t is not None and t >= start ][: n]
+    assert times1 == expected
+
 
 def test_interval_schedule_phase():
     # Every hour on the 15 min.
