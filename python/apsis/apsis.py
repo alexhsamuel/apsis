@@ -12,7 +12,7 @@ from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
 from   . import runs
-from   .runs import Run, RunStore, MissingArgumentError, ExtraArgumentError
+from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
@@ -451,7 +451,12 @@ class Apsis:
 
         Unschedules the run and sets it to the error state.
         """
-        self.scheduled.unschedule(run)
+        if run.state == run.STATE.scheduled:
+            self.scheduled.unschedule(run)
+        elif run.state == run.STATE.waiting:
+            self.__waiter.cancel(run)
+        else:
+            raise RunError(f"can't cancel {run.state} run")
         self.run_history.info(run, "cancelled")
         self._transition(run, run.STATE.error, message="cancelled")
 

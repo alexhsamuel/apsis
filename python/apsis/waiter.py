@@ -63,6 +63,13 @@ class Waiter:
             self.__waiting[run.run_id] = (run, conds)
 
 
+    def cancel(self, run):
+        """
+        Cancels waiting on `run`.
+        """
+        del self.__waiting[run.run_id]
+
+
     async def __check_all(self):
         """
         Checks conds on all waiting runs; starts any no longer blocked.
@@ -73,7 +80,7 @@ class Waiter:
 
             if len(conds) == 0:
                 # No longer blocked; ready to run.
-                self.__run_history.info(run, f"no longer waiting")
+                self.__run_history.info(run, "no longer waiting")
                 del self.__waiting[run.run_id]
                 await self.__start(run)
 

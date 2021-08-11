@@ -80,6 +80,8 @@ def _run_summary_to_jso(app, run):
     # Retry is available if the run didn't succeed.
     if run.state in {run.STATE.failure, run.STATE.error}:
         actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
+    if run.state == run.STATE.waiting:
+        actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
     # Terminate and kill are available for a running run.
     if run.state == run.STATE.running:
         actions["terminate"] = app.url_for(
@@ -321,7 +323,7 @@ async def run_state_get(request, run_id):
 async def run_cancel(request, run_id):
     state = request.app.apsis
     _, run = state.run_store.get(run_id)
-    if run.state == run.STATE.scheduled:
+    if run.state in (run.STATE.scheduled, run.STATE.waiting):
         await state.cancel(run)
         return response_json({})
     else:
