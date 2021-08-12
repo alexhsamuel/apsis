@@ -8,7 +8,6 @@ import sys
 
 import apsis.lib.itr
 import apsis.lib.py
-from   apsis.lib.terminal import COLOR
 
 #-------------------------------------------------------------------------------
 
@@ -53,8 +52,6 @@ STATE_SYM = {
     s: Text("[") + Text(c, style=STATE_STYLE[s]) + Text("]")
     for s, c in _STATE_SYM.items()
 }
-
-JOB = COLOR( 30)
 
 #-------------------------------------------------------------------------------
 
