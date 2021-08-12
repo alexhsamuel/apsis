@@ -4,7 +4,6 @@ import json
 import logging
 from   ora import now
 import random
-import rich.console
 import sys
 import yaml
 
@@ -48,7 +47,7 @@ parser.add_argument(
 
 #--- command: adhoc ------------------------------------------------------------
 
-def cmd_adhoc(client, args, con):
+def cmd_adhoc(client, args):
     time = apsis.cmdline.parse_at_time(args.time)
     if args.shell:
         command = " ".join(args.command)
@@ -73,7 +72,7 @@ cmd.add_argument(
 
 #--- command: history ----------------------------------------------------------
 
-def cmd_history(client, args, con):
+def cmd_history(client, args):
     run_history = client.get_history(args.run_id)
     if args.format is None:
         apsis.cmdline.print_run_history(run_history, con)
@@ -90,7 +89,7 @@ add_dump_format_option(cmd)
         
 #--- command: job --------------------------------------------------------------
 
-def cmd_job(client, args, con):
+def cmd_job(client, args):
     job_id = args.job  # FIXME
     job = client.get_job(job_id)
     if args.format is None:
@@ -109,7 +108,7 @@ add_dump_format_option(cmd)
 
 #--- command: jobs -------------------------------------------------------------
 
-def cmd_jobs(client, args, con):
+def cmd_jobs(client, args):
     jobs = client.get_jobs()
     if args.format is None:
         apsis.cmdline.print_jobs(jobs, con)
@@ -125,7 +124,7 @@ add_dump_format_option(cmd)
 
 #--- command: output -----------------------------------------------------------
 
-def cmd_output(client, args, con):
+def cmd_output(client, args):
     # FIXME: For now, expose output_id=output only.
     output = client.get_output(args.run_id, "output")
     sys.stdout.buffer.write(output)
@@ -139,7 +138,7 @@ cmd.add_argument(
 
 #--- command: rerun ------------------------------------------------------------
 
-def cmd_rerun(client, arg, con):
+def cmd_rerun(client, arg):
     run = client.rerun(arg.run_id)
     if args.format is None:
         apsis.cmdline.print_run(run, con)
@@ -156,7 +155,7 @@ add_dump_format_option(cmd)
 
 #--- command: run --------------------------------------------------------------
 
-def cmd_run(client, args, con):
+def cmd_run(client, args):
     for run_id in args.run_id:
         run = client.get_run(run_id)
         if args.format is None:
@@ -176,7 +175,7 @@ add_dump_format_option(cmd)
 
 #--- command: runs -------------------------------------------------------------
 
-def cmd_runs(client, arg, con):
+def cmd_runs(client, arg):
     runs = client.get_runs(
         job_id  =args.job,
         state   =args.state,
@@ -214,7 +213,7 @@ add_dump_format_option(grp)
 
 #--- command: schedule ---------------------------------------------------------
 
-def cmd_schedule(client, args, con):
+def cmd_schedule(client, args):
     run = client.schedule(args.job_id, dict(args.args), args.time)
     apsis.cmdline.print_run(run, con)
 
@@ -228,7 +227,7 @@ cmd = parser.add_command(
     "schedule", cmd_schedule,
     description="Creates and schedules a run.")
 cmd.add_argument(
-    "time", metavar="TIME", type=parse_at_time,
+    "time", metavar="TIME", type=apsis.cmdline.parse_at_time,
     help="time to run [time, daytime, 'now']")
 cmd.add_argument(
     "job_id", metavar="JOB-ID",
@@ -239,7 +238,7 @@ cmd.add_argument(
 
 #--- command: signal -----------------------------------------------------------
 
-def cmd_signal(client, args, con):
+def cmd_signal(client, args):
     client.signal(args.run_id, args.signum)
 
 
@@ -254,7 +253,7 @@ cmd.add_argument(
 
 #--- test commands -------------------------------------------------------------
 
-def cmd_test0(client, args, con):
+def cmd_test0(client, args):
     time = now()
     past = args.past
     rng = args.fut - past
@@ -274,10 +273,10 @@ cmd.add_argument("past", metavar="SECS", type=float, nargs="?", default=0)
 
 args = parser.parse_args()
 client = apsis.service.client.Client((args.host, args.port))
-con = rich.console.Console(theme=apsis.cmdline.THEME)
+con = apsis.cmdline.get_console()
 
 try:
-    args.cmd(client, args, con)
+    args.cmd(client, args)
 except apsis.service.client.APIError as err:
     apsis.cmdline.print_api_error(err, con)
     raise SystemExit(1)

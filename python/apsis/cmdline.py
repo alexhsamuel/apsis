@@ -1,13 +1,14 @@
 from   ora import Time, Daytime, now, get_display_time_zone
 import rich.box
+import rich.console
 from   rich.style import Style
 from   rich.table import Table
 from   rich.text import Text
 import rich.theme
-import sys
 import yaml
 
 import apsis.lib.itr
+import apsis.lib.memo
 import apsis.lib.py
 
 #-------------------------------------------------------------------------------
@@ -22,6 +23,13 @@ THEME = rich.theme.Theme({
     "time"      : "#505050",
     "warning"   : "orange3",
 })
+
+@apsis.lib.memo.memoize
+def get_console():
+    return rich.console.Console(theme=THEME)
+
+
+#-------------------------------------------------------------------------------
 
 TABLE_KWARGS = {
     "box"       : rich.box.SIMPLE_HEAVY,
@@ -195,7 +203,7 @@ def print_run(run, con, *, verbosity=0):
             if d == "schedule":
                 d = "scheduled for"
             else:
-                d = Text(d, style=STATE_STYLE[d]) + " at "
+                d = Text(format(d, "9s"), style=STATE_STYLE[d]) + " at "
             con.print(f"{d} {format_time(t)}{e}")
 
     # Message, if any.
