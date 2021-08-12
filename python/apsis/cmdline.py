@@ -8,7 +8,7 @@ import sys
 
 import apsis.lib.itr
 import apsis.lib.py
-from   apsis.lib.terminal import COLOR, RED, BLD, RES
+from   apsis.lib.terminal import COLOR
 
 #-------------------------------------------------------------------------------
 
@@ -177,8 +177,6 @@ def _fmt(name, val, width=16, indent=-2):
 
 
 def print_run(run, con, *, verbosity=0):
-    BULLET = "✦"
-
     # Run ID.
     run_id = run["run_id"]
     job = format_instance(run)
