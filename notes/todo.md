@@ -1,3 +1,7 @@
+# Cleanup
+
+- Remove run_history from `Waiter`.
+
 - Factor loop watchers (`log.critical`) into a common pattern.
 - Clean up the restore task.
 
