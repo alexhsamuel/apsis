@@ -14,11 +14,13 @@ from   apsis.lib.terminal import COLOR
 
 THEME = rich.theme.Theme({
     "arg"       : "#5f5f87",
+    "error"     : "red1",
     "job"       : "#008787",
     "key"       : "color(244)",
     "param"     : "#5f5f87",
     "run"       : "#00af87",
     "time"      : "#505050",
+    "warning"   : "orange3",
 })
 
 TABLE_KWARGS = {
@@ -83,7 +85,7 @@ def format_duration(sec):
 
 
 def format_time(time):
-    return format(time, "%D %C@display")
+    return "" if time == "" else format(Time(time), "%D %C@")
 
 
 def get_run_start(run):
@@ -328,11 +330,5 @@ def parse_at_time(string):
     # FIXME: Accept expressions like "1 hour".
 
     raise ValueError(f"cannot interpret as time: {string}")
-
-
-def format_time(time):
-    return "" if time == "" else format(Time(time), "%D %C@")
-
-format_time.width = 19
 
 
