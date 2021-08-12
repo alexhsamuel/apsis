@@ -9,7 +9,6 @@ import sys
 import yaml
 
 import apsis.cmdline
-from   apsis.cmdline import parse_at_time, print_lines
 import apsis.jobs
 import apsis.lib.argparse
 import apsis.lib.itr
@@ -50,7 +49,7 @@ parser.add_argument(
 #--- command: adhoc ------------------------------------------------------------
 
 def cmd_adhoc(client, args, con):
-    time = parse_at_time(args.time)
+    time = apsis.cmdline.parse_at_time(args.time)
     if args.shell:
         command = " ".join(args.command)
         run = client.schedule_shell_program(time, command)
@@ -95,7 +94,7 @@ def cmd_job(client, args, con):
     job_id = args.job  # FIXME
     job = client.get_job(job_id)
     if args.format is None:
-        print_lines(apsis.cmdline.format_job(job))
+        apsis.cmdline.print_job(job, con)
     else:
         dump_format(job, args.format)
 

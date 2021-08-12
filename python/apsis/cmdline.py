@@ -5,6 +5,7 @@ from   rich.table import Table
 from   rich.text import Text
 import rich.theme
 import sys
+import yaml
 
 import apsis.lib.itr
 import apsis.lib.py
@@ -58,16 +59,6 @@ STATE_SYM = {
 def indent(string, indent):
     ind = " " * indent
     return "\n".join( ind + l for l in string.splitlines() )
-
-
-def print_lines(lines, *, file=sys.stdout):
-    for line in lines:
-        print(line, file=file)
-
-
-def prefix(prefix, lines):
-    for line in lines:
-        yield prefix + line
 
 
 def format_duration(sec):
@@ -144,8 +135,9 @@ def format_instance(run):
     )
 
 
-def format_job(job):
-    yield from _fmt(None, job)
+def print_job(job, con):
+    # FIXME: Do better.
+    con.print(yaml.dump(job))
 
 
 def print_jobs(jobs, con):
@@ -155,24 +147,6 @@ def print_jobs(jobs, con):
     for job in sorted(jobs, key=lambda j: j["job_id"]):
         table.add_row(job["job_id"], format_params(job["params"]))
     con.print(table)
-
-
-def _fmt(name, val, width=16, indent=-2):
-    prefix = " " * indent
-    if isinstance(val, dict):
-        if name is not None:
-            yield prefix + name + ":"
-        for name, val in val.items():
-            yield from _fmt(name, val, width, indent + 2)
-    elif isinstance(val, list):
-        if name is not None:
-            yield prefix + name + ":"
-        for val in val:
-            yield from _fmt("-", val, width, indent + 2)
-    else:
-        if name is None:
-            name = ""
-        yield prefix + name.ljust(width - indent) + ": " + str(val)
 
 
 def print_run(run, con, *, verbosity=0):
