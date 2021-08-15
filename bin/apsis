@@ -240,7 +240,7 @@ cmd = parser.add_command(
     "schedule", cmd_schedule,
     description="Creates and schedules a run.")
 cmd.add_argument(
-    "time", metavar="TIME", type=parse_at_time,
+    "time", metavar="TIME", type=apsis.cmdline.parse_at_time,
     help="time to run [time, daytime, 'now']")
 cmd.add_argument(
     "job_id", metavar="JOB-ID",
