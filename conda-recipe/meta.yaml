@@ -16,11 +16,12 @@ requirements:
     - python
   run:
     - jinja2
-    - alexhsamuel/fixfmt
     - alexhsamuel/ora
-    - conda-forge/sanic
     - python
+    - pyyaml
     - requests
+    - rich
+    - conda-forge/sanic >=21.3
     - sqlalchemy
     - ujson
 

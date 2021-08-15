@@ -29,7 +29,7 @@ setuptools.setup(
         "pyyaml",
         "requests",
         "rich",
-        "sanic",
+        "sanic >=21.3",
         "sqlalchemy",
         "ujson",
     ],
