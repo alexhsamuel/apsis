@@ -4,13 +4,13 @@ import logging
 import os
 import ora
 from   pathlib import Path
+import rich.console
 import sys
 
 import apsis.cmdline
 import apsis.config
 import apsis.lib.argparse
 import apsis.lib.logging
-from   apsis.lib import terminal
 from   apsis.service import DEFAULT_PORT
 import apsis.service.client
 import apsis.service.main
@@ -85,7 +85,7 @@ def cmd_check_jobs(args):
     status = 0
     try:
         for err in apsis.jobs.check_job_dir(args.path):
-            print(err, file=sys.stderr)
+            con.print(err, style="error")
             status = 1
     except NotADirectoryError as exc:
         parser.error(exc)
@@ -140,16 +140,16 @@ def cmd_reload_jobs(args):
         def section(name):
             job_ids = result[name]
             if len(job_ids) > 0:
-                print(terminal.UND + "Jobs " + name + terminal.RES)
+                con.print(f"[u]Jobs {name}[/]")
                 for job_id in job_ids:
-                    print("- " + apsis.cmdline.JOB + job_id + terminal.RES)
-                print()
+                    con.print(f"- [job]{job_id}[/]")
+                con.print()
             return len(job_ids)
-        
+
         if section("removed") + section("added") + section("changed") == 0:
-            print("no changes")
+            con.print("no changes")
         elif result["dry_run"]:
-            print(terminal.MAG + "Dry run; no changes made." + terminal.RES)
+            con.print("[warning]Dry run; no changes made.[/]")
 
 
 cmd = parser.add_command(
@@ -234,9 +234,9 @@ cmd = parser.add_command(
 
 def cmd_version(args):
     version = get_client(args).version()["version"]
-    print(f"server address: {addr.host}:{addr.port}")
-    print(f"server version: {version}")
-    print(f"client version: {apsis.__version__}")
+    con.print(f"server address: {addr.host}:{addr.port}")
+    con.print(f"server version: {version}")
+    con.print(f"client version: {apsis.__version__}")
 
 
 cmd = parser.add_command(
@@ -246,12 +246,12 @@ cmd = parser.add_command(
 #-------------------------------------------------------------------------------
 
 args = parser.parse_args()
+con = rich.console.Console(theme=apsis.cmdline.THEME)
 
 try:
     status = args.cmd(args)
 except apsis.service.client.APIError as err:
-    apsis.cmdline.print_lines(
-        apsis.cmdline.format_api_error(err), file=sys.stderr)
+    apsis.cmdline.print_api_error(err, con)
     raise SystemExit(1)
 except (KeyboardInterrupt, BrokenPipeError):
     pass

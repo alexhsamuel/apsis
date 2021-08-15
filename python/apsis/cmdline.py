@@ -1,24 +1,45 @@
-import fixfmt.table
 from   ora import Time, Daytime, now, get_display_time_zone
+import rich.box
+from   rich.style import Style
+from   rich.table import Table
+from   rich.text import Text
+import rich.theme
 import sys
+import yaml
 
 import apsis.lib.itr
 import apsis.lib.py
-from   apsis.lib.terminal import COLOR, WHT, RED, BLD, UND, RES
 
 #-------------------------------------------------------------------------------
 
-STATE_COLOR = {
-    "new"       : COLOR( 17),
-    "scheduled" : COLOR(243),
-    "waiting"   : COLOR(241),
-    "running"   : COLOR(136),
-    "success"   : COLOR( 29),
-    "failure"   : COLOR(124),
-    "error"     : COLOR(127),
+THEME = rich.theme.Theme({
+    "arg"       : "#5f5f87",
+    "error"     : "red1",
+    "job"       : "#008787",
+    "key"       : "color(244)",
+    "param"     : "#5f5f87",
+    "run"       : "#00af87",
+    "time"      : "#505050",
+    "warning"   : "orange3",
+})
+
+TABLE_KWARGS = {
+    "box"       : rich.box.SIMPLE_HEAVY,
+    "padding"   : (0, 0),
+    "show_edge" : False,
 }
 
-STATE_SYMBOL = {
+STATE_STYLE = {
+    "new"       : Style(color="#00005f"),
+    "scheduled" : Style(color="#767676"),
+    "waiting"   : Style(color="#626262"),
+    "running"   : Style(color="#af8700"),
+    "success"   : Style(color="#00875f"),
+    "failure"   : Style(color="#af0000"),
+    "error"     : Style(color="#af00af"),
+}
+
+_STATE_SYM = {
     "new"       : ".",
     "scheduled" : "O",
     "waiting"   : "|",
@@ -28,53 +49,10 @@ STATE_SYMBOL = {
     "error"     : "!",
 }
 
-RUN = COLOR( 36)
-JOB = COLOR( 30)
-ARG = COLOR( 60)
-
-TABLE_CFG = fixfmt.table.update_cfg(
-    fixfmt.table.UNICODE_CFG,
-    {
-        "header": {
-            "separator": {
-                "between": "  ",
-            },
-        },
-        "formatters": {
-            "default": {
-                "name_width": True,
-            },
-        },
-        "row": {
-            "separator": {
-                "between": "  ",
-            },
-        },
-        "underline": {
-            "separator": {
-                "between": "  ",
-            },
-        },
-    }
-)
-
-RUNS_TABLE_CFG = fixfmt.table.update_cfg(TABLE_CFG, {
-    "header": {
-        "separator": {
-            "between": " ",
-        },
-    },
-    "underline": {
-        "separator": {
-            "between": " ",
-        },
-    },
-    "row": {
-        "separator": {
-            "between": " ",
-        },
-    },
-})
+STATE_SYM = {
+    s: Text("[") + Text(c, style=STATE_STYLE[s]) + Text("]")
+    for s, c in _STATE_SYM.items()
+}
 
 #-------------------------------------------------------------------------------
 
@@ -83,126 +61,120 @@ def indent(string, indent):
     return "\n".join( ind + l for l in string.splitlines() )
 
 
-def print_lines(lines, *, file=sys.stdout):
-    for line in lines:
-        print(line, file=file)
+def format_duration(sec):
+    m, s = divmod(int(round(sec)), 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    return (
+        f"{d}:{h:02}:{m:02}:{s:02}" if d > 0
+        else f"{h}:{m:02}:{s:02}" if h > 0
+        else f"{m}:{s:02}"
+    )
 
 
-def prefix(prefix, lines):
-    for line in lines:
-        yield prefix + line
+def format_time(time):
+    return "" if time == "" else format(Time(time), "%D %C@")
+
+
+def get_run_start(run):
+    return run["times"].get("running", run["times"].get("schedule", ""))
+
+
+def get_run_elapsed(cur, run):
+    try:
+        return run["elapsed"]
+    except KeyError:
+        pass
+
+    try:
+        start = Time(run["times"]["running"])
+    except KeyError:
+        pass
+    else:
+        return cur - start
+
+    return None
 
 
 def format_jso(jso, indent=0):
     ind = " " * indent
     wid = 12 - indent
     keys = ( k for k in jso if k not in {"str"} )
-    for key in apsis.lib.py.to_front(keys, ("type", )):
-        yield f"{ind}{COLOR(244)}{key:{wid}s}:{RES} {jso[key]}"
+    keys = apsis.lib.py.to_front(keys, ("type", ))
+    return "\n".join( f"{ind}[key]{k:{wid}s}:[/] {jso[k]}" for k in keys )
 
 
-def format_state_symbol(state):
-    return STATE_COLOR[state] + STATE_SYMBOL[state] + RES
-
-format_state_symbol.width = 1
-
-
-def format_cond(cond, *, verbosity=1):
-    if verbosity <= 1:
-        pass
+def print_cond(cond, con, *, verbosity=0):
+    if verbosity < 1:
+        con.print(f"- {cond['str']}")
     else:
-        yield "- " + cond["str"]
-        if 2 <= verbosity:
-            yield from format_jso(cond, indent=2)
+        con.print(format_jso(cond, indent=2))
 
 
-def format_program(program, *, verbosity=1, indent=0):
-    if verbosity <= 1:
-        yield f"{program['type']}: {BLD}{program['str']}{RES}"
-    else:
-        yield from format_jso(program, indent=indent)
+def format_program(program, *, verbosity=0, indent=0):
+    return (
+        f"{program['type']}: [bold]{program['str']}[/]"
+        if verbosity < 1
+        else format_jso(program, indent=indent)
+    )
 
 
 def format_schedule(schedule, indent=0):
     yield from format_jso(schedule, indent=indent)
 
 
+def format_params(params):
+    return ", ".join( f"[param]{p}[/]" for p in params )
+
+
 def format_instance(run):
     return (
-        f"{JOB}{run['job_id']}{RES}("
-        + ", ".join( f"{k}={ARG}{v}{RES}" for k, v in run["args"].items() )
+          f"[job]{run['job_id']}[/]("
+        + ", ".join( f"{k}=[arg]{v}[/]" for k, v in run["args"].items() )
         + ")"
     )
 
 
-def format_job(job):
-    yield from _fmt(None, job)
+def print_job(job, con):
+    # FIXME: Do better.
+    con.print(yaml.dump(job))
 
 
-def format_jobs(jobs):
-    table = fixfmt.table.RowTable(cfg=TABLE_CFG)
-    table.extend(
-        {
-            "job_id": job["job_id"],
-            "params": ", ".join(job["params"]),
-        }
-        for job in jobs
-    )
-    yield from table
+def print_jobs(jobs, con):
+    table = Table(**TABLE_KWARGS)
+    table.add_column("job_id", style="job")
+    table.add_column("params")
+    for job in sorted(jobs, key=lambda j: j["job_id"]):
+        table.add_row(job["job_id"], format_params(job["params"]))
+    con.print(table)
 
 
-def _fmt(name, val, width=16, indent=-2):
-    prefix = " " * indent
-    if isinstance(val, dict):
-        if name is not None:
-            yield prefix + name + ":"
-        for name, val in val.items():
-            yield from _fmt(name, val, width, indent + 2)
-    elif isinstance(val, list):
-        if name is not None:
-            yield prefix + name + ":"
-        for val in val:
-            yield from _fmt("-", val, width, indent + 2)
-    else:
-        if name is None:
-            name = ""
-        yield prefix + fixfmt.pad(name, width - indent) + ": " + str(val)
-
-
-def format_run(run, *, verbosity=1):
-    b = "✦"
-
+def print_run(run, con, *, verbosity=0):
     # Run ID.
     run_id = run["run_id"]
     job = format_instance(run)
-    yield f"{BLD}run {RUN}{run_id}{RES} {job}"
-
-    # Rerun info.
-    if run["rerun"] != run_id:
-        yield f"{b} rerun of run {RUN}{run['rerun']}{RES}"
+    con.print(f"[bold]run [run]{run_id}[/] {job}")
 
     def header(title):
-        if verbosity >= 2:
-            yield ""
-            yield f"{UND}{title}{RES}"
+        if verbosity >= 1:
+            con.print()
+            con.print(f"[u]{title}[/]")
 
-    # Current state and relevant time.
-    fmt_time = lambda n: format_time(run["times"].get(n, ""))
-    elapsed = run["meta"].get("elapsed")
-    elapsed = "" if elapsed is None else format_elapsed(elapsed).lstrip()
+    elapsed = get_run_elapsed(now(), run)
+    elapsed = "" if elapsed is None else format_duration(elapsed)
 
-    # Format the program.
-    yield from header("Program")
-    yield from format_program(run["program"], verbosity=verbosity)
+    header("Program")
+    con.print(format_program(run["program"], verbosity=verbosity))
 
     # Format conds.
     if len(run["conds"]) > 0:
-        yield from header("Conditions")
+        header("Conditions")
         for cond in run["conds"]:
-            yield from format_cond(cond, verbosity=verbosity)
+            print_cond(cond, con, verbosity=verbosity)
 
-    if verbosity <= 1:
+    if verbosity < 1:
         state = run["state"]
+        fmt_time = lambda n: format_time(run["times"][n])
         if state == "scheduled":
             time = "for " + fmt_time("schedule")
         elif state == "running":
@@ -211,11 +183,10 @@ def format_run(run, *, verbosity=1):
             time = "at " + fmt_time(state)
         if elapsed is not None:
             time += " elapsed " + elapsed
-        state = f"{STATE_COLOR[state]}{STATE_SYMBOL[state]} {state}{RES}"
-        yield f"{state} {time}"
+        con.print(STATE_SYM[state] + " " + time)
 
     else:
-        yield from header("History")
+        header("History")
         for d, t in sorted(run["times"].items(), key=lambda i: i[1]):
             e = (
                 f" elapsed {elapsed}" if d in ("failure", "success")
@@ -224,110 +195,71 @@ def format_run(run, *, verbosity=1):
             if d == "schedule":
                 d = "scheduled for"
             else:
-                d = f"{STATE_COLOR[d]}{d:9s}{RES} at "
-            yield f"{d} {format_time(t)}{e}"
+                d = Text(d, style=STATE_STYLE[d]) + " at "
+            con.print(f"{d} {format_time(t)}{e}")
 
     # Message, if any.
     if run["message"] is not None:
-        yield f"➔ {WHT}{run['message']}{RES}"
+        con.print(f"➔ [white]{run['message']}[/]")
     
-    yield ""
+    con.print()
 
 
-def format_run_history(run_history):
-    table = fixfmt.table.RowTable(cfg=TABLE_CFG)
-    table.extend(
-        {
-            "timestamp": Time(h["timestamp"]),
-            "message": h["message"],
-        }
-        for h in run_history
-    )
-    table.fmts["timestamp"] = format_time
-    return table
+def print_run_history(run_history, con):
+    table = Table(**TABLE_KWARGS)
+    table.add_column("time", style="time")
+    table.add_column("message")
+    for h in run_history:
+        table.add_row(
+            format_time(Time(h["timestamp"])),
+            h["message"]
+        )
+    con.print(table)
 
 
-def format_runs(runs, *, reruns=False):
-    # FIXME: Does this really make sense?
-    def start_time(run):
-        return run["times"].get("running", run["times"].get("schedule", ""))
+def print_runs(runs, con, *, one_job=False):
+    if len(runs) == 0:
+        con.print("[red]No runs.[/]")
+        return
 
     # FIXME: Support other sorts.
-    runs = sorted(runs.values(), key=start_time)
-    if reruns:
-        runs = sorted(runs, key=lambda r: r["rerun"])
+    runs = sorted(runs.values(), key=get_run_start)
 
     cur = now()
-    def elapsed(run):
-        try:
-            start = Time(run["times"]["running"])
-        except KeyError:
-            return None
-        state = run["state"]
-        if state == "running":
-            return cur - start
-        elif state in {"success", "failure", "error"}:
-            stop = Time(run["times"][state])
-            return stop - start
-        else:
-            return None
 
-    one_job = len({ r["job_id"] for r in runs }) == 1
-
-    table = fixfmt.table.RowTable(cfg=RUNS_TABLE_CFG)
-    for pos, run in apsis.lib.itr.find_groups(runs, group=lambda r: r["rerun"]):
-        row = {
-            "run_id"    : RUN + run["run_id"] + RES,
-            "S"         : run["state"],
-            "start"     : start_time(run),
-            "elapsed"   : elapsed(run),
-            "job_id"    : JOB + run["job_id"] + RES,
-        }
-        if one_job:
-            row.update(**run["args"])
-        else:
-            row["args"] = " ".join( f"{k}={v}" for k, v in run["args"].items() )
-        table.append(**row)
-        if reruns and pos in "lo":
-            table.text("")
-
-    if table.num_rows > 0:
-        table.fmts["S"] = format_state_symbol
-        table.fmts["start"] = format_time
-        table.fmts["elapsed"] = format_elapsed
-
-        if one_job:
-            # Single job.
-            table.fmts["job_id"] = None
-
-        yield from table
-
+    table = Table(**TABLE_KWARGS)
+    table.add_column("run_id")
+    table.add_column("ste")
+    table.add_column("start", style="time")
+    table.add_column("elapsed", justify="right")
+    table.add_column("job_id")
+    if one_job:
+        for arg in runs[0]["args"]:
+            table.add_column(arg)
     else:
-        yield f"{RED}No runs.{RES}"
+        table.add_column("args")
 
-    if not reruns:
-        yield ""
+    for run in runs:
+        elapsed = get_run_elapsed(cur, run)
+        row = [
+            f"[run]{run['run_id']}[/]",
+            STATE_SYM[run["state"]],
+            format_time(get_run_start(run)),
+            "" if elapsed is None else format_duration(elapsed),
+            f"[job]{run['job_id']}[/]",
+        ]
+        if one_job:
+            row.extend(run["args"].values())
+        else:
+            row.append(" ".join( f"{k}={v}" for k, v in run["args"].items() ))
+        table.add_row(*row)
+
+    con.print(table)
+    con.print()
 
 
-def format_elapsed(secs):
-    secs = round(secs)
-    m, s = divmod(secs, 60)
-    if m < 60:
-        return f"   {m:2d}:{s:02d}"
-    else:
-        h, m = divmod(m, 60)
-        return f"{h:2d}:{m:02d}:{s:02d}"
-    # FIXME: Add formats for longer times.
-
-format_elapsed.width = 8
-
-
-def format_api_error(err):
-    yield (
-        RED + BLD + "Error: " + RES + BLD
-        + str(err) + RES
-        + f" [API status: {err.status}]"
-    )
+def print_api_error(err, con):
+    con.print(f"[bold][red]Error:[/] {err}[/] [API status: {err.status}]")
 
     try:
         job_errors = err.jso["job_errors"]
@@ -335,8 +267,8 @@ def format_api_error(err):
         pass
     else:
         for job_id, msg in job_errors:
-            yield "- " + JOB + job_id + RES
-            yield indent(msg, 2)
+            con.print(f"- [job]{job_id}[/]")
+            con.print(indent(msg, 2))
 
 
 #-------------------------------------------------------------------------------
@@ -369,11 +301,5 @@ def parse_at_time(string):
     # FIXME: Accept expressions like "1 hour".
 
     raise ValueError(f"cannot interpret as time: {string}")
-
-
-def format_time(time):
-    return "" if time == "" else format(Time(time), "%D %C@")
-
-format_time.width = 19
 
 
