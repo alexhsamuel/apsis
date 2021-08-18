@@ -250,7 +250,7 @@ class Agent:
                         timeout=1,
                     )
 
-            except requests.ConnectionError:
+            except (requests.ConnectionError, requests.ReadTimeout):
                 # Try again.
                 log.debug(f"{method} {url} → connection error")
                 # FIXME: Do this properly.
