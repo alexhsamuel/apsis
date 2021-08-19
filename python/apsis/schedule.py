@@ -44,8 +44,9 @@ class DailySchedule(Schedule):
     def __str__(self):
         daytimes = ", ".join( format(y, "%C") for y in self.daytimes )
         res = f"{self.calendar} at {daytimes} {self.tz}"
-        if self.date_shift != 0:
+        if self.cal_shift != 0:
             res += f" {self.cal_shift:+d} cal days"
+        if self.date_shift != 0:
             res += f" {self.date_shift:+d} days"
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
