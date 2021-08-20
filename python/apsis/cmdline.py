@@ -149,7 +149,7 @@ def print_jobs(jobs, con):
     con.print(table)
 
 
-def print_run(run, con, *, verbosity=0):
+def print_run(run, con, *, verbosity=0, run_history=None):
     # Run ID.
     run_id = run["run_id"]
     job = format_instance(run)
@@ -185,18 +185,9 @@ def print_run(run, con, *, verbosity=0):
             time += f" elapsed {elapsed}"
         con.print(STATE_SYM[state] + " " + time)
 
-    else:
+    if run_history is not None:
         header("History")
-        for d, t in sorted(run["times"].items(), key=lambda i: i[1]):
-            e = (
-                f" elapsed {elapsed}" if d in ("failure", "success")
-                else ""
-            )
-            if d == "schedule":
-                d = "scheduled for"
-            else:
-                d = Text(format(d, "10s"), style=STATE_STYLE[d]) + " at"
-            con.print(f"{d} {format_time(t)}{e}")
+        print_run_history(run_history, con)
 
     # Message, if any.
     if run["message"] is not None:
@@ -206,7 +197,7 @@ def print_run(run, con, *, verbosity=0):
 
 
 def print_run_history(run_history, con):
-    table = Table(**TABLE_KWARGS)
+    table = Table(show_header=False, **TABLE_KWARGS)
     table.add_column("time", style="time")
     table.add_column("message")
     for h in run_history:
