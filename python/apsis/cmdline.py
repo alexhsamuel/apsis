@@ -195,7 +195,7 @@ def print_run(run, con, *, verbosity=0):
             if d == "schedule":
                 d = "scheduled for"
             else:
-                d = Text(d, style=STATE_STYLE[d]) + " at "
+                d = Text(format(d, "10s"), style=STATE_STYLE[d]) + " at"
             con.print(f"{d} {format_time(t)}{e}")
 
     # Message, if any.
