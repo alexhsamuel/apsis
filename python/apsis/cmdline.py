@@ -181,8 +181,8 @@ def print_run(run, con, *, verbosity=0):
             time = "since " + fmt_time("running")
         else:
             time = "at " + fmt_time(state)
-        if elapsed is not None:
-            time += " elapsed " + elapsed
+        if elapsed:
+            time += f" elapsed {elapsed}"
         con.print(STATE_SYM[state] + " " + time)
 
     else:
