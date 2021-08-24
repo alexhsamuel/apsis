@@ -70,23 +70,18 @@ cmd.add_argument(
     "--shell", action="store_true", default=False,
     help="treat CMD as shell code (contactenated)")
 
-#--- command: history ----------------------------------------------------------
+#--- command: cancel -----------------------------------------------------------
 
-def cmd_history(client, args):
-    run_history = client.get_history(args.run_id)
-    if args.format is None:
-        apsis.cmdline.print_run_history(run_history, con)
-    else:
-        dump_format(run_history, args.format)
+def cmd_cancel(client, args):
+    client.cancel(args.run_id)
 
 
 cmd = parser.add_command(
-    "history", cmd_history,
-    description="Shows history for a run.")
+    "cancel", cmd_cancel,
+    description="Cancels a scheduled or waiting run.")
 cmd.add_argument(
     "run_id", metavar="RUN-ID")
-add_dump_format_option(cmd)
-        
+
 #--- command: job --------------------------------------------------------------
 
 def cmd_job(client, args):
@@ -158,8 +153,10 @@ add_dump_format_option(cmd)
 def cmd_run(client, args):
     for run_id in args.run_id:
         run = client.get_run(run_id)
+        run_history = client.get_history(run_id) if args.verbosity > 0 else None
         if args.format is None:
-            apsis.cmdline.print_run(run, con, verbosity=args.verbosity)
+            apsis.cmdline.print_run(
+                run, con, verbosity=args.verbosity, run_history=run_history)
         else:
             dump_format(run, args.format)
 

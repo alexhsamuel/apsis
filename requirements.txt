@@ -1,4 +1,3 @@
-fixfmt >=0.13.2
 jinja2
 numpy
 ora ==0.4  # 0.5.0 is broken for many time zones

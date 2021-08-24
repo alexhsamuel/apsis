@@ -88,12 +88,19 @@ class Client:
         return self.__request("GET", *path, **query)
 
 
-    def __post(self, *path, data, **query):
+    def __post(self, *path, data=None, **query):
         return self.__request("POST", *path, data=data, **query)
 
 
     def __put(self, *path, data=None, **query):
         return self.__request("PUT", *path, data=data, **query)
+
+
+    def cancel(self, run_id):
+        """
+        Cancels a scheduled or waiting run.
+        """
+        return self.__post("/api/v1/runs", run_id, "cancel")
 
 
     def get_history(self, run_id):

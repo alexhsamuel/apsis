@@ -7,7 +7,7 @@ with (Path(sys.argv[0]).parent / "README.md").open("rt") as file:
 
 setuptools.setup(
     name            ="apsis",
-    version         ="0.7.0",
+    version         ="0.9.1",
     description     ="Easy-to-use task scheduler",
     long_description=long_description,
     url             ="https://github.com/alexhsamuel/apsis",
@@ -29,7 +29,7 @@ setuptools.setup(
         "pyyaml",
         "requests",
         "rich",
-        "sanic",
+        "sanic >=21.3",
         "sqlalchemy",
         "ujson",
     ],
