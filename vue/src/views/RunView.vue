@@ -17,8 +17,7 @@ div
 
   div(v-if="run")
     div
-      Job(:job-id="run.job_id")
-      RunArgs(:args="run.args" style="margin-left: 12px;")
+      JobWithArgs(:job-id="run.job_id" :args="run.args")
 
     table.fields
       tbody
@@ -43,7 +42,12 @@ div
           th conditions
           td.no-padding: table.fields: tbody
             tr(v-for="cond in run.conds" :key="cond.str")
-              td(style="padding-left: 0") {{ cond.str }}
+              td(style="padding-left: 0")
+                span(v-if="cond.type === 'dependency'")
+                  span dependency:
+                  JobWithArgs(:job-id="cond.job_id" :args="cond.args")
+                  span &rarr; {{ join(cond.states, ' ') }}
+                span(v-else) {{ cond.str }}
 
         tr
           th times
@@ -85,10 +89,11 @@ div
 </template>
 
 <script>
-import { forEach, sortBy, toPairs } from 'lodash'
+import { forEach, join, sortBy, toPairs } from 'lodash'
 
 import ActionButton from '@/components/ActionButton'
 import Job from '@/components/Job'
+import JobWithArgs from '@/components/JobWithArgs'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
 import RunArgs from '@/components/RunArgs'
@@ -103,6 +108,7 @@ export default {
   components: { 
     ActionButton,
     Job,
+    JobWithArgs,
     Program,
     Run,
     RunArgs,
@@ -197,6 +203,8 @@ export default {
       else 
         return value
     },
+
+    join,
 
   },
 
