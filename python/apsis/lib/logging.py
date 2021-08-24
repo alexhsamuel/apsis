@@ -1,30 +1,31 @@
 import asyncio
 import logging
+import logging.handlers
 import ora
+import rich.highlighter
+import rich.logging
+import rich.text
 
-from   .terminal import COLOR, BLD, RES
+import apsis.cmdline
 
 #-------------------------------------------------------------------------------
 
-LEVEL_NAMES = {
-    "DEBUG"     : COLOR(0xf9) + "[d]" + RES,
-    "INFO"      : COLOR(0xf3) + "[i]" + RES,
-    "WARNING"   : COLOR(0x64) + "[w]" + RES,
-    "ERROR"     : COLOR(0x7d) + "[E]" + RES,
-    "CRITICAL"  : COLOR(0xc4) + BLD + "[C]" + RES
+LEVEL_STYLES = {
+    "DEBUG"     : "color(249)",
+    "INFO"      : "color(243)",
+    "WARNING"   : "color(100)",
+    "ERROR"     : "color(125)",
+    "CRITICAL"  : "color(196) bold",
 }
-
-NAME_COLOR = COLOR(0x18)
-ACCESS_COLOR = COLOR(0x3b)
-
 
 class Formatter(logging.Formatter):
 
     def formatMessage(self, record):
         time = ora.UNIX_EPOCH + record.created
-        level = LEVEL_NAMES[record.levelname]
+        level = record.levelname
+        level = f"[{LEVEL_STYLES[level]}]{level[0]}[/]"
         return (
-            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{RES} {level} "
+            f"{time:%.3C} [color(24)]{record.name:24s}[/] {level} "
             f"{record.message}"
         )
 
@@ -34,18 +35,35 @@ class AccessFormatter(logging.Formatter):
 
     def formatMessage(self, record):
         time = ora.UNIX_EPOCH + record.created
-        level = LEVEL_NAMES[record.levelname]
+        level = record.levelname
+        level = f"[{LEVEL_STYLES[level]}]{level[0]}[/]"
         return (
-            f"{time:%.3C} {NAME_COLOR}{record.name:24s}{RES} {level} "
-            f"{record.status} {ACCESS_COLOR}{record.request}{RES} ({record.host})"
+            f"{time:%.3C} [color(24)]{record.name:24s}[/] {level} "
+            f"{record.status} [color(59)]{record.request}[/] ({record.host})"
         )
 
+
+
+class Handler(rich.logging.RichHandler):
+
+    def render(self, *, record, traceback, message_renderable):
+        return rich.text.Text.from_markup(str(message_renderable))
+        
 
 
 def configure(*, level="WARNING"):
     if isinstance(level, str):
         level = getattr(logging, level.upper())
-    logging.basicConfig(level=level)
+    logging.basicConfig(
+        level=level,
+        format="%(message)",
+        datefmt="[%X]",
+        handlers=[Handler(console=apsis.cmdline.get_console())],
+        # handlers=[rich.logging.RichHandler(
+        #     highlighter=rich.highlighter.NullHighlighter(),
+        #     markup=True,
+        # )]
+    )
 
     # Root logger's formatter.
     logging.getLogger().handlers[0].formatter = Formatter()
