@@ -456,19 +456,27 @@ class Apsis:
         elif run.state == run.STATE.waiting:
             self.__waiter.cancel(run)
         else:
-            raise RunError(f"can't cancel {run.state} run")
+            raise RunError(f"can't cancel {run.run_id} in state {run.state.name}")
         self.run_history.info(run, "cancelled")
         self._transition(run, run.STATE.error, message="cancelled")
 
 
     async def start(self, run):
         """
-        Starts immediately a scheduled run.
+        Starts immediately a scheduled or waiting run.
         """
         # FIXME: Race conditions?
-        self.scheduled.unschedule(run)
-        await self.__wait(run)
-
+        if run.state == run.STATE.scheduled:
+            self.scheduled.unschedule(run)
+            self.run_history.info(run, "scheduled run started by override")
+            await self.__wait(run)
+        elif run.state == run.STATE.waiting:
+            self.__waiter.cancel(run)
+            self.run_history.info(run, "waiting run started by override")
+            await self.__start(run)
+        else:
+            raise RunError(f"can't start {run.run_id} in state {run.state.name}")
+        
 
     async def get_run_history(self, run_id):
         """

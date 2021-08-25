@@ -248,6 +248,18 @@ cmd.add_argument(
     "signum", metavar="SIGNAL", default="SIGTERM",
     help="signal name or number")
 
+#--- command: start ------------------------------------------------------------
+
+def cmd_start(client, args):
+    client.start(args.run_id)
+
+
+cmd = parser.add_command(
+    "start", cmd_start,
+    description="Forces a scheduled or waiting run to start.")
+cmd.add_argument(
+    "run_id", metavar="RUN-ID")
+
 #--- test commands -------------------------------------------------------------
 
 def cmd_test0(client, args):

@@ -103,6 +103,13 @@ class Client:
         return self.__post("/api/v1/runs", run_id, "cancel")
 
 
+    def start(self, run_id):
+        """
+        Forces a scheduled or waiting run to start.
+        """
+        return self.__post("/api/v1/runs", run_id, "start")
+
+
     def get_history(self, run_id):
         return self.__get("/api/v1/runs", run_id, "history")["run_history"]
 

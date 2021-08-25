@@ -73,20 +73,18 @@ def _run_summary_to_jso(app, run):
         return jso
 
     actions = {}
-    # Start a scheduled job now.
-    if run.state == run.STATE.scheduled:
-        actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
-        actions["start"] = app.url_for("v1.run_start", run_id=run.run_id)
+    # Start now or cancel a scheduled or waiting job.
+    if run.state in {run.STATE.scheduled, run.STATE.waiting}:
+        actions["cancel"    ] = app.url_for("v1.run_cancel", run_id=run.run_id)
+        actions["start"     ] = app.url_for("v1.run_start", run_id=run.run_id)
     # Retry is available if the run didn't succeed.
     if run.state in {run.STATE.failure, run.STATE.error}:
-        actions["rerun"] = app.url_for("v1.run_rerun", run_id=run.run_id)
-    if run.state == run.STATE.waiting:
-        actions["cancel"] = app.url_for("v1.run_cancel", run_id=run.run_id)
+        actions["rerun"     ] = app.url_for("v1.run_rerun", run_id=run.run_id)
     # Terminate and kill are available for a running run.
     if run.state == run.STATE.running:
-        actions["terminate"] = app.url_for(
+        actions["terminate" ] = app.url_for(
             "v1.run_signal", run_id=run.run_id, signal="SIGTERM")
-        actions["kill"] = app.url_for(
+        actions["kill"      ] = app.url_for(
             "v1.run_signal", run_id=run.run_id, signal="SIGKILL")
 
     jso = run._jso_cache = {
@@ -323,36 +321,27 @@ async def run_state_get(request, run_id):
 async def run_cancel(request, run_id):
     state = request.app.apsis
     _, run = state.run_store.get(run_id)
-    if run.state in (run.STATE.scheduled, run.STATE.waiting):
-        await state.cancel(run)
-        return response_json({})
-    else:
-        return error("invalid run state for cancel", 409, state=run.state)
+    await state.cancel(run)
+    return response_json({})
 
 
 @API.route("/runs/<run_id>/start", methods={"POST"})
 async def run_start(request, run_id):
     state = request.app.apsis
     _, run = state.run_store.get(run_id)
-    if run.state == run.STATE.scheduled:
-        await state.start(run)
-        return response_json({})
-    else:
-        return error("invalid run state for start", 409, state=run.state)
+    await state.start(run)
+    return response_json({})
 
 
 @API.route("/runs/<run_id>/rerun", methods={"POST"})
 async def run_rerun(request, run_id):
     state = request.app.apsis
     _, run = state.run_store.get(run_id)
-    if run.state not in {run.STATE.failure, run.STATE.error, run.STATE.success}:
-        return error("invalid run state for rerun", 409, state=run.state)
-    else:
-        new_run = await state.rerun(run)
-        jso = runs_to_jso(request.app, ora.now(), [new_run])
-        # Let UIs know to show the new run.
-        jso["show_run_id"] = new_run.run_id
-        return response_json(jso)
+    new_run = await state.rerun(run)
+    jso = runs_to_jso(request.app, ora.now(), [new_run])
+    # Let UIs know to show the new run.
+    jso["show_run_id"] = new_run.run_id
+    return response_json(jso)
 
 
 # FIXME: PUT is probably right, but run actions currently are POST only.
