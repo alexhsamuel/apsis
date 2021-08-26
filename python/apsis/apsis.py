@@ -478,6 +478,21 @@ class Apsis:
             raise RunError(f"can't start {run.run_id} in state {run.state.name}")
         
 
+    async def mark(self, run, state):
+        """
+        Transitions a run to `state`, regardless of its current state.
+
+        :param state:
+          Success, failure, or error.
+        """
+        STATE = Run.STATE
+        if state not in {STATE.success, STATE.failure, STATE.error}:
+            raise RunError(f"can't mark {run.run_id} to state {state.name}")
+        if state == run.state:
+            raise RunError(f"run {run.run_id} already in state {state.name}")
+        # FIXME: What if it's running?
+
+
     async def get_run_history(self, run_id):
         """
         Returns history log for a run.
