@@ -116,8 +116,8 @@ Apsis transitions a run among these state as follows:
   **waiting**.
 
 - Apsis periodically checks for the conditions of a **waiting** run.  When all
-  of them have been satisified, it starts the run and transitions it to
-  **running**.  If a run has no conditions, this happens immediately.
+  of them have been satisified, it starts the run's program and transitions it
+  to **running**.  If a run has no conditions, this happens immediately.
 
 - If Apsis is unable to start the program, it transitions the run to **error**.
 
@@ -129,11 +129,17 @@ Apsis transitions a run among these state as follows:
 
 You can induce these transitions as well:
 
-- You can *cancel* a **scheduled** run, so that Apsis no longer waits for its
-  schedule time.  This transitions it to **error**.
+- You can *start* a **scheduled** run.  Apsis no longer waits for its schedule
+  time, and transitions it immediately to **waiting**.
 
-- You can *cancel* a **waiting** run, so that Apsis no longer checks its
-  conditions.  This transitions it to **error**.
+- You can *cancel* a **scheduled** run.  Apsis no longer waits for its schedule
+  time, and transitions it to **error**.
+
+- You can *start* a **waiting** run.  Apsis no longer checks its conditions,
+  starts the run's program, and transitions the run to **running**.
+
+- You can *cancel* a **waiting** run.  Apsis no longer checks its conditions,
+  and transitions it to **error**.
 
 - You can *mark* a finished run (**success**, **failure**, or **error**) to a
   different finished state.
