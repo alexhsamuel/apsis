@@ -86,6 +86,11 @@ def _run_summary_to_jso(app, run):
             "v1.run_signal", run_id=run.run_id, signal="SIGTERM")
         actions["kill"      ] = app.url_for(
             "v1.run_signal", run_id=run.run_id, signal="SIGKILL")
+    # Mark actions are available among finished states
+    for state in Run.FINISHED:
+        if run.state != state and run.state in Run.FINISHED:
+            actions[f"mark {state.name}"] = app.url_for(
+                "v1.run_mark", run_id=run.run_id, state=state.name)
 
     jso = run._jso_cache = {
         "url"           : app.url_for("v1.run", run_id=run.run_id),
@@ -356,9 +361,27 @@ async def run_signal(request, run_id, signal):
 
     apsis.run_history.info(run, f"sending signal {signal}")
     try:
+        # FIXME: This should be via the apsis API.
         await run.program.signal(run.run_state, signal)
     except RuntimeError as exc:
         return error(str(exc), 400)  # FIXME: code?
+    return response_json({})
+
+
+@API.route("/runs/<run_id>/mark/<state>", methods={"PUT", "POST"})
+async def run_mark(request, run_id, state):
+    try:
+        apsis = request.app.apsis
+        _, run = apsis.run_store.get(run_id)
+        try:
+            state = Run.STATE[state]
+        except KeyError:
+            return error(f"invalid state: {state}", status=400)
+
+        await apsis.mark(run, state)
+    except Exception:
+        log.error("error", exc_info=True)
+        raise
     return response_json({})
 
 
