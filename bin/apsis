@@ -117,6 +117,21 @@ cmd = parser.add_command(
     description="Lists all jobs.")
 add_dump_format_option(cmd)
 
+#--- command: mark -------------------------------------------------------------
+
+def cmd_mark(client, args):
+    client.mark(args.run_id, args.state)
+
+
+cmd = parser.add_command(
+    "mark", cmd_mark,
+    description="Marks a run to a different finished STATE.")
+cmd.add_argument(
+    "run_id", metavar="RUN-ID")
+cmd.add_argument(
+    "state", metavar="STATE", type=apsis.cmdline.match_state,
+    choices={"success", "failure", "error"})
+
 #--- command: output -----------------------------------------------------------
 
 def cmd_output(client, args):

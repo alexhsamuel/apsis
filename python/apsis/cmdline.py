@@ -10,6 +10,7 @@ import yaml
 import apsis.lib.itr
 import apsis.lib.memo
 import apsis.lib.py
+import apsis.lib.string
 
 #-------------------------------------------------------------------------------
 
@@ -82,6 +83,10 @@ def format_duration(sec):
 
 def format_time(time):
     return "" if time == "" else format(Time(time), "%D %C@")
+
+
+def match_state(state):
+    return apsis.lib.string.prefix_match(STATE_STYLE.keys(), state.lower())
 
 
 def get_run_start(run):
