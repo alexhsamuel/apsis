@@ -480,17 +480,23 @@ class Apsis:
 
     async def mark(self, run, state):
         """
-        Transitions a run to `state`, regardless of its current state.
+        Transitions a run to a different finished `state`.
 
+        :param run:
+          Run, in a finished state.
         :param state:
-          Success, failure, or error.
+          A different finished state.
         """
-        STATE = Run.STATE
-        if state not in {STATE.success, STATE.failure, STATE.error}:
+        if state not in Run.FINISHED:
             raise RunError(f"can't mark {run.run_id} to state {state.name}")
-        if state == run.state:
+        elif run.state not in Run.FINISHED:
+            # FIXME: Add a 'force' option to allow this?
+            raise RunError(f"can't mark {run.run_id} in state {run.state.name}")
+        elif state == run.state:
             raise RunError(f"run {run.run_id} already in state {state.name}")
-        # FIXME: What if it's running?
+        else:
+            self._transition(run, state, force=True)
+            self.run_history.info(run, f"marked as {state.name}")
 
 
     async def get_run_history(self, run_id):
