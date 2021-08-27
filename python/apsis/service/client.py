@@ -140,6 +140,13 @@ class Client:
         return self.__put("/api/v1/runs", run_id, "signal", str(signal))
 
 
+    def mark(self, run_id, state_name):
+        """
+        Marks a run to different finished state.
+        """
+        return self.__post("/api/v1/runs", run_id, "mark", state_name)
+
+
     def get_runs(self, *, job_id=None, state=None, reruns=False, since=None):
         return self.__get(
             "/api/v1/runs",

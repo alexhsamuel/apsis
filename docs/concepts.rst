@@ -103,3 +103,38 @@ Each run, once created, is in one of these states:
 - **error**: A problem occurred and the run was not started.  For example, the
   run is configured incorrectly, or Apsis was unable to start the program.
 
+State Model
+===========
+
+Apsis transitions a run among these state as follows:
+
+- New runs start in the **scheduled** state.  Apsis schedules new runs
+  automatically according to job schedules, but you can create one explicitly as
+  well.
+
+- When the schedule time for **scheduled** run arrives, Apsis transitions it to
+  **waiting**.
+
+- Apsis periodically checks for the conditions of a **waiting** run.  When all
+  of them have been satisified, it starts the run and transitions it to
+  **running**.  If a run has no conditions, this happens immediately.
+
+- If Apsis is unable to start the program, it transitions the run to **error**.
+
+- When a **running** run finishes, Apsis transitions it to **success** or
+  **failure**, depending on whether the run's program was successful.
+
+- If Apsis encounters an internal error while handling a run in any state, it
+  transitions it to **error**.
+
+You can induce these transitions as well:
+
+- You can *cancel* a **scheduled** run, so that Apsis no longer waits for its
+  schedule time.  This transitions it to **error**.
+
+- You can *cancel* a **waiting** run, so that Apsis no longer checks its
+  conditions.  This transitions it to **error**.
+
+- You can *mark* a finished run (**success**, **failure**, or **error**) to a
+  different finished state.
+

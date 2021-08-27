@@ -10,26 +10,6 @@
   dir.
   
 
-
-# Force transitions
-
-States: New Scheduled Waiting Running Success Failure Error
-
-N -> S
-S -> W  incl "start"
-W -> R
-R -> S
-R -> F
-
-all -> E
-
-#### Need:
-
-W -> R      "start"
-all -> E    "force"
-FE -> S     "force"
-
-
 # Idle thoughts
 
 It might be better for the scheduler, scheduled, and waiter loops to be managed

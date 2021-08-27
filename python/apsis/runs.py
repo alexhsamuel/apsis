@@ -136,7 +136,9 @@ class Run:
         )
     )
 
-    # Allowed transitions to each state.
+    FINISHED = {STATE.success, STATE.failure, STATE.error}
+
+    # State model.  Allowed transitions _to_ each state.
     TRANSITIONS = {
         STATE.new       : set(),
         STATE.scheduled : {STATE.new},
@@ -200,9 +202,13 @@ class Run:
 
 
     def _transition(self, timestamp, state, *, meta={}, times={}, 
-                    message=None, run_state=None):
+                    message=None, run_state=None, force=False):
+        """
+        :param force:
+          Transition outside of the state model.
+        """
         # Check that this is a valid transition.
-        if self.state not in self.TRANSITIONS[state]:
+        if not force and self.state not in self.TRANSITIONS[state]:
             raise TransitionError(self.state, state)
 
         assert all( isinstance(t, Time) and t.valid for t in times.values() )
