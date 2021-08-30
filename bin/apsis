@@ -104,7 +104,7 @@ add_dump_format_option(cmd)
 #--- command: jobs -------------------------------------------------------------
 
 def cmd_jobs(client, args):
-    jobs = client.get_jobs()
+    jobs = client.get_jobs(label=args.label)
     if args.format is None:
         apsis.cmdline.print_jobs(jobs, con)
         con.print()
@@ -115,6 +115,9 @@ def cmd_jobs(client, args):
 cmd = parser.add_command(
     "jobs", cmd_jobs,
     description="Lists all jobs.")
+cmd.add_argument(
+    "--label", metavar="LABEL", default=None,
+    help="List jobs with LABEL.")
 add_dump_format_option(cmd)
 
 #--- command: mark -------------------------------------------------------------

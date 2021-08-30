@@ -1,4 +1,4 @@
-import { filter, includes, join, map } from 'lodash'
+import { filter, includes, join, map, some } from 'lodash'
 import { parseTimeOrOffset } from '@/time.js'
 import store from '@/store'
 
@@ -121,6 +121,34 @@ class JobNameTerm {
 
 // -----------------------------------------------------------------------------
 
+class LabelTerm {
+  constructor(labels) {
+    if (typeof labels === 'string')
+      this.labels = labels.split(',')
+    else
+      this.labels = labels
+  }
+
+  toString() {
+    return 'labels:' + join(this.labels, ',')
+  }
+
+  get predicate() {
+    return run => some(map(run.labels, l => this.labels.includes(l)))
+  }
+
+  static get(query) {
+    const terms = filter(map(splitQuoted(query), parse), t => t instanceof LabelTerm)
+    return terms.length === 0 ? [] : terms[0].labels
+  }
+  
+  static set(query, labels) {
+    return replace(query, LabelTerm, labels.length > 0 ? new LabelTerm(labels) : null)
+  }
+}
+
+// -----------------------------------------------------------------------------
+
 export class SinceTerm {
   constructor(str) {
     this.str = str
@@ -176,6 +204,8 @@ function parse(part) {
       return new StateTerm(val)
     else if (tag === 'since')
       return new SinceTerm(val)
+    else if (tag === 'label')
+      return new LabelTerm(val)
     else
       return null  // FIXME
   }

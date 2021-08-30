@@ -255,9 +255,16 @@ async def jobs(request):
     """
     Returns (non ad-hoc) jobs.
     """
+    args    = request.args
+    try:
+        label, = args["label"]
+    except KeyError:
+        label = None
+
     jso = [ 
         job_to_jso(request.app, j) 
         for j in request.app.apsis.jobs.get_jobs(ad_hoc=False)
+        if label is None or label in j.meta.get("labels")
     ]
     return response_json(jso)
 
