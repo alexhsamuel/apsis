@@ -99,6 +99,7 @@ export default {
      * @param val - the value to set, or undefined to remove
      */
     setQueryParam(param, val) {
+      val = val.trim()
       if (this.$route.query[param] !== val) {
         // Set only this param, keeping the reqest of the query.
         const query = Object.assign({}, this.$route.query, { [param]: val })
