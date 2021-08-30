@@ -256,7 +256,10 @@ async def jobs(request):
     Returns (non ad-hoc) jobs.
     """
     args    = request.args
-    label,  = args.pop("label", [])
+    try:
+        label, = args["label"]
+    except KeyError:
+        label = None
 
     jso = [ 
         job_to_jso(request.app, j) 
