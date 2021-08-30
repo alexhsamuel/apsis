@@ -122,8 +122,8 @@ class Client:
         return self.__get("/api/v1/jobs", job_id, "runs")["runs"]
 
 
-    def get_jobs(self):
-        return self.__get("/api/v1/jobs")
+    def get_jobs(self, *, label=None):
+        return self.__get("/api/v1/jobs", label=label)
 
 
     def get_output(self, run_id, output_id) -> bytes:
