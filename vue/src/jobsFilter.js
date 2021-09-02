@@ -14,7 +14,7 @@ class JobNameTerm {
 
   get predicate() {
     // Match substring.
-    return run => run.job_id.indexOf(this.str) >= 0
+    return job => job.job_id.indexOf(this.str) >= 0
   }
 }
 
@@ -33,7 +33,7 @@ class LabelTerm {
   }
 
   get predicate() {
-    return run => some(map(run.labels, l => this.labels.includes(l)))
+    return job => some(map(job.metadata.labels || [], l => this.labels.includes(l)))
   }
 
   static get(query) {

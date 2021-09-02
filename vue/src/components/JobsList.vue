@@ -86,24 +86,11 @@ div
 
 <script>
 import Job from './Job'
+import * as jobsFilter from '@/jobsFilter.js'
 import JobLabel from './JobLabel'
-import { every, filter, join, map, sortBy, trim } from 'lodash'
+import { filter, join, sortBy } from 'lodash'
 import Program from './Program'
 import showdown from 'showdown'
-
-export function makePredicate(query) {
-  const parts = filter(map(query.split(' '), trim))
-  if (parts.length === 0)
-    return job => true
-
-  // Construct an array of predicates over runs, one for each term.
-  const preds = map(parts, part => {
-    return job => job.job_id.indexOf(part) >= 0
-  })
-
-  // The combined predicate function is true if all the predicates are.
-  return job => every(map(preds, f => f(job)))
-}
 
 /**
  * Arranges an array of jobs into a tree by job ID path components.
@@ -183,9 +170,8 @@ export default {
   computed: {
     /** Jobs after applying the filter.  */
     visibleJobs() {
-      const query = makePredicate(this.query)
-      const pred = job => !job.ad_hoc && query(job)
-      return filter(this.allJobs, pred)
+      const pred = jobsFilter.makePredicate(this.query)
+      return filter(filter(this.allJobs, job => !job.ad_hoc), pred)
     },
 
     /** Filtered jobs, as a tree.  */
