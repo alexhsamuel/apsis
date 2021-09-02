@@ -1,3 +1,4 @@
+import * as jobsFilter from '@/jobsFilter.js'
 import { filter, includes, join, map, some } from 'lodash'
 import { prefixMatch, splitQuoted, combine } from '@/parse.js'
 import { parseTimeOrOffset } from '@/time.js'
@@ -62,7 +63,7 @@ class ArgTerm {
 
 // -----------------------------------------------------------------------------
 
-class JobIdTerm {
+export class JobIdTerm {
   constructor(str) {
     this.str = str
   }
@@ -78,7 +79,7 @@ class JobIdTerm {
 
 // -----------------------------------------------------------------------------
 
-class LabelTerm {
+export class LabelTerm {
   constructor(labels) {
     if (typeof labels === 'string')
       this.labels = labels.split(',')
@@ -87,7 +88,7 @@ class LabelTerm {
   }
 
   toString() {
-    return 'labels:' + join(this.labels, ',')
+    return 'label:' + join(this.labels, ',')
   }
 
   get predicate() {
@@ -191,5 +192,26 @@ export function replace(query, type, replacement) {
   if (!found && replacement)
     terms.push(replacement)
   return terms.join(' ')
+}
+
+/**
+ * Converts a (runs) query to a jobs query.
+ * @returns the corresponding jobs query
+ */
+export function toJobsQuery(query) {
+  function convert(term) {
+    if (term instanceof JobIdTerm)
+      return new jobsFilter.JobIdTerm(term.str)
+    else if (term instanceof LabelTerm)
+      return new jobsFilter.LabelTerm(term.labels)
+    else
+      // Ignore all other types.
+      return null
+  }
+
+  // Parse into terms.
+  const terms = map(splitQuoted(query), parse)
+  // Convert terms to jobs query terms and reassemble into a query.
+  return filter(map(terms, convert)).join(' ')
 }
 

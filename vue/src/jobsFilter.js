@@ -1,9 +1,10 @@
 import { filter, join, map, some } from 'lodash'
 import { splitQuoted, combine } from '@/parse.js'
+import * as runsFilter from '@/runsFilter.js'
 
 // -----------------------------------------------------------------------------
 
-class JobIdTerm {
+export class JobIdTerm {
   constructor(str) {
     this.str = str
   }
@@ -20,7 +21,7 @@ class JobIdTerm {
 
 // -----------------------------------------------------------------------------
 
-class LabelTerm {
+export class LabelTerm {
   constructor(labels) {
     if (typeof labels === 'string')
       this.labels = labels.split(',')
@@ -29,7 +30,7 @@ class LabelTerm {
   }
 
   toString() {
-    return 'labels:' + join(this.labels, ',')
+    return 'label:' + join(this.labels, ',')
   }
 
   get predicate() {
@@ -94,5 +95,27 @@ export function replace(query, type, replacement) {
   if (!found && replacement)
     terms.push(replacement)
   return terms.join(' ')
+}
+
+/**
+ * Converts a (jobs) query to a runs query.
+ * @param {*} query 
+ * @returns the correpsonding runs query
+ */
+export function toRunsQuery(query) {
+  function convert(term) {
+    if (term instanceof JobIdTerm)
+      return new runsFilter.JobIdTerm(term.str)
+    else if (term instanceof LabelTerm)
+      return new runsFilter.LabelTerm(term.labels)
+    else
+      // Ignore anything else.
+      return null
+  }
+
+  // Parse into terms.
+  const terms = map(splitQuoted(query), parse)
+  // Convert terms to run query terms and reassemble into a query.
+  return filter(map(terms, convert)).join(' ')
 }
 
