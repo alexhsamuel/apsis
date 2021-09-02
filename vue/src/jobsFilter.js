@@ -3,7 +3,7 @@ import { splitQuoted, combine } from '@/parse.js'
 
 // -----------------------------------------------------------------------------
 
-class JobNameTerm {
+class JobIdTerm {
   constructor(str) {
     this.str = str
   }
@@ -62,7 +62,7 @@ function parse(part) {
   }
   else
     // Just a keyword.  Search in job id.
-    return new JobNameTerm(part)
+    return new JobIdTerm(part)
 }
 
 export function makePredicate(str) {
