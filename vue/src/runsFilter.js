@@ -1,50 +1,8 @@
+import * as jobsFilter from '@/jobsFilter.js'
 import { filter, includes, join, map, some } from 'lodash'
+import { prefixMatch, splitQuoted, combine } from '@/parse.js'
 import { parseTimeOrOffset } from '@/time.js'
 import store from '@/store'
-
-/**
- * Matches an unambiguous prefix.
- * @param {string[]} vals - strings to match to
- * @param {string} str - string to match
- * @returns {string|null} the matched string, or null for no / ambiguous match
- */
-function prefixMatch(vals, str) {
-  const matches = filter(vals, s => s.startsWith(str))
-  return matches.length === 1 ? matches[0] : null
-}
-
-export function splitQuoted(str) {
-  const results = str.match(/("[^"]+"|[^"\s]+)/g)
-  return map(results, s => s.replace(/^"([^"]+)"$/, '$1'))
-}
-
-/**
- * Replaces all terms of `type` in `query` with `value`.
- * @param {string} query 
- * @param {*} type - term type to replace
- * @param {*} term - replacement term or null to remove
- */
-function replace(query, type, replacement) {
-  const terms = map(splitQuoted(query), parse)
-  let found = false
-  for (let i = 0; i < terms.length; ++i) {
-    const term = terms[i]
-    if (term instanceof type) {
-      if (found || !replacement)
-        // Remove it.
-        terms.splice(i--, 1)
-      else
-        // Replace it.
-        terms.splice(i, 1, replacement)
-      found = true
-    }
-  }
-  if (!found && replacement)
-    terms.push(replacement)
-  return terms.join(' ')
-}
-
-// -----------------------------------------------------------------------------
 
 const STATES = [
   'new', 
@@ -105,7 +63,7 @@ class ArgTerm {
 
 // -----------------------------------------------------------------------------
 
-class JobNameTerm {
+export class JobIdTerm {
   constructor(str) {
     this.str = str
   }
@@ -121,7 +79,7 @@ class JobNameTerm {
 
 // -----------------------------------------------------------------------------
 
-class LabelTerm {
+export class LabelTerm {
   constructor(labels) {
     if (typeof labels === 'string')
       this.labels = labels.split(',')
@@ -130,7 +88,7 @@ class LabelTerm {
   }
 
   toString() {
-    return 'labels:' + join(this.labels, ',')
+    return 'label:' + join(this.labels, ',')
   }
 
   get predicate() {
@@ -178,21 +136,6 @@ export class SinceTerm {
 
 // -----------------------------------------------------------------------------
 
-/**
- * Produces the conjunction predicate.
- * @param {Object[]} predicates
- * @returns the combined predicate
- */
-function combine(predicates) {
-  // The combined filter function is true if all the filters are.
-  return x => {
-    for (let i = 0; i < predicates.length; ++i)
-      if (!predicates[i](x))
-        return false
-    return true
-  }
-}
-
 function parse(part) {
   const clx = part.indexOf(':')
   const eqx = part.indexOf('=')
@@ -217,11 +160,58 @@ function parse(part) {
   }
   else
     // Just a keyword.  Search in job id.
-    return new JobNameTerm(part)
+    return new JobIdTerm(part)
 }
 
 export function makePredicate(str) {
   const terms = map(splitQuoted(str), parse)
   return combine(map(filter(terms), t => t.predicate))
+}
+
+/**
+ * Replaces all terms of `type` in `query` with `value`.
+ * @param {string} query 
+ * @param {*} type - term type to replace
+ * @param {*} term - replacement term or null to remove
+ */
+export function replace(query, type, replacement) {
+  const terms = map(splitQuoted(query), parse)
+  let found = false
+  for (let i = 0; i < terms.length; ++i) {
+    const term = terms[i]
+    if (term instanceof type) {
+      if (found || !replacement)
+        // Remove it.
+        terms.splice(i--, 1)
+      else
+        // Replace it.
+        terms.splice(i, 1, replacement)
+      found = true
+    }
+  }
+  if (!found && replacement)
+    terms.push(replacement)
+  return terms.join(' ')
+}
+
+/**
+ * Converts a (runs) query to a jobs query.
+ * @returns the corresponding jobs query
+ */
+export function toJobsQuery(query) {
+  function convert(term) {
+    if (term instanceof JobIdTerm)
+      return new jobsFilter.JobIdTerm(term.str)
+    else if (term instanceof LabelTerm)
+      return new jobsFilter.LabelTerm(term.labels)
+    else
+      // Ignore all other types.
+      return null
+  }
+
+  // Parse into terms.
+  const terms = map(splitQuoted(query), parse)
+  // Convert terms to jobs query terms and reassemble into a query.
+  return filter(map(terms, convert)).join(' ')
 }
 

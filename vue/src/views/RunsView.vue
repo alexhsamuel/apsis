@@ -130,6 +130,9 @@ export default {
         params: {
           path: this.path || undefined,
         },
+        query: {
+          q: runsFilter.toJobsQuery(this.query) || undefined,
+        },
       })
     },
   },
