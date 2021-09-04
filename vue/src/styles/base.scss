@@ -41,3 +41,16 @@ tt {
 .spaced {
   margin-left: 0.3em;
 }
+
+// For "buttons" with underline selection.
+.undersel {
+  padding: 0 8px 4px 8px;
+  color: inherit;
+  &:hover {
+    text-decoration: none;
+    border-bottom: 3px solid #eee;
+  }
+  &.sel {
+    border-bottom: 3px solid black;
+  }
+}

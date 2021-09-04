@@ -100,21 +100,6 @@ export default {
 }
 </script>
 
-<style lang="scss">
-// For "buttons" with underline selection.
-.undersel {
-  padding: 0 8px 4px 8px;
-  color: inherit;
-  &:hover {
-    text-decoration: none;
-    border-bottom: 3px solid #eee;
-  }
-  &.sel {
-    border-bottom: 3px solid black;
-  }
-}
-</style>
-
 <style lang="scss" scoped>
 .search {
   width: 400px;
