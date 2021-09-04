@@ -1,6 +1,6 @@
 <template lang="pug">
 span
-  span: a.dirnav(v-on:click="$emit('path', null)")
+  span: a.dirnav(v-on:click="$emit('path', '')")
     div.folder-icon(
       uk-icon="icon: home"
       ratio="0.8"
