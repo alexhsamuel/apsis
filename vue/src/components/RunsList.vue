@@ -29,7 +29,7 @@ div
         th.col-actions Actions
 
     tbody
-      template(v-for="group in pageGroups")
+      template(v-for="group in groups")
         tr( 
           v-for="(run, index) in group.visible(getGroupCollapse(group.id))" 
           :key="run.run_id"
@@ -112,7 +112,6 @@ export default {
     p: {type: Number, default: 0},
     query: {type: String, default: ''},
     path: {type: String, default: null},
-    pageSize: {type: Number, default: null},
     showJob: {type: Boolean, default: true},
     argColumns : {type: Boolean, default: false},
   },
@@ -133,21 +132,8 @@ export default {
   data() {
     return { 
       groupCollapse: {},
-      page: this.p,
       store,
     } 
-  },
-
-  watch: {
-    query(query) { 
-      // When filters change, go back to page 0.
-      this.page = 0
-    },
-
-    page(page) {
-      // Let the parent know the page has changed.
-      this.$emit('p', page)
-    }
   },
 
   computed: {
@@ -233,14 +219,6 @@ export default {
       groups = sortBy(groups, g => sortTime(g.run))
 
       return groups
-    },
-
-    numPages() { return Math.ceil(this.groups.length / this.pageSize) },
-    pageStart() { return this.page * this.pageSize },
-    pageEnd() { return Math.min(this.pageStart + this.pageSize, this.groups.length) },
-
-    pageGroups() { 
-      return this.pageSize ? this.groups.slice(this.pageStart, this.pageEnd) : this.groups
     },
 
   },

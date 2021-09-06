@@ -32,7 +32,6 @@ div
     :p="+this.$route.query.p - 1 || 0"
     :query="query"
     :path="path"
-    v-on:p="setPage($event)"
     v-on:path="setPath($event)"
 )
 
@@ -105,11 +104,6 @@ export default {
         const query = Object.assign({}, this.$route.query, { [param]: val })
         this.$router.push({ query })
       }
-    },
-
-    setPage(p) {
-      // If the page has changed, add it to the URL.
-      this.setQueryParam('p', p === 0 ? undefined : p + 1)
     },
 
     setSince(since) {
