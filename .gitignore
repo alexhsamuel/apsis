@@ -4,6 +4,7 @@ Makefile.local
 apsis.db
 apsis.log
 archive-*.db
+*-journal
 doc
 env
 env.sh
