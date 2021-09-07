@@ -86,7 +86,7 @@ div
 </template>
 
 <script>
-import { entries, filter, flatten, groupBy, keys, map, sortBy, uniq } from 'lodash'
+import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, uniq } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
@@ -109,9 +109,12 @@ function sortTime(run) {
 export default { 
   name: 'RunsList',
   props: {
-    p: {type: Number, default: 0},
     query: {type: String, default: ''},
+    // Either a job ID path prefix; can be a full job ID.
+    // FIXME: Rename to jobIdPrefix.
     path: {type: String, default: null},
+    // Args to match.  If not null, shows only runs with exact args match.
+    args: {type: Object, default: null},
     showJob: {type: Boolean, default: true},
     argColumns : {type: Boolean, default: false},
   },
@@ -146,10 +149,10 @@ export default {
     runs() {
       let runs = this.store.state.runs
 
-      if (this.path) {
-        const prefix = this.path + '/'
-        runs = filter(runs, job => job.job_id.startsWith(prefix))
-      }
+      if (this.path)
+        runs = filter(runs, run => run.job_id.startsWith(this.path))
+      if (this.args)
+        runs = filter(runs, run => isEqual(run.args, this.args))
 
       return filter(runs, this.jobPredicate)
     },
