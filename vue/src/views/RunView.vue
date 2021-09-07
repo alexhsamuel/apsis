@@ -19,6 +19,14 @@ div
     div
       JobWithArgs(:job-id="run.job_id" :args="run.args")
 
+    RunsList(
+      :path="run.job_id"
+      :args="run.args || {}"
+      :showJob="false"
+      :argColumns="true"
+      style="max-height: 10cm; overflow: scroll; border: 1px solid red;"
+    ).uk-margin-bottom
+
     table.fields
       tbody
         tr
@@ -99,6 +107,7 @@ import Run from '@/components/Run'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunHistory from '@/components/RunHistory'
+import RunsList from '@/components/RunsList'
 import State from '@/components/State'
 import store from '@/store'
 import Timestamp from '@/components/Timestamp'
@@ -114,6 +123,7 @@ export default {
     RunArgs,
     RunElapsed,
     RunHistory,
+    RunsList,
     State,
     Timestamp,
   },
@@ -141,7 +151,7 @@ export default {
     storeState() {
       const run = store.state.runs[this.run_id]
       return run ? run.state : undefined
-    }
+    },
   },
 
   methods: {
