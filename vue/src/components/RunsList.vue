@@ -3,9 +3,9 @@ div
   table.widetable.runlist
     colgroup
       col(v-if="showJob" style="min-width: 10rem")
-      template(v-if="argColumns")
+      template(v-if="argColumnStyle === 'separate'")
         col(v-for="param in params")
-      col(v-else style="min-width: 10rem; max-width: 100%;")
+      col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
       col(style="width: 4rem")
       col(style="width: 5rem")
@@ -17,9 +17,9 @@ div
     thead
       tr
         th.col-job(v-if="showJob") Job
-        template(v-if="argColumns ")
+        template(v-if="argColumnStyle === 'separate'")
           th.col-arg(v-for="param in params") {{ param }}
-        th.col-args(v-else) Args
+        th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
         th.col-reruns Runs
@@ -44,11 +44,10 @@ div
                 :label="label"
                 :key="label"
               )
-          // If 'argColumns ', show each arg in a separate column.
-          template(v-if="argColumns ")
+          template(v-if="argColumnStyle === 'separate'")
             td(v-for="param in params") {{ run.args[param] || '' }}
           // Else all together.
-          td.col-args(v-else)
+          td.col-args(v-if="argColumnStyle === 'combined'")
             span(v-if="run.run_id === group.id")
               RunArgs(:args="run.args")
 
@@ -116,7 +115,11 @@ export default {
     // Args to match.  If not null, shows only runs with exact args match.
     args: {type: Object, default: null},
     showJob: {type: Boolean, default: true},
-    argColumns : {type: Boolean, default: false},
+    // How to indicate args:
+    // - 'combined' for a single args column
+    // - 'separate' for one column per param, suitable for runs of a single job
+    // - 'none' for no args at all, suitable for runs of a single (job, args)
+    argColumnStyle : {type: String, default: 'combined'},
   },
 
   components: {

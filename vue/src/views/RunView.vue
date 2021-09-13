@@ -91,7 +91,7 @@ div
           :path="run.job_id"
           :args="run.args || {}"
           :showJob="false"
-          :argColumns="true"
+          argColumnStyle="none"
           style="max-height: 10cm; overflow: scroll;"
         )
 

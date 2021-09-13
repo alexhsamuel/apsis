@@ -66,7 +66,7 @@ div
   div.frame
     div.heading Runs
     div.pad
-      RunsList(:query="query" :showJob="false" :argColumns="true")
+      RunsList(:query="query" :showJob="false" argColumnStyle="separate")
 
 </template>
 
