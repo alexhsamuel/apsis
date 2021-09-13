@@ -302,13 +302,16 @@ async def run_history(request, run_id):
     })
 
 
-@API.route("/runs/<run_id>/output", methods={"GET"})
+@API.route("/runs/<run_id>/outputs", methods={"GET"})
 async def run_output_meta(request, run_id):
+    log.warning(f"GET output {run_id}")
     try:
         outputs = request.app.apsis.outputs.get_metadata(run_id)
     except KeyError:
+        log.error(f"unknown run {run_id}", exc_info=True)
         return error(f"unknown run {run_id}", 404)
 
+    log.info("got run output")
     jso = _output_metadata_to_jso(request.app, run_id, outputs)
     return response_json(jso)
 
