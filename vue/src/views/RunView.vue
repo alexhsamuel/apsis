@@ -17,19 +17,6 @@ div
       )
 
     div.frame
-      div.heading
-        | Runs
-        span(style="font-weight: 400; font-size: 90%; margin-left: 1ex;")
-          | of {{ run.job_id }} ({{ joinArgs(run.args) }})
-      RunsList(
-        :path="run.job_id"
-        :args="run.args || {}"
-        :showJob="false"
-        :argColumns="true"
-        style="max-height: 10cm; overflow: scroll;"
-      ).uk-margin-bottom
-
-    div.frame
       div.heading Details
       div.pad
         table.fields
@@ -93,6 +80,20 @@ div
         v-on:click="fetchOutputData(output.output_url)"
       ) load {{ output.output_len }} bytes
       pre.output.pad(v-if="outputData !== null") {{ outputData }}
+
+    div.frame
+      div.heading
+        | Runs
+        span(style="font-weight: 400; font-size: 90%; margin-left: 1ex;")
+          | of {{ run.job_id }} ({{ joinArgs(run.args) }})
+      div.pad
+        RunsList(
+          :path="run.job_id"
+          :args="run.args || {}"
+          :showJob="false"
+          :argColumns="true"
+          style="max-height: 10cm; overflow: scroll;"
+        )
 
   div.error-message(v-else)
     div.title
