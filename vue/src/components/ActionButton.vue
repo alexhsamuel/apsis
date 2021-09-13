@@ -36,10 +36,11 @@ export default {
 }
 
 .button {
-  background: #e0f0e0;
-  padding: 2px 6px 2px 8px;
+  background: #f0f6f0;
+  padding: 6px 8px 6px 8px;
   margin: 0 3px;
   border-radius: 3px;
+  border: 1px solid #aaa;
   font-size: 85%;
   text-transform: uppercase;
   cursor: default;
