@@ -29,6 +29,10 @@ div
         th.col-actions Actions
 
     tbody
+      tr(v-if="!groups")
+        tr
+          td(colspan="8") No runs.
+
       template(v-for="group in groups")
         tr( 
           v-for="(run, index) in group.visible(getGroupCollapse(group.id))" 
