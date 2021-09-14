@@ -64,7 +64,10 @@ div
     div.frame(v-if="run.meta && Object.keys(run.meta).length")
       div.heading(v-on:click="metadataCollapsed = !metadataCollapsed")
         | Metadata 
-        span(:uk-icon="metadataCollapsed ? 'chevron-right' : 'chevron-down'")
+        span(
+          :uk-icon="'icon: ' + (metadataCollapsed ? 'triangle-right' : 'triangle-down') + '; ratio: 1.4'"
+          style="position: relative; top: -2px;"
+        )
       div.pad(v-if="!metadataCollapsed")
         table.fields
           tbody
@@ -92,7 +95,7 @@ div
           :args="run.args || {}"
           :showJob="false"
           argColumnStyle="separate"
-          style="max-height: 10cm; overflow: scroll;"
+          style="max-height: 10cm; overflow-y: auto;"
         )
 
   div.error-message(v-else)
