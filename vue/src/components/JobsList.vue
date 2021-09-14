@@ -228,7 +228,6 @@ export default {
           path.pop()
         }
       }
-      console.log(this.collapse)
     },
   },
 }
