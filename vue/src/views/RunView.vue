@@ -65,8 +65,8 @@ div
       div.heading(v-on:click="metadataCollapsed = !metadataCollapsed")
         | Metadata 
         span(
-          :uk-icon="'icon: ' + (metadataCollapsed ? 'triangle-right' : 'triangle-down') + '; ratio: 1.4'"
-          style="position: relative; top: -2px;"
+          :uk-icon="'ratio: 1.4; icon: ' + (metadataCollapsed ? 'triangle-right' : 'triangle-down')"
+          style="color: #666; position: relative; top: -2px;"
         )
       div.pad(v-if="!metadataCollapsed")
         table.fields
