@@ -14,14 +14,14 @@ div
           span(style="margin-left: 80px")
             a.expand-button
               span(
-                uk-icon="icon: triangle-right; ratio: 1.25"
-                style="position: relative; left: -2px; top: 0px;"
+                uk-icon="icon: triangle-right; ratio: 1.4"
+                style="position: relative; left: -3px; top: 0px;"
                 v-on:click="collapseAll(true)"
               )
             a.expand-button
               span(
-                uk-icon="icon: triangle-down; ratio: 1.25"
-                style="position: relative; left: -1.5px; top: 0px;"
+                uk-icon="icon: triangle-down; ratio: 1.4"
+                style="position: relative; left: -3px; top: 1px;"
                 v-on:click="collapseAll(false)"
               )
         th Description
@@ -57,12 +57,12 @@ div
               span(v-on:click="toggleCollapse(path)")
                 span.indent.folder-icon(
                   v-if="isCollapsed(path)"
-                  uk-icon="icon: triangle-right; ratio: 1.25"
+                  uk-icon="icon: triangle-right; ratio: 1.4"
                   style="position: relative; left: -5px; top: -1px;"
                 )
                 span.indent.folder-icon(
                   v-else
-                  uk-icon="icon: triangle-down; ratio: 1.25"
+                  uk-icon="icon: triangle-down; ratio: 1.4"
                   style="position: relative; left: -3px; top: 0px;"
                 )
                 span.indent(style="display: inline-block; position: relative; left: -2px; top: -2px;")
@@ -165,6 +165,7 @@ export default {
     fetch(url)
       .then((response) => response.json())
       .then((response) => response.forEach((j) => v.allJobs.push(j)))
+      .then(() => this.collapseAll(true))
   },
 
   computed: {
@@ -222,9 +223,12 @@ export default {
       for (const job of this.allJobs) {
         const path = job.job_id.split('/')
         path.pop()
-        if (path.length > 0)
+        while (path.length > 0) {
           this.$set(this.collapse, path, collapsed)
+          path.pop()
+        }
       }
+      console.log(this.collapse)
     },
   },
 }
