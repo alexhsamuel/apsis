@@ -42,10 +42,10 @@ div
             //- a job
             span(v-if="job")
               span.indent(style="display: inline-block; position: relative; left: -2px; top: -3px;")
-                svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
-                  path(d="M 100 600 L 1700 600 L 1700 1700 L 50 1700 L 100 600" stroke="#666" stroke-width="100" fill="transparent")
-                  path(d="M 100 600 L 250 1000 L 1550 1000 L 1700 600" stroke="#888" stroke-width="80" fill="transparent")
-                  path(d="M 500 600 a 200 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
+                //- svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
+                //-   path(d="M 100 600 L 1700 600 L 1700 1700 L 50 1700 L 100 600" stroke="#666" stroke-width="100" fill="transparent")
+                //-   path(d="M 100 600 L 250 1000 L 1550 1000 L 1700 600" stroke="#888" stroke-width="80" fill="transparent")
+                //-   path(d="M 500 600 a 200 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
 
               Job.name(:job-id="job.job_id" :name="name")
 
