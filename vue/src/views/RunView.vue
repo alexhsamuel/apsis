@@ -17,6 +17,25 @@ div
       )
 
     div.frame
+      div.heading(v-on:click="isCollapsed.runs = !isCollapsed.runs")
+        | Runs
+        span(style="font-weight: 400; font-size: 90%; margin-left: 1ex;")
+          | of {{ run.job_id }} ({{ joinArgs(run.args) }})
+        span(
+          :uk-icon="'ratio: 1.4; icon: ' + (isCollapsed.runs ? 'triangle-right' : 'triangle-down')"
+          style="color: #666; position: relative; top: -2px;"
+        )
+      div.pad(v-if="!isCollapsed.runs")
+        RunsList(
+          :path="run.job_id"
+          :args="run.args || {}"
+          :showJob="false"
+          :maxCompletedRuns="20"
+          :maxScheduledRuns="20"
+          argColumnStyle="separate"
+        )
+
+    div.frame
       div.heading Details
       div.pad
         table.fields
@@ -62,13 +81,13 @@ div
               td.no-padding: RunHistory(:run_id="run_id")
 
     div.frame(v-if="run.meta && Object.keys(run.meta).length")
-      div.heading(v-on:click="metadataCollapsed = !metadataCollapsed")
+      div.heading(v-on:click="isCollapsed.metadata = !isCollapsed.metadata")
         | Metadata 
         span(
-          :uk-icon="'ratio: 1.4; icon: ' + (metadataCollapsed ? 'triangle-right' : 'triangle-down')"
+          :uk-icon="'ratio: 1.4; icon: ' + (isCollapsed.metadata ? 'triangle-right' : 'triangle-down')"
           style="color: #666; position: relative; top: -2px;"
         )
-      div.pad(v-if="!metadataCollapsed")
+      div.pad(v-if="!isCollapsed.metadata")
         table.fields
           tbody
             tr(v-for="(value, key) in run.meta" :key="key")
@@ -83,20 +102,6 @@ div
         v-on:click="fetchOutputData(output.output_url)"
       ) load {{ output.output_len }} bytes
       pre.output.pad(v-if="outputData !== null") {{ outputData }}
-
-    div.frame
-      div.heading
-        | Runs
-        span(style="font-weight: 400; font-size: 90%; margin-left: 1ex;")
-          | of {{ run.job_id }} ({{ joinArgs(run.args) }})
-      div.pad
-        RunsList(
-          :path="run.job_id"
-          :args="run.args || {}"
-          :showJob="false"
-          argColumnStyle="separate"
-          style="max-height: 10cm; overflow-y: auto;"
-        )
 
   div.error-message(v-else)
     div.title
@@ -142,7 +147,10 @@ export default {
 
   data() {
     return {
-      metadataCollapsed: true,
+      isCollapsed: {
+        runs: true,
+        metadata: true,
+      },
       output: null,
       outputRequested: false,  // FIXME: Remove?
       outputData: null,
