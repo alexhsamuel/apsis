@@ -29,12 +29,15 @@ div
         th.col-actions Actions
 
     tbody
-      tr(v-if="groups.length == 0")
-        td(colspan="8") No runs.
+      tr(v-if="groups.groups.length == 0")
+        td.note(colspan="8") No runs.
 
-      template(v-for="group in groups")
+      tr(v-if="groups.omitCompleted > 0")
+        td.note(colspan="8") {{ groups.omitCompleted }} completed runs not shown
+
+      template(v-for="group in groups.groups")
         tr( 
-          v-for="(run, index) in group.visible(getGroupCollapse(group.id))" 
+          v-for="(run, index) in group.visible()" 
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
@@ -85,6 +88,9 @@ div
                     :button="true"
                   )
 
+      tr(v-if="groups.omitScheduled > 0")
+        td.note(colspan="8") {{ groups.omitScheduled }} scheduled runs not shown
+
 </template>
 
 <script>
@@ -123,6 +129,9 @@ export default {
     // - 'separate' for one column per param, suitable for runs of a single job
     // - 'none' for no args at all, suitable for runs of a single (job, args)
     argColumnStyle : {type: String, default: 'combined'},
+    // Max number of runs to show.  If negative, show all runs.
+    maxScheduledRuns: {type: Number, default: -1},
+    maxCompletedRuns: {type: Number, default: -1},
   },
 
   components: {
@@ -199,7 +208,39 @@ export default {
         )
       }
 
-      let groups = entries(groupBy(this.runs, groupKey))
+      let runs = this.runs
+      let omitC = 0
+      let omitS = 0
+      if (this.maxScheduledRuns >= 0 || this.maxCompletedRuns >= 0) {
+        // Count up runs by run state group.
+        const counts = {}
+        for (const run of runs) {
+          let grp = RUN_STATE_GROUPS[run.state]
+          counts[grp] = (counts[grp] | 0) + 1
+        }
+
+        const S = counts['S'] | 0
+        if (this.maxScheduledRuns < S)
+          omitS = S - this.maxScheduledRuns
+
+        const C = counts['C'] | 0
+        if (this.maxCompletedRuns < C)
+          omitC = C - this.maxCompletedRuns
+
+        // Now actually omit them.
+        if (omitC > 0 || omitS > 0) {
+          let c = 0
+          let s = S - omitS
+          runs = filter(runs, run => {
+            const grp = RUN_STATE_GROUPS[run.state]
+            return grp === 'C' ? omitC <= c++
+                 : grp === 'S' ? s-- > 0
+                 : true
+          })
+        }
+      }
+
+      let groups = entries(groupBy(runs, groupKey))
 
       // For each group, select the principal run for the group.  This is the
       // run that is shown when the group is collapsed.
@@ -220,14 +261,18 @@ export default {
           length: runs.length,
           run: run,
           runs: runs,
-          visible: collapsed => collapsed ? [run] : runs,
+          visible: () => this.getGroupCollapse(run.run_id) ? [run] : runs,
         }
       })
 
       // Sort groups by time of the principal run.
       groups = sortBy(groups, g => sortTime(g.run))
 
-      return groups
+      return {
+        groups,
+        omitCompleted: omitC,
+        omitScheduled: omitS,
+      }
     },
 
   },
