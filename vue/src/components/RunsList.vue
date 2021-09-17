@@ -33,8 +33,11 @@ div
         td(colspan="8") No runs.
 
       template(v-for="group in groups")
+        tr.run-group-next(v-if="!group.isCollapsed() && group.numEarlier > 0")
+          td(colspan="8") {{ group.numEarlier }} earlier runs not shown
+
         tr( 
-          v-for="(run, index) in group.visible(getGroupCollapse(group.id))" 
+          v-for="(run, index) in group.visible()" 
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0 }"
         )
@@ -84,6 +87,8 @@ div
                     :action="action" 
                     :button="true"
                   )
+        tr.run-group-next(v-if="!group.isCollapsed() && group.numLater > 0")
+          td(colspan="8") {{ group.numLater }} later runs not shown
 
 </template>
 
@@ -214,13 +219,34 @@ export default {
         const sgrp = key[0]
         const run = runs[sgrp === 'C' ? runs.length - 1 : 0]
 
+        const MAX_SHOW = 12
+        let numLater = 0
+        let numEarlier = 0
+        let visible = runs
+        if (runs.length > MAX_SHOW && sgrp === 'S') {
+          // Show only the first MAX_SHOW.
+          console.log('hiding later', runs.length)
+          numLater = runs.length - MAX_SHOW
+          visible = runs.slice(0, MAX_SHOW)
+        }
+        if (runs.length > MAX_SHOW && sgrp === 'C') {
+          // Show only the last MAX_SHOW.
+          console.log('hiding earlier', runs.length)
+          numEarlier = runs.length - MAX_SHOW
+          visible = runs.slice(-MAX_SHOW)
+        }
+
         // Build a convience structure for the group.
+        const isCollapsed = () => this.getGroupCollapse(run.run_id)
         return {
           id: run.run_id,
           length: runs.length,
           run: run,
           runs: runs,
-          visible: collapsed => collapsed ? [run] : runs,
+          isCollapsed,
+          visible: () => isCollapsed() ? [run] : visible,
+          numLater,
+          numEarlier,
         }
       })
 
