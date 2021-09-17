@@ -28,7 +28,7 @@ export default {
 .job-with-args {
   .bracket {
     color: #aaa;
-    margin: 0 0.2em;
+    margin: 0 0.08em;
   }
 }
 </style>
