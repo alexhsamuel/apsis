@@ -29,9 +29,8 @@ div
         th.col-actions Actions
 
     tbody
-      tr(v-if="!groups")
-        tr
-          td(colspan="8") No runs.
+      tr(v-if="groups.length == 0")
+        td(colspan="8") No runs.
 
       template(v-for="group in groups")
         tr( 
