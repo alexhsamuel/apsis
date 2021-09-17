@@ -2,9 +2,10 @@
 
 on branch `feature/show-matching-runs`
 
-- [ ] limit # runs in `RunsList`
+- [x] limit # runs in `RunsList`
 - [ ] don't group/collapse runs in `RunsList` when showing matching runs
 - [ ] highlight the current run
+- [ ] make all frames collapsable, and put collapser at the left of the title (`Frame` component)
 - [ ] add time selection to `RunsList` in run view
 - [ ] format `RunsList` so it looks OK in frame
 
