@@ -1,3 +1,14 @@
+# matching runs
+
+on branch `feature/show-matching-runs`
+
+- [ ] limit # runs in `RunsList`
+- [ ] don't group/collapse runs in `RunsList` when showing matching runs
+- [ ] highlight the current run
+- [ ] add time selection to `RunsList` in run view
+- [ ] format `RunsList` so it looks OK in frame
+
+
 # Cleanup
 
 - Remove run_history from `Waiter`.

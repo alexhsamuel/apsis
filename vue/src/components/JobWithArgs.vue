@@ -26,8 +26,6 @@ export default {
 
 <style lang="scss" scoped>
 .job-with-args {
-  margin: 0 0.5em;
-
   .bracket {
     color: #aaa;
     margin: 0 0.2em;

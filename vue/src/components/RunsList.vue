@@ -3,9 +3,9 @@ div
   table.widetable.runlist
     colgroup
       col(v-if="showJob" style="min-width: 10rem")
-      template(v-if="argColumns")
+      template(v-if="argColumnStyle === 'separate'")
         col(v-for="param in params")
-      col(v-else style="min-width: 10rem; max-width: 100%;")
+      col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
       col(style="width: 4rem")
       col(style="width: 5rem")
@@ -17,9 +17,9 @@ div
     thead
       tr
         th.col-job(v-if="showJob") Job
-        template(v-if="argColumns ")
+        template(v-if="argColumnStyle === 'separate'")
           th.col-arg(v-for="param in params") {{ param }}
-        th.col-args(v-else) Args
+        th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
         th.col-reruns Runs
@@ -29,6 +29,10 @@ div
         th.col-actions Actions
 
     tbody
+      tr(v-if="!groups")
+        tr
+          td(colspan="8") No runs.
+
       template(v-for="group in groups")
         tr( 
           v-for="(run, index) in group.visible(getGroupCollapse(group.id))" 
@@ -44,11 +48,10 @@ div
                 :label="label"
                 :key="label"
               )
-          // If 'argColumns ', show each arg in a separate column.
-          template(v-if="argColumns ")
+          template(v-if="argColumnStyle === 'separate'")
             td(v-for="param in params") {{ run.args[param] || '' }}
           // Else all together.
-          td.col-args(v-else)
+          td.col-args(v-if="argColumnStyle === 'combined'")
             span(v-if="run.run_id === group.id")
               RunArgs(:args="run.args")
 
@@ -86,7 +89,7 @@ div
 </template>
 
 <script>
-import { entries, filter, flatten, groupBy, keys, map, sortBy, uniq } from 'lodash'
+import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, uniq } from 'lodash'
 
 import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
@@ -109,11 +112,18 @@ function sortTime(run) {
 export default { 
   name: 'RunsList',
   props: {
-    p: {type: Number, default: 0},
     query: {type: String, default: ''},
+    // Either a job ID path prefix; can be a full job ID.
+    // FIXME: Rename to jobIdPrefix.
     path: {type: String, default: null},
+    // Args to match.  If not null, shows only runs with exact args match.
+    args: {type: Object, default: null},
     showJob: {type: Boolean, default: true},
-    argColumns : {type: Boolean, default: false},
+    // How to indicate args:
+    // - 'combined' for a single args column
+    // - 'separate' for one column per param, suitable for runs of a single job
+    // - 'none' for no args at all, suitable for runs of a single (job, args)
+    argColumnStyle : {type: String, default: 'combined'},
   },
 
   components: {
@@ -146,10 +156,10 @@ export default {
     runs() {
       let runs = this.store.state.runs
 
-      if (this.path) {
-        const prefix = this.path + '/'
-        runs = filter(runs, job => job.job_id.startsWith(prefix))
-      }
+      if (this.path)
+        runs = filter(runs, run => run.job_id.startsWith(this.path))
+      if (this.args)
+        runs = filter(runs, run => isEqual(run.args, this.args))
 
       return filter(runs, this.jobPredicate)
     },

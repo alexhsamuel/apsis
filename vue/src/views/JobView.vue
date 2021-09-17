@@ -1,67 +1,78 @@
 <template lang="pug">
 div
-  h1 {{ job_id }}
+  div
+    span.title.uk-margin-right
+      | Job 
+      Job(:job-id="job_id")
+    span(v-if="job && job.metadata.labels")
+      JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
 
-  div(v-if="job && job.metadata.labels")
-    JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
+  div.uk-margin-bottom(v-if="job" style="font-size:120%;")
+    | Parameters ({{ params }})
 
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
-  p(v-if="job && job.metadata.description" v-html="markdown(job.metadata.description)" class="description")
 
-  table.fields(v-if="job"): tbody
-    tr
-      th parameters
-      td {{ params }}
+  div.frame(v-if="job && job.metadata.description")
+    div.heading Description
+    div.pad(v-html="markdown(job.metadata.description)")
 
-    tr
-      th program
-      td.no-padding: Program(:program="job.program")
+  div.frame
+    div.heading Details
+    div.pad
+      table.fields(v-if="job"): tbody
+        tr
+          th program
+          td.no-padding: Program(:program="job.program")
 
-    tr
-      th schedule
-      td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+        tr
+          th schedule
+          td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
 
-    tr
-      th conditions
-      td
-        .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
+        tr
+          th conditions
+          td
+            .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
 
-    tr(v-if="job.actions && job.actions.length > 0")
-      th actions
-      td.no-padding
-        .action(v-for="action in job.actions"): table.fields
-          tr(v-for="(value, key, i) in action" :key="i")
-            th {{ key }}
-            td {{ value }}
+        tr(v-if="job.actions && job.actions.length > 0")
+          th actions
+          td.no-padding
+            .action(v-for="action in job.actions"): table.fields
+              tr(v-for="(value, key, i) in action" :key="i")
+                th {{ key }}
+                td {{ value }}
 
-    tr(v-if="job.reruns")
-      th reruns
-      td.no-padding: table.fields
-        tr(
-          v-for="(value, key) in job.reruns" 
-          v-if="key !== 'description'" 
-          :key="key"
-        )
-          th {{ key }}
-          td {{ value }}
+        tr(v-if="job.reruns")
+          th reruns
+          td.no-padding: table.fields
+            tr(
+              v-for="(value, key) in job.reruns" 
+              v-if="key !== 'description'" 
+              :key="key"
+            )
+              th {{ key }}
+              td {{ value }}
 
-    tr
-      th metadata
-      td.no-padding: table.fields
-        tr(
-          v-for="(value, key) in job.metadata" 
-          v-if="key !== 'description' && key != 'labels'" 
-          :key="key"
-        )
-          th {{ key }}
-          td {{ value }}
+        tr
+          th metadata
+          td.no-padding: table.fields
+            tr(
+              v-for="(value, key) in job.metadata" 
+              v-if="key !== 'description' && key != 'labels'" 
+              :key="key"
+            )
+              th {{ key }}
+              td {{ value }}
 
-  RunsList(:query="query" :showJob="false" :argColumns="true").uk-margin-bottom
+  div.frame
+    div.heading Runs
+    div.pad
+      RunsList(:query="query" :showJob="false" argColumnStyle="separate")
 
 </template>
 
 <script>
 import { join } from 'lodash'
+import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import Program from '@/components/Program'
 import RunsList from '@/components/RunsList'
@@ -72,6 +83,7 @@ export default {
   props: ['job_id'],
 
   components: {
+    Job,
     JobLabel,
     Program,
     RunsList,
@@ -118,23 +130,11 @@ export default {
 <style lang="scss" scoped>
 @import '../styles/vars.scss';
 
-h1 {
-  color: $apsis-job-color;
-}
-
 // This is rubbish.
 .action {
   padding-top: 8px;
   th, td {
     line-height: 1;
   }
-}
-
-.condition {
-}
-
-.description {
-  border: 1px solid #e5e5e5;
-  padding: 12px 16px 0px 16px;
 }
 </style>

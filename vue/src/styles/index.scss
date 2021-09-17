@@ -22,18 +22,21 @@ table.widetable {
 
   th, td {
     &:first-child {
-      padding-left: 12px;
+      padding-left: 2px;
     }
     &:last-child {
-      padding-right: 12px;
+      padding-right: 2px;
     }
   }
 
   thead {
-    background-color: #f6faf8;
     td, th {
-      font-weight: normal;
-      padding: 12px 12px;
+      border-bottom: 1px solid #aaa;
+      color: #676;
+      font-weight: 600;
+      font-size: 90%;
+      text-transform: uppercase;
+      padding: 12px 12px 0px 12px;
     }
   }
 

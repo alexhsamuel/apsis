@@ -1,9 +1,14 @@
 <template lang="pug">
 div
-  span.title {{ run_id }}
-    //- FIXME: Use navbar or similar to organize.
   span(v-if="run")
-    ActionButton(
+    div.uk-margin-bottom
+      span.title
+        | {{ run_id }}
+        JobWithArgs(:job-id="run.job_id" :args="run.args").spaced
+
+    div.uk-margin-bottom
+      State(:state="run.state" name).uk-text-bold.uk-margin-right
+      ActionButton(
         v-for="(url, action) in run.actions" 
         :key="action"
         :url="url" 
@@ -11,80 +16,94 @@ div
         :button="true"
       )
 
-  div.error-message(v-if="run === null") 
+    div.frame
+      div.heading Details
+      div.pad
+        table.fields
+          tbody
+            tr(v-if="run.message")
+              th message
+              td {{ run.message }}
+
+            tr(v-if="run.program")
+              th program
+              td.no-padding: Program(:program="run.program")
+
+            tr(v-if="run.rerun != run.run_id")
+              th rerun of
+              td: Run(:run-id="run.rerun")
+
+            //- FIXME: Do better here.
+            tr(v-if="run.conds && run.conds.length > 0")
+              th conditions
+              td.no-padding: table.fields: tbody
+                tr(v-for="cond in run.conds" :key="cond.str")
+                  td(style="padding-left: 0")
+                    span(v-if="cond.type === 'dependency'")
+                      span dependency:
+                      JobWithArgs(:job-id="cond.job_id" :args="cond.args")
+                      span &rarr; {{ join(cond.states, ' ') }}
+                    span(v-else) {{ cond.str }}
+
+            tr
+              th times
+              td.no-padding: table.fields: tbody
+                tr(v-for="[name, time] in run_times" :key="name")
+                  th {{ name }}
+                  td: Timestamp(:time="time")
+
+            tr
+              th elapsed
+              td
+                RunElapsed(:run="run")
+
+            tr
+              th history
+              td.no-padding: RunHistory(:run_id="run_id")
+
+    div.frame(v-if="run.meta && Object.keys(run.meta).length")
+      div.heading(v-on:click="metadataCollapsed = !metadataCollapsed")
+        | Metadata 
+        span(
+          :uk-icon="'ratio: 1.4; icon: ' + (metadataCollapsed ? 'triangle-right' : 'triangle-down')"
+          style="color: #666; position: relative; top: -2px;"
+        )
+      div.pad(v-if="!metadataCollapsed")
+        table.fields
+          tbody
+            tr(v-for="(value, key) in run.meta" :key="key")
+              th {{ key }}
+              td
+                tt {{ value }}
+
+    div.frame
+      div.heading Output
+      button.uk-button(
+        v-if="output && output.output_len && !outputData"
+        v-on:click="fetchOutputData(output.output_url)"
+      ) load {{ output.output_len }} bytes
+      pre.output.pad(v-if="outputData !== null") {{ outputData }}
+
+    div.frame
+      div.heading
+        | Runs
+        span(style="font-weight: 400; font-size: 90%; margin-left: 1ex;")
+          | of {{ run.job_id }} ({{ joinArgs(run.args) }})
+      div.pad
+        RunsList(
+          :path="run.job_id"
+          :args="run.args || {}"
+          :showJob="false"
+          argColumnStyle="separate"
+          style="max-height: 10cm; overflow-y: auto;"
+        )
+
+  div.error-message(v-else)
+    div.title
+      | {{ run_id }}
+
     | This run does not currently exist. 
     | This may be a run that was previously scheduled but never run.
-
-  div(v-if="run")
-    div
-      JobWithArgs(:job-id="run.job_id" :args="run.args")
-
-    table.fields
-      tbody
-        tr
-          th state
-          td: State(:state="run.state" name)
-
-        tr(v-if="run.message")
-          th message
-          td {{ run.message }}
-
-        tr(v-if="run.program")
-          th program
-          td.no-padding: Program(:program="run.program")
-
-        tr(v-if="run.rerun != run.run_id")
-          th rerun of
-          td: Run(:run-id="run.rerun")
-
-        //- FIXME: Do better here.
-        tr(v-if="run.conds && run.conds.length > 0")
-          th conditions
-          td.no-padding: table.fields: tbody
-            tr(v-for="cond in run.conds" :key="cond.str")
-              td(style="padding-left: 0")
-                span(v-if="cond.type === 'dependency'")
-                  span dependency:
-                  JobWithArgs(:job-id="cond.job_id" :args="cond.args")
-                  span &rarr; {{ join(cond.states, ' ') }}
-                span(v-else) {{ cond.str }}
-
-        tr
-          th times
-          td.no-padding: table.fields: tbody
-            tr(v-for="[name, time] in run_times" :key="name")
-              th {{ name }}
-              td: Timestamp(:time="time")
-
-        tr
-          th elapsed
-          td
-            RunElapsed(:run="run")
-
-        tr
-          th history
-          td.no-padding: RunHistory(:run_id="run_id")
-
-        tr(
-          v-if="run.meta && Object.keys(run.meta).length"
-          v-on:click="metadataCollapsed = !metadataCollapsed"
-        )
-          th: div(style="white-space: nowrap;")
-            | metadata 
-          td(v-if="metadataCollapsed")
-            div(uk-icon="chevron-right")
-          td.no-padding(v-else)
-            table.fields: tbody
-              tr(v-for="(value, key) in run.meta" :key="key")
-                th {{ key }}
-                td(v-html="format(key, value)")
-
-    .field-label output
-    button.uk-button(
-      v-if="output && output.output_len && !outputData"
-      v-on:click="fetchOutputData(output.output_url)"
-    ) load {{ output.output_len }} bytes
-    pre.output(v-if="outputData !== null") {{ outputData }}
 
 </template>
 
@@ -96,9 +115,11 @@ import Job from '@/components/Job'
 import JobWithArgs from '@/components/JobWithArgs'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
+import { joinArgs } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunHistory from '@/components/RunHistory'
+import RunsList from '@/components/RunsList'
 import State from '@/components/State'
 import store from '@/store'
 import Timestamp from '@/components/Timestamp'
@@ -114,6 +135,7 @@ export default {
     RunArgs,
     RunElapsed,
     RunHistory,
+    RunsList,
     State,
     Timestamp,
   },
@@ -141,10 +163,12 @@ export default {
     storeState() {
       const run = store.state.runs[this.run_id]
       return run ? run.state : undefined
-    }
+    },
   },
 
   methods: {
+    joinArgs,
+
     fetchRun() {
       const url = '/api/v1/runs/' + this.run_id  // FIXME
       fetch(url)
@@ -235,8 +259,6 @@ export default {
 
 <style lang="scss" scoped>
 .output {
-  border: 1px solid #c0c0c0;
-  padding: 0.5rem;
   font-family: "Roboto mono", monospaced;
 }
 </style>

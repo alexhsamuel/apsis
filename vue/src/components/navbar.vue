@@ -39,30 +39,26 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .title {
   font-family: Helvetica;
-  font-weight: 600;
+  font-size: 150%;
+  font-weight: 700;
   padding-left: 0;
   letter-spacing: .1rem;
   margin-right: 12px;
-  color: #222;
-}
-
-.clock {
-  letter-spacing: .04rem;
-}
-
-.title {
-  font-size: 150%;
-  font-weight: 700;
   padding-top: 4px;
+  color: #222;
   a {
     color: #222;
   }
   a:hover {
     text-decoration: none;
   }
+}
+
+.clock {
+  letter-spacing: .04rem;
 }
 
 </style>
