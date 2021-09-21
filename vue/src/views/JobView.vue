@@ -17,6 +17,11 @@ div
     div.pad(v-html="markdown(job.metadata.description)")
 
   div.frame
+    div.heading Runs
+    div.pad
+      RunsList(:query="query" :showJob="false" argColumnStyle="separate")
+
+  div.frame
     div.heading Details
     div.pad
       table.fields(v-if="job"): tbody
@@ -62,11 +67,6 @@ div
             )
               th {{ key }}
               td {{ value }}
-
-  div.frame
-    div.heading Runs
-    div.pad
-      RunsList(:query="query" :showJob="false" argColumnStyle="separate")
 
 </template>
 
