@@ -121,14 +121,22 @@ export default {
     // Either a job ID path prefix; can be a full job ID.
     // FIXME: Rename to jobIdPrefix.
     path: {type: String, default: null},
+
     // Args to match.  If not null, shows only runs with exact args match.
     args: {type: Object, default: null},
+
+    // If true, show the job ID column.
     showJob: {type: Boolean, default: true},
+
+    // If true, group together related runs.
+    groupRuns: {type: Boolean, default: true},
+
     // How to indicate args:
     // - 'combined' for a single args column
     // - 'separate' for one column per param, suitable for runs of a single job
     // - 'none' for no args at all, suitable for runs of a single (job, args)
     argColumnStyle : {type: String, default: 'combined'},
+
     // Max number of runs to show.  If negative, show all runs.
     maxScheduledRuns: {type: Number, default: -1},
     maxCompletedRuns: {type: Number, default: -1},
@@ -193,21 +201,7 @@ export default {
           'error': 'C',
       }
 
-      function instanceKey(run) {
-        // Assume args are in order.
-        return run.job_id + '\0' + Object.values(run.args).join('\0')
-      }
-
-      function groupKey(run) {
-        const sgrp = RUN_STATE_GROUPS[run.state]
-        return sgrp + (
-          // Blocked and running runs are never grouped.
-          (sgrp === 'B' || sgrp === 'R') ? run.run_id
-          // Runs in other state are grouped by instance.
-          : instanceKey(run)
-        )
-      }
-
+      // Select run to show.
       let runs = this.runs
       let omitC = 0
       let omitS = 0
@@ -240,7 +234,22 @@ export default {
         }
       }
 
-      let groups = entries(groupBy(runs, groupKey))
+      function instanceKey(run) {
+        // Assume args are in order.
+        return run.job_id + '\0' + Object.values(run.args).join('\0')
+      }
+
+      function groupKey(run) {
+        const sgrp = RUN_STATE_GROUPS[run.state]
+        return sgrp + (
+          // Blocked and running runs are never grouped.
+          (sgrp === 'B' || sgrp === 'R') ? run.run_id
+          // Runs in other state are grouped by instance.
+          : instanceKey(run)
+        )
+      }
+
+      let groups = entries(groupBy(runs, this.groupRuns ? groupKey : r => r.run_id))
 
       // For each group, select the principal run for the group.  This is the
       // run that is shown when the group is collapsed.
