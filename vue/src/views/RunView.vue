@@ -29,13 +29,13 @@ div
         RunsList(
           :path="run.job_id"
           :args="run.args || {}"
-          :groupRuns="false"
-          :showJob="false"
-          :maxCompletedRuns="20"
-          :maxScheduledRuns="20"
-          argColumnStyle="separate"
+          :group-runs="false"
+          :show-job="false"
+          :max-completed-runs="20"
+          :max-scheduled-runs="20"
+          arg-column-style="separate"
           style="max-height: 28rem; overflow-y: auto;"
-          :highlight="run.run_id"
+          :highlight-run-id="run.run_id"
         )
 
     div.frame

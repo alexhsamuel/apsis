@@ -39,7 +39,7 @@ div
         tr( 
           v-for="(run, index) in group.visible()" 
           :key="run.run_id"
-          :class="{ 'run-group-next': index > 0 }"
+          :class="{ 'run-group-next': index > 0, 'highlight-run': run.run_id === highlightRunId }"
         )
           // Show job name if enabled by 'showJob'.
           td.col-job(v-if="showJob")
@@ -130,6 +130,9 @@ export default {
 
     // If true, group together related runs.
     groupRuns: {type: Boolean, default: true},
+
+    // If not null, highlight the run with this run ID.
+    highlightRunId: {type: String, default: null},
 
     // How to indicate args:
     // - 'combined' for a single args column
@@ -339,6 +342,10 @@ table.runlist {
       font-size: 80%;
       line-height: 1.4;
     }
+  }
+
+  .highlight-run {
+    background: #f6faf8;
   }
 }
 </style>
