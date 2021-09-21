@@ -34,8 +34,8 @@ div
           :max-completed-runs="20"
           :max-scheduled-runs="20"
           arg-column-style="separate"
-          style="max-height: 28rem; overflow-y: auto;"
           :highlight-run-id="run.run_id"
+          style="max-height: 28rem; overflow-y: auto;"
         )
 
     div.frame

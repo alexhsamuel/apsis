@@ -33,7 +33,7 @@ div
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
         :class="[job ? 'job' : 'dir']"
-      )
+      ).grid
         td
           span(style="white-space: nowrap")
             //- indent
