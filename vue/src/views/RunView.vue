@@ -16,30 +16,20 @@ div
         :button="true"
       )
 
-    div.frame
-      div.heading(v-on:click="isCollapsed.runs = !isCollapsed.runs")
-        | Runs
-        span(style="font-weight: 400; font-size: 90%; margin-left: 1ex;")
-          | of {{ run.job_id }} ({{ joinArgs(run.args) }})
-        span(
-          :uk-icon="'ratio: 1.4; icon: ' + (isCollapsed.runs ? 'triangle-right' : 'triangle-down')"
-          style="color: #666; position: relative; top: -2px;"
-        )
-      div.pad(v-if="!isCollapsed.runs")
-        RunsList(
-          :path="run.job_id"
-          :args="run.args || {}"
-          :group-runs="false"
-          :show-job="false"
-          :max-completed-runs="20"
-          :max-scheduled-runs="20"
-          arg-column-style="separate"
-          :highlight-run-id="run.run_id"
-          style="max-height: 28rem; overflow-y: auto;"
-        )
+    Frame(title="Run History" closed)
+      RunsList(
+        :path="run.job_id"
+        :args="run.args || {}"
+        :group-runs="false"
+        :show-job="false"
+        :max-completed-runs="12"
+        :max-scheduled-runs="12"
+        arg-column-style="separate"
+        :highlight-run-id="run.run_id"
+        style="max-height: 28rem; overflow-y: auto;"
+      )
 
-    div.frame
-      div.heading Details
+    Frame(title="Details")
       div.pad
         table.fields
           tbody
@@ -83,23 +73,15 @@ div
               th history
               td.no-padding: RunHistory(:run_id="run_id")
 
-    div.frame(v-if="run.meta && Object.keys(run.meta).length")
-      div.heading(v-on:click="isCollapsed.metadata = !isCollapsed.metadata")
-        | Metadata 
-        span(
-          :uk-icon="'ratio: 1.4; icon: ' + (isCollapsed.metadata ? 'triangle-right' : 'triangle-down')"
-          style="color: #666; position: relative; top: -2px;"
-        )
-      div.pad(v-if="!isCollapsed.metadata")
-        table.fields
-          tbody
-            tr(v-for="(value, key) in run.meta" :key="key")
-              th {{ key }}
-              td
-                tt {{ value }}
+    Frame(v-if="run.meta && Object.keys(run.meta).length" title="Metadata" closed)
+      table.fields
+        tbody
+          tr(v-for="(value, key) in run.meta" :key="key")
+            th {{ key }}
+            td
+              tt {{ value }}
 
-    div.frame
-      div.heading Output
+    Frame(title="Output")
       button.uk-button(
         v-if="output && output.output_len && !outputData"
         v-on:click="fetchOutputData(output.output_url)"
@@ -119,6 +101,7 @@ div
 import { forEach, join, sortBy, toPairs } from 'lodash'
 
 import ActionButton from '@/components/ActionButton'
+import Frame from '@/components/Frame'
 import Job from '@/components/Job'
 import JobWithArgs from '@/components/JobWithArgs'
 import Program from '@/components/Program'
@@ -136,6 +119,7 @@ export default {
   props: ['run_id'],
   components: { 
     ActionButton,
+    Frame,
     Job,
     JobWithArgs,
     Program,
