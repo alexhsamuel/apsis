@@ -12,7 +12,7 @@ from   . import actions
 from   .actions import Action
 from   .cond import Condition
 from   .lib.json import to_array, check_schema
-from   .lib.py import tupleize
+from   .lib.py import tupleize, format_ctor
 from   .program import Program
 from   .schedule import Schedule
 from   apsis.lib.exc import SchemaError
@@ -70,6 +70,18 @@ class Job:
         self.actions    = actions
         self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
+
+
+    def __repr__(self):
+        return format_ctor(
+            self, self.job_id, tuple(self.params),
+            schedules   =self.schedules,
+            program     =self.program,
+            conds       =self.conds,
+            actions     =self.actions,
+            meta        =self.meta,
+            ad_hoc      =self.ad_hoc,
+        )
 
 
     def __eq__(self, other):
@@ -215,6 +227,10 @@ class JobsDir:
     def __init__(self, path, jobs):
         self.__path = path
         self.__jobs = jobs
+
+
+    def __repr__(self):
+        return format_ctor(self, str(self.__path))
 
 
     @property
