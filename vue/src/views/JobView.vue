@@ -12,69 +12,65 @@ div
 
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
 
-  div.frame(v-if="job && job.metadata.description")
-    div.heading Description
-    div.pad(v-html="markdown(job.metadata.description)")
+  Frame(v-if="job && job.metadata.description" title="Description")
+    div(v-html="markdown(job.metadata.description)")
 
-  div.frame
-    div.heading Runs
-    div.pad
-      RunsList(:query="query" :showJob="false" argColumnStyle="separate")
+  Frame(title="Runs")
+    RunsList(:query="query" :showJob="false" argColumnStyle="separate")
 
-  div.frame
-    div.heading Details
-    div.pad
-      table.fields(v-if="job"): tbody
-        tr
-          th program
-          td.no-padding: Program(:program="job.program")
+  Frame(title="Details")
+    table.fields(v-if="job"): tbody
+      tr
+        th program
+        td.no-padding: Program(:program="job.program")
 
-        tr
-          th schedule
-          td(v-if="job.schedules.length > 0")
-            li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
-          td(v-else) No schedules.
+      tr
+        th schedule
+        td(v-if="job.schedules.length > 0")
+          li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+        td(v-else) No schedules.
 
-        tr
-          th conditions
-          td(v-if="job.condition.length > 0")
-            .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
-          td(v-else) No conditions.
+      tr
+        th conditions
+        td(v-if="job.condition.length > 0")
+          .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
+        td(v-else) No conditions.
 
-        tr
-          th actions
-          td.no-padding(v-if="job.actions.length > 0")
-            .action(v-for="action in job.actions"): table.fields
-              tr(v-for="(value, key, i) in action" :key="i")
-                th {{ key }}
-                td {{ value }}
-          td(v-else) No actions.
-
-        tr(v-if="job.reruns")
-          th reruns
-          td.no-padding: table.fields
-            tr(
-              v-for="(value, key) in job.reruns" 
-              v-if="key !== 'description'" 
-              :key="key"
-            )
+      tr
+        th actions
+        td.no-padding(v-if="job.actions.length > 0")
+          .action(v-for="action in job.actions"): table.fields
+            tr(v-for="(value, key, i) in action" :key="i")
               th {{ key }}
               td {{ value }}
+        td(v-else) No actions.
 
-        tr(v-if="Object.keys(metadata).length")
-          th metadata
-          td.no-padding: table.fields
-            tr(
-              v-for="(value, key) in metadata" 
-              :key="key"
-            )
-              th {{ key }}
-              td {{ value }}
+      tr(v-if="job.reruns")
+        th reruns
+        td.no-padding: table.fields
+          tr(
+            v-for="(value, key) in job.reruns" 
+            v-if="key !== 'description'" 
+            :key="key"
+          )
+            th {{ key }}
+            td {{ value }}
+
+      tr(v-if="Object.keys(metadata).length")
+        th metadata
+        td.no-padding: table.fields
+          tr(
+            v-for="(value, key) in metadata" 
+            :key="key"
+          )
+            th {{ key }}
+            td {{ value }}
 
 </template>
 
 <script>
 import { join, pickBy } from 'lodash'
+import Frame from '@/components/Frame'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import Program from '@/components/Program'
@@ -86,6 +82,7 @@ export default {
   props: ['job_id'],
 
   components: {
+    Frame,
     Job,
     JobLabel,
     Program,
