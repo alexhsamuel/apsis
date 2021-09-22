@@ -1,7 +1,7 @@
 <template lang="pug">
 div
   .flex-margin
-    h3(style="padding-left: 12px; flex: 1;")
+    h3(style="flex: 1;")
       a.undersel(v-on:click="onShowJobs") Jobs
       a.undersel.sel(v-on:click="") Runs
       span(v-if="path" style="font-size: 16px; padding: 0 8px;")  

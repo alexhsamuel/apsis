@@ -2,7 +2,7 @@
 div
   div(style="display: flex")
     div(style="flex: 1;")
-      h3(style="padding-left: 12px;")
+      h3
         a.undersel.sel() Jobs
         a.undersel(v-on:click="onShowRuns") Runs
         span(v-if="pathStr" style="font-size: 16px; padding: 0 8px;")  

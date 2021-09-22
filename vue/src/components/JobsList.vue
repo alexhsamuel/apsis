@@ -2,16 +2,16 @@
 div
   table.widetable.joblist
     colgroup
-      col(style="width: 300px;")
-      col(style="width: 35%;")
-      col(style="width: 300px;")
+      col(style="max-width: 300px;")
+      col(style="max-width: 300px;")
       col(style="")
+      // col(style="")
 
     thead
       tr
         th
           | Job
-          span(style="margin-left: 80px")
+          span(style="margin-left: 8px")
             a.expand-button
               span(
                 uk-icon="icon: triangle-right; ratio: 1.4"
@@ -24,9 +24,9 @@ div
                 style="position: relative; left: -3px; top: 1px;"
                 v-on:click="collapseAll(false)"
               )
-        th Description
         th Parameters
-        th Schedule
+        th Description
+        // th Schedule
 
     tbody
       tr(
@@ -37,15 +37,15 @@ div
         td
           span(style="white-space: nowrap")
             //- indent
-            span(:style="{ display: 'inline-block', width: (28 * subpath.length) + 'px' }")
+            span(:style="{ display: 'inline-block', width: (36 * subpath.length) + 'px' }")
 
             //- a job
             span(v-if="job")
-              span.indent(style="display: inline-block; position: relative; left: -2px; top: -3px;")
-                //- svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
-                //-   path(d="M 100 600 L 1700 600 L 1700 1700 L 50 1700 L 100 600" stroke="#666" stroke-width="100" fill="transparent")
-                //-   path(d="M 100 600 L 250 1000 L 1550 1000 L 1700 600" stroke="#888" stroke-width="80" fill="transparent")
-                //-   path(d="M 500 600 a 200 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
+              span(style="display: inline-block; position: relative; left: -2px; top: -3px; width: 22px;")
+                svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
+                  path(d="M 100 600 L 1700 600 L 1700 1700 L 50 1700 L 100 600" stroke="#666" stroke-width="100" fill="transparent")
+                  path(d="M 100 600 L 250 1000 L 1550 1000 L 1700 600" stroke="#888" stroke-width="80" fill="transparent")
+                  path(d="M 500 600 a 200 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
 
               Job.name(:job-id="job.job_id" :name="name")
 
@@ -55,6 +55,10 @@ div
             //- a dir entry
             span.name(v-else)
               span(v-on:click="toggleCollapse(path)")
+                span.indent(style="display: inline-block; position: relative; left: -2px; top: -2px; width: 22px;")
+                  svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
+                    path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
+                a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
                 span.indent.folder-icon(
                   v-if="isCollapsed(path)"
                   uk-icon="icon: triangle-right; ratio: 1.4"
@@ -65,22 +69,18 @@ div
                   uk-icon="icon: triangle-down; ratio: 1.4"
                   style="position: relative; left: -3px; top: 0px;"
                 )
-                span.indent(style="display: inline-block; position: relative; left: -2px; top: -2px;")
-                  svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
-                    path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
-                a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
-
-        td.description
-          div(v-if="job" v-html="markdown(exerptDescription(job.metadata.description || ''))")
 
         td.params
           span.params(v-if="job && job.params.length > 0")
             | {{ join(job.params, ', ') }}
 
-        td.schedule
-          ul(v-if="job")
-            li(v-for="(schedule, idx) in job.schedules" :key="idx")
-              span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
+        td.description
+          div(v-if="job" v-html="markdown(exerptDescription(job.metadata.description || ''))")
+
+        //- td.schedule
+        //-   ul(v-if="job")
+        //-     li(v-for="(schedule, idx) in job.schedules" :key="idx")
+        //-       span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
 
 </template>
 
@@ -242,7 +242,7 @@ export default {
 
 .joblist {
   span.indent {
-    width: 28px;
+    width: 36px;
   }
 
   th {
@@ -270,11 +270,11 @@ export default {
   }
 
   .dir > td {
-    height: 36px;
+    height: 30px;
   }
 
   .job > td {
-    height: 36px;
+    height: 30px;
   }
 
   .job-title {
