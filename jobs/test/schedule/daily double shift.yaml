@@ -6,9 +6,9 @@ params: [date]
 
 program:
   type: shell
-  command:
+  command: |+
     date
-    echo running for $date
+    echo running for {{ date }}
 
 schedule:
   type: daily
