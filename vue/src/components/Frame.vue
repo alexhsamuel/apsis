@@ -4,7 +4,7 @@ div.frame
     | {{ title }}
     span(
       :uk-icon="'ratio: 1.4; icon: ' + (open ? 'triangle-down' : 'triangle-right')"
-      style="color: #666; position: relative; top: -2px;"
+      style="color: #666; position: relative; top: -1px;"
     )
 
   div.pad(v-if="open")
