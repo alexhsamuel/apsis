@@ -38,7 +38,7 @@ class Condition(TypedJso):
 
 def _bind(job, obj_args, inst_args, bind_args):
     """
-    Binds args to `params`.
+    Binds args to `job.params`.
 
     Binds `obj_args` and `inst_args` to params by name.  `obj_args` take
     precedence, and are template-expanded with `bind_args`; `inst_args` are
