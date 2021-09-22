@@ -31,20 +31,24 @@ div
 
         tr
           th schedule
-          td: li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+          td(v-if="job.schedules.length > 0")
+            li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+          td(v-else) No schedules.
 
         tr
           th conditions
-          td
+          td(v-if="job.condition.length > 0")
             .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
+          td(v-else) No conditions.
 
-        tr(v-if="job.actions && job.actions.length > 0")
+        tr
           th actions
-          td.no-padding
+          td.no-padding(v-if="job.actions.length > 0")
             .action(v-for="action in job.actions"): table.fields
               tr(v-for="(value, key, i) in action" :key="i")
                 th {{ key }}
                 td {{ value }}
+          td(v-else) No actions.
 
         tr(v-if="job.reruns")
           th reruns
@@ -57,12 +61,11 @@ div
               th {{ key }}
               td {{ value }}
 
-        tr
+        tr(v-if="Object.keys(metadata).length")
           th metadata
           td.no-padding: table.fields
             tr(
-              v-for="(value, key) in job.metadata" 
-              v-if="key !== 'description' && key != 'labels'" 
+              v-for="(value, key) in metadata" 
               :key="key"
             )
               th {{ key }}
@@ -71,7 +74,7 @@ div
 </template>
 
 <script>
-import { join } from 'lodash'
+import { join, pickBy } from 'lodash'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import Program from '@/components/Program'
@@ -104,7 +107,15 @@ export default {
     query() {
       // FIXME: Do better here.
       return '"' + this.job_id + '"'
-    }
+    },
+
+    // Metadata filtered, with keys omitted that are displayed specially.
+    metadata() {
+      return pickBy(
+        this.job.metadata,
+        (v, k) => k !== 'description' && k !== 'labels'
+      )
+    },
   },
 
   created() {
