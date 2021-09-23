@@ -116,12 +116,6 @@ def propagate_args(old_args, job, new_args):
 #-------------------------------------------------------------------------------
 
 class Run:
-    """
-    :ivar rerun:
-      The run ID of the original run of which this is a rerun.  If this is not
-      a rerun, equal to the run ID.  (This attribute partitions groups by 
-      initial run ID.)
-    """
 
     STATE = enum.Enum(
         "Run.STATE", 
@@ -151,10 +145,8 @@ class Run:
 
     # FIXME: Make the attributes read-only.
 
-    def __init__(self, inst, *, rerun=None, expected=False):
+    def __init__(self, inst, *, expected=False):
         """
-        :param rerun:
-          The run ID of which this is a rerun, or `None` if this is not a rerun.
         :param expected:
           True if this run was scheduled from a job schedule.  A run scheduled
           from a job schedule is subject to change, as the job's schedules may
@@ -178,8 +170,6 @@ class Run:
         # State information specific to the program, for a running run.
         self.run_state  = None
 
-        self.rerun      = rerun
-
         # Cached summary JSO object.
         self._jso_cache = None
 
@@ -193,8 +183,7 @@ class Run:
 
 
     def __repr__(self):
-        return format_ctor(
-            self, self.run_id, self.inst, state=self.state, rerun=self.rerun)
+        return format_ctor(self, self.run_id, self.inst, state=self.state)
 
 
     def __str__(self):
@@ -301,10 +290,6 @@ class RunStore:
         assert run.run_id not in self.__runs
 
         run.run_id = run_id
-        # If not a rerun, set the rerun ID to the run ID.
-        if run.rerun is None:
-            run.rerun = run_id
-
         run.timestamp = timestamp
 
         log.info(f"new run: {run}")
@@ -353,14 +338,11 @@ class RunStore:
         return now(), run
 
 
-    def query(self, *, run_ids=None, job_id=None, state=None, rerun=None, 
-              since=None, reruns=True, args=None, with_args=None):
+    def query(self, *, run_ids=None, job_id=None, state=None,
+              since=None, args=None, with_args=None):
         """
         :param state:
           Limits results to runs in the specified state(s).
-        :param reruns:
-          If true, include all reruns; otherwise, includes only the latest run
-          in each rerun group.
         :param args:
           Limits results to runs with exactly the specified args.
         :param with_args:
@@ -378,8 +360,6 @@ class RunStore:
         if state is not None:
             states = set(iterize(state))
             runs = ( r for r in runs if r.state in states )
-        if rerun is not None:
-            runs = ( r for r in runs if r.rerun == rerun )
         if since is not None:
             runs = ( r for r in runs if r.timestamp >= since )
         if args is not None:
@@ -391,16 +371,6 @@ class RunStore:
                         r.inst.args.get(k, None) == v
                         for k, v in with_args.items()
                 )
-            )
-
-        if not reruns:
-            # FIXME: Make this more efficient.
-            groups = {}
-            for run in runs:
-                groups.setdefault(run.rerun, []).append(run)
-            runs = ( 
-                max(g, key=lambda r: max(r.times.values(), default=Time.EPOCH))
-                for g in groups.values()
             )
 
         return now(), list(runs)

@@ -147,12 +147,11 @@ class Client:
         return self.__post("/api/v1/runs", run_id, "mark", state_name)
 
 
-    def get_runs(self, *, job_id=None, state=None, reruns=False, since=None):
+    def get_runs(self, *, job_id=None, state=None, since=None):
         return self.__get(
             "/api/v1/runs",
             job_id  =job_id,
             state   =state,
-            reruns  =reruns,
         )["runs"]
 
 

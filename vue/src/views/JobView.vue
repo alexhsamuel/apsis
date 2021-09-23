@@ -45,17 +45,6 @@ div
               td {{ value }}
         td(v-else) No actions.
 
-      tr(v-if="job.reruns")
-        th reruns
-        td.no-padding: table.fields
-          tr(
-            v-for="(value, key) in job.reruns" 
-            v-if="key !== 'description'" 
-            :key="key"
-          )
-            th {{ key }}
-            td {{ value }}
-
       tr(v-if="Object.keys(metadata).length")
         th metadata
         td.no-padding: table.fields

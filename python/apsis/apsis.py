@@ -270,36 +270,6 @@ class Apsis:
         return True
 
 
-    def __rerun(self, run):
-        """
-        Reruns a failed run, if indicated by the job's rerun policy.
-        """
-        job = self.jobs.get_job(run.inst.job_id)
-        if job.reruns.count == 0:
-            # No reruns.
-            return
-
-        # Collect all reruns of this run, including the original run.
-        _, runs = self.run_store.query(rerun=run.rerun)
-
-        if len(runs) > job.reruns.count:
-            # No further reruns.
-            log.info(f"retry max count exceeded: {run.rerun}")
-            return
-
-        time = now()
-
-        main_run, = ( r for r in runs if r.run_id == run.rerun )
-        if (main_run.times["schedule"] is not None
-            and time - main_run.times["schedule"] > job.reruns.max_delay):
-            # Too much time has elapsed.
-            log.info(f"retry max delay exceeded: {run.rerun}")
-
-        # OK, we can rerun.
-        rerun_time = time + job.reruns.delay
-        asyncio.ensure_future(self.rerun(run, time=rerun_time))
-
-
     def __do_actions(self, run):
         """
         Performs configured actions on `run`.
@@ -382,9 +352,6 @@ class Apsis:
 
         # Persist the new state.
         self.run_store.update(run, time)
-
-        if state == run.STATE.failure:
-            self.__rerun(run)
 
         self.__do_actions(run)
 

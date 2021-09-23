@@ -41,10 +41,6 @@ div
               th program
               td.no-padding: Program(:program="run.program")
 
-            tr(v-if="run.rerun != run.run_id")
-              th rerun of
-              td: Run(:run-id="run.rerun")
-
             //- FIXME: Do better here.
             tr(v-if="run.conds && run.conds.length > 0")
               th conditions
