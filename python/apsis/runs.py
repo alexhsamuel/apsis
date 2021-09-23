@@ -353,8 +353,8 @@ class RunStore:
         return now(), run
 
 
-    def query(self, *, run_ids=None, job_id=None, state=None, rerun=None, 
-              since=None, reruns=True, args=None, with_args=None):
+    def query(self, *, run_ids=None, job_id=None, state=None,
+              since=None, args=None, with_args=None):
         """
         :param state:
           Limits results to runs in the specified state(s).
@@ -378,8 +378,6 @@ class RunStore:
         if state is not None:
             states = set(iterize(state))
             runs = ( r for r in runs if r.state in states )
-        if rerun is not None:
-            runs = ( r for r in runs if r.rerun == rerun )
         if since is not None:
             runs = ( r for r in runs if r.timestamp >= since )
         if args is not None:
@@ -391,16 +389,6 @@ class RunStore:
                         r.inst.args.get(k, None) == v
                         for k, v in with_args.items()
                 )
-            )
-
-        if not reruns:
-            # FIXME: Make this more efficient.
-            groups = {}
-            for run in runs:
-                groups.setdefault(run.rerun, []).append(run)
-            runs = ( 
-                max(g, key=lambda r: max(r.times.values(), default=Time.EPOCH))
-                for g in groups.values()
             )
 
         return now(), list(runs)
