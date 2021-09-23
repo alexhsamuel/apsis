@@ -21,37 +21,10 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class Reruns:
-    """
-    :ivar count:
-      Maximum number of reruns; 0 for no reruns.
-    :ivar delay:
-      Delay after failure before rerun.
-    :ivar max_delay:
-      Maximum delay after schedule time for starting a rerun.  If this delay
-      has elapsed, no further reruns are attempted.
-    """
-
-    def __init__(self, count=0, delay=0, max_delay=None):
-        self.count      = int(count)
-        self.delay      = float(delay)
-        self.max_delay  = None if max_delay is None else float(max_delay)
-
-
-    def __eq__(self, other):
-        return (
-            type(other) == type(self)
-            and other.count == self.count
-            and other.delay == self.delay
-            and other.max_delay == self.max_delay
-        )
-
-
-
 class Job:
 
     def __init__(self, job_id, params, schedules, program, conds=[],
-                 reruns=Reruns(), actions=[], *, meta={}, ad_hoc=False):
+                 actions=[], *, meta={}, ad_hoc=False):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
@@ -66,7 +39,6 @@ class Job:
         self.schedules  = tupleize(schedules)
         self.program    = program
         self.conds      = tupleize(conds)
-        self.reruns     = reruns
         self.actions    = actions
         self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
@@ -92,7 +64,6 @@ class Job:
             and other.schedules == self.schedules
             and other.program   == self.program
             and other.conds     == self.conds
-            and other.reruns    == self.reruns
             and other.actions   == self.actions
             and other.meta      == self.meta
         )
@@ -118,22 +89,6 @@ class JobErrors(Exception):
 
 
 # FIXME: Do much better at handling errors when converting JSO.
-
-def jso_to_reruns(jso):
-    return Reruns(
-        count       =jso.get("count", 0),
-        delay       =jso.get("delay", 0),
-        max_delay   =jso.get("max_delay", None),
-    )
-
-
-def reruns_to_jso(reruns):
-    return {
-        "count"     : reruns.count,
-        "delay"     : reruns.delay,
-        "max_delay" : reruns.max_delay,
-    }
-
 
 def jso_to_job(jso, job_id):
     with check_schema(jso) as pop:
@@ -164,7 +119,6 @@ def jso_to_job(jso, job_id):
         sucs        = pop("successors", to_array, default=[])
         acts.extend([ actions.successor_from_jso(s) for s in sucs ])
 
-        reruns      = jso_to_reruns(pop("reruns", default={}))
         metadata    = pop("metadata", default={})
         metadata["labels"] = [
             str(l)
@@ -176,7 +130,6 @@ def jso_to_job(jso, job_id):
     return Job(
         job_id, params, schedules, program,
         conds   =conds,
-        reruns  =reruns, 
         actions =acts,
         meta    =metadata,
         ad_hoc  =ad_hoc,
@@ -191,7 +144,6 @@ def job_to_jso(job):
         "program"       : job.program.to_jso(),
         "condition"     : [ c.to_jso() for c in job.conds ],
         "action"        : [ a.to_jso() for a in job.actions ],
-        "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
     }
