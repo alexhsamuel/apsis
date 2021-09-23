@@ -15,6 +15,9 @@ from   .program import Program, Output, OutputMetadata
 
 log = logging.getLogger(__name__)
 
+# FIXME: For next version:
+# - remove runs.rerun column
+
 #-------------------------------------------------------------------------------
 
 # We store times as float seconds from the epoch.
@@ -152,7 +155,7 @@ TBL_RUNS = sa.Table(
     sa.Column("meta"        , sa.String()       , nullable=False),
     sa.Column("message"     , sa.String()       , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
-    sa.Column("rerun"       , sa.String()       , nullable=True),
+    sa.Column("rerun"       , sa.String()       , nullable=True),  # FIXME: Unused.
     sa.Column("expected"    , sa.Boolean()      , nullable=True),
 )
 
@@ -176,7 +179,7 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, message, run_state, rerun, _
+                meta, message, run_state, _, _
         ) in cursor:
             if program is not None:
                 program     = Program.from_jso(ujson.loads(program))
@@ -186,7 +189,7 @@ class RunDB:
 
             args            = ujson.loads(args)
             inst            = Instance(job_id, args)
-            run             = Run(inst, rerun=rerun)
+            run             = Run(inst)
 
             run.run_id      = run_id
             run.timestamp   = load_time(timestamp)
@@ -225,7 +228,6 @@ class RunDB:
             ujson.dumps(run.meta),
             run.message,
             ujson.dumps(run.run_state),
-            run.rerun,
             rowid,
         )
 
@@ -248,11 +250,10 @@ class RunDB:
                     meta, 
                     message, 
                     run_state, 
-                    rerun, 
                     rowid,
                     expected
                 ) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             """, values)
             self.__connection.connection.commit()
             run._rowid = values[-1]
@@ -270,8 +271,7 @@ class RunDB:
                     times       = ?, 
                     meta        = ?, 
                     message     = ?, 
-                    run_state   = ?, 
-                    rerun       = ?
+                    run_state   = ?
                 WHERE rowid = ?
             """, values)
             self.__connection.connection.commit()
