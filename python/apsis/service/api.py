@@ -11,7 +11,7 @@ from   apsis.apsis import reschedule_runs
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
-from   ..jobs import jso_to_job, reruns_to_jso
+from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
 
 log = logging.getLogger(__name__)
@@ -54,7 +54,6 @@ def _job_to_jso(app, job):
         "program"       : _to_jso(job.program),
         "condition"     : [ _to_jso(c) for c in job.conds ],
         "actions"       : [ _to_jso(a) for a in job.actions ],
-        "reruns"        : reruns_to_jso(job.reruns),
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
         "url"           : app.url_for("v1.job", job_id=job.job_id),
@@ -106,7 +105,6 @@ def _run_summary_to_jso(app, run):
             time_to_jso(max(run.times.values())),
         ],
         "actions"       : actions,
-        "rerun"         : run.rerun,
         "expected"      : run.expected,
         "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
         "labels"        : run.meta.get("labels", []),
@@ -430,14 +428,12 @@ async def runs(request):
         job_id  = match_job_id(apsis.jobs, job_id)
     state,      = args.pop("state", (None, ))
     since,      = args.pop("since", (None, ))
-    reruns,     = args.pop("reruns", ("False", ))
 
     when, runs = apsis.run_store.query(
         run_ids =run_ids, 
         job_id  =job_id,
         state   =to_state(state),
         since   =since, 
-        reruns  =to_bool(reruns),
     )
 
     return response_json(runs_to_jso(request.app, when, runs, summary=summary))
