@@ -16,7 +16,12 @@ div
     div(v-html="markdown(job.metadata.description)")
 
   Frame(title="Runs")
-    RunsList(:query="query" :showJob="false" argColumnStyle="separate")
+    RunsList(
+      :query="query" 
+      :showJob="false"
+      argColumnStyle="separate"
+      style="max-height: 28rem; overflow-y: auto;"
+    )
 
   Frame(title="Details")
     table.fields(v-if="job"): tbody
