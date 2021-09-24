@@ -95,18 +95,14 @@ def get_run_start(run):
 
 def get_run_elapsed(cur, run):
     try:
-        return run["elapsed"]
-    except KeyError:
-        pass
-
-    try:
         start = Time(run["times"]["running"])
     except KeyError:
-        pass
+        return None
     else:
-        return cur - start
-
-    return None
+        return Time(
+            cur if run["state"] == "running"
+            else run["times"][run["state"]]
+        ) - start
 
 
 def format_jso(jso, indent=0):
@@ -185,10 +181,12 @@ def print_run(run, con, *, verbosity=0, run_history=None):
     con.print(format_program(run["program"], verbosity=verbosity))
 
     # Format conds.
+    header("Conditions")
     if len(run["conds"]) > 0:
-        header("Conditions")
         for cond in run["conds"]:
             print_cond(cond, con, verbosity=verbosity)
+    else:
+        print("none")
 
     if verbosity < 1:
         state = run["state"]
