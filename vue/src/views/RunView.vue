@@ -42,7 +42,7 @@ div
               td.no-padding: Program(:program="run.program")
 
             //- FIXME: Do better here.
-            tr(v-if="run.conds && run.conds.length > 0")
+            tr
               th conditions
               td.no-padding: table.fields: tbody
                 tr(v-for="cond in run.conds" :key="cond.str")
@@ -52,13 +52,6 @@ div
                       JobWithArgs(:job-id="cond.job_id" :args="cond.args")
                       span &rarr; {{ join(cond.states, ' ') }}
                     span(v-else) {{ cond.str }}
-
-            tr
-              th times
-              td.no-padding: table.fields: tbody
-                tr(v-for="[name, time] in run_times" :key="name")
-                  th {{ name }}
-                  td: Timestamp(:time="time")
 
             tr
               th elapsed
@@ -167,6 +160,7 @@ export default {
           if (response.ok) {
             const run = (await response.json()).runs[this.run_id]
             this.run = Object.freeze(run)
+            console.log(this.run)
             this.fetchOutputMetadata()
           }
           else if (response.status === 404)
