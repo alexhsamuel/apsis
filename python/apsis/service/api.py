@@ -429,11 +429,16 @@ async def runs(request):
     state,      = args.pop("state", (None, ))
     since,      = args.pop("since", (None, ))
 
+    # Remainders are args to match, though strip off leading underscores, where
+    # were added to avoid collision with fixed args.
+    args = { n[1 :] if n.startswith("_") else n: a[-1] for n, a in args.items() }
+
     when, runs = apsis.run_store.query(
-        run_ids =run_ids, 
-        job_id  =job_id,
-        state   =to_state(state),
-        since   =since, 
+        run_ids     =run_ids, 
+        job_id      =job_id,
+        state       =to_state(state),
+        since       =since, 
+        with_args   =args,
     )
 
     return response_json(runs_to_jso(request.app, when, runs, summary=summary))

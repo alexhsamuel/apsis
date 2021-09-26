@@ -147,11 +147,18 @@ class Client:
         return self.__post("/api/v1/runs", run_id, "mark", state_name)
 
 
-    def get_runs(self, *, job_id=None, state=None, since=None):
+    def get_runs(self, *, job_id=None, state=None, args={}):
         return self.__get(
             "/api/v1/runs",
             job_id  =job_id,
             state   =state,
+            # Include args, but prefix with underscore any that collide with
+            # fixed arg names.
+            # FIXME: Oh so hacky.
+            **{
+                "_" + n if n in {"job_id", "run_id", "state", "since"} else n: a
+                for n, a in args.items()
+            },
         )["runs"]
 
 
