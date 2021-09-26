@@ -163,7 +163,7 @@ def print_jobs(jobs, con):
     con.print(table)
 
 
-def print_run(run, con, *, verbosity=0, run_history=None):
+def print_run(run, con, *, verbosity=0, run_history=None, similar_runs=None):
     # Run ID.
     run_id = run["run_id"]
     job = format_instance(run)
@@ -209,6 +209,10 @@ def print_run(run, con, *, verbosity=0, run_history=None):
     if run["message"] is not None:
         con.print(f"➔ [white]{run['message']}[/]")
     
+    if verbosity > 0 and len(similar_runs) > 0:
+        header("Run History")
+        print_runs(similar_runs, con, arg_style=None)
+
     con.print()
 
 
@@ -224,7 +228,7 @@ def print_run_history(run_history, con):
     con.print(table)
 
 
-def print_runs(runs, con, *, one_job=False):
+def print_runs(runs, con, *, arg_style="separate"):
     if len(runs) == 0:
         con.print("[red]No runs.[/]")
         return
@@ -240,10 +244,10 @@ def print_runs(runs, con, *, one_job=False):
     table.add_column("start", style="time")
     table.add_column("elapsed", justify="right")
     table.add_column("job_id")
-    if one_job:
+    if arg_style == "combined":
         for arg in runs[0]["args"]:
             table.add_column(arg)
-    else:
+    elif arg_style == "combined":
         table.add_column("args")
 
     for run in runs:
@@ -255,9 +259,9 @@ def print_runs(runs, con, *, one_job=False):
             "" if elapsed is None else format_duration(elapsed),
             f"[job]{run['job_id']}[/]",
         ]
-        if one_job:
+        if arg_style == "combined":
             row.extend(run["args"].values())
-        else:
+        elif arg_style == "separate":
             row.append(" ".join( f"{k}={v}" for k, v in run["args"].items() ))
         table.add_row(*row)
 
