@@ -485,9 +485,11 @@ class Apsis:
         """
         # Create the new run.
         log.info(f"rerun: {run.run_id} at {time or 'now'}")
-        rerun = run.run_id if run.rerun is None else run.rerun
-        new_run = Run(run.inst, rerun=rerun)
+        timestamp = now()
+        new_run = Run(run.inst)
         await self.schedule(time, new_run)
+        self.run_history.info(
+            new_run, f"scheduled as rerun of {run.run_id}", timestamp=timestamp)
         return new_run
 
 
