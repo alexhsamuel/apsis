@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  table.fields
+  table
     thead(v-if="false")
       tr
         th Time
@@ -52,4 +52,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+table th, table td {
+  line-height: 1.5rem;
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+}
 </style>
