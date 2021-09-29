@@ -295,7 +295,7 @@ async def run_history(request, run_id):
                 "timestamp" : time_to_jso(r["timestamp"]),
                 "message"   : r["message"],
             }
-            for r in history
+            for r in sorted(history, key=lambda r: r["timestamp"])
         ]
     })
 

@@ -11,7 +11,7 @@ def error(message, status=400, **kw_args):
 
 
 def time_to_jso(time):
-    return format(time, "%.i")
+    return format(time, "%.3i")
 
 
 def to_bool(string):
