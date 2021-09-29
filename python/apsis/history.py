@@ -32,23 +32,23 @@ class RunHistory:
             db.insert(run.run_id, timestamp, message)
 
 
-    def info(self, run, message):
+    def info(self, run, message, *, timestamp=None):
         """
         Records a history record and logs at level INFO.
         """
         log.info(f"run {run.run_id}: {message}")
-        self.record(run, message)
+        self.record(run, message, timestamp=timestamp)
 
 
-    def error(self, run, message):
+    def error(self, run, message, *, timestamp=None):
         """
         Records a history record and logs at level ERROR.
         """
         log.error(f"run {run.run_id}: {message}")
-        self.record(run, f"error: {message}")
+        self.record(run, f"error: {message}", timestamp=timestamp)
 
 
-    def exc(self, run, message=None):
+    def exc(self, run, message=None, *, timestamp=None):
         """
         Records an exception for `run` and logs at level ERROR.
         """
@@ -60,6 +60,6 @@ class RunHistory:
         log_msg += ": " + str(exc_msg)
         log.error(log_msg, exc_info=True)
 
-        self.record(run, f"error: {exc_msg}")
+        self.record(run, f"error: {exc_msg}", timestamp=timestamp)
 
 
