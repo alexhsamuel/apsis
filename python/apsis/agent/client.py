@@ -247,7 +247,7 @@ class Agent:
                         headers={
                             "X-Auth-Token": token,
                         },
-                        timeout=1,
+                        timeout=2,
                     )
 
             except (requests.ConnectionError, requests.ReadTimeout):
