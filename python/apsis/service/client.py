@@ -111,7 +111,7 @@ class Client:
 
 
     def get_history(self, run_id):
-        return self.__get("/api/v1/runs", run_id, "history")["run_history"]
+        return self.__get("/api/v1/runs", run_id, "log")["run_log"]
 
 
     def get_job(self, job_id):

@@ -13,10 +13,10 @@ class Waiter:
     # FIXME: Primitive first cut: just store all runs with their blockers,
     # by run ID, and reevaluate all of them every time.
 
-    def __init__(self, run_store, start, run_history):
+    def __init__(self, run_store, start, run_log):
         self.__run_store = run_store
         self.__start = start
-        self.__run_history = run_history
+        self.__run_log = run_log
 
         # Mapping from run ID to (run, conds).  The latter is a list of 
         # conds that have not yet been checked.  The first cond is blocking.
@@ -59,7 +59,7 @@ class Waiter:
         else:
             # Blocked by a cond.
             assert run.run_id not in self.__waiting
-            self.__run_history.info(run, f"waiting for {conds[0]}")
+            self.__run_log.info(run, f"waiting for {conds[0]}")
             self.__waiting[run.run_id] = (run, conds)
 
 
@@ -80,7 +80,7 @@ class Waiter:
 
             if len(conds) == 0:
                 # No longer blocked; ready to run.
-                self.__run_history.info(run, "no longer waiting")
+                self.__run_log.info(run, "no longer waiting")
                 del self.__waiting[run.run_id]
                 await self.__start(run)
 
@@ -89,7 +89,7 @@ class Waiter:
                 blocker = conds[0]
                 if blocker is not last_blocker:
                     # Blocked by a new cond.
-                    self.__run_history.info(run, f"waiting for {blocker}")
+                    self.__run_log.info(run, f"waiting for {blocker}")
 
 
     async def loop(self):

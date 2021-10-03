@@ -59,7 +59,7 @@ div
                 RunElapsed(:run="run")
 
             tr
-              th history
+              th log
               td.no-padding: RunHistory(:run_id="run_id")
 
     Frame(v-if="run.meta && Object.keys(run.meta).length" title="Metadata" closed)

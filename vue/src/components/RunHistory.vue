@@ -7,7 +7,7 @@ div
         th Message
 
     tbody
-      tr(v-for="rec, i in history")
+      tr(v-for="rec, i in log")
         th: Timestamp(:time="rec.timestamp")
         td {{ rec.message }}
 
@@ -25,7 +25,7 @@ export default {
 
   data() {
     return {
-      history: null,
+      log: null,
     }
   },
 
@@ -35,13 +35,13 @@ export default {
 
   methods: {
     load() {
-      const url = '/api/v1/runs/' + this.run_id + '/history'
+      const url = '/api/v1/runs/' + this.run_id + '/log'
       fetch(url)
         .then(async (rsp) => {
           if (rsp.ok)
-            this.history = (await rsp.json()).run_history
+            this.log = (await rsp.json()).run_log
           else if (rsp.status === 404)
-            this.history = null
+            this.log = null
           else
             store.state.errors.add('fetch ' + url + ' ' + rsp.status + ' ' + await rsp.text())
         })

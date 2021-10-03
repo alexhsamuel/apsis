@@ -281,15 +281,15 @@ async def run(request, run_id):
     return response_json(jso)
 
 
-@API.route("/runs/<run_id>/history", methods={"GET"})
-async def run_history(request, run_id):
+@API.route("/runs/<run_id>/log", methods={"GET"})
+async def run_log(request, run_id):
     try:
         history = await request.app.apsis.get_run_history(run_id)
     except KeyError:
         return error(f"unknown run {run_id}", 404)
 
     return response_json({
-        "run_history": [
+        "run_log": [
             {
                 "run_id"    : r["run_id"],
                 "timestamp" : time_to_jso(r["timestamp"]),
