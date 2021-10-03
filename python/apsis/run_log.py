@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 class RunLog:
     """
-    History of a run's activity, for human consumption.
+    Log of a run's activity, for human consumption.
     """
 
     def __init__(self, run_log_db):
@@ -17,7 +17,7 @@ class RunLog:
 
     def record(self, run, message, *, timestamp=None):
         """
-        Records a timestamped history record to the history for `run`.
+        Records a timestamped run log record for `run`.
 
         :param timestamp:
           The time of the event; current time if none.
@@ -34,7 +34,7 @@ class RunLog:
 
     def info(self, run, message, *, timestamp=None):
         """
-        Records a history record and logs at level INFO.
+        Records a run log record and logs at level INFO.
         """
         log.info(f"run {run.run_id}: {message}")
         self.record(run, message, timestamp=timestamp)
@@ -42,7 +42,7 @@ class RunLog:
 
     def error(self, run, message, *, timestamp=None):
         """
-        Records a history record and logs at level ERROR.
+        Records a run log record and logs at level ERROR.
         """
         log.error(f"run {run.run_id}: {message}")
         self.record(run, f"error: {message}", timestamp=timestamp)

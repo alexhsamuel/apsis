@@ -284,7 +284,7 @@ async def run(request, run_id):
 @API.route("/runs/<run_id>/log", methods={"GET"})
 async def run_log(request, run_id):
     try:
-        history = await request.app.apsis.get_run_history(run_id)
+        run_log = await request.app.apsis.get_run_log(run_id)
     except KeyError:
         return error(f"unknown run {run_id}", 404)
 
@@ -295,7 +295,7 @@ async def run_log(request, run_id):
                 "timestamp" : time_to_jso(r["timestamp"]),
                 "message"   : r["message"],
             }
-            for r in sorted(history, key=lambda r: r["timestamp"])
+            for r in sorted(run_log, key=lambda r: r["timestamp"])
         ]
     })
 
@@ -367,7 +367,7 @@ async def run_signal(request, run_id, signal):
         return error("invalid run state for signal", 409, state=run.state.name)
     assert run.program is not None
 
-    apsis.run_history.info(run, f"sending signal {signal}")
+    apsis.run_log.info(run, f"sending signal {signal}")
     try:
         # FIXME: This should be via the apsis API.
         await run.program.signal(run.run_state, signal)

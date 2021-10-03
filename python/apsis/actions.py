@@ -93,9 +93,9 @@ class ScheduleAction(Action):
         new_run = await apsis.schedule(None, runs.Run(inst))
         log.info(f"action for {run.run_id}: scheduled {new_run.run_id}")
 
-        apsis.run_history.info(
+        apsis.run_log.info(
             run, f"action scheduling {inst} as {new_run.run_id}")
-        apsis.run_history.info(
+        apsis.run_log.info(
             new_run, f"scheduled by action of {run.run_id}")
 
 

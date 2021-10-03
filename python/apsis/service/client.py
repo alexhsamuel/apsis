@@ -110,7 +110,7 @@ class Client:
         return self.__post("/api/v1/runs", run_id, "start")
 
 
-    def get_history(self, run_id):
+    def get_run_log(self, run_id):
         return self.__get("/api/v1/runs", run_id, "log")["run_log"]
 
 
