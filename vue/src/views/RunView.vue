@@ -60,7 +60,7 @@ div
 
             tr
               th log
-              td.no-padding: RunHistory(:run_id="run_id")
+              td.no-padding: RunLog(:run_id="run_id")
 
     Frame(v-if="run.meta && Object.keys(run.meta).length" title="Metadata" closed)
       table.fields
@@ -98,7 +98,7 @@ import Run from '@/components/Run'
 import { joinArgs } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
-import RunHistory from '@/components/RunHistory'
+import RunLog from '@/components/RunLog'
 import RunsList from '@/components/RunsList'
 import State from '@/components/State'
 import store from '@/store'
@@ -115,7 +115,7 @@ export default {
     Run,
     RunArgs,
     RunElapsed,
-    RunHistory,
+    RunLog,
     RunsList,
     State,
     Timestamp,
