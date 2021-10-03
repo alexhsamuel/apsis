@@ -15,7 +15,7 @@ import apsis.lib.logging
 from   apsis.runs import Run
 import apsis.service.client
 
-apsis.lib.logging.configure()
+apsis.lib.logging.rich_configure()
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------

@@ -10,6 +10,54 @@ import apsis.cmdline
 
 #-------------------------------------------------------------------------------
 
+def set_log_levels():
+    # Quiet some noisy stuff.
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+    logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.INFO)
+    logging.getLogger("websockets.protocol").setLevel(logging.INFO)
+
+
+#-------------------------------------------------------------------------------
+
+class Formatter(logging.Formatter):
+
+    def formatMessage(self, record):
+        time = ora.UNIX_EPOCH + record.created
+        level = record.levelname
+        return (
+            f"{time:%.3C} {record.name:24s} {level[0]} "
+            f"{record.message}"
+        )
+
+
+class AccessFormatter(logging.Formatter):
+
+    def formatMessage(self, record):
+        time = ora.UNIX_EPOCH + record.created
+        level = record.levelname
+        return (
+            f"{time:%.3C} {record.name:24s} {level[0]} "
+            f"{record.status} {record.request} ({record.host})"
+        )
+
+
+def configure(*, level="WARNING"):
+    if isinstance(level, str):
+        level = getattr(logging, level.upper())
+    logging.basicConfig(
+        level=level,
+        format="%(message)",
+        datefmt="[%X]",
+    )
+    # Root logger's formatter.
+    logging.getLogger().handlers[0].formatter = Formatter()
+
+    set_log_levels()
+
+
+#-------------------------------------------------------------------------------
+
 LEVEL_STYLES = {
     "DEBUG"     : "color(249)",
     "INFO"      : "color(243)",
@@ -18,7 +66,7 @@ LEVEL_STYLES = {
     "CRITICAL"  : "color(196) bold",
 }
 
-class Formatter(logging.Formatter):
+class RichFormatter(logging.Formatter):
 
     def formatMessage(self, record):
         time = ora.UNIX_EPOCH + record.created
@@ -31,47 +79,27 @@ class Formatter(logging.Formatter):
 
 
 
-class AccessFormatter(logging.Formatter):
-
-    def formatMessage(self, record):
-        time = ora.UNIX_EPOCH + record.created
-        level = record.levelname
-        level = f"[{LEVEL_STYLES[level]}]{level[0]}[/]"
-        return (
-            f"{time:%.3C} [color(24)]{record.name:24s}[/] {level} "
-            f"{record.status} [color(59)]{record.request}[/] ({record.host})"
-        )
-
-
-
-class Handler(rich.logging.RichHandler):
+class RichHandler(rich.logging.RichHandler):
 
     def render(self, *, record, traceback, message_renderable):
         return rich.text.Text.from_markup(str(message_renderable))
         
 
 
-def configure(*, level="WARNING"):
+def rich_configure(*, level="WARNING"):
     if isinstance(level, str):
         level = getattr(logging, level.upper())
     logging.basicConfig(
         level=level,
         format="%(message)",
         datefmt="[%X]",
-        handlers=[Handler(console=apsis.cmdline.get_console())],
-        # handlers=[rich.logging.RichHandler(
-        #     highlighter=rich.highlighter.NullHighlighter(),
-        #     markup=True,
-        # )]
+        handlers=[RichHandler(console=apsis.cmdline.get_console())],
     )
 
     # Root logger's formatter.
-    logging.getLogger().handlers[0].formatter = Formatter()
-    # Quiet some noisy stuff.
-    logging.getLogger("asyncio").setLevel(logging.WARNING)
-    logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
-    logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.INFO)
-    logging.getLogger("websockets.protocol").setLevel(logging.INFO)
+    logging.getLogger().handlers[0].formatter = RichFormatter()
+
+    set_log_levels()
 
 
 #-------------------------------------------------------------------------------
