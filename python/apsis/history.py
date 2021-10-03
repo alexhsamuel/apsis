@@ -6,13 +6,13 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class RunHistory:
+class RunLog:
     """
     History of a run's activity, for human consumption.
     """
 
-    def __init__(self, run_history_db):
-        self.__run_history_db = run_history_db
+    def __init__(self, run_log_db):
+        self.__run_log_db = run_log_db
 
 
     def record(self, run, message, *, timestamp=None):
@@ -25,7 +25,7 @@ class RunHistory:
         message = str(message)
         timestamp = now() if timestamp is None else timestamp
 
-        db = self.__run_history_db
+        db = self.__run_log_db
         if run.expected:
             db.cache(run.run_id, timestamp, message)
         else:

@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 
 # FIXME: For next version:
 # - remove runs.rerun column
+# - rename run_history to run_log
 
 #-------------------------------------------------------------------------------
 
@@ -312,7 +313,7 @@ class RunDB:
 
 #-------------------------------------------------------------------------------
 
-class RunHistoryDB:
+class RunLogDB:
 
     TABLE = sa.Table(
         "run_history", METADATA,
@@ -348,7 +349,7 @@ class RunHistoryDB:
 
     def flush(self, run_id):
         """
-        FLushes cached run history to the database.
+        FLushes cached run log to the database.
         """
         cache = self.__cache.pop(run_id, ())
         if len(cache) > 0:
@@ -359,7 +360,7 @@ class RunHistoryDB:
 
 
     def query(self, *, run_id: str):
-        log.debug(f"query run history run_id={run_id}")
+        log.debug(f"query run log run_id={run_id}")
         where = self.TABLE.c.run_id == run_id
 
         # Respond with cached values.
@@ -470,7 +471,7 @@ class SqliteDB:
         self.clock_db       = ClockDB(engine)
         self.job_db         = JobDB(engine)
         self.run_db         = RunDB(engine)
-        self.run_history_db = RunHistoryDB(engine)
+        self.run_log_db     = RunLogDB(engine)
         self.output_db      = OutputDB(engine)
         self._engine        = engine
 
@@ -541,7 +542,7 @@ class SqliteDB:
         """
         return max(
             self.run_db.get_max_run_id_num(),
-            self.run_history_db.get_max_run_id_num(),
+            self.run_log_db.get_max_run_id_num(),
         )
 
 
@@ -560,7 +561,7 @@ def check(db):
         ok = False
 
     engine = db._engine
-    run_tables = (RunHistoryDB.TABLE, OutputDB.TABLE)
+    run_tables = (RunLogDB.TABLE, OutputDB.TABLE)
 
     # Check run tables for valid run ID (referential integrity).
     for tbl in run_tables:
@@ -587,7 +588,7 @@ def archive_runs(db, archive_db, time, *, delete=False):
     arc_eng = archive_db._engine
 
     # Tables other than "runs" that need to be archived.
-    run_tables = (RunHistoryDB.TABLE, OutputDB.TABLE)
+    run_tables = (RunLogDB.TABLE, OutputDB.TABLE)
 
     # Selection for runs in the runs table itself.
     sel = TBL_RUNS.c.timestamp < dump_time(time)

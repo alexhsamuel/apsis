@@ -5,7 +5,7 @@ import sys
 import traceback
 
 from   .actions import Action
-from   .history import RunHistory
+from   .history import RunLog
 
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
@@ -49,7 +49,7 @@ class Apsis:
         config_host_groups(cfg)
         self.__db = db
 
-        self.run_history = RunHistory(self.__db.run_history_db)
+        self.run_history = RunLog(self.__db.run_log_db)
         self.jobs = Jobs(jobs, db.job_db)
 
         # Actions applied to all runs.
@@ -337,7 +337,7 @@ class Apsis:
                 run.STATE.new,
                 run.STATE.scheduled,
         }:
-            self.__db.run_history_db.flush(run.run_id)
+            self.__db.run_log_db.flush(run.run_id)
             run.expected = False
 
         # Transition the run object.
@@ -472,7 +472,7 @@ class Apsis:
         """
         # Make sure the run ID is valid.
         self.run_store.get(run_id)
-        return self.__db.run_history_db.query(run_id=run_id)
+        return self.__db.run_log_db.query(run_id=run_id)
 
 
     async def rerun(self, run, *, time=None):
