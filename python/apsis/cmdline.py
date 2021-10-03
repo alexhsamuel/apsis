@@ -163,7 +163,7 @@ def print_jobs(jobs, con):
     con.print(table)
 
 
-def print_run(run, con, *, verbosity=0, run_history=None, similar_runs=None):
+def print_run(run, con, *, verbosity=0, run_log=None, similar_runs=None):
     # Run ID.
     run_id = run["run_id"]
     job = format_instance(run)
@@ -201,9 +201,9 @@ def print_run(run, con, *, verbosity=0, run_history=None, similar_runs=None):
             time += f" elapsed {elapsed}"
         con.print(STATE_SYM[state] + " " + time)
 
-    if run_history is not None:
-        header("History")
-        print_run_history(run_history, con)
+    if run_log is not None:
+        header("Log")
+        print_run_log(run_log, con)
 
     # Message, if any.
     if run["message"] is not None:
@@ -216,11 +216,11 @@ def print_run(run, con, *, verbosity=0, run_history=None, similar_runs=None):
     con.print()
 
 
-def print_run_history(run_history, con):
+def print_run_log(run_log, con):
     table = Table(show_header=False, **TABLE_KWARGS)
     table.add_column("time", style="time")
     table.add_column("message")
-    for h in run_history:
+    for h in run_log:
         table.add_row(
             format_time(Time(h["timestamp"])),
             h["message"]

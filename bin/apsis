@@ -173,13 +173,13 @@ def cmd_run(client, args):
         run = client.get_run(run_id)
         if args.format is None:
             if args.verbosity > 0:
-                run_history = client.get_history(run_id)
+                run_log = client.get_history(run_id)
                 similar_runs = client.get_runs(job_id=run["job_id"], args=run["args"])
             else:
-                run_history = similar_runs = None
+                run_log = similar_runs = None
             apsis.cmdline.print_run(
                 run, con, verbosity=args.verbosity,
-                run_history=run_history,
+                run_log=run_log,
                 similar_runs=similar_runs
             )
         else:
