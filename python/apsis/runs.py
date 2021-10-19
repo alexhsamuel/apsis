@@ -229,7 +229,7 @@ class Run:
 
 #-------------------------------------------------------------------------------
 
-def get_bind_args(run):
+def get_template_args(run):
     """
     Returns args available to template expansion for `run`.
     """

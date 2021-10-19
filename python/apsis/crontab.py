@@ -125,7 +125,7 @@ class CrontabSchedule:
         return "crontab: {} TZ={}".format(self.fields, self.tz)
 
 
-    def bind_args(self, params, sched_time):
+    def template_args(self, params, sched_time):
         # FIXME: Duplicate.
         args = {}
 

@@ -1,7 +1,7 @@
 import logging
 
 from   apsis.lib.py import format_ctor
-from   apsis.runs import Run, get_bind_args, template_expand
+from   apsis.runs import Run, get_template_args, template_expand
 from   .base import Condition
 
 log = logging.getLogger(__name__)
@@ -57,8 +57,8 @@ class MaxRunning(Condition):
 
 
     def bind(self, run, jobs):
-        bind_args = get_bind_args(run)
-        count = template_expand(self.__count, bind_args)
+        template_args = get_template_args(run)
+        count = template_expand(self.__count, template_args)
         job_id = run.inst.job_id if self.__job_id is None else self.__job_id
         # FIXME: Support self.__args not none.  Template-expand them, add in
         # inst.args, and bind to job args.

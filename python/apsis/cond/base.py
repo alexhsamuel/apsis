@@ -36,17 +36,26 @@ class Condition(TypedJso):
 
 #-------------------------------------------------------------------------------
 
-def _bind(job, obj_args, inst_args, bind_args):
+def _bind(job, obj_args, inst_args, template_args):
     """
     Binds args to `job.params`.
 
-    Binds `obj_args` and `inst_args` to params by name.  `obj_args` take
-    precedence, and are template-expanded with `bind_args`; `inst_args` are
-    not expanded.
+    `obj_args` are the args from the object being bound.  These take precedence
+    over other args.  They are templated-expanded with `template_args`.
+
+    `inst_args` are the args from the associated run, to which the object is
+    attached.  These are used to fill in args missing from `obj_args`
+    automatically.  They are not template-expanded, as the associated run
+    is already bound.
+
+    `template_args` are used only for template-expanding `obj_args`.
+
+    :param obj_args:
+      Args from the object being bound.  These
     """
     def get(name):
         try:
-            return template_expand(obj_args[name], bind_args)
+            return template_expand(obj_args[name], template_args)
         except KeyError:
             pass
         try:

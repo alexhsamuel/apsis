@@ -13,7 +13,7 @@ from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
 from   . import runs
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
-from   .runs import get_bind_args
+from   .runs import get_template_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
 from   .waiter import Waiter
@@ -251,7 +251,7 @@ class Apsis:
 
         if run.program is None:
             try:
-                run.program = job.program.bind(get_bind_args(run))
+                run.program = job.program.bind(get_template_args(run))
             except Exception as exc:
                 self._run_exc(run, message=f"invalid program: {exc}")
                 return False
