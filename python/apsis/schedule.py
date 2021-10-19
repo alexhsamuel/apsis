@@ -81,11 +81,6 @@ class DailySchedule(Schedule):
             i = 0
 
         # Now generate.
-        common_args = {
-            "calendar": str(self.calendar),
-            "tz": str(self.tz),
-            **self.args,
-        }
         while True:
             sched_date = self.calendar.shift(date, self.cal_shift)
             sched_date = sched_date + self.date_shift
@@ -99,7 +94,7 @@ class DailySchedule(Schedule):
                 )
                 continue
             assert time >= start
-            args = {"date": str(date), "time": time, **common_args}
+            args = {"date": str(date), "time": time, **self.args}
             yield time, args
 
             i += 1
