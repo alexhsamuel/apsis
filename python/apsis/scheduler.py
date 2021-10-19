@@ -19,15 +19,14 @@ def get_runs_to_schedule(job, start, stop):
     for schedule in job.schedules:
         times = itertools.takewhile(lambda t: t[0] < stop, schedule(start))
 
-        for sched_time, args in times:
-            args = {**args, "schedule_time": sched_time}
+        for sched_time, sched_args in times:
+            args = {**sched_args, "schedule_time": sched_time}
             args = { 
                 a: str(v) 
                 for a, v in args.items() 
                 if a in job.params
             }
             # FIXME: Check that all params are satisfied by args.  If not...?
-            # FIXME: Store additional args for later expansion.
             inst = Instance(job.job_id, args)
 
             if schedule.enabled:
