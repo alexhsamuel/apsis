@@ -4,6 +4,7 @@ import enum
 import itertools
 import jinja2
 import logging
+import ora
 from   ora import now, Time
 import shlex
 
@@ -229,6 +230,12 @@ class Run:
 
 #-------------------------------------------------------------------------------
 
+TEMPLATE_ARGS = {
+    "Date"      : ora.Date,
+    "float"     : float,
+    "int"       : int,
+}
+
 def get_template_args(run):
     """
     Returns args available to template expansion for `run`.
@@ -236,6 +243,7 @@ def get_template_args(run):
     return {
         "run_id": run.run_id,
         "job_id": run.inst.job_id,
+        **TEMPLATE_ARGS,
         **run.inst.args,
     }    
 
