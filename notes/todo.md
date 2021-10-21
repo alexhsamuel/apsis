@@ -1,5 +1,8 @@
 # Cleanup
 
+- `host_groups` can be subsumed into global definitions; for agent programs,
+  define some semantics around how hosts are interpreted (a list? a dict?)
+
 - Remove run_history from `Waiter`.
 
 - Factor loop watchers (`log.critical`) into a common pattern.
@@ -9,6 +12,59 @@
   aliases from `config.yaml` and move them to a config file specific to the job
   dir.
   
+
+# Template args
+
+Suppose we have a job like this:
+
+```yaml
+...
+params: [country, date]
+schedule:
+  type: daily
+  args: {county: US}
+  calendar: Mon-Fri
+  tz: America/New_York
+  daytime: 09:00:00
+condition:
+  type: dependency
+  job_id: setup
+  args:
+    date: "{{ calendar.shift(date, -1) }}"
+```
+
+How does `calendar` get into the template args for the condition? 
+Bear in mind that,
+- There may be multiple schedules, with different calendars.
+- A run may be started directly rather than from any schedule at all.
+
+Choices:
+
+1. Add `calendar` (and `tz`, and whatever else relevant) from the schedule to
+   the template args used elsewhere in the run.
+   
+   This means that a run cannot be created outside of a schedule, or at least
+   that the missing `calendar` needs to be supplied as a (non-param!) arg.
+   
+2. Provide a mechanism to expand template args from normal args.  In this case,
+   something like this:
+   
+   ```yaml
+   country:
+     US:
+       tz: America/New_York
+       calendar: Mon-Fri
+   ```
+   
+   When template-expanding, we first expand instance args through thsi to arrive
+   at a larger set of template args.
+
+   These could be local to a single job, or global to a whole job dir?
+
+Choice 2 is better because is keeps closer to the notion that jobs are
+parametrized fully by their params, and not by a bunch of extra args inserted as
+a side effect of the schedule.
+
 
 # Idle thoughts
 
