@@ -27,3 +27,12 @@ jittered time sequences, which is exactly not what you want.
 This probably needs to be done at the scheduler level, not in individual
 schedules.
 
+
+# Tricks
+
+Cancel all waiting runs:
+```sh
+runs="$(apsis runs --state waiting --format json | jq -r 'keys[] as $k | "\($k)"' )"
+for run in $runs; do apsis cancel $run; done
+```
+
