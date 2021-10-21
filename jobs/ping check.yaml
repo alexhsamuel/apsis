@@ -6,16 +6,20 @@ schedule:
 - type: interval
   args: {host: "google.com"}
   interval: 3600
+  enabled: false
 
 - type: interval
   args: {host: "tudor.com"}
   interval: 7200
+  enabled: false
 
 - type: interval
   args: {host: "soho.indetermi.net"}
   interval: 600
+  enabled: false
 
 - type: interval
   args: {host: "ap.indetermi.net"}
   interval: 600
+  enabled: false
 
