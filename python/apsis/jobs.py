@@ -5,12 +5,12 @@ import os
 from   pathlib import Path
 import random
 import string
-import sys
 import yaml
 
 from   . import actions
 from   .actions import Action
 from   .cond import Condition
+from   .definitions import Definitions
 from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program
@@ -23,8 +23,15 @@ log = logging.getLogger(__name__)
 
 class Job:
 
-    def __init__(self, job_id, params, schedules, program, conds=[],
-                 actions=[], *, meta={}, ad_hoc=False):
+    def __init__(
+            self, job_id, params, program, *,
+            definitions=Definitions(),
+            schedules=[],
+            conds=[],
+            actions=[],
+            meta={},
+            ad_hoc=False
+    ):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
@@ -34,19 +41,21 @@ class Job:
         :param meta:
           Dict of metadata.  Must be JSON-serlializable.
         """
-        self.job_id     = None if job_id is None else str(job_id)
-        self.params     = frozenset( str(p) for p in tupleize(params) )
-        self.schedules  = tupleize(schedules)
-        self.program    = program
-        self.conds      = tupleize(conds)
-        self.actions    = actions
-        self.meta       = meta
-        self.ad_hoc     = bool(ad_hoc)
+        self.job_id         = None if job_id is None else str(job_id)
+        self.params         = frozenset( str(p) for p in tupleize(params) )
+        self.definitions    = definitions
+        self.schedules      = tupleize(schedules)
+        self.program        = program
+        self.conds          = tupleize(conds)
+        self.actions        = actions
+        self.meta           = meta
+        self.ad_hoc         = bool(ad_hoc)
 
 
     def __repr__(self):
         return format_ctor(
             self, self.job_id, tuple(self.params),
+            definitions =self.definitions,
             schedules   =self.schedules,
             program     =self.program,
             conds       =self.conds,
@@ -60,12 +69,13 @@ class Job:
         return (
                 not self.ad_hoc
             and not other.ad_hoc
-            and other.params    == self.params
-            and other.schedules == self.schedules
-            and other.program   == self.program
-            and other.conds     == self.conds
-            and other.actions   == self.actions
-            and other.meta      == self.meta
+            and other.params        == self.params
+            and other.definitions   == self.definitions
+            and other.schedules     == self.schedules
+            and other.program       == self.program
+            and other.conds         == self.conds
+            and other.actions       == self.actions
+            and other.meta          == self.meta
         )
 
 
@@ -98,6 +108,8 @@ def jso_to_job(jso, job_id):
         params      = pop("params", default=[])
         params      = [params] if isinstance(params, str) else params
 
+        definitions = Definitions.from_jso(pop("definitions", default={}))
+
         # FIXME: 'schedules' for backward compatibility; remove in a while.
         schedules   = pop("schedule", default=())
         schedules   = (
@@ -128,11 +140,13 @@ def jso_to_job(jso, job_id):
         ad_hoc      = pop("ad_hoc", bool, default=False)
 
     return Job(
-        job_id, params, schedules, program,
-        conds   =conds,
-        actions =acts,
-        meta    =metadata,
-        ad_hoc  =ad_hoc,
+        job_id, params, program,
+        definitions =definitions,
+        schedules   =schedules,
+        conds       =conds,
+        actions     =acts,
+        meta        =metadata,
+        ad_hoc      =ad_hoc,
     )
 
 
