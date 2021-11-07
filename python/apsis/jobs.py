@@ -43,9 +43,9 @@ class Job:
         """
         self.job_id         = None if job_id is None else str(job_id)
         self.params         = frozenset( str(p) for p in tupleize(params) )
+        self.program        = program
         self.definitions    = definitions
         self.schedules      = tupleize(schedules)
-        self.program        = program
         self.conds          = tupleize(conds)
         self.actions        = actions
         self.meta           = meta
@@ -55,9 +55,9 @@ class Job:
     def __repr__(self):
         return format_ctor(
             self, self.job_id, tuple(self.params),
+            program     =self.program,
             definitions =self.definitions,
             schedules   =self.schedules,
-            program     =self.program,
             conds       =self.conds,
             actions     =self.actions,
             meta        =self.meta,
@@ -108,7 +108,7 @@ def jso_to_job(jso, job_id):
         params      = pop("params", default=[])
         params      = [params] if isinstance(params, str) else params
 
-        definitions = Definitions.from_jso(pop("definitions", default={}))
+        defs        = Definitions.from_jso(pop("definitions", default={}))
 
         # FIXME: 'schedules' for backward compatibility; remove in a while.
         schedules   = pop("schedule", default=())
@@ -117,7 +117,7 @@ def jso_to_job(jso, job_id):
             else [] if schedules is None
             else schedules
         )
-        schedules   = [ Schedule.from_jso(s) for s in schedules ]
+        schedules   = [ Schedule.from_jso(s, defs=defs) for s in schedules ]
 
         program     = pop("program", Program.from_jso)
 
@@ -141,7 +141,7 @@ def jso_to_job(jso, job_id):
 
     return Job(
         job_id, params, program,
-        definitions =definitions,
+        definitions =defs,
         schedules   =schedules,
         conds       =conds,
         actions     =acts,
@@ -242,6 +242,7 @@ def load_jobs_dir(path):
             jobs[job_id] = load_yaml_file(path, job_id)
         except SchemaError as exc:
             exc.job_id = job_id
+            log.error(f"error loading: {path}", exc_info=True)
             errors.append(exc)
     if len(errors) > 0:
         raise JobErrors(f"errors loading jobs in {jobs_path}", errors)

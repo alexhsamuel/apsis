@@ -231,9 +231,10 @@ class Run:
 #-------------------------------------------------------------------------------
 
 TEMPLATE_ARGS = {
-    "Date"      : ora.Date,
-    "float"     : float,
-    "int"       : int,
+    "Date"              : ora.Date,
+    "float"             : float,
+    "int"               : int,
+    "get_calendar"      : ora.get_calendar,
 }
 
 def get_template_args(run):

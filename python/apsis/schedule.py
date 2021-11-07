@@ -3,8 +3,7 @@ import logging
 import ora
 from   ora import Daytime, Time, TimeZone
 
-from   .lib.exc import SchemaError
-from   .lib.json import TypedJso, check_schema
+from   .lib.json import TypedJso, check_schema, NO_DEFAULT
 from   .lib.py import format_ctor
 
 log = logging.getLogger(__name__)
@@ -118,12 +117,14 @@ class DailySchedule(Schedule):
 
 
     @classmethod
-    def from_jso(cls, jso):
+    def from_jso(cls, jso, defs):
         with check_schema(jso) as pop:
             enabled     = pop("enabled", bool, default=True)
             args        = pop("args", default={})
-            tz          = pop("tz", TimeZone)
-            calendar    = ora.get_calendar(pop("calendar", default="all"))
+            tz_default  = defs.get("tz", args, NO_DEFAULT)
+            tz          = TimeZone(pop("tz", default=tz_default))
+            cal_default = defs.get("calendar", args, NO_DEFAULT)
+            calendar    = ora.get_calendar(pop("calendar", default=cal_default))
             daytimes    = pop("daytime")
             daytimes    = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
             daytimes    = [ Daytime(d) for d in daytimes ]

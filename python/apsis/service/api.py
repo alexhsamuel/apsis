@@ -50,6 +50,7 @@ def _job_to_jso(app, job):
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
+        "definitions"   : job.definitions.to_jso(),
         "schedules"     : [ _to_jso(s) for s in job.schedules ],
         "program"       : _to_jso(job.program),
         "condition"     : [ _to_jso(c) for c in job.conds ],

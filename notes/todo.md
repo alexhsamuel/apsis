@@ -56,7 +56,7 @@ Choices:
        calendar: Mon-Fri
    ```
    
-   When template-expanding, we first expand instance args through thsi to arrive
+   When template-expanding, we first expand instance args through this to arrive
    at a larger set of template args.
 
    These could be local to a single job, or global to a whole job dir?

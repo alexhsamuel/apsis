@@ -36,7 +36,7 @@ class Condition(TypedJso):
 
 #-------------------------------------------------------------------------------
 
-def _bind(job, obj_args, inst_args, template_args):
+def _bind(job, obj_args, inst_args, template_args, defs):
     """
     Binds args to `job.params`.
 
@@ -51,8 +51,10 @@ def _bind(job, obj_args, inst_args, template_args):
     `template_args` are used only for template-expanding `obj_args`.
 
     :param obj_args:
-      Args from the object being bound.  These
+      Args from the object being bound.
     """
+    template_args = {**template_args, **defs.get_for_args(inst_args)}
+
     def get(name):
         try:
             return template_expand(obj_args[name], template_args)

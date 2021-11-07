@@ -107,7 +107,7 @@ class TypedJso:
 
 
     @classmethod
-    def from_jso(cls, jso):
+    def from_jso(cls, jso, **kw_args):
         try:
             name = jso.pop("type")
 
@@ -123,7 +123,7 @@ class TypedJso:
             if not issubclass(type, cls):
                 raise SchemaError(f"type {type} not a {cls}")
 
-        return type.from_jso(jso)
+        return type.from_jso(jso, **kw_args)
 
 
     def to_jso(self):

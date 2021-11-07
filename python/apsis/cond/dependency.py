@@ -54,7 +54,8 @@ class Dependency(Condition):
     def bind(self, run, jobs):
         job = jobs[self.job_id]
         template_args = get_template_args(run)
-        args = _bind(job, self.args, run.inst.args, template_args)
+        defs = jobs[run.inst.job_id].definitions
+        args = _bind(job, self.args, run.inst.args, template_args, defs)
         return type(self)(self.job_id, args, self.states)
 
 

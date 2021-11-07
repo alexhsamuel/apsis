@@ -1,5 +1,7 @@
 from   .lib import json, py
 
+#-------------------------------------------------------------------------------
+
 class Definitions:
 
     def __init__(self, constant={}, parametrized={}):
@@ -21,19 +23,19 @@ class Definitions:
         with json.check_schema(jso) as pop:
             return cls(
                 pop("constant", default={}),
-                pop("parametrized", default={}),
+                pop("by", default={}),
             )
 
 
     def to_jso(self):
         return {
             "constant": self.constant,
-            "parametrized": self.parametrized,
+            "by": self.parametrized,
         }
 
 
     def __repr__(self):
-        return py.format_ctor(self, self.constants, self.parametrized)
+        return py.format_ctor(self, self.constant, self.parametrized)
 
 
     def __eq__(self, other):
@@ -41,5 +43,33 @@ class Definitions:
                 other.constant == self.constant
             and other.parametrized == self.parametrized
         )
+
+
+    def get(self, name, args, default):
+        for param, val in args.items():
+            try:
+                return self.parametrized[param][str(val)][name]
+            except KeyError:
+                pass
+
+        try:
+            return self.constant[name]
+        except KeyError:
+            pass
+
+        return default
+
+
+    def get_for_args(self, args):
+        result = dict(self.constant)
+        for param, val in args.items():
+            try:
+                param_args = self.parametrized[param][str(val)]
+            except KeyError:
+                pass
+            else:
+                result.update(param_args)
+        return result
+
 
 
