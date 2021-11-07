@@ -73,14 +73,15 @@ cmd.add_argument(
 #--- command: cancel -----------------------------------------------------------
 
 def cmd_cancel(client, args):
-    client.cancel(args.run_id)
+    for run_id in args.run_id:
+        client.cancel(run_id)
 
 
 cmd = parser.add_command(
     "cancel", cmd_cancel,
     description="Cancels a scheduled or waiting run.")
 cmd.add_argument(
-    "run_id", metavar="RUN-ID")
+    "run_id", metavar="RUN-ID ...", nargs="+")
 
 #--- command: job --------------------------------------------------------------
 
@@ -123,17 +124,18 @@ add_dump_format_option(cmd)
 #--- command: mark -------------------------------------------------------------
 
 def cmd_mark(client, args):
-    client.mark(args.run_id, args.state)
+    for run_id in args.run_id:
+        client.mark(run_id, args.state)
 
 
 cmd = parser.add_command(
     "mark", cmd_mark,
     description="Marks a run to a different finished STATE.")
 cmd.add_argument(
-    "run_id", metavar="RUN-ID")
-cmd.add_argument(
     "state", metavar="STATE", type=apsis.cmdline.match_state,
     choices={"success", "failure", "error"})
+cmd.add_argument(
+    "run_id", metavar="RUN-ID ...", nargs="+")
 
 #--- command: output -----------------------------------------------------------
 
@@ -152,18 +154,19 @@ cmd.add_argument(
 #--- command: rerun ------------------------------------------------------------
 
 def cmd_rerun(client, arg):
-    run = client.rerun(arg.run_id)
-    if args.format is None:
-        apsis.cmdline.print_run(run, con)
-    else:
-        dump_format(run, args.format)
+    runs = [ client.rerun(r) for r in arg.run_id ]
+    for run in runs:
+        if args.format is None:
+            apsis.cmdline.print_run(run, con)
+        else:
+            dump_format(run, args.format)
 
 
 cmd = parser.add_command(
     "rerun", cmd_rerun,
     description="Reruns a failed (or error) run.")
 cmd.add_argument(
-    "run_id", metavar="RUN-ID")
+    "run_id", metavar="RUN-ID ...", nargs="+")
 add_dump_format_option(cmd)
 
 #--- command: run --------------------------------------------------------------
@@ -264,29 +267,31 @@ cmd.add_argument(
 #--- command: signal -----------------------------------------------------------
 
 def cmd_signal(client, args):
-    client.signal(args.run_id, args.signum)
+    for run_id in args.run_id:
+        client.signal(run_id, args.signum)
 
 
 cmd = parser.add_command(
     "signal", cmd_signal,
     description="Sends a signal to a running run.")
 cmd.add_argument(
-    "run_id", metavar="RUN-ID")
-cmd.add_argument(
     "signum", metavar="SIGNAL", default="SIGTERM",
     help="signal name or number")
+cmd.add_argument(
+    "run_id", metavar="RUN-ID ...", nargs="+")
 
 #--- command: start ------------------------------------------------------------
 
 def cmd_start(client, args):
-    client.start(args.run_id)
+    for run_id in args.run_id:
+        client.start(run_id)
 
 
 cmd = parser.add_command(
     "start", cmd_start,
     description="Forces a scheduled or waiting run to start.")
 cmd.add_argument(
-    "run_id", metavar="RUN-ID")
+    "run_id", metavar="RUN-ID ...", nargs="+")
 
 #--- test commands -------------------------------------------------------------
 
