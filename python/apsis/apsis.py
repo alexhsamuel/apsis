@@ -5,12 +5,11 @@ import sys
 import traceback
 
 from   .actions import Action
-from   .run_log import RunLog
-
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
+from   .run_log import RunLog
 from   . import runs
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
 from   .runs import get_template_args
