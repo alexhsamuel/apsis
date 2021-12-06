@@ -21,7 +21,7 @@ export function formatDuration(elapsed) {
     : elapsed < 3600 ? 
           Math.trunc(elapsed / 60) 
         + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
-    :     Math.trunc(elapsed / 3660) 
+    :     Math.trunc(elapsed / 3600) 
         + ':' + ('' + Math.trunc(elapsed / 60 % 60)).padStart(2, '0')
         + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
   )
@@ -32,7 +32,7 @@ export function formatElapsed(elapsed) {
       elapsed < 3600 ? 
           Math.trunc(elapsed / 60) 
         + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
-    :     Math.trunc(elapsed / 3660) 
+    :     Math.trunc(elapsed / 3600) 
         + ':' + ('' + Math.trunc(elapsed / 60 % 60)).padStart(2, '0')
         + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
   )
