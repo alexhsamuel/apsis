@@ -5,6 +5,7 @@ import sys
 import traceback
 
 from   .actions import Action
+from   .definitions import Definitions
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
@@ -44,6 +45,7 @@ class Apsis:
     def __init__(self, cfg, jobs, db):
         log.debug("creating Apsis instance")
         self.cfg = cfg
+        self.__definitions = Definitions.from_jso(cfg.get("definitions", {}))
         # FIXME: This should go in `apsis.config.config_globals` or similar.
         config_host_groups(cfg)
         self.__db = db
