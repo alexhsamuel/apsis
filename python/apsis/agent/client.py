@@ -71,7 +71,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
     Returns the argument vector to start the agent on `host` as `user`.
     """
     # FIXME-CONFIG: Configure how to start remote agents.
-    argv = [sys.executable, "-m", "apsis.agent.main"]
+    argv = [sys.executable, "-m", "apsis.agent.main", "--debug"]
 
     try:
         pythonpath = os.environ.get("PYTHONPATH", "")
@@ -96,7 +96,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
         if user is not None:
             argv.extend(["-l", user])
         argv.extend([
-            host, 
+            host,
             "exec", "/bin/bash", "-lc", shlex.quote(command),
         ])
 
@@ -111,7 +111,7 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=30):
     Starts the agent on `host` as `user`.
 
     :param connect:
-      If true, connect to a running instance only.  If false, fail if an 
+      If true, connect to a running instance only.  If false, fail if an
       instance is already running.  If None, either start or connect.
     :param timeout:
       Timeout in sec.
@@ -165,7 +165,7 @@ class Agent:
         :param user:
           User to run as, or none for the current user.
         :param connect:
-          If true, connect to a running instance only.  If false, fail if an 
+          If true, connect to a running instance only.  If false, fail if an
           instance is already running.
         """
         self.__host     = host
@@ -374,6 +374,3 @@ class Agent:
         rsp = await self.request("POST", f"/stop")
         rsp.raise_for_status()
         return rsp.json()["stop"]
-
-
-
