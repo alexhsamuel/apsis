@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 # Logging handler that queues up log messages for serving to clients.
 WS_HANDLER = apsis.lib.logging.QueueHandler(
-    4096, 
+    4096,
     logging.Formatter(
         fmt="%(asctime)s.%(msecs)03d %(name)-24s [%(levelname)-7s] %(message)s",
         datefmt="%H:%M:%S",
@@ -41,8 +41,8 @@ SANIC_LOG_CONFIG = {
             "propagate": False,
         },
     }
-}    
-    
+}
+
 class Router(sanic.router.Router):
     """
     Extended router that supports a catch-all path for missing pages.
@@ -128,7 +128,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     # Flag to indicate whether to restart after shutting down.
     app.restart = False
     app.running = True  # FIXME: ??  Remove?
- 
+
     # Set up the HTTP server.
     log.info("creating HTTP service")
     server = app.create_server(
@@ -192,5 +192,3 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     log.info("service done")
 
     return app.restart
-
-
