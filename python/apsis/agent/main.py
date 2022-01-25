@@ -88,7 +88,7 @@ SANIC_LOG_CONFIG = {
     },
 
 }
-    
+
 #-------------------------------------------------------------------------------
 
 def get_state_dir():
@@ -168,6 +168,7 @@ def main():
     state_dir = get_state_dir()
     print(f"using dir: {state_dir}", file=sys.stderr)
 
+    # Check the pid file.  Is there already an instance running?
     pid_file = PidFile(state_dir / "pid")
     pid = pid_file.lock()
 
@@ -199,6 +200,13 @@ def main():
         pid_file.file.flush()
 
         # Start the agent.
+        if args.debug or True:
+            logging.debug("not yet debug")
+            logging.getLogger(None).setLevel(logging.DEBUG)
+            logging.debug("now debug")
+            # FIXME: So hacky.
+            for section in SANIC_LOG_CONFIG["loggers"].values():
+                section["level"] = "DEBUG"
         app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
         app.config.LOGO = None
         app.config.auto_stop = None if args.no_stop else args.stop_time
@@ -216,6 +224,9 @@ def main():
         if not args.no_daemon:
             daemonize(state_dir / "log")
 
+        logging.debug(f"debug={args.debug}")
+        logging.info(f"debug={args.debug}")
+
         logging.info(f"pid={os.getpid()}")
         uid = pwd.getpwuid(os.getuid())
         euid = pwd.getpwuid(os.geteuid())
@@ -226,9 +237,9 @@ def main():
         app.run(
             sock    =sock,
             ssl     =ssl_context,
-            debug   =args.debug,
+            # FIXME: Debug seems to be completely broken?
+            # debug   =args.debug,
         )
-        # FIXME: Kill and clean up procs on stop.
 
     else:
         # Found a running agent.
@@ -239,7 +250,7 @@ def main():
 
         if args.no_connect:
             print(
-                f"agent already running; port {port}", 
+                f"agent already running; port {port}",
                 file=sys.stderr)
             raise SystemExit(1)
 
@@ -251,4 +262,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
