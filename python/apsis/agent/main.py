@@ -41,13 +41,16 @@ SANIC_LOG_CONFIG = {
             "handlers": ["console"],
             "propagate": False,
         },
+        "sanic": {
+            "level": "INFO",
+            "propagate": True,
+        },
         "sanic.error": {
             "level": "INFO",
             "handlers": ["error_console"],
             "propagate": False,
             "qualname": "sanic.error",
         },
-
         "sanic.access": {
             "level": "INFO",
             "handlers": ["access_console"],
@@ -142,8 +145,9 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--debug", action="store_true", default=False,
-        help="run in debug mode")
+        "--log-level", metavar="LEVEL", default=None,
+        choices={"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
+        help="log at LEVEL [def: INFO]")
     parser.add_argument(
         "--bind", metavar="ADDR", default="0.0.0.0",
         help="bind server to interface ADDR [def: all]")
@@ -164,6 +168,9 @@ def main():
         "--stop-time", metavar="SECS", default=300,
         help="wait SECS after last process before stopping [def: 300]")
     args = parser.parse_args()
+
+    if args.log_level is not None:
+        logging.getLogger(None).setLevel(getattr(logging, args.log_level))
 
     state_dir = get_state_dir()
     print(f"using dir: {state_dir}", file=sys.stderr)
@@ -200,13 +207,9 @@ def main():
         pid_file.file.flush()
 
         # Start the agent.
-        if args.debug or True:
-            logging.debug("not yet debug")
-            logging.getLogger(None).setLevel(logging.DEBUG)
-            logging.debug("now debug")
-            # FIXME: So hacky.
+        if args.log_level is not None:
             for section in SANIC_LOG_CONFIG["loggers"].values():
-                section["level"] = "DEBUG"
+                section["level"] = args.log_level
         app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
         app.config.LOGO = None
         app.config.auto_stop = None if args.no_stop else args.stop_time
@@ -223,9 +226,6 @@ def main():
 
         if not args.no_daemon:
             daemonize(state_dir / "log")
-
-        logging.debug(f"debug={args.debug}")
-        logging.info(f"debug={args.debug}")
 
         logging.info(f"pid={os.getpid()}")
         uid = pwd.getpwuid(os.getuid())

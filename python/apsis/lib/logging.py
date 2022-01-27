@@ -47,7 +47,7 @@ def configure(*, level="WARNING"):
         level = getattr(logging, level.upper())
     logging.basicConfig(
         level=level,
-        format="%(message)",
+        format="%(message)s",
         datefmt="[%X]",
     )
     # Root logger's formatter.
@@ -91,7 +91,7 @@ def rich_configure(*, level="WARNING"):
         level = getattr(logging, level.upper())
     logging.basicConfig(
         level=level,
-        format="%(message)",
+        format="%(message)s",
         datefmt="[%X]",
         handlers=[RichHandler(console=apsis.cmdline.get_console())],
     )

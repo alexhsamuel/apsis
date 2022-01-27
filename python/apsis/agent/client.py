@@ -71,7 +71,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
     Returns the argument vector to start the agent on `host` as `user`.
     """
     # FIXME-CONFIG: Configure how to start remote agents.
-    argv = [sys.executable, "-m", "apsis.agent.main", "--debug"]
+    argv = [sys.executable, "-m", "apsis.agent.main", "--log", "DEBUG"]
 
     try:
         pythonpath = os.environ.get("PYTHONPATH", "")
