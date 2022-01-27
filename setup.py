@@ -36,11 +36,11 @@ setuptools.setup(
 
     package_dir     ={"": "python"},
     packages        =[
-        "apsis", 
-        "apsis.agent", 
+        "apsis",
+        "apsis.agent",
         "apsis.cond",
-        "apsis.lib", 
-        "apsis.lib.itr", 
+        "apsis.lib",
+        "apsis.lib.itr",
         "apsis.service",
     ],
     package_data    ={
