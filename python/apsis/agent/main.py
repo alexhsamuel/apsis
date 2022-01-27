@@ -27,7 +27,7 @@ from   .processes import Processes
 
 LOG_FORMATTER = logging.Formatter(
     fmt="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
-    datefmt="%H:%M:%S",
+    datefmt="%Y-%m-%dT%H:%M:%S",
 )
 LOG_FORMATTER.converter = time.gmtime  # FIXME: Use ora.
 
