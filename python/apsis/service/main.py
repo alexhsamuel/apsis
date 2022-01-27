@@ -38,10 +38,10 @@ SANIC_LOG_CONFIG = {
         },
         "access": {
             "class": "apsis.lib.logging.AccessFormatter",
-            "propagate": False,
         },
-    }
+    },
 }
+SANIC_LOG_CONFIG["loggers"]["sanic.access"]["propagate"] = False
 
 class Router(sanic.router.Router):
     """
@@ -51,7 +51,6 @@ class Router(sanic.router.Router):
     CATCH_ALL_PATH = "/index.html"
 
     def get(self, path, method, host):
-        logging.info(f"{method} {path}")
         try:
             return super().get(path, method, host)
         except sanic.router.NotFound:
