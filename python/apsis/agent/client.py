@@ -177,7 +177,8 @@ class Agent:
 
 
     def __str__(self):
-        return f"agent {self.__user}@{self.__host} on port {self.__port}"
+        port = None if self.__conn is None else self.__conn[0]
+        return f"agent {self.__user}@{self.__host} {port}"
 
 
     async def connect(self, *, reconnect=False):
@@ -323,7 +324,7 @@ class Agent:
 
     async def get_process(self, proc_id, *, restart=False):
         """
-        Returns inuformation about a process.
+        Returns information about a process.
         """
         rsp = await self.request(
             "GET", f"/processes/{proc_id}", restart=restart)
@@ -371,6 +372,6 @@ class Agent:
         """
         Shuts down an agent, if there are no remaining processes.
         """
-        rsp = await self.request("POST", f"/stop")
+        rsp = await self.request("POST", "/stop")
         rsp.raise_for_status()
         return rsp.json()["stop"]
