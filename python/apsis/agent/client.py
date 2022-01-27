@@ -195,7 +195,7 @@ class Agent:
         :return:
           The agent port and token.
         """
-        log.info(f"{self}: waiting to connect")
+        log.debug(f"{self}: waiting to connect")
         async with self.__lock:
             log.info(f"{self}: connecting")
             if self.__conn is None:
@@ -204,19 +204,19 @@ class Agent:
                     user    =self.__user,
                     connect =self.__connect,
                 )
-                log.info(f"{self}: connected")
+                log.debug(f"{self}: connected")
 
             return self.__conn
 
 
     async def disconnect(self, port, token):
-        log.info(f"{self}: waiting to disconnect")
+        log.debug(f"{self}: waiting to disconnect")
         async with self.__lock:
             if self.__conn == (port, token):
-                log.info(f"{self}: disconnecting")
+                log.debug(f"{self}: disconnecting")
                 self.__conn = None
             else:
-                log.info(f"{self}: conn changed; not disconnecting")
+                log.debug(f"{self}: conn changed; not disconnecting")
 
 
     async def request(self, method, endpoint, data=None, *, restart=False):
@@ -290,7 +290,7 @@ class Agent:
                 if rsp.status_code == 403:
                     # Forbidden.  A different agent is running on that port.  We
                     # should start our own.
-                    log.info(f"{self}: wrong agent")
+                    log.debug(f"{self}: wrong agent")
                     await self.disconnect(port, token)
                     continue
 
