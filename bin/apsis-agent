@@ -31,9 +31,14 @@ logging.basicConfig(
     level="INFO",
     format="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
     datefmt="%H:%M:%S",
-)    
+)
 
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument(
+    "--log-level", metavar="LEVEL", default=None,
+    choices={"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
+    help="log at LEVEL [def: INFO]")
+
 commands = parser.add_subparsers(title="commands")
 parser.set_defaults(cmd=None)
 
@@ -74,6 +79,9 @@ cmd = commands.add_parser("clean")
 cmd.set_defaults(cmd="clean")
 
 args = parser.parse_args()
+if args.log_level is not None:
+    logging.getLogger(None).setLevel(getattr(logging, args.log_level))
+
 agent = Agent(host=args.host, user=args.user, connect=args.connect)
 
 if args.cmd is None:
