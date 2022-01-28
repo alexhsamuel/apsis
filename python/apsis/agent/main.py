@@ -1,6 +1,5 @@
 import argparse
 from   contextlib import suppress
-import errno
 import logging
 import os
 from   pathlib import Path
@@ -15,7 +14,7 @@ import sys
 import tempfile
 import time
 
-from   . import DEFAULT_PORT, SSL_CERT, SSL_KEY
+from   . import SSL_CERT, SSL_KEY
 from   ..lib.daemon import daemonize
 from   ..lib.pidfile import PidFile
 from   .api import API
@@ -108,23 +107,12 @@ def get_state_dir():
 
 #-------------------------------------------------------------------------------
 
-def make_server_socket(host, ports):
+def make_server_socket(host):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-
-    for port in range(DEFAULT_PORT, DEFAULT_PORT + 100):
-        try:
-            sock.bind((host, port))
-        except OSError as exc:
-            if exc.errno == errno.EADDRINUSE:
-                continue
-            else:
-                raise
-        else:
-            return port, sock
-    else:
-        print("can't bind", file=sys.stderr)
-        raise SystemExit(1)
+    sock.bind((host, 0))
+    sock.listen(64)
+    return sock.getsockname()[1], sock
 
 
 def encode_pid_data(port, token):
@@ -193,8 +181,7 @@ def main():
             f"uid={uid.pw_uid}/{uid.pw_name} euid={euid.pw_uid}/{euid.pw_name}",
             file=sys.stderr)
 
-        port, sock = make_server_socket(
-            args.bind, range(DEFAULT_PORT, DEFAULT_PORT + 100))
+        port, sock = make_server_socket(args.bind)
         token = secrets.token_urlsafe()
         pid_data = encode_pid_data(port, token)
 
