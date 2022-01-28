@@ -1,4 +1,5 @@
 import asyncio
+import errno
 import itertools
 import logging
 import os
@@ -71,7 +72,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
     Returns the argument vector to start the agent on `host` as `user`.
     """
     # FIXME-CONFIG: Configure how to start remote agents.
-    argv = [sys.executable, "-m", "apsis.agent.main"]
+    argv = [sys.executable, "-m", "apsis.agent.main", "--log", "DEBUG"]
 
     try:
         pythonpath = os.environ.get("PYTHONPATH", "")
@@ -96,7 +97,7 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
         if user is not None:
             argv.extend(["-l", user])
         argv.extend([
-            host, 
+            host,
             "exec", "/bin/bash", "-lc", shlex.quote(command),
         ])
 
@@ -106,21 +107,27 @@ def _get_agent_argv(*, host=None, user=None, connect=None):
     return argv
 
 
+def _get_agent_name(user, host, port):
+    user = "" if user is None else user + "@"
+    port = "" if port is None else f":{port}"
+    return f"agent {user}{host}{port}"
+
+
 async def start_agent(*, host=None, user=None, connect=None, timeout=30):
     """
     Starts the agent on `host` as `user`.
 
     :param connect:
-      If true, connect to a running instance only.  If false, fail if an 
+      If true, connect to a running instance only.  If false, fail if an
       instance is already running.  If None, either start or connect.
     :param timeout:
       Timeout in sec.
     :return:
       The agent port and token.
     """
-    log.info(f"starting agent on {host}")
+    name = _get_agent_name(user, host, None)
     argv = _get_agent_argv(host=host, user=user, connect=connect)
-    log.debug(" ".join(argv))
+    log.debug(f"{name}: command: {' '.join(argv)}")
     proc = await asyncio.create_subprocess_exec(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
@@ -133,7 +140,7 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=30):
 
     # Show the agent's log output.
     for line in err.decode().splitlines():
-        log.debug("agent log: " + line)
+        log.debug(f"{name}: log | {line}")
 
     if proc.returncode == 0:
         # The agent is running.  Whether it just started or not, it prints
@@ -141,7 +148,7 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=30):
         try:
             data, = out.decode().splitlines()
             port, token = data.split()
-            log.debug(f"agent running on port {host}:{port}")
+            log.debug(f"{name}: running on port {port}")
             return int(port), token
         except (TypeError, ValueError):
             raise AgentStartError(proc.returncode, out.decode())
@@ -165,7 +172,7 @@ class Agent:
         :param user:
           User to run as, or none for the current user.
         :param connect:
-          If true, connect to a running instance only.  If false, fail if an 
+          If true, connect to a running instance only.  If false, fail if an
           instance is already running.
         """
         self.__host     = host
@@ -177,28 +184,39 @@ class Agent:
 
 
     def __str__(self):
-        return f"agent {self.__user}@{self.__host} on port {self.__port}"
+        port = None if self.__conn is None else self.__conn[0]
+        return _get_agent_name(self.__user, self.__host, port)
 
 
-    async def connect(self, *, reconnect=False):
+    async def connect(self):
         """
         Attempts to start or connect to the agent.
 
         :return:
           The agent port and token.
         """
+        log.debug(f"{self}: waiting to connect")
         async with self.__lock:
-            if reconnect or self.__conn is None:
+            log.info(f"{self}: connecting")
+            if self.__conn is None:
                 self.__conn = await start_agent(
                     host    =self.__host,
                     user    =self.__user,
                     connect =self.__connect,
                 )
-                log.info(
-                    f"agent host={self.__host} user={self.__user} connected: "
-                    f"port={self.__conn[0]}")
+                log.debug(f"{self}: connected")
 
             return self.__conn
+
+
+    async def disconnect(self, port, token):
+        log.debug(f"{self}: waiting to disconnect")
+        async with self.__lock:
+            if self.__conn == (port, token):
+                log.debug(f"{self}: disconnecting")
+                self.__conn = None
+            else:
+                log.debug(f"{self}: conn changed; not disconnecting")
 
 
     async def request(self, method, endpoint, data=None, *, restart=False):
@@ -250,25 +268,30 @@ class Agent:
                         timeout=2,
                     )
 
-            except (requests.ConnectionError, requests.ReadTimeout):
-                # Try again.
-                log.debug(f"{method} {url} → connection error")
-                # FIXME: Do this properly.
-                async with self.__lock:
-                    self.__conn = None
+            except (requests.ConnectionError, requests.ReadTimeout) as exc:
+                # We want to show the entire exception stack, unless the
+                # underlying exception is garden-variety 'Connection refused'.
+                while exc.__context__ is not None:
+                    exc = exc.__context__
+                is_ecr = getattr(exc, "errno", None) == errno.ECONNREFUSED
+                err = "refused" if is_ecr else "error"
+
+                log.debug(
+                    f"{self}: {method} {url} → connection {err}",
+                    exc_info=not is_ecr,
+                )
+                # Try again with a new connection.
+                await self.disconnect(port, token)
                 continue
 
             else:
-                log.debug(f"{method} {url} → {rsp.status_code}")
+                log.debug(f"{self}: {method} {url} → {rsp.status_code}")
 
                 if rsp.status_code == 403:
                     # Forbidden.  A different agent is running on that port.  We
                     # should start our own.
-                    log.info("wrong agent; reconnecting")
-
-                    # FIXME: Do this properly.
-                    async with self.__lock:
-                        self.__conn = None
+                    log.debug(f"{self}: wrong agent")
+                    await self.disconnect(port, token)
                     continue
 
                 else:
@@ -323,7 +346,7 @@ class Agent:
 
     async def get_process(self, proc_id, *, restart=False):
         """
-        Returns inuformation about a process.
+        Returns information about a process.
         """
         rsp = await self.request(
             "GET", f"/processes/{proc_id}", restart=restart)
@@ -371,9 +394,6 @@ class Agent:
         """
         Shuts down an agent, if there are no remaining processes.
         """
-        rsp = await self.request("POST", f"/stop")
+        rsp = await self.request("POST", "/stop")
         rsp.raise_for_status()
         return rsp.json()["stop"]
-
-
-

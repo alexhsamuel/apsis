@@ -10,8 +10,8 @@ schedule:
   daytime:
   - 12:00:00
 
-program: 
+program:
   type: shell
-  command: $HOME/dev/apsis/jobs/test0 "{{ message }}"
+  command: $HOME/dev/apsis/jobs/test/test0 "{{ message }}"
   host: "{{ host }}"
 

@@ -22,12 +22,11 @@ def set_log_levels():
 
 class Formatter(logging.Formatter):
 
-    def formatMessage(self, record):
-        time = ora.UNIX_EPOCH + record.created
-        level = record.levelname
+    def formatMessage(self, rec):
+        time = ora.UNIX_EPOCH + rec.created
+        level = rec.levelname
         return (
-            f"{time:%.3C} {record.name:24s} {level[0]} "
-            f"{record.message}"
+            f"{time:%Y-%m-%dT%.3C} {rec.name:24s} {level[0]} {rec.message}"
         )
 
 
@@ -37,7 +36,7 @@ class AccessFormatter(logging.Formatter):
         time = ora.UNIX_EPOCH + record.created
         level = record.levelname
         return (
-            f"{time:%.3C} {record.name:24s} {level[0]} "
+            f"{time:%Y-%m-%dT%.3C} {record.name:24s} {level[0]} "
             f"{record.status} {record.request} ({record.host})"
         )
 
@@ -47,8 +46,8 @@ def configure(*, level="WARNING"):
         level = getattr(logging, level.upper())
     logging.basicConfig(
         level=level,
-        format="%(message)",
-        datefmt="[%X]",
+        format="%(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
     )
     # Root logger's formatter.
     logging.getLogger().handlers[0].formatter = Formatter()
@@ -83,7 +82,7 @@ class RichHandler(rich.logging.RichHandler):
 
     def render(self, *, record, traceback, message_renderable):
         return rich.text.Text.from_markup(str(message_renderable))
-        
+
 
 
 def rich_configure(*, level="WARNING"):
@@ -91,7 +90,7 @@ def rich_configure(*, level="WARNING"):
         level = getattr(logging, level.upper())
     logging.basicConfig(
         level=level,
-        format="%(message)",
+        format="%(message)s",
         datefmt="[%X]",
         handlers=[RichHandler(console=apsis.cmdline.get_console())],
     )

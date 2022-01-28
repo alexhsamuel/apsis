@@ -27,7 +27,7 @@ from   .processes import Processes
 
 LOG_FORMATTER = logging.Formatter(
     fmt="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
-    datefmt="%H:%M:%S",
+    datefmt="%Y-%m-%dT%H:%M:%S",
 )
 LOG_FORMATTER.converter = time.gmtime  # FIXME: Use ora.
 
@@ -41,13 +41,16 @@ SANIC_LOG_CONFIG = {
             "handlers": ["console"],
             "propagate": False,
         },
+        "sanic": {
+            "level": "INFO",
+            "propagate": True,
+        },
         "sanic.error": {
             "level": "INFO",
             "handlers": ["error_console"],
             "propagate": False,
             "qualname": "sanic.error",
         },
-
         "sanic.access": {
             "level": "INFO",
             "handlers": ["access_console"],
@@ -88,7 +91,7 @@ SANIC_LOG_CONFIG = {
     },
 
 }
-    
+
 #-------------------------------------------------------------------------------
 
 def get_state_dir():
@@ -142,8 +145,9 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--debug", action="store_true", default=False,
-        help="run in debug mode")
+        "--log-level", metavar="LEVEL", default=None,
+        choices={"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
+        help="log at LEVEL [def: INFO]")
     parser.add_argument(
         "--bind", metavar="ADDR", default="0.0.0.0",
         help="bind server to interface ADDR [def: all]")
@@ -165,9 +169,13 @@ def main():
         help="wait SECS after last process before stopping [def: 300]")
     args = parser.parse_args()
 
+    if args.log_level is not None:
+        logging.getLogger(None).setLevel(getattr(logging, args.log_level))
+
     state_dir = get_state_dir()
     print(f"using dir: {state_dir}", file=sys.stderr)
 
+    # Check the pid file.  Is there already an instance running?
     pid_file = PidFile(state_dir / "pid")
     pid = pid_file.lock()
 
@@ -199,6 +207,9 @@ def main():
         pid_file.file.flush()
 
         # Start the agent.
+        if args.log_level is not None:
+            for section in SANIC_LOG_CONFIG["loggers"].values():
+                section["level"] = args.log_level
         app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
         app.config.LOGO = None
         app.config.auto_stop = None if args.no_stop else args.stop_time
@@ -226,9 +237,9 @@ def main():
         app.run(
             sock    =sock,
             ssl     =ssl_context,
-            debug   =args.debug,
+            # FIXME: Debug seems to be completely broken?
+            # debug   =args.debug,
         )
-        # FIXME: Kill and clean up procs on stop.
 
     else:
         # Found a running agent.
@@ -239,7 +250,7 @@ def main():
 
         if args.no_connect:
             print(
-                f"agent already running; port {port}", 
+                f"agent already running; port {port}",
                 file=sys.stderr)
             raise SystemExit(1)
 
@@ -251,4 +262,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

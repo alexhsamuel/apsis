@@ -88,7 +88,7 @@ def cmd_check_jobs(args):
             status = 1
     except NotADirectoryError as exc:
         parser.error(exc)
-    return status    
+    return status
 
 
 cmd = parser.add_command(
