@@ -3,7 +3,6 @@ import logging
 import ora
 from   ora import Daytime, Time, TimeZone
 
-from   .lib.exc import SchemaError
 from   .lib.json import TypedJso, check_schema
 from   .lib.py import format_ctor
 
@@ -89,17 +88,23 @@ class DailySchedule(Schedule):
         while True:
             sched_date = self.calendar.shift(date, self.cal_shift)
             sched_date = sched_date + self.date_shift
+            daytime = self.daytimes[i]
             try:
-                time = (sched_date, self.daytimes[i]) @ self.tz
+                time = (sched_date, daytime) @ self.tz
             except ora.NonexistentDateDaytime:
                 # Landed in a DST transition.
                 log.warning(
                     "skipping nonexistent schedule time "
-                    f"{sched_date} {self.daytimes[i]} {self.tz}"
+                    f"{sched_date} {daytime} {self.tz}"
                 )
                 continue
             assert time >= start
-            args = {"date": str(date), "time": time, **common_args}
+            args = {
+                "date": str(date),
+                "time": time,
+                "daytime": str(daytime),
+                **common_args,
+            }
             yield time, args
 
             i += 1
@@ -135,7 +140,7 @@ class DailySchedule(Schedule):
             date_shift  = pop("date_shift", int, default=0)
             cal_shift   = pop("cal_shift", int, default=0)
         return cls(
-            tz, calendar, daytimes, args, 
+            tz, calendar, daytimes, args,
             enabled=enabled, date_shift=date_shift, cal_shift=cal_shift,
         )
 

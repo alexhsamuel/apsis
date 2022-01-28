@@ -1,0 +1,17 @@
+params: [date, time, daytime]
+
+program:
+  type: shell
+  command: |
+    date
+    echo date={{ date }}
+    echo time={{ time }}
+    echo daytime={{ daytime }}
+
+schedule:
+  type: daily
+  calendar: all
+  daytime: [19:18:00]
+  tz: UTC
+  cal_shift: 1
+
