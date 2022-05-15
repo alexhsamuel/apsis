@@ -4,6 +4,7 @@ import enum
 import itertools
 import jinja2
 import logging
+import ora
 from   ora import now, Time
 import shlex
 
@@ -229,15 +230,29 @@ class Run:
 
 #-------------------------------------------------------------------------------
 
+BIND_ARGS = {
+    **{
+        n: getattr(ora, n)
+        for n in (
+                "Date",
+                "Daytime",
+                "Time",
+                "TimeZone",
+                "get_calendar",
+        )
+    },
+}
+
 def get_bind_args(run):
     """
     Returns args available to template expansion for `run`.
     """
     return {
+        **BIND_ARGS,
         "run_id": run.run_id,
         "job_id": run.inst.job_id,
         **run.inst.args,
-    }    
+    }
 
 
 #-------------------------------------------------------------------------------
