@@ -39,7 +39,9 @@ class DailyIntervalSchedule(Schedule):
         """
         Generates scheduled times starting not before `start`.
         """
+        start = ora.Time(start)
         date, _ = start @ self.tz
+        date = self.calendar.after(date)
 
         while True:
             daytime = self.start
@@ -63,7 +65,7 @@ class DailyIntervalSchedule(Schedule):
                     }
                 daytime += self.interval
 
-            date += 1
+            date = self.calendar.after(date + 1)
 
 
     def to_jso(self):
