@@ -212,10 +212,10 @@ def test_interval_schedule_eq():
     assert s0 != s5
 
 
-def test_daily_interfval():
+def test_daily_interval():
     sched = DailyIntervalSchedule(
         "America/New_York",
-        "Mon-Fri",
+        ora.get_calendar("Mon-Fri"),
         "12:00:00", "16:00:00",
         2700,
         {"name": "foo"},
@@ -229,10 +229,10 @@ def test_daily_interfval():
         assert Daytime(12, 0, 0) <= y < Daytime(16, 0, 0)
 
     for (t0, a0), (t1, a1) in itr.pairwise(res):
-        assert next(sched(t0 -    1)) == t0
-        assert next(sched(t0 +    1)) == t1
-        assert next(sched(t0 + 2699)) == t1
-        assert next(sched(t0 + 2700)) == t1
-        assert next(sched(t1 -    1)) == t1
+        assert next(sched(t0 -    1))[0] == t0
+        assert next(sched(t0 +    1))[0] == t1
+        assert next(sched(t0 + 2699))[0] == t1
+        assert next(sched(t0 + 2700))[0] == t1
+        assert next(sched(t1 -    1))[0] == t1
 
 
