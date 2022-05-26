@@ -58,7 +58,7 @@ class Router(sanic.router.Router):
 
 
 
-app = sanic.Sanic(__name__, router=Router(), log_config=SANIC_LOG_CONFIG)
+app = sanic.Sanic("apsis", router=Router(), log_config=SANIC_LOG_CONFIG)
 app.config.LOGO = None
 
 app.blueprint(api.API, url_prefix="/api/v1")
