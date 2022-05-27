@@ -106,8 +106,9 @@ calendar docs
 <https://ora.readthedocs.io/en/latest/calendars.html#finding-calendars>`_ for
 details.
 
-The daily schedule will automatically provide args for `time` and `date`
-params, using corresponding values.
+The daily schedule will automatically provide args for params `date`, `time`,
+`daytime`, `calendar`, and `tz`, though you can override these explicitly.
+
 
 Date and calendar shift
 ```````````````````````
@@ -146,12 +147,45 @@ in the calendar to Monday, and then shifted one physical day backward to Sunday.
     params: [date]
 
     schedule:
-        schedule:
-            type: daily
-            daytime: 20:00:00
-            tz: UTC
-            calendar: Mon-Fri
-            cal_shift: 1
-            date_shift: -1
+        type: daily
+        daytime: 20:00:00
+        tz: UTC
+        calendar: Mon-Fri
+        cal_shift: 1
+        date_shift: -1
 
+
+Daily interval schedule
+-----------------------
+
+A *daily interval schedule* (`type: daily-interval`) schedules a run at regular
+intervals between a start and stop daytime.  You must provide a time zone.
+
+.. code:: yaml
+
+    schedule:
+        type: daily-interval
+        start: 12:00:00
+        stop: 17:00:00
+        interval: 1800
+        tz: Asia/Tokyo
+
+Apsis schedule a run every half hour (1800 seconds) from noon until 5 PM, Tokyo
+time.  The stop time is not inclusive, so the last scheduled run will be at 4:30
+PM.
+
+As with the daily schedule, speficy a calendar to run on certain days only.
+
+.. code:: yaml
+
+    schedule:
+        type: daily-interval
+        start: 12:00:00
+        stop: 17:00:00
+        interval: 1800
+        tz: Asia/Tokyo
+        calendar: Mon-Fri
+
+The daily schedule will automatically provide args for params `date`, `time`,
+`daytime`, `calendar`, and `tz`, though you can override these explicitly.
 
