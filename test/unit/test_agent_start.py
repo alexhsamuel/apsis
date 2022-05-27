@@ -30,7 +30,7 @@ def _wait(agent, proc_id):
 
 def test_start_stop():
     agent = apsis.agent.client.Agent()
-    go(agent.start())
+    go(agent.connect())
 
     proc_id = go(agent.start_process(["/bin/echo", "Hello, world!"]))["proc_id"]
     proc, output, stop = _wait(agent, proc_id)
@@ -41,6 +41,8 @@ def test_start_stop():
     assert output == b"Hello, world!\n"
     assert stop
 
+    go(agent.stop())
+
     assert not go(agent.is_running())
 
 
@@ -49,13 +51,13 @@ def test_connect():
     Tests that a second agent client will connect to the same running agent.
     """
     agent0 = apsis.agent.client.Agent()
-    go(agent0.start())
+    conn0 = go(agent0.connect())
 
     agent1 = apsis.agent.client.Agent()
-    go(agent1.start())
+    conn1 = go(agent1.connect())
 
     # Should be the same.
-    assert agent1._Agent__port == agent0._Agent__port
+    assert conn1 == conn0
 
     proc_id0 = go(agent0.start_process(["/bin/echo", "Hello, 0!"]))["proc_id"]
     proc_id1 = go(agent1.start_process(["/bin/echo", "Hello, 1!"]))["proc_id"]
@@ -69,6 +71,8 @@ def test_connect():
     assert proc["status"] == 0
     assert output == b"Hello, 1!\n"
     assert stop
+
+    go(agent0.stop())
 
     assert not go(agent0.is_running())
     assert not go(agent1.is_running())
@@ -85,6 +89,8 @@ def test_concurrent_start():
     # All connections should be to the same port.
     port, _ = res[0]
     assert all( p == port for p, _ in res )
+
+    go(agents[0].stop())
 
     # All should be stopped.
     res = go(asyncio.gather(*( a.is_running() for a in agents )))
