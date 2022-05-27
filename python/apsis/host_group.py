@@ -135,7 +135,7 @@ def config_host_groups(cfg):
 
 
 def expand_host(host, cfg):
-    host_groups = cfg["host_groups"]
+    host_groups = cfg.get("host_groups", {})
     try:
         host_group = host_groups[host]
     except KeyError:
