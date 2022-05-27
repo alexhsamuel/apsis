@@ -59,3 +59,12 @@ $ git commit -m "Rebuild front end."
 
 The Python back end service will serve the prod front end.
 
+
+### Docs
+
+Install the `sphinx` and `sphinx-rtd-theme` packages, then,
+```
+$ cd docs
+$ make html
+```
+

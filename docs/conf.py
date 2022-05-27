@@ -171,5 +171,5 @@ texinfo_documents = [
 
 
 def setup(app):
-    app.add_stylesheet('css/custom.css')
+    app.add_css_file('css/custom.css')
 
