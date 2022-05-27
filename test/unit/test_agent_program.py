@@ -16,7 +16,7 @@ async def _run():
     prog = apsis.program.AgentProgram(["/bin/sleep", "0.1"])
 
     # Start the program.
-    running, coro = await prog.start("testrun")
+    running, coro = await prog.start("testrun", cfg={})
 
     # Wait for it to finish.
     result = await coro
@@ -26,7 +26,7 @@ async def _run():
 def test_agent_program_basic():
     result = go(_run())
     assert result.meta["status"] == 0
-    
+
 
 def test_agent_program_concurrent():
     results = go(asyncio.gather(*( _run() for _ in range(16) )))

@@ -15,7 +15,7 @@ def test_run_localhost(tmpdir):
     assert not path.is_file()
 
     agent = Agent(host="localhost")
-    go(agent.start())
+    go(agent.connect())
 
     async def run():
         process = await agent.start_process(
@@ -35,5 +35,7 @@ def test_run_localhost(tmpdir):
     with open(path, "rt") as file:
         data = file.read()
     assert data == "Hello, world!\n"
+
+    go(agent.stop())
 
 
