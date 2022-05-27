@@ -201,10 +201,10 @@ def main():
         app.config.LOGO = None
         app.config.auto_stop = None if args.no_stop else args.stop_time
         app.blueprint(API, url_prefix="/api/v1")
-        app.token = token
+        app.ctx.token = token
 
-        app.processes = Processes(state_dir)
-        signal.signal(signal.SIGCHLD, app.processes.sigchld)
+        app.ctx.processes = Processes(state_dir)
+        signal.signal(signal.SIGCHLD, app.ctx.processes.sigchld)
 
         # SSL certificates are stored in this directory.
         ssl_context = ssl.create_default_context(
