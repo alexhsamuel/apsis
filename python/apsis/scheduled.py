@@ -134,8 +134,8 @@ class ScheduledRuns:
                 if len(ready) > 0:
                     log.debug(f"{len(ready)} runs ready")
                     # Start the runs.
-                    # FIXME: Return exceptions?
-                    await asyncio.gather(*( self.__start_run(r) for r in ready ))
+                    for run in ready:
+                        self.__start_run(run)
 
                 next_time = time + self.LOOP_TIME
                 if len(self.__heap) > 0:
