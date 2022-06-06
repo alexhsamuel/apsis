@@ -138,27 +138,21 @@ class Apsis:
         """
         Starts waiting for `run`.
         """
-        log.debug(f"__wait {run}")
-
         if run.state != run.STATE.waiting:
             self._transition(run, run.STATE.waiting)
 
         async def wait():
             try:
-                result = await wait_loop(self, run)
+                await wait_loop(self, run)
             except asyncio.CancelledError:
-                msg = f"waiting for {run.conds[0]} cancelled"
-                log.info(msg)
                 raise
             except Exception:
                 msg = f"waiting for {run.conds[0]} failed"
                 log.error(msg, exc_info=True)
                 self._run_exc(run, message=msg)
-                result = False
             else:
-                if result:
-                    # FIXME: __start() should be sync, so we don't need this.
-                    asyncio.ensure_future(self.__start(run))
+                # FIXME: __start() should be sync, so we don't need this.
+                asyncio.ensure_future(self.__start(run))
 
         task = asyncio.ensure_future(wait())
         self.__wait_tasks[run] = task

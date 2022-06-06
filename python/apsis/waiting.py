@@ -28,6 +28,4 @@ async def wait_loop(apsis, run):
         else:
             apsis.run_log.info(run, "all conditions satisfied")
 
-    return True
-
 
