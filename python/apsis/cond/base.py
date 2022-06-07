@@ -11,6 +11,9 @@ class Condition(TypedJso):
 
     TYPE_NAMES = TypedJso.TypeNames()
 
+    # Poll inteval in sec.
+    poll_interval = 1
+
     def bind(self, run, jobs):
         """
         Binds the condition to `inst`.
@@ -24,13 +27,18 @@ class Condition(TypedJso):
         """
 
 
+    async def check(self):
+        """
+        Returns true if the condition is satisfied.
+        """
+        return True
+
+
     def check_runs(self, run_store):
         """
-        Checks whether all run conditions are met.
-
-        :return:
-          True if dependencies are met.
+        Returns true if run conditions are satisfied.
         """
+        return True
 
 
 
