@@ -208,7 +208,7 @@ def print_run(run, con, *, verbosity=0, run_log=None, similar_runs=None):
     # Message, if any.
     if run["message"] is not None:
         con.print(f"➔ [white]{run['message']}[/]")
-    
+
     if verbosity > 0 and len(similar_runs) > 0:
         header("Run History")
         print_runs(similar_runs, con, arg_style=None)
