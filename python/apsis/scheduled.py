@@ -174,7 +174,7 @@ class ScheduledRuns:
         if wait <= 0:
             # Job is current; start it now.
             log.info(f"run immediately: {time} {run.run_id}")
-            await self.__start_run(run)
+            self.__start_run(run)
         else:
             self.schedule_at(time, run)
 
