@@ -16,7 +16,7 @@ from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgument
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
-from   .waiter import Waiter
+from   .waiting import wait_loop
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class Apsis:
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
-        self.__waiter = Waiter(self.run_store, self.__start, self.run_log)
+        self.__wait_tasks = {}
         # For now, expose the output database directly.
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
@@ -83,16 +83,6 @@ class Apsis:
         """
         Restores scheduled, waiting, and running runs from DB.
         """
-        async def reschedule(run, time):
-            if not self.__prepare_run(run):
-                return
-            if time is None:
-                self.run_log.info(run, "restored: waiting")
-                await self.__waiter.start(run)
-            else:
-                self.run_log.info(run, f"restored: scheduled for {time}")
-                await self.scheduled.schedule(time, run)
-
         try:
             log.info("restoring")
 
@@ -101,14 +91,21 @@ class Apsis:
             _, scheduled_runs = self.run_store.query(state=Run.STATE.scheduled)
             for run in scheduled_runs:
                 assert not run.expected
-                await reschedule(run, run.times["schedule"])
+                if not self.__prepare_run(run):
+                    continue
+                time = run.times["schedule"]
+                self.run_log.info(run, f"restored: scheduled for {time}")
+                await self.scheduled.schedule(time, run)
 
             # Restore waiting runs from DB.
             log.info("restoring waiting runs")
             _, waiting_runs = self.run_store.query(state=Run.STATE.waiting)
             for run in waiting_runs:
                 assert not run.expected
-                await reschedule(run, None)
+                if not self.__prepare_run(run):
+                    continue
+                self.run_log.info(run, "restoring: waiting")
+                self.__wait(run)
 
             # Reconnect to running runs.
             _, running_runs = self.run_store.query(state=Run.STATE.running)
@@ -136,18 +133,30 @@ class Apsis:
         log.info("starting scheduled loop")
         self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
 
-        # Set up the waiter for waiting tasks.
-        log.info("scheduling waiter loop")
-        self.__waiter_task = asyncio.ensure_future(self.__waiter.loop())
 
+    def __wait(self, run):
+        """
+        Starts waiting for `run`.
+        """
+        if run.state != run.STATE.waiting:
+            self._transition(run, run.STATE.waiting)
 
-    async def __wait(self, run):
-        """
-        Waits `run`, if it has pending conditions, otherwise starts it.
-        """
-        log.info(f"waiting: {run}")
-        self._transition(run, run.STATE.waiting)
-        await self.__waiter.start(run)
+        async def wait():
+            try:
+                await wait_loop(self, run)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                msg = f"waiting for {run.conds[0]} failed"
+                log.error(msg, exc_info=True)
+                self._run_exc(run, message=msg)
+            else:
+                # FIXME: __start() should be sync, so we don't need this.
+                asyncio.ensure_future(self.__start(run))
+
+        task = asyncio.ensure_future(wait())
+        self.__wait_tasks[run] = task
+        task.add_done_callback(lambda _: self.__wait_tasks.pop(run))
 
 
     async def __start(self, run):
@@ -383,6 +392,8 @@ class Apsis:
 
     # --- API ------------------------------------------------------------------
 
+    # FIXME: Move the API elsewhere.
+
     async def schedule(self, time, run):
         """
         Adds and schedules a new run.
@@ -403,7 +414,7 @@ class Apsis:
 
         if time is None:
             self.run_log.info(run, "scheduling for immediate run")
-            await self.__wait(run)
+            self.__wait(run)
             return run
         else:
             self.run_log.info(run, f"scheduling for {time}")
@@ -421,7 +432,7 @@ class Apsis:
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
         elif run.state == run.STATE.waiting:
-            self.__waiter.cancel(run)
+            await cancel_task(self.__wait_tasks.pop(run), f"waiting for {run}", log)
         else:
             raise RunError(f"can't cancel {run.run_id} in state {run.state.name}")
         self.run_log.info(run, "cancelled")
@@ -436,14 +447,14 @@ class Apsis:
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
             self.run_log.info(run, "scheduled run started by override")
-            await self.__wait(run)
+            self.__wait(run)
         elif run.state == run.STATE.waiting:
-            self.__waiter.cancel(run)
+            self.__wait_tasks.pop(run).cancel()
             self.run_log.info(run, "waiting run started by override")
             await self.__start(run)
         else:
             raise RunError(f"can't start {run.run_id} in state {run.state.name}")
-        
+
 
     async def mark(self, run, state):
         """
@@ -497,7 +508,8 @@ class Apsis:
         log.info("shutting down Apsis")
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
-        await cancel_task(self.__waiter_task, "waiter", log)
+        for run, task in list(self.__wait_tasks.items()):
+            await cancel_task(task, f"waiting for {run}", log)
         for run_id, task in self.__running_tasks.items():
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()

@@ -134,8 +134,8 @@ class ScheduledRuns:
                 if len(ready) > 0:
                     log.debug(f"{len(ready)} runs ready")
                     # Start the runs.
-                    # FIXME: Return exceptions?
-                    await asyncio.gather(*( self.__start_run(r) for r in ready ))
+                    for run in ready:
+                        self.__start_run(run)
 
                 next_time = time + self.LOOP_TIME
                 if len(self.__heap) > 0:
@@ -174,7 +174,7 @@ class ScheduledRuns:
         if wait <= 0:
             # Job is current; start it now.
             log.info(f"run immediately: {time} {run.run_id}")
-            await self.__start_run(run)
+            self.__start_run(run)
         else:
             self.schedule_at(time, run)
 
