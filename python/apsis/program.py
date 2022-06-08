@@ -335,8 +335,12 @@ class AgentProgram(Program):
         return cls(argv, host=host, user=user)
 
 
+    def get_host(self, cfg):
+        return expand_host(self.__host, cfg)
+
+
     async def start(self, run_id, cfg):
-        host = expand_host(self.__host, cfg)
+        host = self.get_host(cfg)
         argv = self.__argv
 
         loc = "" if host is None else " on " + host
