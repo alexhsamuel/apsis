@@ -8,7 +8,7 @@ metadata:
     is the last calendar date for `strat`.
 
 program: |
-  /Users/alex/dev/apsis/jobs/trading/open_day.sh {{ strat }} {{ date }}
+  /home/alex/dev/apsis/jobs/trading/open_day.sh {{ strat }} {{ date }}
 
 condition:
   type: max_running
