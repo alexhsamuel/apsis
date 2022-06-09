@@ -197,6 +197,7 @@ export default {
           // Blocked runs.
           'blocked': 'B',
           // Running runs.
+          'starting': 'R',
           'running': 'R',
           // Completed runs together.
           'success': 'C',

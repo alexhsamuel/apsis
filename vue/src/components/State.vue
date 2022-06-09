@@ -17,6 +17,7 @@ const ICONS = {
   'new'            : ['#000000', 'tag'],
   'scheduled'      : ['#a0a0a0', 'future'],
   'waiting'        : ['#808080', 'sign-in'],  // ban?
+  'starting'       : ['#80b000', 'play'],
   'running'        : ['#a0a000', 'play-circle'],
   'error'          : ['#a00060', 'warning'],
   'success'        : ['#00a000', 'check'],

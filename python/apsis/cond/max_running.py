@@ -73,7 +73,7 @@ class MaxRunning(Condition):
         # FIXME: Support query by args.
         _, running = run_store.query(
             job_id=self.__job_id, 
-            state=Run.STATE.running,
+            state=(Run.STATE.starting, Run.STATE.running),
         )
         for name, val in self.__args.items():
             running = ( r for r in running if r.inst.args.get(name) == val )

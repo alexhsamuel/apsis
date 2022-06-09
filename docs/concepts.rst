@@ -97,6 +97,7 @@ Each run, once created, is in one of these states:
 
 - **scheduled**: The run is waiting for its schedule time.
 - **waiting**: The run is waiting for a condition to be met.
+- **starting**: The run is starting.
 - **running**: The run has started and is currently running.
 - **success**: The run has completed successfully.
 - **failure**: The run has run amd completed unsuccesfully.
@@ -117,9 +118,11 @@ Apsis transitions a run among these state as follows:
 
 - Apsis periodically checks for the conditions of a **waiting** run.  When all
   of them have been satisified, it starts the run's program and transitions it
-  to **running**.  If a run has no conditions, this happens immediately.
+  to **starting**.  If a run has no conditions, this happens immediately.
 
 - If Apsis is unable to start the program, it transitions the run to **error**.
+
+- If Apsis is able to start the progrma, it transitions the run to **running**.
 
 - When a **running** run finishes, Apsis transitions it to **success** or
   **failure**, depending on whether the run's program was successful.

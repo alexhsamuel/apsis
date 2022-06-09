@@ -66,6 +66,7 @@ class Apsis:
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
         self.__wait_tasks = {}
+        self.__starting_tasks = {}
         # For now, expose the output database directly.
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
@@ -107,13 +108,22 @@ class Apsis:
                 self.run_log.info(run, "restoring: waiting")
                 self.__wait(run)
 
+            # If a run is starting in the DB, we can't know if it actually
+            # started or not, so mark it as error.
+            log.info("processing starting runs")
+            _, starting_runs = self.run_store.query(state=Run.STATE.starting)
+            for run in starting_runs:
+                self._transition(
+                    run, run.STATE.error,
+                    message="startup: starting; may or may not have started"
+                )
+
             # Reconnect to running runs.
             _, running_runs = self.run_store.query(state=Run.STATE.running)
             log.info("reconnecting running runs")
             for run in running_runs:
                 assert run.program is not None
-                self.run_log.record(
-                    run, f"at startup, reconnecting to running {run.run_id}")
+                self.run_log.record(run, "restoring: reconnecting to running run")
                 future = run.program.reconnect(run.run_id, run.run_state)
                 self.__finish(run, future)
 
@@ -151,34 +161,41 @@ class Apsis:
                 log.error(msg, exc_info=True)
                 self._run_exc(run, message=msg)
             else:
-                # FIXME: __start() should be sync, so we don't need this.
-                asyncio.ensure_future(self.__start(run))
+                self.__start(run)
 
         task = asyncio.ensure_future(wait())
         self.__wait_tasks[run] = task
         task.add_done_callback(lambda _: self.__wait_tasks.pop(run))
 
 
-    async def __start(self, run):
-        try:
-            running, coro = await run.program.start(run.run_id, self.cfg)
+    def __start(self, run):
+        self.run_log.info(run, "program starting")
+        self._transition(run, run.STATE.starting)
 
-        except ProgramError as exc:
-            # Program failed to start.
-            self.run_log.exc(run, "program start")
-            self._transition(
-                run, run.STATE.error,
-                meta    =exc.meta,
-                times   =exc.times,
-                outputs =exc.outputs,
-            )
+        async def start():
+            try:
+                running, coro = await run.program.start(run.run_id, self.cfg)
 
-        else:
-            # Program started successfully.
-            self.run_log.info(run, "program started")
-            self._transition(run, run.STATE.running, **running.__dict__)
-            future = asyncio.ensure_future(coro)
-            self.__finish(run, future)
+            except ProgramError as exc:
+                # Program failed to start.
+                self.run_log.exc(run, "program start")
+                self._transition(
+                    run, run.STATE.error,
+                    meta    =exc.meta,
+                    times   =exc.times,
+                    outputs =exc.outputs,
+                )
+
+            else:
+                # Program started successfully.
+                self.run_log.info(run, "program started")
+                self._transition(run, run.STATE.running, **running.__dict__)
+                future = asyncio.ensure_future(coro)
+                self.__finish(run, future)
+
+        task = asyncio.ensure_future(start())
+        self.__starting_tasks[run] = task
+        task.add_done_callback(lambda _: self.__starting_tasks.pop(run))
 
 
     def __finish(self, run, future):
@@ -451,7 +468,7 @@ class Apsis:
         elif run.state == run.STATE.waiting:
             self.__wait_tasks.pop(run).cancel()
             self.run_log.info(run, "waiting run started by override")
-            await self.__start(run)
+            self.__start(run)
         else:
             raise RunError(f"can't start {run.run_id} in state {run.state.name}")
 
@@ -510,6 +527,8 @@ class Apsis:
         await cancel_task(self.__scheduled_task, "scheduled", log)
         for run, task in list(self.__wait_tasks.items()):
             await cancel_task(task, f"waiting for {run}", log)
+        for run, task in list(self.__starting_tasks.items()):
+            await cancel_task(task, f"starting {run}", log)
         for run_id, task in self.__running_tasks.items():
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
