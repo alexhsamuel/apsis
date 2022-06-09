@@ -41,6 +41,7 @@ setuptools.setup(
         "apsis.cond",
         "apsis.lib",
         "apsis.lib.itr",
+        "apsis.schedule",
         "apsis.service",
     ],
     package_data    ={
