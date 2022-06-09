@@ -5,8 +5,10 @@ import { parseTimeOrOffset } from '@/time.js'
 import store from '@/store'
 
 const STATES = [
-  'new', 
-  'scheduled', 
+  'new',
+  'scheduled',
+  'waiting',
+  'starting',
   'running',
   'success',
   'failure',
@@ -35,7 +37,7 @@ export class StateTerm {
     const terms = filter(map(splitQuoted(query), parse), t => t instanceof StateTerm)
     return terms.length === 0 ? [] : terms[0].states
   }
-  
+
   static set(query, states) {
     return replace(query, StateTerm, states.length > 0 ? new StateTerm(states) : null)
   }

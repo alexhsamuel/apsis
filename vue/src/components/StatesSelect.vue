@@ -34,7 +34,7 @@ export default {
         ['Scheduled', ['scheduled']],
         ['Waiting', ['waiting']],
         ['Held', ['scheduled', 'waiting']],
-        ['Running', ['running']],
+        ['Running', ['starting', 'running']],
         ['Successful', ['success']],
         ['Unsuccessful', ['failure', 'error']],
         ['Started', ['running', 'success', 'failure', 'error']],
