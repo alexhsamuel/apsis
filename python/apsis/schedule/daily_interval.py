@@ -23,6 +23,8 @@ class DailyIntervalSchedule(Schedule):
         self.start      = ora.Daytime(start)
         self.stop       = ora.Daytime(stop)
         self.interval   = float(interval)
+        if not (0 < self.interval < 86400):
+            raise ValueError(f"invalid interval: {self.interval}")
         self.args       = { str(k): str(v) for k, v in args.items() }
 
 
