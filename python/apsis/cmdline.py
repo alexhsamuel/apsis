@@ -117,7 +117,7 @@ def print_cond(cond, con, *, verbosity=0):
     if verbosity < 1:
         con.print(f"- {cond['str']}")
     else:
-        con.print(format_jso(cond, indent=2))
+        con.print("•" + format_jso(cond, indent=2)[1 :])
 
 
 def format_program(program, *, verbosity=0, indent=0):
