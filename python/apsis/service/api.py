@@ -77,7 +77,7 @@ def _run_summary_to_jso(app, run):
         actions["cancel"    ] = app.url_for("v1.run_cancel", run_id=run.run_id)
         actions["start"     ] = app.url_for("v1.run_start", run_id=run.run_id)
     # Retry is available if the run didn't succeed.
-    if run.state in {run.STATE.failure, run.STATE.error}:
+    if run.state in {run.STATE.success, run.STATE.failure, run.STATE.error}:
         actions["rerun"     ] = app.url_for("v1.run_rerun", run_id=run.run_id)
     # Terminate and kill are available for a running run.
     if run.state == run.STATE.running:

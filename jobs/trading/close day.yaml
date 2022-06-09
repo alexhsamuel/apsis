@@ -7,7 +7,7 @@ metadata:
     Fails if the trading system is not open for `date`.
 
 program: |
-  /Users/alex/dev/apsis/jobs/trading/close_day.sh {{ strat }} {{ date }}
+  /home/alex/dev/apsis/jobs/trading/close_day.sh {{ strat }} {{ date }}
 
 schedule:
   - type: daily
