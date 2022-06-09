@@ -8,6 +8,9 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+# Could be helpful for the start to be <0 and the stop to be >=24, to make
+# overnight intervals easier to express.
+
 class DailyIntervalSchedule(Schedule):
 
     def __init__(
@@ -63,7 +66,11 @@ class DailyIntervalSchedule(Schedule):
                         "calendar"  : str(self.calendar),
                         "tz"        : str(self.tz),
                     }
-                daytime += self.interval
+                next_daytime = daytime + self.interval
+                if next_daytime < daytime:
+                    # We wrapped around.
+                    break
+                daytime = next_daytime
 
             date = self.calendar.after(date + 1)
 

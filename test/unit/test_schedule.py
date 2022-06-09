@@ -236,3 +236,20 @@ def test_daily_interval():
         assert next(sched(t1 -    1))[0] == t1
 
 
+def test_daily_interval_wrap():
+    sched = DailyIntervalSchedule(
+        "America/New_York",
+        ora.get_calendar("Mon-Fri"),
+        "22:00:00", "23:59:59",
+        300,
+        {}
+    )
+
+    times = sched("2022-06-10T23:45:00-04:00")
+    assert next(times)[0] == ora.Time("2022-06-10T23:45:00-04:00")
+    assert next(times)[0] == ora.Time("2022-06-10T23:50:00-04:00")
+    assert next(times)[0] == ora.Time("2022-06-10T23:55:00-04:00")
+    assert next(times)[0] == ora.Time("2022-06-13T22:00:00-04:00")
+    assert next(times)[0] == ora.Time("2022-06-13T22:05:00-04:00")
+
+
