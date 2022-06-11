@@ -1,20 +1,20 @@
 # Cleanup
 
+- To finish `check-job`, we need to remove the program, schedule, action, cond
+  aliases from `config.yaml` and move them to a config file specific to the job
+  dir.
+
 - Remove run_history from `Waiter`.
 
 - Factor loop watchers (`log.critical`) into a common pattern.
 - Clean up the restore task.
 
-- To finish `check-job`, we need to remove the program, schedule, action, cond
-  aliases from `config.yaml` and move them to a config file specific to the job
-  dir.
-  
 
 # Idle thoughts
 
 It might be better for the scheduler, scheduled, and waiter loops to be managed
 by the Apsis instance, so that it can split workloads (i.e. run some runs before
-1scheduling others).  This might also make the components more functional.  They
+scheduling others).  This might also make the components more functional.  They
 might not have to reach back and call Apsis methods to transition runs; instead
 they would just return instructions and Apsis would do the work.
 
@@ -47,6 +47,12 @@ instance.  The run objects would become much more active.
 
 
 # Current
+
+- #165: conditional skip runs, e.g. skip if running
+- #164, #152: limit duration of run in waiting state
+- #156: auto-archive old runs
+
+- in ora, truncate 0s from `Time.__str__` and `Daytime.__str__`
 
 - support configured extension symbols in `template_expand`
 
