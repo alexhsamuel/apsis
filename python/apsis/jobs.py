@@ -267,7 +267,7 @@ def check_job(jobs_dir, job):
         _, args = next(schedule(now))
         missing_args = set(job.params) - set(args)
         if len(missing_args) > 0:
-            yield(f"missing args in schedule: {' '.join(missing_args)}")
+            yield(f"{job.job_id}: missing args in schedule: {' '.join(missing_args)}")
 
 
 def check_job_dir(path):
