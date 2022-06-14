@@ -70,6 +70,7 @@ class DailyIntervalSchedule(Schedule):
                         "daytime"   : str(daytime),
                         "calendar"  : str(self.calendar),
                         "tz"        : str(self.tz),
+                        **self.args
                     }
                 next_daytime = daytime + self.interval
                 if next_daytime < daytime:
