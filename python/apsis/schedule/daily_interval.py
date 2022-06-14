@@ -22,6 +22,9 @@ class DailyIntervalSchedule(Schedule):
         self.calendar   = calendar
         self.start      = ora.Daytime(start)
         self.stop       = ora.Daytime(stop)
+        if self.stop <= self.start:
+            raise ValueError(
+                f"no times in with between {self.start} and {self.stop}")
         self.interval   = float(interval)
         if not (0 < self.interval < 86400):
             raise ValueError(f"invalid interval: {self.interval}")
