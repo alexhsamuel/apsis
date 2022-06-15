@@ -1,0 +1,20 @@
+params: [date, daytime, scope]
+
+metadata:
+  description: No-op test job.
+
+program: {type: no-op}
+
+schedule:
+- type: daily-interval
+  tz: America/New_York
+  start: 02:00:00
+  stop: 22:00:00
+  interval: 3600
+  args: {scope: interval}
+
+- type: daily
+  tz: America/New_York
+  daytime: 00:00:00
+  args: {scope: daily}
+
