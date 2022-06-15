@@ -10,6 +10,17 @@ A job's program is configured with the top-level `program` key.  The subkey
 configuration of each program type.
 
 
+No-op commands
+--------------
+
+A `no-op` program runs instantly and always succeeds.
+
+.. code:: yaml
+
+    program:
+        type: no-op
+
+
 Shell commands
 --------------
 
