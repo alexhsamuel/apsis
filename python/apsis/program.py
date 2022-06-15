@@ -169,6 +169,50 @@ class Program(TypedJso):
 
 #-------------------------------------------------------------------------------
 
+class NoOpProgram(Program):
+    """
+    A program that does nothing and always succeeds.
+    """
+
+    def __init__(self):
+        pass
+
+
+    def __str__(self):
+        return "no-op"
+
+
+    def bind(self, args):
+        return type(self)()
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            pass
+        return cls()
+
+
+    async def start(self, run_id, cfg):
+        run_state = {}
+        return ProgramRunning(run_state), self.wait(run_id, run_state)
+
+
+    async def wait(self, run_id, run_state):
+        return ProgramSuccess()
+
+
+    def reconnect(self, run_id, run_state):
+        return asyncio.ensure_future(self.wait(run_id, run_state))
+
+
+    async def signal(self, run_state, signum):
+        log.info("ignoring signal to no-op program")
+
+
+
+#-------------------------------------------------------------------------------
+
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%kZ"
 
 class ProcessProgram(Program):
@@ -488,6 +532,7 @@ class AgentShellProgram(AgentProgram):
 
 #-------------------------------------------------------------------------------
 
+Program.TYPE_NAMES.set(NoOpProgram, "no-op")
 Program.TYPE_NAMES.set(AgentProgram, "program")
 Program.TYPE_NAMES.set(AgentShellProgram, "shell")
 
