@@ -278,3 +278,20 @@ cron
 - command/API for starting (if necessary) and connecting to agent
 - document it
 
+
+# wait timeout + skip
+
+- max time in waiting state
+  - global
+  - per job [where?]
+- max time (since schedule) per condition
+- max run time (since start)
+
+### skip
+
+Let `Condition.skip_runs()` or `Condition.skip()` return a code indicating skip?
+
+Ass a "skipped state?  Or let the condition choose one of the others?
+
+Provide user actions to transition a run to skipped?
+
