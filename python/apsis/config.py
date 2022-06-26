@@ -5,6 +5,7 @@ import yaml
 from   .actions import Action
 from   .lib.imp import import_fqname
 from   .lib.json import to_array
+from   .lib.py import nfloat
 from   .program import Program
 from   .schedule import Schedule
 
@@ -32,6 +33,11 @@ def check(cfg, base_path: Path):
 
     cfg["actions"] = to_array(cfg.get("action", []))
 
+    waiting = cfg["waiting"] = cfg.setdefault("waiting", {})
+    max_time = waiting["max_time"] = nfloat(waiting.get("max_time", None))
+    if max_time is not None and max_time <= 0:
+        log.error("negative waiting.max_time: {max_time}")
+
     return cfg
 
 
@@ -47,6 +53,9 @@ def load(path):
         path = Path(path)
         with open(path) as file:
             cfg = yaml.load(file, Loader=yaml.BaseLoader)
+            if cfg is None:
+                # Empty config.
+                cfg = {}
         return check(cfg, path.parent.absolute())
 
 

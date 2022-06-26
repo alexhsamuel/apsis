@@ -19,6 +19,19 @@ database: /path/to/apsis.db
 ```
 
 
+### Waiting
+
+You may limit the time a single run can be in the waiting state.
+
+```yaml
+waiting:
+  max_time: 86400
+```
+
+This limits each run to 86,400 seconds (1 day) waiting.  After this time, Apsis
+transitions the run to the error state.
+
+
 ### Types
 
 A program may specify a program, schedule, or action type by full Python name.  This allows

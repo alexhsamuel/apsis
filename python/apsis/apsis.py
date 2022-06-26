@@ -151,9 +151,11 @@ class Apsis:
         if run.state != run.STATE.waiting:
             self._transition(run, run.STATE.waiting)
 
+        cfg = self.cfg.get("waiting", {})
+
         async def wait():
             try:
-                await wait_loop(self, run)
+                await wait_loop(self, run, cfg)
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -334,14 +336,18 @@ class Apsis:
         self.run_log.exc(run, message)
 
         outputs = {}
-        if sys.exc_info()[0] is not None:
+        exc_type, exc, _ = sys.exc_info()
+        if exc_type is not None:
             # Attach the exception traceback as run output.
-            tb = traceback.format_exc().encode()
+            if issubclass(exc_type, RuntimeError):
+                msg = str(exc).encode()
+            else:
+                msg = traceback.format_exc().encode()
             # FIXME: For now, use the name "output" as this is the only one
             # the UIs render.  In the future, change to "traceback".
             outputs["output"] = Output(
-                OutputMetadata("output", len(tb), content_type="text/plain"),
-                tb
+                OutputMetadata("output", len(msg), content_type="text/plain"),
+                msg
             )
 
         self._transition(

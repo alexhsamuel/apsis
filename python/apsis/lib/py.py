@@ -65,8 +65,9 @@ def or_none(fn):
     return wrapped
 
 
-nstr = or_none(str)
-nint = or_none(int)
+nstr    = or_none(str)
+nint    = or_none(int)
+nfloat  = or_none(float)
 
 
 def is_seq(obj):

@@ -1,15 +1,30 @@
 import asyncio
 import logging
+import ora
+
+from   .exc import TimeoutWaiting
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-async def wait_loop(apsis, run):
+async def wait_loop(apsis, run, cfg):
     """
     Waits for all conds to be met.
     """
     conds = list(run.conds)
+
+    max_time = cfg.get("max_time", None)
+    if max_time is None:
+        timeout = None
+    else:
+        try:
+            start = ora.Time(run.times["waiting"])
+        except KeyError:
+            log.error(f"waiting run missing waiting time: {run.run_id}")
+            # Fall back to current time.
+            start = ora.now()
+        timeout = start + max_time
 
     if len(conds) > 0:
         apsis.run_log.info(run, f"waiting for {conds[0]}")
@@ -28,7 +43,19 @@ async def wait_loop(apsis, run):
                     apsis.run_log.info(run, f"waiting for {conds[0]}")
             else:
                 # First cond is still blocking.
-                await asyncio.sleep(cond.poll_interval)
+                if timeout is not None:
+                    # Check for timeout while waiting.
+                    now = ora.now()
+                    remaining = timeout - now
+                    if 0 < remaining:
+                        sleep_time = min(cond.poll_interval, remaining)
+                    else:
+                        raise TimeoutWaiting(
+                            f"time out waiting after {max_time} sec")
+                else:
+                    sleep_time = cond.poll_interval
+
+                await asyncio.sleep(sleep_time)
 
         else:
             apsis.run_log.info(run, "all conditions satisfied")
