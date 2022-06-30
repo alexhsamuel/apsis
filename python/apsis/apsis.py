@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from   ora import now, Time
 import sys
@@ -78,6 +79,8 @@ class Apsis:
         log.info(f"scheduling runs from {stop_time}")
 
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
+
+        self.__stats_loop = asyncio.ensure_future(self.stats_loop())
 
 
     async def restore(self):
@@ -539,6 +542,30 @@ class Apsis:
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
         log.info("Apsis shut down")
+
+
+    def get_stats(self):
+        return {
+            "num_waiting_tasks"     : len(self.__wait_tasks),
+            "num_starting_tasks"    : len(self.__starting_tasks),
+            "num_running_tasks"     : len(self.__running_tasks),
+            "num_runstore_runs"     : len(self.run_store._RunStore__runs),
+            "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
+            "len_scheduled_heap"    : len(self.scheduled._ScheduledRuns__heap),
+            "num_scheduled_entries" : len(self.scheduled._ScheduledRuns__scheduled),
+        }
+
+
+    async def stats_loop(self):
+        log.warning("starting stats_loop")
+        while True:
+            try:
+                stats = self.get_stats()
+            except Exception:
+                log.error("stats failed", exc_info=True)
+            else:
+                log.info("stats: " + json.dumps(stats))
+            await asyncio.sleep(60)
 
 
 
