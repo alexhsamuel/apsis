@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from   ora import now, Time
+import resource
 import sys
 import traceback
 
@@ -545,7 +546,11 @@ class Apsis:
 
 
     def get_stats(self):
-        return {
+        res = resource.getrusage(resource.RUSAGE_SELF)
+        stats = {
+            "rusage_maxrss"         : res.ru_maxrss * 1024,
+            "rusage_utime"          : res.ru_utime,
+            "rusage_stime"          : res.ru_stime,
             "num_waiting_tasks"     : len(self.__wait_tasks),
             "num_starting_tasks"    : len(self.__starting_tasks),
             "num_running_tasks"     : len(self.__running_tasks),
@@ -554,6 +559,18 @@ class Apsis:
             "len_scheduled_heap"    : len(self.scheduled._ScheduledRuns__heap),
             "num_scheduled_entries" : len(self.scheduled._ScheduledRuns__scheduled),
         }
+
+        try:
+            statm = map(int, next(open("/proc/self/statm").strip().split()))
+        except FileNotFoundError:
+            pass
+        else:
+            stats.update({
+                "statm_size"        : statm[0],
+                "statm_resident"    : statm[1],
+            })
+
+        return stats
 
 
     async def stats_loop(self):
