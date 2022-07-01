@@ -561,7 +561,7 @@ class Apsis:
         }
 
         try:
-            statm = map(int, next(open("/proc/self/statm").strip().split()))
+            statm = list(map(int, next(open("/proc/self/statm")).strip().split()))
         except FileNotFoundError:
             pass
         else:
