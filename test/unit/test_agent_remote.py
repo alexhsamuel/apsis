@@ -1,21 +1,18 @@
 import asyncio
 from   pathlib import Path
+import pytest
 
 from   apsis.agent.client import Agent
 
 #-------------------------------------------------------------------------------
 
-def go(coro):
-    task = asyncio.ensure_future(coro)
-    return task.get_loop().run_until_complete(task)
-
-
-def test_run_localhost(tmpdir):
+@pytest.mark.asyncio
+async def test_run_localhost(tmpdir):
     path = Path(tmpdir) / "output.txt"
     assert not path.is_file()
 
     agent = Agent(host="localhost")
-    go(agent.connect())
+    await agent.connect()
 
     async def run():
         process = await agent.start_process(
@@ -28,7 +25,7 @@ def test_run_localhost(tmpdir):
         await agent.del_process(proc_id)
         return process["return_code"], output
 
-    return_code, output = go(run())
+    return_code, output = await run()
     assert return_code == 0
     assert output == b""
     assert path.is_file()
@@ -36,6 +33,6 @@ def test_run_localhost(tmpdir):
         data = file.read()
     assert data == "Hello, world!\n"
 
-    go(agent.stop())
+    await agent.stop()
 
 

@@ -28,4 +28,5 @@ Apsis is built on,
 - the [Ora](https://github.com/alexhsamuel/ora) time library
 - [Vue.js](https://vuejs.org/) for the web UI
 
+Apsis requires `pytest` and `pytest-asyncio` to run tests.
 
