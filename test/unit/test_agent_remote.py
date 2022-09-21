@@ -7,7 +7,7 @@ from   apsis.agent.client import Agent
 
 def go(coro):
     task = asyncio.ensure_future(coro)
-    return asyncio.get_event_loop().run_until_complete(task)
+    return task.get_loop().run_until_complete(task)
 
 
 def test_run_localhost(tmpdir):
