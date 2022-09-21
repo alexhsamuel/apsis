@@ -1,0 +1,10 @@
+params: [name]
+
+program:
+  type: shell
+  command: cat /tmp/{{ name }}
+
+condition:
+  type: file_exists
+  path: /tmp/{{ name }}
+
