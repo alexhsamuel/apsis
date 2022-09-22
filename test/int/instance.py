@@ -16,13 +16,17 @@ def run_apsisctl(*argv):
 
 class ApsisInstance:
 
-    def __init__(self, *, port=5005):
+    # FIXME: Choose an available port.
+    def __init__(self, *, port=5005, job_dir=None):
         self.port       = int(port)
 
         self.tmp_dir    = Path(tempfile.mkdtemp())
         logging.info(f"Apsis instance in {self.tmp_dir}")
         self.db_path    = self.tmp_dir / "apsis.db"
-        self.jobs_dir   = self.tmp_dir / "jobs"
+        self.jobs_dir   = (
+            Path(job_dir) if job_dir is not None
+            else self.tmp_dir / "jobs"
+        )
         self.cfg_path   = self.tmp_dir / "config.yaml"
         self.log_path   = self.tmp_dir / "apsis.log"
 
@@ -34,14 +38,14 @@ class ApsisInstance:
         run_apsisctl("create", self.db_path)
 
 
-    def write_cfg(self, cfg):
+    def write_cfg(self, cfg={}):
         self.cfg = {
             "database": str(self.db_path),
             "job_dir": str(self.jobs_dir),
             **cfg
         }
         with open(self.cfg_path, "w") as file:
-            yaml.dump(cfg, file)
+            yaml.dump(self.cfg, file)
 
  
     def start_serve(self):
@@ -99,6 +103,24 @@ class ApsisInstance:
             self.stop_serve()
 
 
+    def run_apsis_cmd(self, *argv):
+        """
+        Runs an `apsis` subcommand against the running service.
+
+        :return:
+          The return code and stdout.
+        """
+        assert self.srv_proc is not None
+        argv = [
+            "apsis",
+            "--port", str(self.port),
+            *( str(a) for a in argv )
+        ]
+        proc = subprocess.run(argv, stdout=subprocess.PIPE)
+        logging.info(f"apsis returned: {proc.returncode} {proc.stdout}")
+        return proc.returncode, proc.stdout
+
+
     def run_apsis_json(self, *argv):
         """
         Runs an `apsis` subcommand against the running service.
@@ -106,18 +128,12 @@ class ApsisInstance:
         Requests JSON output, and parses it.
 
         :return:
-          The return code, and the parsed JSO output.
+          The parsed JSO output.
         """
-        assert self.srv_proc is not None
-        argv = [
-            "apsis",
-            "--port", str(self.port),
-            *( str(a) for a in argv ),
-            "--format", "json"
-        ]
-        proc = subprocess.run(argv, stdout=subprocess.PIPE)
-        logging.info(f"apsis returned: {proc.returncode} {proc.stdout}")
-        return proc.returncode, ujson.loads(proc.stdout)
+        returncode, stdout = self.run_apsis_cmd(*argv, "--format", "json")
+        assert returncode == 0, \
+            f"'apsis {' '.join(argv)}' failed: {stdout.decode()}"
+        return ujson.loads(stdout)
 
 
 
