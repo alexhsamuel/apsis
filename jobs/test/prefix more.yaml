@@ -1,0 +1,7 @@
+program:
+  type: no-op
+
+schedule:
+  type: interval
+  interval: 7200
+
