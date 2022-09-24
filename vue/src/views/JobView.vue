@@ -17,7 +17,7 @@ div
 
   Frame(title="Runs")
     RunsList(
-      :query="query" 
+      :path="job_id" 
       :showJob="false"
       argColumnStyle="separate"
       style="max-height: 28rem; overflow-y: auto;"
@@ -93,11 +93,6 @@ export default {
   computed: {
     params() {
       return join(this.job.params, ', ')
-    },
-
-    query() {
-      // FIXME: Do better here.
-      return '"' + this.job_id + '"'
     },
 
     // Metadata filtered, with keys omitted that are displayed specially.

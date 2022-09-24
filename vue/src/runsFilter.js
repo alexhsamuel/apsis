@@ -65,6 +65,29 @@ class ArgTerm {
 
 // -----------------------------------------------------------------------------
 
+/*
+ * Predicate is true if the job ID matches `path` exactly or has `path` as a 
+ * path prefix.
+ */
+export class JobIdPathPrefix {
+  constructor(path) {
+    if (path.slice(-1) === '/')
+      path = path.slice(0, -1)
+    this.path = path
+  }
+
+  toString() {
+    return this.path
+  }
+
+  get predicate() {
+    return run =>
+      run.job_id === this.path || run.job_id.startsWith(this.path + '/')
+  }
+}
+
+// -----------------------------------------------------------------------------
+
 export class JobIdTerm {
   constructor(str) {
     this.str = str

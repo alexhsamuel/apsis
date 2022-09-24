@@ -119,7 +119,6 @@ export default {
   props: {
     query: {type: String, default: ''},
     // Either a job ID path prefix; can be a full job ID.
-    // FIXME: Rename to jobIdPrefix.
     path: {type: String, default: null},
 
     // Args to match.  If not null, shows only runs with exact args match.
@@ -168,7 +167,7 @@ export default {
   computed: {
     jobPredicate() {
       // FIXME: Maybe the parent should provide a predicate directly?
-      return runsFilter.makePredicate(this.query)
+      return this.query ? runsFilter.makePredicate(this.query) : null
     },
 
     /** Runs, after filtering.  */
@@ -176,7 +175,7 @@ export default {
       let runs = this.store.state.runs
 
       if (this.path)
-        runs = filter(runs, run => run.job_id.startsWith(this.path))
+        runs = filter(runs, (new runsFilter.JobIdPathPrefix(this.path)).predicate)
       if (this.args)
         runs = filter(runs, run => isEqual(run.args, this.args))
 
