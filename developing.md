@@ -37,6 +37,8 @@ template](https://vuejs-templates.github.io/webpack/) (an older version).
 
 #### Developing
 
+Currently requires node 14 (`nvm use 14`), until we update a bunch of stuff.
+
 To run the front end in dev mode,
 ```
 $ cd vue
