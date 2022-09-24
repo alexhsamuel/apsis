@@ -46,6 +46,14 @@ $ npm install
 $ npm run dev
 ```
 
+To run js unit tests:
+```
+$ npm run unit
+```
+
+Front end e2e tests not set up.
+
+
 #### Packaging
 
 To produce a prod front end, 
