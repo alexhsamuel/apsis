@@ -521,7 +521,7 @@ async def run_post(request):
     await apsis.schedule(time, run)
     jso = runs_to_jso(request.app, ora.now(), [run])
     return response_json(jso)
-    
+
 
 # FIXME: Is there a need for this?
 @API.route("/runs/reschedule/<job_id:path>", methods={"POST"})
