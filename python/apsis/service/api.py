@@ -121,12 +121,13 @@ def run_to_jso(app, run, summary=False):
     jso = _run_summary_to_jso(app, run)
 
     if not summary:
-        jso.update({
+        jso = {
+            **jso,
             "conds": _to_jsos(run.conds),
             # FIXME: Rename to metadata.
             "meta": run.meta,
             "program": _to_jso(run.program),
-        })
+        }
 
     return jso
 
@@ -276,7 +277,7 @@ async def run(request, run_id):
         when, run = request.app.apsis.run_store.get(run_id)
     except KeyError:
         return error(f"unknown run {run_id}", 404)
-            
+
     jso = runs_to_jso(request.app, when, [run])
     return response_json(jso)
 
@@ -309,7 +310,6 @@ async def run_output_meta(request, run_id):
         log.error(f"unknown run {run_id}", exc_info=True)
         return error(f"unknown run {run_id}", 404)
 
-    log.info("got run output")
     jso = _output_metadata_to_jso(request.app, run_id, outputs)
     return response_json(jso)
 
