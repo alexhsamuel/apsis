@@ -16,13 +16,13 @@ div
               span(
                 uk-icon="icon: triangle-right; ratio: 1.4"
                 style="position: relative; left: -3px; top: 0px;"
-                v-on:click="collapseAll(true)"
+                v-on:click="expandAll(false)"
               )
             a.expand-button
               span(
                 uk-icon="icon: triangle-down; ratio: 1.4"
                 style="position: relative; left: -3px; top: 1px;"
-                v-on:click="collapseAll(false)"
+                v-on:click="expandAll(true)"
               )
         th Parameters
         th Description
@@ -54,20 +54,20 @@ div
 
             //- a dir entry
             span.name(v-else)
-              span(v-on:click="toggleCollapse(path)")
+              span(v-on:click="toggleExpand(path)")
                 span.indent(style="display: inline-block; position: relative; left: -2px; top: -2px; width: 22px;")
                   svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
                     path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
                 a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
                 span.indent.folder-icon(
-                  v-if="isCollapsed(path)"
-                  uk-icon="icon: triangle-right; ratio: 1.4"
-                  style="position: relative; left: -5px; top: -1px;"
+                  v-if="isExpanded(path)"
+                  uk-icon="icon: triangle-down; ratio: 1.4"
+                  style="position: relative; left: -3px; top: 0px;"
                 )
                 span.indent.folder-icon(
                   v-else
-                  uk-icon="icon: triangle-down; ratio: 1.4"
-                  style="position: relative; left: -3px; top: 0px;"
+                  uk-icon="icon: triangle-right; ratio: 1.4"
+                  style="position: relative; left: -5px; top: -1px;"
                 )
 
         td.params
@@ -124,16 +124,16 @@ function jobsToTree(jobs) {
  * 
  * @param basePath - path corresponding to `tree`, as array of parts
  * @param tree - the tree node to flatten
- * @param collapse - lookup of collapsed tree paths
+ * @param expanded - lookup of expanded tree paths
  */
-function* flattenTree(basePath, tree, collapse, path = []) {
+function* flattenTree(basePath, tree, expanded, path = []) {
   const [subtrees, items] = tree
 
   for (const [name, subtree] of sortBy(Object.entries(subtrees))) {
     const dirPath = basePath.concat(path, [name])
     yield [dirPath, path, name, null]
-    if (!collapse[dirPath])
-      yield* flattenTree(basePath, subtree, collapse, path.concat([name]))
+    if (expanded[dirPath])
+      yield* flattenTree(basePath, subtree, expanded, path.concat([name]))
   }
 
   for (const [name, item] of sortBy(Object.entries(items)))
@@ -149,7 +149,7 @@ export default {
   data() {
     return {
       allJobs: [],
-      collapse: {},
+      expand: {},
     }
   },
 
@@ -165,7 +165,7 @@ export default {
     fetch(url)
       .then((response) => response.json())
       .then((response) => response.forEach((j) => v.allJobs.push(j)))
-      .then(() => this.collapseAll(true))
+      .then(() => this.expandAll(false))
   },
 
   computed: {
@@ -192,7 +192,7 @@ export default {
     /** Filtered jobs subtree flattened to display rows, including dirs.  */
     jobRows() {
       const parts = this.dir ? this.dir.split('/') : []
-      return Array.from(flattenTree(parts, this.jobsDir, this.collapse))
+      return Array.from(flattenTree(parts, this.jobsDir, this.expand))
     },
 
   },
@@ -211,23 +211,26 @@ export default {
 
     join,
 
-    toggleCollapse(path) {
-      this.$set(this.collapse, path, !this.collapse[path])
+    toggleExpand(path) {
+      this.$set(this.expand, path, !this.expand[path])
     },
 
-    isCollapsed(path) {
-      return this.collapse[path]
+    isExpanded(path) {
+      return this.expand[path]
     },
 
-    collapseAll(collapsed) {
-      for (const job of this.allJobs) {
-        const path = job.job_id.split('/')
-        path.pop()
-        while (path.length > 0) {
-          this.$set(this.collapse, path, collapsed)
+    expandAll(expanded) {
+      let expand = {}
+      if (expanded)
+        for (const job of this.allJobs) {
+          const path = job.job_id.split('/')
           path.pop()
+          while (path.length > 0) {
+            expand[path] = true
+            path.pop()
+          }
         }
-      }
+      this.expand = expand
     },
   },
 }
