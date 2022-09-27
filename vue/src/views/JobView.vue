@@ -32,7 +32,11 @@ div
       tr
         th schedule
         td(v-if="job.schedules.length > 0")
-          li(v-for="schedule in job.schedules" :key="schedule.str") {{ schedule.str }}
+          li(
+            v-for="schedule in job.schedules"
+            :key="schedule.str"
+            :class="{ disabled: !schedule.enabled }"
+          ) {{ schedule.str }} {{ schedule.enabled ? '' : '(disabled)' }}
         td(v-else) No schedules.
 
       tr
@@ -133,5 +137,9 @@ export default {
   th, td {
     line-height: 1;
   }
+}
+
+.disabled {
+  color: #888;
 }
 </style>

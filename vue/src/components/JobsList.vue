@@ -5,7 +5,6 @@ div
       col(style="max-width: 300px;")
       col(style="max-width: 300px;")
       col(style="")
-      // col(style="")
 
     thead
       tr
@@ -29,6 +28,9 @@ div
         // th Schedule
 
     tbody
+      tr(v-if="loading")
+        td(class="loading") Loading jobs...
+
       tr(
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
@@ -76,11 +78,6 @@ div
 
         td.description
           div(v-if="job" v-html="markdown(exerptDescription(job.metadata.description || ''))")
-
-        //- td.schedule
-        //-   ul(v-if="job")
-        //-     li(v-for="(schedule, idx) in job.schedules" :key="idx")
-        //-       span(:class="{ disabled: !schedule.enabled }") {{ schedule.str }}
 
 </template>
 
@@ -148,6 +145,7 @@ export default {
 
   data() {
     return {
+      loading: true,
       allJobs: [],
       expand: {},
     }
@@ -162,10 +160,11 @@ export default {
   created() {
     const v = this
     const url = '/api/v1/jobs'
+    this.loading = true
     fetch(url)
       .then((response) => response.json())
       .then((response) => response.forEach((j) => v.allJobs.push(j)))
-      .then(() => this.expandAll(false))
+      .then(() => { this.expandAll(false); this.loading = false })
   },
 
   computed: {
@@ -250,6 +249,10 @@ export default {
 
   th {
     text-align: left;
+  }
+
+  .loading {
+    color: $apsis-status-color;
   }
 
   a.expand-button {
