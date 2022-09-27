@@ -37,13 +37,13 @@ div
 
       template(v-for="group in groups.groups")
         tr( 
-          v-for="(run, index) in group.visible()" 
+          v-for="(run, index) in getGroupVisibleRuns(group.run, group.runs)" 
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0, 'highlight-run': run.run_id === highlightRunId }"
         )
           // Show job name if enabled by 'showJob'.
           td.col-job(v-if="showJob")
-            div(v-if="run.run_id === group.id")
+            div(v-if="run.run_id === group.run.run_id")
               Job(:job-id="run.job_id")
               JobLabel(
                 v-for="label in run.labels || []"
@@ -54,7 +54,7 @@ div
             td(v-for="param in params") {{ run.args[param] || '' }}
           // Else all together.
           td.col-args(v-if="argColumnStyle === 'combined'")
-            span(v-if="run.run_id === group.id")
+            span(v-if="run.run_id === group.run.run_id")
               RunArgs(:args="run.args")
 
           td.col-run
@@ -62,11 +62,11 @@ div
           td.col-state
             State(:state="run.state")
           td.col-reruns
-            span(v-show="index == 0 && group.length > 1")
-              | {{ group.length > 1 ? group.length : "" }}
+            span(v-show="index == 0 && group.runs.length > 1")
+              | {{ group.runs.length > 1 ? group.runs.length : "" }}
               a(
-                v-bind:uk-icon="groupIcon(group.id)"
-                v-on:click="toggleGroupExpand(group.id)"
+                v-bind:uk-icon="groupIcon(group.run.run_id)"
+                v-on:click="toggleGroupExpand(group.run.run_id)"
               )
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -269,11 +269,8 @@ export default {
 
         // Build a convience structure for the group.
         return {
-          id: run.run_id,
-          length: runs.length,
           run: run,
           runs: runs,
-          visible: () => this.getGroupExpand(run.run_id) ? runs : [run],
         }
       })
 
@@ -296,6 +293,10 @@ export default {
 
     toggleGroupExpand(id) {
       this.$set(this.groupExpand, id, !this.groupExpand[id])
+    },
+
+    getGroupVisibleRuns(groupRun, groupRuns) {
+      return this.getGroupExpand(groupRun.run_id) ? groupRuns : [groupRun]
     },
 
     groupIcon(runId) {
