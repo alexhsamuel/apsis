@@ -323,6 +323,7 @@ table.runlist {
   .col-reruns {
     text-align: right;
     font-size: 90%;
+    white-space: nowrap;
   }
 
   .col-elapsed {
