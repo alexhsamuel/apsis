@@ -66,7 +66,7 @@ div
               | {{ group.length > 1 ? group.length : "" }}
               a(
                 v-bind:uk-icon="groupIcon(group.id)"
-                v-on:click="toggleGroupCollapse(group.id)"
+                v-on:click="toggleGroupExpand(group.id)"
               )
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -159,7 +159,7 @@ export default {
 
   data() {
     return { 
-      groupCollapse: {},
+      groupExpand: {},
       store,
     } 
   },
@@ -255,7 +255,7 @@ export default {
       let groups = entries(groupBy(runs, this.groupRuns ? groupKey : r => r.run_id))
 
       // For each group, select the principal run for the group.  This is the
-      // run that is shown when the group is collapsed.
+      // run that is shown when the group is collapsed (i.e. not expanded).
       groups = map(groups, ([key, runs]) => {
         // Sort runs within each group.
         runs = sortBy(runs, sortTime)
@@ -273,7 +273,7 @@ export default {
           length: runs.length,
           run: run,
           runs: runs,
-          visible: () => this.getGroupCollapse(run.run_id) ? [run] : runs,
+          visible: () => this.getGroupExpand(run.run_id) ? runs : [run],
         }
       })
 
@@ -290,23 +290,16 @@ export default {
   },
 
   methods: {
-    getGroupCollapse(id) {
-      let c = this.groupCollapse[id]
-      if (c === undefined)
-        this.$set(this.groupCollapse, id, c = true)
-      return c
+    getGroupExpand(id) {
+      return !!this.groupExpand[id]
     },
 
-    toggleGroupCollapse(id) {
-      this.$set(this.groupCollapse, id, !this.getGroupCollapse(id))
-    },
-
-    getVisibleRunsInGroup(principal, runs) {
-      return this.getGroupCollapse(principal.run_id) ? [principal] : runs
+    toggleGroupExpand(id) {
+      this.$set(this.groupExpand, id, !this.groupExpand[id])
     },
 
     groupIcon(runId) {
-      return this.getGroupCollapse(runId) ? 'icon: chevron-down' : 'icon: chevron-up'
+      return this.getGroupExpand(runId) ? 'icon: chevron-up' : 'icon: chevron-down'
     },
 
     formatElapsed,
