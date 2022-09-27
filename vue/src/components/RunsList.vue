@@ -35,15 +35,19 @@ div
       tr(v-if="groups.omitCompleted > 0")
         td.note(colspan="8") {{ groups.omitCompleted }} completed runs not shown
 
-      template(v-for="group in groups.groups")
+      //- Each group is represented by a single run, groupRun, but may contain
+      //- one or more runs, groupRuns.  The group's expand state is keyed by
+      //- groupRun.run_id.
+      template(v-for="([groupRun, groupRuns]) in groups.groups")
         tr( 
-          v-for="(run, index) in getGroupVisibleRuns(group.run, group.runs)" 
+          v-for="(run, index) in getGroupVisibleRuns(groupRun, groupRuns)" 
           :key="run.run_id"
           :class="{ 'run-group-next': index > 0, 'highlight-run': run.run_id === highlightRunId }"
         )
-          // Show job name if enabled by 'showJob'.
+          //- Show job name if enabled by 'showJob' and this is the group run.
           td.col-job(v-if="showJob")
-            div(v-if="run.run_id === group.run.run_id")
+            //- Is this the group run?
+            div(v-if="run.run_id === groupRun.run_id")
               Job(:job-id="run.job_id")
               JobLabel(
                 v-for="label in run.labels || []"
@@ -52,9 +56,9 @@ div
               )
           template(v-if="argColumnStyle === 'separate'")
             td(v-for="param in params") {{ run.args[param] || '' }}
-          // Else all together.
+          //- Else all together.
           td.col-args(v-if="argColumnStyle === 'combined'")
-            span(v-if="run.run_id === group.run.run_id")
+            span(v-if="run.run_id === groupRun.run_id")
               RunArgs(:args="run.args")
 
           td.col-run
@@ -62,11 +66,11 @@ div
           td.col-state
             State(:state="run.state")
           td.col-reruns
-            span(v-show="index == 0 && group.runs.length > 1")
-              | {{ group.runs.length > 1 ? group.runs.length : "" }}
+            span(v-show="index == 0 && groupRuns.length > 1")
+              | {{ groupRuns.length > 1 ? groupRuns.length : "" }}
               a(
-                v-bind:uk-icon="groupIcon(group.run.run_id)"
-                v-on:click="toggleGroupExpand(group.run.run_id)"
+                v-bind:uk-icon="groupIcon(groupRun.run_id)"
+                v-on:click="toggleGroupExpand(groupRun.run_id)"
               )
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -267,15 +271,12 @@ export default {
         const sgrp = key[0]
         const run = runs[sgrp === 'C' ? runs.length - 1 : 0]
 
-        // Build a convience structure for the group.
-        return {
-          run: run,
-          runs: runs,
-        }
+        // Return the single run representing the group, and all runs in the group.
+        return [run, runs]
       })
 
       // Sort groups by time of the principal run.
-      groups = sortBy(groups, g => sortTime(g.run))
+      groups = sortBy(groups, ([run, _]) => sortTime(run))
 
       return {
         groups,
