@@ -1,0 +1,11 @@
+params: [count, length]
+
+program:
+  type: shell
+  command: |
+    python -c '
+    line = "x" * {{ length }}
+    for _ in range({{ count }}):
+      print(line)
+    '
+

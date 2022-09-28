@@ -92,9 +92,7 @@ def _run_summary_to_jso(app, run):
                 "v1.run_mark", run_id=run.run_id, state=state.name)
 
     jso = run._jso_cache = {
-        "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job_id,
-        "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state.name,
@@ -106,7 +104,6 @@ def _run_summary_to_jso(app, run):
         ],
         "actions"       : actions,
         "expected"      : run.expected,
-        "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
         "labels"        : run.meta.get("labels", []),
     }
     return jso
@@ -143,8 +140,6 @@ def _output_metadata_to_jso(app, run_id, outputs):
     return [
         {
             "output_id": output_id,
-            "output_url": app.url_for(
-                "v1.run_output", run_id=run_id, output_id=output_id),
             "output_len": output.length,
         }
         for output_id, output in outputs.items()
@@ -303,7 +298,6 @@ async def run_log(request, run_id):
 
 @API.route("/runs/<run_id>/outputs", methods={"GET"})
 async def run_output_meta(request, run_id):
-    log.warning(f"GET output {run_id}")
     try:
         outputs = request.app.apsis.outputs.get_metadata(run_id)
     except KeyError:
@@ -483,7 +477,7 @@ async def websocket_runs(request, ws):
                         jso = runs_to_jso(request.app, when, chunk, summary=True)
                         # FIXME: JSOs are cached but ujson.dumps() still takes real
                         # time.
-                        json = ujson.dumps(jso)
+                        json = ujson.dumps(jso, escape_forward_slashes=False)
                     log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
                     await ws.send(json)
                     await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
