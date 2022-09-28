@@ -69,8 +69,8 @@ table.widetable {
 
 // Table for record-like expansions (single job, etc).
 table.fields {
-  @extend .uk-table;
-  @extend .uk-table-small;
+  // @extend .uk-table;
+  // @extend .uk-table-small;
 
   width: auto;
 

@@ -7,12 +7,11 @@
 </template>
 
 <script>
-import { capitalize } from 'lodash'
-import UIkit from 'uikit'
+// import { capitalize } from 'lodash'
 
-function titleCapitalize(string) {
-  return string.split(' ').map(capitalize).join(' ')
-}
+// function titleCapitalize(string) {
+//   return string.split(' ').map(capitalize).join(' ')
+// }
 
 export default {
   name: 'ActionButton',
@@ -20,18 +19,18 @@ export default {
 
   methods: {
     do_action(url) {
-      UIkit.modal.confirm(titleCapitalize(this.action) + '?').then(() =>
-        fetch(url, { method: 'POST' })
-          .then(async (response) => {
-            if (response.ok) {
-              const result = await response.json()
-              if (result.show_run_id)
-                // Got a hint to nav to a new run.
-                // FIXME: Encapsulate this part of the API somewhere.
-                this.$router.push({ name: 'run', params: { run_id: result.show_run_id } })
-            }
-          })
-      )
+      // UIkit.modal.confirm(titleCapitalize(this.action) + '?').then(() =>
+      //   fetch(url, { method: 'POST' })
+      //     .then(async (response) => {
+      //       if (response.ok) {
+      //         const result = await response.json()
+      //         if (result.show_run_id)
+      //           // Got a hint to nav to a new run.
+      //           // FIXME: Encapsulate this part of the API somewhere.
+      //           this.$router.push({ name: 'run', params: { run_id: result.show_run_id } })
+      //       }
+      //     })
+      // )
     },
 
   },
