@@ -104,7 +104,6 @@ def _run_summary_to_jso(app, run):
         ],
         "actions"       : actions,
         "expected"      : run.expected,
-        "output_url"    : app.url_for("v1.run_output_meta", run_id=run.run_id),
         "labels"        : run.meta.get("labels", []),
     }
     return jso
@@ -141,8 +140,6 @@ def _output_metadata_to_jso(app, run_id, outputs):
     return [
         {
             "output_id": output_id,
-            "output_url": app.url_for(
-                "v1.run_output", run_id=run_id, output_id=output_id),
             "output_len": output.length,
         }
         for output_id, output in outputs.items()
@@ -301,7 +298,6 @@ async def run_log(request, run_id):
 
 @API.route("/runs/<run_id>/outputs", methods={"GET"})
 async def run_output_meta(request, run_id):
-    log.warning(f"GET output {run_id}")
     try:
         outputs = request.app.apsis.outputs.get_metadata(run_id)
     except KeyError:
