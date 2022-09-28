@@ -3,7 +3,10 @@ import sanic
 #-------------------------------------------------------------------------------
 
 def response_json(jso, status=200):
-    return sanic.response.json(jso, status=status, indent=1, sort_keys=True)
+    return sanic.response.json(
+        jso,
+        status=status, indent=1, sort_keys=True, escape_forward_slashes=False,
+    )
 
 
 def error(message, status=400, **kw_args):

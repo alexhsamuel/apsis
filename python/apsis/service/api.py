@@ -481,7 +481,7 @@ async def websocket_runs(request, ws):
                         jso = runs_to_jso(request.app, when, chunk, summary=True)
                         # FIXME: JSOs are cached but ujson.dumps() still takes real
                         # time.
-                        json = ujson.dumps(jso)
+                        json = ujson.dumps(jso, escape_forward_slashes=False)
                     log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
                     await ws.send(json)
                     await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
