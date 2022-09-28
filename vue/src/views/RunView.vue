@@ -73,7 +73,7 @@ div
     Frame(title="Output")
       button.uk-button(
         v-if="output && output.output_len && !outputData"
-        v-on:click="fetchOutputData(output.output_url)"
+        v-on:click="fetchOutputData()"
       ) load {{ output.output_len }} bytes
       pre.output.pad(v-if="outputData !== null") {{ outputData }}
 
@@ -89,6 +89,7 @@ div
 <script>
 import { forEach, join, sortBy, toPairs } from 'lodash'
 
+import * as api from '@/api'
 import ActionButton from '@/components/ActionButton'
 import Frame from '@/components/Frame'
 import Job from '@/components/Job'
@@ -154,13 +155,12 @@ export default {
     joinArgs,
 
     fetchRun() {
-      const url = '/api/v1/runs/' + this.run_id  // FIXME
+      const url = api.getRunUrl(this.run_id)
       fetch(url)
         .then(async (response) => {
           if (response.ok) {
             const run = (await response.json()).runs[this.run_id]
             this.run = Object.freeze(run)
-            console.log(this.run)
             this.fetchOutputMetadata()
           }
           else if (response.status === 404)
@@ -171,8 +171,8 @@ export default {
     },
 
     fetchOutputMetadata() {
-      if (this.run && this.run.output_url)
-        fetch(this.run.output_url)
+      if (this.run)
+        fetch(api.getOutputUrl(this.run))
           .then(async rsp => {
             const outputs = await rsp.json()
 
@@ -183,14 +183,16 @@ export default {
 
                 // If the output isn't too big, fetch it immediately.
                 if (this.output.output_len <= 65536)
-                  this.fetchOutputData(this.output.output_url)
+                  this.fetchOutputData()
             })
           })
           // FIXME: Handle error.
           .catch(err => { console.log(err) })
     },
 
-    fetchOutputData(url) {
+    fetchOutputData() {
+      const url = api.getOutputDataUrl(this.run, this.output.output_id)
+
       // Don't request output more than once.
       if (this.outputRequested)
         return
