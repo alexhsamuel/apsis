@@ -5,7 +5,7 @@ import sanic
 def response_json(jso, status=200):
     return sanic.response.json(
         jso,
-        status=status, indent=1, sort_keys=True, escape_forward_slashes=False,
+        status=status, indent=0, escape_forward_slashes=False,
     )
 
 
