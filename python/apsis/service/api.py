@@ -92,9 +92,7 @@ def _run_summary_to_jso(app, run):
                 "v1.run_mark", run_id=run.run_id, state=state.name)
 
     jso = run._jso_cache = {
-        "url"           : app.url_for("v1.run", run_id=run.run_id),
         "job_id"        : run.inst.job_id,
-        "job_url"       : app.url_for("v1.job", job_id=run.inst.job_id),
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state.name,
