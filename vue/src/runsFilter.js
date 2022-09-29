@@ -1,5 +1,5 @@
 import * as jobsFilter from '@/jobsFilter.js'
-import { filter, includes, join, map, some } from 'lodash'
+import { filter, includes, join, map, max, some } from 'lodash'
 import { prefixMatch, splitQuoted, combine } from '@/parse.js'
 import { parseTimeOrOffset } from '@/time.js'
 import store from '@/store'
@@ -143,10 +143,10 @@ export class SinceTerm {
 
   get predicate() {
     const date = parseTimeOrOffset(this.str, false, store.state.timeZone)
-    return (
-      date === null ? run => false
-      : run => run.time_range && new Date(run.time_range[1]) >= date
-    )
+    if (date === null)
+      return run => false
+    else
+      return run => new Date(max(Object.values(run.times))) >= date
   }
 
   static get(query) {
