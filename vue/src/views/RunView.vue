@@ -8,11 +8,11 @@ div
 
     div.uk-margin-bottom
       State(:state="run.state" name).uk-text-bold.uk-margin-right
-      ActionButton(
-        v-for="(url, action) in run.actions" 
-        :key="action"
-        :url="url" 
-        :action="action" 
+      OperationButton(
+        v-for="operation in run.operations"
+        :key="operation"
+        :run_id="run_id"
+        :operation="operation" 
         :button="true"
       )
 
@@ -90,10 +90,10 @@ div
 import { forEach, join, sortBy, toPairs } from 'lodash'
 
 import * as api from '@/api'
-import ActionButton from '@/components/ActionButton'
 import Frame from '@/components/Frame'
 import Job from '@/components/Job'
 import JobWithArgs from '@/components/JobWithArgs'
+import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
 import { joinArgs } from '@/runs'
@@ -108,7 +108,7 @@ import Timestamp from '@/components/Timestamp'
 export default {
   props: ['run_id'],
   components: { 
-    ActionButton,
+    OperationButton,
     Frame,
     Job,
     JobWithArgs,
@@ -172,7 +172,7 @@ export default {
 
     fetchOutputMetadata() {
       if (this.run)
-        fetch(api.getOutputUrl(this.run))
+        fetch(api.getOutputUrl(this.run.run_id))
           .then(async rsp => {
             const outputs = await rsp.json()
 
@@ -191,7 +191,7 @@ export default {
     },
 
     fetchOutputData() {
-      const url = api.getOutputDataUrl(this.run, this.output.output_id)
+      const url = api.getOutputDataUrl(this.run.run_id, this.output.output_id)
 
       // Don't request output more than once.
       if (this.outputRequested)

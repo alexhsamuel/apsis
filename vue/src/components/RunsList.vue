@@ -26,7 +26,7 @@ div
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
-        th.col-actions Actions
+        th.col-operations Operations
 
     tbody
       tr(v-if="groups.groups.length == 0")
@@ -78,17 +78,17 @@ div
             Timestamp(:time="run.times.running")
           td.col-elapsed
             RunElapsed(:run="run")
-          td.col-actions
-            div.uk-inline(v-if="Object.keys(run.actions).length > 0")
-              button.uk-button.uk-button-default.uk-button-small.actions-button(type="button")
+          td.col-operations
+            div.uk-inline(v-if="run.operations.length > 0")
+              button.uk-button.uk-button-default.uk-button-small.operations-button(type="button")
                 span(uk-icon="icon: menu; ratio: 0.75")
               div(uk-dropdown="pos: left-center")
                 ul.uk-nav.uk-dropdown-nav
-                  li: ActionButton(
-                    v-for="(url, action) in run.actions" 
-                    :key="action"
-                    :url="url" 
-                    :action="action" 
+                  li: OperationButton(
+                    v-for="operation in run.operations" 
+                    :key="operation"
+                    :run_id="run.run_id"
+                    :operation="operation" 
                     :button="true"
                   )
 
@@ -100,10 +100,10 @@ div
 <script>
 import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, uniq } from 'lodash'
 
-import ActionButton from './ActionButton'
 import { formatElapsed } from '../time'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
+import OperationButton from './OperationButton'
 import Pagination from './Pagination'
 import Run from '@/components/Run'
 import RunArgs from '@/components/RunArgs'
@@ -149,7 +149,7 @@ export default {
   },
 
   components: {
-    ActionButton,
+    OperationButton,
     Job,
     JobLabel,
     Pagination,
@@ -332,7 +332,7 @@ table.runlist {
     white-space: nowrap;
   }
 
-  .col-actions {
+  .col-operations {
     text-align: center;
     button {
       font-size: 80%;
