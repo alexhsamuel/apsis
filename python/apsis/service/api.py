@@ -17,7 +17,7 @@ from   ..runs import Instance, Run, RunError
 log = logging.getLogger(__name__)
 
 # Max number of runs to send in one websocket message.
-WS_RUN_CHUNK = 1024
+WS_RUN_CHUNK = 4096
 WS_RUN_CHUNK_SLEEP = 0.001
 
 #-------------------------------------------------------------------------------
