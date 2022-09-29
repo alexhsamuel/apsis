@@ -1,5 +1,7 @@
 # Cleanup
 
+- Remove `message` from run JSON and `runs` table.
+
 - To finish `check-job`, we need to remove the program, schedule, action, cond
   aliases from `config.yaml` and move them to a config file specific to the job
   dir.
@@ -8,6 +10,14 @@
 
 - Factor loop watchers (`log.critical`) into a common pattern.
 - Clean up the restore task.
+
+
+# Performance
+
+- Move `meta` out of the `runs` table into its own table, along with any other
+  column that's not required in the run summary.
+
+- Clean up `rerun` column as well.
 
 
 # Idle thoughts
