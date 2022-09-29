@@ -96,10 +96,6 @@ def _run_summary_to_jso(app, run):
         "state"         : run.state.name,
         "message"       : run.message,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
-        "time_range"    : None if len(run.times) == 0 else [
-            time_to_jso(min(run.times.values())),
-            time_to_jso(max(run.times.values())),
-        ],
         "expected"      : run.expected,
         "labels"        : run.meta.get("labels", []),
         "operations"    : sorted(operations),
