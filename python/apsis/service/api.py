@@ -89,17 +89,21 @@ def _run_summary_to_jso(app, run):
         if run.state != state and run.state in Run.FINISHED:
             operations.add(f"mark {state.name}")
 
-    jso = run._jso_cache = {
+    jso = {
         "job_id"        : run.inst.job_id,
         "args"          : run.inst.args,
         "run_id"        : run.run_id,
         "state"         : run.state.name,
-        "message"       : run.message,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
-        "expected"      : run.expected,
         "labels"        : run.meta.get("labels", []),
         "operations"    : sorted(operations),
     }
+    if run.expected:
+        jso["expected"] = run.expected
+    if run.message is not None:
+        jso["message"] = run.message
+
+    run._jso_cache = jso
     return jso
 
 
