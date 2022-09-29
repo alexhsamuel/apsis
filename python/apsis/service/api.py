@@ -71,25 +71,23 @@ def _run_summary_to_jso(app, run):
         # Use the cached JSO.
         return jso
 
-    actions = {}
+    # Construct the set of valid operations for this run.
+    operations = set()
     # Start now or cancel a scheduled or waiting job.
     if run.state in {run.STATE.scheduled, run.STATE.waiting}:
-        actions["cancel"    ] = app.url_for("v1.run_cancel", run_id=run.run_id)
-        actions["start"     ] = app.url_for("v1.run_start", run_id=run.run_id)
+        operations.add("start")
+        operations.add("cancel")
     # Retry is available if the run didn't succeed.
     if run.state in {run.STATE.success, run.STATE.failure, run.STATE.error}:
-        actions["rerun"     ] = app.url_for("v1.run_rerun", run_id=run.run_id)
+        operations.add("rerun")
     # Terminate and kill are available for a running run.
     if run.state == run.STATE.running:
-        actions["terminate" ] = app.url_for(
-            "v1.run_signal", run_id=run.run_id, signal="SIGTERM")
-        actions["kill"      ] = app.url_for(
-            "v1.run_signal", run_id=run.run_id, signal="SIGKILL")
+        operations.add("terminate")
+        operations.add("kill")
     # Mark actions are available among finished states
     for state in Run.FINISHED:
         if run.state != state and run.state in Run.FINISHED:
-            actions[f"mark {state.name}"] = app.url_for(
-                "v1.run_mark", run_id=run.run_id, state=state.name)
+            operations.add(f"mark {state.name}")
 
     jso = run._jso_cache = {
         "job_id"        : run.inst.job_id,
@@ -102,9 +100,9 @@ def _run_summary_to_jso(app, run):
             time_to_jso(min(run.times.values())),
             time_to_jso(max(run.times.values())),
         ],
-        "actions"       : actions,
         "expected"      : run.expected,
         "labels"        : run.meta.get("labels", []),
+        "operations"    : sorted(operations),
     }
     return jso
 
