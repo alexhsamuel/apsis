@@ -10,7 +10,6 @@
 
 <script>
 export default {
-  name: 'TriangleIcon',
   props: {
     color: {
       type: String,

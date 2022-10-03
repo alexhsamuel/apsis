@@ -11,7 +11,6 @@
 
 <script>
 export default {
-  name: 'HomeIcon',
   props: {
     color: {
       type: String,

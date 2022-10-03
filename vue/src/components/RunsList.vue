@@ -68,10 +68,8 @@ div
           td.col-reruns
             span(v-show="index == 0 && groupRuns.length > 1")
               | {{ groupRuns.length > 1 ? groupRuns.length : "" }}
-              a(
-                v-bind:uk-icon="groupIcon(groupRun.run_id)"
-                v-on:click="toggleGroupExpand(groupRun.run_id)"
-              )
+              span(v-on:click="toggleGroupExpand(groupRun.run_id)")
+                TriangleIcon(:direction="getGroupExpand(groupRun.run_id) ? 'up' : 'down'")
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
           td.col-start-time
@@ -113,6 +111,7 @@ import State from '@/components/State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
+import TriangleIcon from '@/components/icons/TriangleIcon'
 
 function sortTime(run) {
   return run.times.schedule || run.times.running || run.times.error
@@ -159,6 +158,7 @@ export default {
     State,
     StatesSelect,
     Timestamp,
+    TriangleIcon,
   },
 
   data() {
@@ -298,10 +298,6 @@ export default {
 
     getGroupVisibleRuns(groupRun, groupRuns) {
       return this.getGroupExpand(groupRun.run_id) ? groupRuns : [groupRun]
-    },
-
-    groupIcon(runId) {
-      return this.getGroupExpand(runId) ? 'icon: chevron-up' : 'icon: chevron-down'
     },
 
     formatElapsed,

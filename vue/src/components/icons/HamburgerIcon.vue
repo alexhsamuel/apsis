@@ -11,7 +11,6 @@
 
 <script>
 export default {
-  // name: 'HamburgerIcon',
   props: {
     color: {
       type: String,
