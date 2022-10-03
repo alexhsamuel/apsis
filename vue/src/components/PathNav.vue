@@ -1,9 +1,7 @@
 <template lang="pug">
 span
   span: a.dirnav(v-on:click="$emit('path', '')")
-    div.folder-icon(
-      uk-icon="icon: home"
-      ratio="0.8"
+    HomeIcon(
       style="display: relative; top: -3px;"
     )
 
@@ -17,10 +15,15 @@ span
 </template>
 
 <script>
+import HomeIcon from '@/components/icons/HomeIcon'
+
 export default {
   name: 'PathNav',
   props: {
     path: { type: String },
+  },
+  components: {
+    HomeIcon,
   },
 
   computed: {
