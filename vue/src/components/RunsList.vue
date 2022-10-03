@@ -81,7 +81,7 @@ div
           td.col-operations
             div.uk-inline(v-if="run.operations.length > 0")
               button(type="button")
-                span(uk-icon="icon: menu; ratio: 0.75")
+                HamburgerIcon
               div(uk-dropdown="pos: left-center")
                 ul.uk-nav.uk-dropdown-nav
                   li: OperationButton(
@@ -101,6 +101,7 @@ div
 import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, uniq } from 'lodash'
 
 import { formatElapsed } from '../time'
+import HamburgerIcon from '@/components/icons/HamburgerIcon'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import OperationButton from './OperationButton'
@@ -148,9 +149,10 @@ export default {
   },
 
   components: {
-    OperationButton,
+    HamburgerIcon,
     Job,
     JobLabel,
+    OperationButton,
     Run,
     RunArgs,
     RunElapsed,
