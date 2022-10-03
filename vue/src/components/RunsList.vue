@@ -104,7 +104,6 @@ import { formatElapsed } from '../time'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import OperationButton from './OperationButton'
-import Pagination from './Pagination'
 import Run from '@/components/Run'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
@@ -152,7 +151,6 @@ export default {
     OperationButton,
     Job,
     JobLabel,
-    Pagination,
     Run,
     RunArgs,
     RunElapsed,
