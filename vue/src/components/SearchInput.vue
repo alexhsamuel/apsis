@@ -1,6 +1,7 @@
 <template lang="pug">
 span.uk-inline
-  span.uk-form-icon(uk-icon="icon: search")
+  span.icon.uk-form-icon
+    SearchIcon(color="#999")
   input.uk-input(
     v-model="input"
     v-on:change="search()"
@@ -10,8 +11,14 @@ span.uk-inline
 </template>
 
 <script>
+import SearchIcon from '@/components/icons/SearchIcon'
+
 export default {
   props: ['value'],
+
+  components: {
+    SearchIcon,
+  },
 
   data() {
     return {
@@ -40,8 +47,7 @@ export default {
   }
 }
 
-.uk-form-icon {
+.icon {
   pointer-events: auto;
-  color: #999;
 }
 </style>
