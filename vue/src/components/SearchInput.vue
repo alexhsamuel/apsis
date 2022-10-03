@@ -1,8 +1,8 @@
 <template lang="pug">
-span.uk-inline
-  span.icon.uk-form-icon
+span.inline
+  span.icon
     SearchIcon(color="#999")
-  input.uk-input(
+  input(
     v-model="input"
     v-on:change="search()"
     v-on:keyup.esc="input = ''; search()"
@@ -41,13 +41,25 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.uk-input {
-  &:focus {
-    border-color: #6b9;  // FIXME: Elsewhere.
-  }
+.inline {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
 }
 
 .icon {
   pointer-events: auto;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+input {
+  padding-left: 40px;
 }
 </style>
