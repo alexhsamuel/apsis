@@ -2,9 +2,10 @@
 div.frame
   div.heading(v-on:click="open = !open" style="cursor: default")
     | {{ title }}
-    span(
-      :uk-icon="'ratio: 1.4; icon: ' + (open ? 'triangle-down' : 'triangle-right')"
-      style="color: #666; position: relative; top: -1px;"
+    TriangleIcon(
+      :direction="open ? 'down' : 'right'"
+      color="#666"
+      style="position: relative; top: -1px;"
     )
 
   div.pad(v-if="open")
@@ -13,11 +14,16 @@ div.frame
 </template>
 
 <script>
+import TriangleIcon from '@/components/icons/TriangleIcon'
+
 export default {
   name: 'Frame',
   props: {
     title: {type: String, default: ''},
     closed: {type: Boolean, default: false},
+  },
+  components: {
+    TriangleIcon,
   },
 
   data() {

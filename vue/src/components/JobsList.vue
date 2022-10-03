@@ -12,15 +12,13 @@ div
           | Job
           span(style="margin-left: 8px")
             a.expand-button
-              span(
-                uk-icon="icon: triangle-right; ratio: 1.4"
-                style="position: relative; left: -3px; top: 0px;"
+              TriangleIcon(
+                direction="right"
                 v-on:click="expandAll(false)"
               )
             a.expand-button
-              span(
-                uk-icon="icon: triangle-down; ratio: 1.4"
-                style="position: relative; left: -3px; top: 1px;"
+              TriangleIcon(
+                direction="down"
                 v-on:click="expandAll(true)"
               )
         th Parameters
@@ -61,14 +59,14 @@ div
                   svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
                     path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
                 a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
-                span.indent.folder-icon(
+                TriangleIcon.indent.folder-icon(
                   v-if="isExpanded(path)"
-                  uk-icon="icon: triangle-down; ratio: 1.4"
+                  direction="down"
                   style="position: relative; left: -3px; top: 0px;"
                 )
-                span.indent.folder-icon(
+                TriangleIcon.indent.folder-icon(
                   v-else
-                  uk-icon="icon: triangle-right; ratio: 1.4"
+                  direction="right"
                   style="position: relative; left: -5px; top: -1px;"
                 )
 
@@ -88,6 +86,7 @@ import JobLabel from './JobLabel'
 import { filter, join, sortBy } from 'lodash'
 import Program from './Program'
 import showdown from 'showdown'
+import TriangleIcon from '@/components/icons/TriangleIcon'
 
 /**
  * Arranges an array of jobs into a tree by job ID path components.
@@ -155,6 +154,7 @@ export default {
     Job,
     JobLabel,
     Program,
+    TriangleIcon,
   },
 
   created() {
