@@ -71,7 +71,7 @@ div
               tt {{ value }}
 
     Frame(title="Output")
-      button.uk-button(
+      button(
         v-if="output && output.output_len && !outputData"
         v-on:click="fetchOutputData()"
       ) load {{ output.output_len }} bytes

@@ -80,7 +80,7 @@ div
             RunElapsed(:run="run")
           td.col-operations
             div.uk-inline(v-if="run.operations.length > 0")
-              button.uk-button.uk-button-default.uk-button-small.operations-button(type="button")
+              button(type="button")
                 span(uk-icon="icon: menu; ratio: 0.75")
               div(uk-dropdown="pos: left-center")
                 ul.uk-nav.uk-dropdown-nav
@@ -337,6 +337,7 @@ table.runlist {
     button {
       font-size: 80%;
       line-height: 1.4;
+      padding: 0 15px;
     }
   }
 

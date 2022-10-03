@@ -1,6 +1,6 @@
 <template lang="pug">
 span.states-select
-  button.uk-button.uk-button-default(type="button")
+  button(type="button")
     | States: 
     span(v-if="value.length == 0") All
     span(v-else)

@@ -5,8 +5,8 @@ div
     pre.log {{ log }}
 
   div.buttons.uk-margin
-    button.uk-button.uk-button-danger(v-on:click="shutDown(true)") Restart
-    button.uk-button.uk-button-danger(v-on:click="shutDown(false)") Shut Down
+    button.button-danger(v-on:click="shutDown(true)") Restart
+    button.button-danger(v-on:click="shutDown(false)") Shut Down
 
 </template>
 

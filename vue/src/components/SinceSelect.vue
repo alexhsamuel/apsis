@@ -1,6 +1,6 @@
 <template lang="pug">
 span.since-select
-  button.uk-button.uk-button-default(type="button") {{ formatSince(value) }}
+  button(type="button") {{ formatSince(value) }}
 
   div(uk-dropdown="pos: bottom-left")
     ul.uk-nav.uk-dropdown-nav

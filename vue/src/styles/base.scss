@@ -80,3 +80,25 @@ tt {
     border-bottom: 3px solid black;
   }
 }
+
+button {
+  background-color: transparent;
+  border-radius: 0;
+  border: 1px solid #e5e5e5;
+  font-size: 0.875rem;
+  line-height: 38px;
+  padding: 0 30px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+button:hover {
+  border-color: #b2b2b2;
+}
+
+button.button-danger {
+  background-color: #f0506e;
+  color: white;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
