@@ -1,8 +1,10 @@
 export default class RunsSocket {
-  constructor(callback, run_id, job_id) {
-    this.url = RunsSocket.get_url(run_id, job_id)
+  constructor(callback, onConnect, onErr) {
+    this.url = RunsSocket.get_url()
     this.websocket = null
     this.callback = callback
+    this.onConnect = onConnect
+    this.onErr = onErr
     this.open()
   }
 
@@ -10,15 +12,17 @@ export default class RunsSocket {
     if (this.websocket)
       return
 
-    console.log('web socket: opening ' + this.url)
+    console.log('run web socket: opening ' + this.url)
     this.websocket = new WebSocket(this.url)
 
     this.websocket.onopen = () => {
       console.log('run web socket: connected')
+      this.onConnect()
     }
 
     this.websocket.onerror = (event) => {
-      console.log('run web socket: error: ' + event)
+      console.log('run web socket: error:', event)
+      this.onErr(event)
       this.websocket.close()
     }
 

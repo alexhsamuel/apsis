@@ -31,12 +31,22 @@ export default {
   created() {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
     const store = this.store
-    this.runsSocket = new RunsSocket(msg => updateRuns(msg, store.state))
+    this.runsSocket = new RunsSocket(
+      msg => updateRuns(msg, store.state),
+      () => store.state.errors.pop('connection error'),
+      this.showToastError,
+    )
   },
 
   destroyed() {
     this.liveLog.close()
     this.runsSocket.close()
+  },
+
+  methods: {
+    showToastError(event) {
+      store.state.errors.push('connection error')
+    }
   },
 
 }
@@ -51,11 +61,8 @@ export default {
   -webkit-font-smoothing: antialiased;
 }
 
-.navbar {
-  margin-bottom: 1.5rem;
-}
-
 .view {
+  margin-top: 1.5rem;
   max-width: none;
   padding-left: 40px;
   padding-right: 40px;
