@@ -11,16 +11,11 @@ div
         th
           | Job
           span(style="margin-left: 8px")
-            a.expand-button
-              TriangleIcon(
-                direction="right"
-                v-on:click="expandAll(false)"
-              )
-            a.expand-button
-              TriangleIcon(
-                direction="down"
-                v-on:click="expandAll(true)"
-              )
+            a.expand-button(v-on:click="expandAll(false)")
+              TriangleIcon(direction="right")
+            a.expand-button(v-on:click="expandAll(true)")
+              TriangleIcon(direction="down")
+
         th Parameters
         th Description
         // th Schedule

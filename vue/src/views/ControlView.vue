@@ -1,10 +1,10 @@
 <template lang="pug">
 div
-  div
+  div.log-box
     div.field-label Server log
     pre.log {{ log }}
 
-  div.buttons.uk-margin
+  div.buttons
     button.button-danger(v-on:click="shutDown(true)") Restart
     button.button-danger(v-on:click="shutDown(false)") Shut Down
 
@@ -50,13 +50,20 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.log-box {
+  border: 1px solid #ddd;
+  padding: 1em 2ex;
+}
+
 .log {
   height: 32em;
   overflow-x: hidden;
   overflow-y: scroll;
+  -moz-scrollbars-vertical: scroll;
 }
 
 .buttons {
+  margin-top: 1.5em;
   button {
     margin: 0 8px;
   }

@@ -1,9 +1,8 @@
 <template lang="pug">
-  #app
-    navbar
+  .app
+    navbar.navbar
     ErrorToast
-    .uk-container.uk-container-expand.uk-margin-top
-      router-view
+    router-view.view
 </template>
 
 <script>
@@ -63,13 +62,23 @@ export default {
 }
 </script>
 
-<style lang="scss">
-#app {
+<style lang="scss" scoped>
+.app {
   max-width: none;
   margin-left: auto;
   margin-right: auto;
   font-family: "Roboto", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.navbar {
+  margin-bottom: 1.5rem;
+}
+
+.view {
+  max-width: none;
+  padding-left: 40px;
+  padding-right: 40px;
 }
 </style>
 

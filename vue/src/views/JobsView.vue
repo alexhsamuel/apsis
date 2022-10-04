@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  div(style="display: flex")
+  div.controls(style="display: flex")
     div(style="flex: 1;")
       h3
         a.undersel.sel() Jobs
@@ -8,7 +8,7 @@ div
         span(v-if="pathStr" style="font-size: 16px; padding: 0 8px;")  
           PathNav(:path="pathStr" v-on:path="setPath($event)")
 
-    SearchInput.search.uk-margin-bottom(
+    SearchInput.search(
       v-model="query"
       style="flex: 0 0 300px;"
     )
@@ -17,7 +17,7 @@ div
     :dir="pathStr"
     :query="query"
     v-on:dir="setPath($event)"
-    ).uk-margin-bottom
+  )
 
 </template>
 
@@ -101,6 +101,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.controls {
+  margin-bottom: 1rem;
+}
+
 .search {
   width: 400px;
 }

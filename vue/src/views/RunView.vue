@@ -1,13 +1,13 @@
 <template lang="pug">
 div
-  span(v-if="run")
-    div.uk-margin-bottom
+  div.runs(v-if="run")
+    div
       span.title
         | {{ run_id }}
         JobWithArgs(:job-id="run.job_id" :args="run.args").spaced
 
-    div.uk-margin-bottom
-      State(:state="run.state" name).uk-text-bold.uk-margin-right
+    div
+      State.state(:state="run.state" name)
       OperationButton(
         v-for="operation in run.operations"
         :key="operation"
@@ -245,8 +245,17 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.runs > div {
+  margin-bottom: 1.5rem;
+}
+
 .output {
   font-family: "Roboto mono", monospaced;
+}
+
+.state {
+  font-weight: bold;
+  margin-right: 2ex;
 }
 </style>
 

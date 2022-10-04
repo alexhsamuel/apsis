@@ -22,13 +22,13 @@ div
     )
 
     //- Input box for the search string.
-    SearchInput.search-input.uk-margin-bottom(
+    SearchInput.search-input(
       v-model="query"
       style="flex: 0 0 300px;"
     )
 
   //- The table of runs.
-  RunsList.uk-margin-bottom(
+  RunsList(
     :query="query"
     :path="path"
     v-on:path="setPath($event)"
@@ -134,6 +134,7 @@ export default {
 <style lang="scss">
 // FIXME: Elsewhere
 .flex-margin {
+  
   display: flex;
   > * {
     margin-right: 16px;

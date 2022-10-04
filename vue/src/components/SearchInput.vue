@@ -52,14 +52,15 @@ export default {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
+  left: -4px;
   width: 40px;
+  height: 28px;
   display: inline-flex;
   justify-content: center;
-  align-items: center;
 }
 
 input {
-  padding-left: 40px;
+  padding-left: 32px;
+  height: 28px;
 }
 </style>
