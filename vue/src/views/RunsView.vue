@@ -134,7 +134,6 @@ export default {
 <style lang="scss">
 // FIXME: Elsewhere
 .flex-margin {
-  
   display: flex;
   > * {
     margin-right: 16px;
