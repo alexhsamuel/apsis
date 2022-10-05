@@ -64,7 +64,6 @@ class Store {
 
   constructor() {
     this._tick()
-    this.state.errors.push('test error')
   }
 }
 
