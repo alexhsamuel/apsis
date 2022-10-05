@@ -1,28 +1,25 @@
 <template lang="pug">
-nav.uk-navbar-container.uk-navbar
-  .uk-navbar-left
-    .uk-navbar-item
-      svg(
-        width="3em" 
-        height="4em" 
-        version="1.1" 
-        xmlns="http://www.w3.org/2000/svg"
-      )
-        circle(cx="1.5em" cy="2.05em" r="20%" stroke="black" fill="transparent" stroke-width="3.1")
-        circle(cx="1.5em" cy="1.68em" r="4%" fill="#40c060")
+nav
+  svg(
+    width="5em" 
+    height="4em" 
+    version="1.1" 
+    xmlns="http://www.w3.org/2000/svg"
+  )
+    circle(cx="1.5em" cy="2.05em" r="20%" stroke="black" fill="transparent" stroke-width="3.1")
+    circle(cx="1.5em" cy="1.68em" r="4%" fill="#40c060")
 
-    .uk-navbar-item.title
-      | APSİS
+  .title
+    | APSİS
 
-    ul.uk-navbar-nav
-      li: router-link(to="/jobs") Jobs
-      li: router-link(to="/runs?q=since:1d") Runs
-      li: router-link(to="/control") Control
+  router-link.link(to="/jobs") Jobs
+  router-link.link(to="/runs?q=since:1d") Runs
+  router-link.link(to="/control") Control
 
-  .uk-navbar-right
-    .uk-navbar-item 
-      clock
-      TimeZoneSelect
+  .spacer(style="flex-basis: 100%")
+
+  clock.item 
+  TimeZoneSelect.tz.item
 
 </template>
 
@@ -40,6 +37,16 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+nav {
+  background: #eee;
+  height: 48px;
+  padding: 4px 40px;
+  display: flex;
+  align-content: space-between;
+  align-items: center;
+  column-gap: 16px;
+}
+
 .title {
   font-family: Helvetica;
   font-size: 150%;
@@ -49,17 +56,21 @@ export default {
   margin-right: 12px;
   padding-top: 4px;
   color: #222;
-  a {
-    color: #222;
-  }
-  a:hover {
+}
+
+.link {
+  color: #333;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  padding: 0 8px 2px 8px;
+  &:hover {
     text-decoration: none;
+    border: 1px solid #ccc;
   }
 }
 
 .clock {
   letter-spacing: .04rem;
 }
-
 </style>
 
