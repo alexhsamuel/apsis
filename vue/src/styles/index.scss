@@ -69,22 +69,25 @@ table.widetable {
 
 // Table for record-like expansions (single job, etc).
 table.fields {
-  @extend .uk-table;
-  @extend .uk-table-small;
-
   width: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
 
   th, td {
     vertical-align: top;
-    padding-top: 0.25rem;
     padding-bottom: 0.25rem;
+    padding-top: 0.25rem;
+    text-align: left;
   }
 
   th {
     padding-left: 0;
     padding-right: 1.5rem;
-    // border-right: 1px solid #ddd;
     line-height: 1.75rem;
+    font-size: 0.875rem;
+    font-weight: normal;
+    text-transform: uppercase;
+    color: #999;
   }
 
   td {
