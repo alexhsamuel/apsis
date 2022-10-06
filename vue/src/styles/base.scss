@@ -119,7 +119,7 @@ input {
   outline: none;
 
   &:focus, &:active {
-    border-color: #6b9;
+    border-color: $global-focus-color;
   }
 }
 
