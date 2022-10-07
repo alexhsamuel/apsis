@@ -14,7 +14,7 @@
     div.drop
       .items(
         v-show="show"
-        v-on:mousedown.stop="onItemClick"
+        v-on:mousedown="onItemClick"
       )
        slot
 </template>
@@ -48,6 +48,9 @@ export default {
       this.show = !this.show
     },
 
+    /**
+     * Sets the value in the value box to the selected `this.idx`.
+     */
     setValue() {
       const valueBox  = this.$el.querySelector('.value')
       const item = this.getItemsElement().childNodes[this.idx]
@@ -58,8 +61,14 @@ export default {
 
       // Replace with a clone of the selected item.
       valueBox.appendChild(item.cloneNode(true))
+
+      // Send an input event, so that v-model works with this component.
+      this.$emit('input', this.idx)
     },
 
+    /**
+     * Sets the highlighted selection to `idx`.
+     */
     setSelection(idx) {
       const items = this.getItemsElement()
   
@@ -72,6 +81,9 @@ export default {
       item.classList.add('selected')
     },
 
+    /**
+     * Moves the highlighted selection by `delta`.
+     */
     move(delta) {
       if (this.show) {
         const len = this.getItemsElement().childNodes.length
@@ -83,21 +95,22 @@ export default {
 
     onItemClick(ev) {
       const items = this.getItemsElement()
-      for (let i = 0; i < items.childNodes.length; ++i)
-        if (items.childNodes[i] === ev.target) {
+      // Scan through items, looking for a click hit.
+      for (let i = 0; i < items.childNodes.length; ++i) {
+        const item = items.childNodes[i]
+        if (item.contains(ev.target)) {
+          // Hit.  Set the selection as well as the top-level value.
           this.setSelection(i)
           this.setValue()
         }
+      }
       this.show = false
     },
 
-    event(ev) {
-      console.log(ev)
-    }
   },
   
   mounted() {
-    this.setSelection(0)  // FIXME
+    this.setSelection(this.idx)
     this.setValue()
   },
 }
@@ -135,9 +148,11 @@ export default {
   width: 152px;
   border: 1px solid $global-frame-color;
   box-shadow: 4px 4px 4px #eee;
+  padding-top: 4px;
+  padding-bottom: 4px;
 
   div {
-    padding: 4px 12px;
+    padding: 6px 12px;
   }
 
   :hover {
