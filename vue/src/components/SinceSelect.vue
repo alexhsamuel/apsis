@@ -48,7 +48,6 @@ export default {
 <style lang="scss" scoped=true>
 .item {
   text-transform: uppercase;
-  margin-right: 3em;
   box-sizing: border-box;
   width: 100%;
 }
