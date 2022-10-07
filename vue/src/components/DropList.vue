@@ -136,6 +136,7 @@ export default {
 }
 
 .drop {
+  z-index: 1;
   position: absolute;
   width: 0;
   height: 0;
