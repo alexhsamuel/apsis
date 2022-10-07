@@ -1,10 +1,9 @@
 <template lang="pug">
-span.states-select
-  DropList(v-model="selIdx")
-    div(v-for="[label, states] in options")
-      span(style="float: right")
-        State(v-for="state in states" :key="state" :state="state")
-      span.label {{ label }}       
+DropList(v-model="selIdx")
+  div(v-for="[label, states] in options")
+    span(style="float: right")
+      State(v-for="state in states" :key="state" :state="state")
+    span.label {{ label }}       
 
 </template>
 
