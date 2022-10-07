@@ -1,58 +1,55 @@
 <template lang="pug">
-span.since-select
-  button(type="button") {{ formatSince(value) }}
-
-  div(uk-dropdown="pos: bottom-left")
-    ul.uk-nav.uk-dropdown-nav
-      li(v-for="since in ['60m', '6h', '1d', '7d', '30d', '']")
-        a(href="#" v-on:click="$emit('input', since)") {{ formatSince(since) }}
+DropList(v-model="selIdx")
+  div.item(v-for="[label, _] in options") {{ label }}
 
 </template>
 
 <script>
+import { findIndex } from 'lodash'
+import DropList from '@/components/DropList'
+
 export default {
   props: ['value'],
 
   components: {
+    DropList,
   },
 
-  computed: {
+  data() {
+    const options = [
+      ['Last 60 min', '60m'],
+      ['Last 6 hours', '6h'],
+      ['Last day', '1d'],
+      ['Last 7 days', '7d'],
+      ['Last 30 days', '30d'],
+      ['All', ''],
+    ]
+
+    // Convert our model into DropLists's selection index.
+    let selIdx = findIndex(options, o => o[1] === this.value)
+    // FIXME: No match?  Use 'all'.
+    selIdx = selIdx === -1 ? 5 : selIdx
+
+    return {
+      options,
+      selIdx,
+    }
   },
 
-  methods: {
-    formatSince(since) {
-      if (since === '')
-        return 'All'
-
-      let match = since.match(/^(\d+)m$/)
-      if (match)
-        return `Last ${parseInt(match[1])} min`
-
-      match = since.match(/^(\d+)h$/)
-      if (match)
-        return `Last ${parseInt(match[1])} hours`
-
-      match = since.match(/^(\d+)d$/)
-      if (match) {
-        const days = parseInt(match[1])
-        return days === 1 ? 'Last day' : `Last ${days} days`
-      }
-
-      return 'Since ' + since
+  watch: {
+    selIdx(idx) {
+      // DropList provides the index of the selection.  Translate into states.
+      this.$emit('input', this.options[idx][1])
     },
   },
 }
 </script>
 
-<style lang="scss">
-.since-select {
-  button {
-    width: 100%;
-    padding: 0 8px 0 12px;
-  }
-  li {
-    text-transform: uppercase;
-    margin-right: 3em;
-  }
+<style lang="scss" scoped=true>
+.item {
+  text-transform: uppercase;
+  margin-right: 3em;
+  box-sizing: border-box;
+  width: 100%;
 }
 </style>
