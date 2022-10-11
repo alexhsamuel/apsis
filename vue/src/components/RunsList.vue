@@ -77,18 +77,14 @@ div
           td.col-elapsed
             RunElapsed(:run="run")
           td.col-operations
-            div.uk-inline(v-if="run.operations.length > 0")
-              button(type="button")
-                HamburgerIcon
-              div(uk-dropdown="pos: left-center")
-                ul.uk-nav.uk-dropdown-nav
-                  li: OperationButton(
-                    v-for="operation in run.operations" 
-                    :key="operation"
-                    :run_id="run.run_id"
-                    :operation="operation" 
-                    :button="true"
-                  )
+            HamburgerMenu(v-if="run.operations.length > 0")
+              OperationButton(
+                v-for="operation in run.operations" 
+                :key="operation"
+                :run_id="run.run_id"
+                :operation="operation" 
+                :button="true"
+              )
 
       tr(v-if="groups.omitScheduled > 0")
         td.note(colspan="8") {{ groups.omitScheduled }} scheduled runs not shown
@@ -99,7 +95,7 @@ div
 import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, uniq } from 'lodash'
 
 import { formatElapsed } from '../time'
-import HamburgerIcon from '@/components/icons/HamburgerIcon'
+import HamburgerMenu from '@/components/HamburgerMenu'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import OperationButton from './OperationButton'
@@ -148,7 +144,7 @@ export default {
   },
 
   components: {
-    HamburgerIcon,
+    HamburgerMenu,
     Job,
     JobLabel,
     OperationButton,
@@ -312,7 +308,7 @@ table.runlist {
     text-align: left;
   }
 
-  .col-run, .col-state {
+  .col-run, .col-state, .col-operations {
     text-align: center;
   }
 
@@ -328,26 +324,9 @@ table.runlist {
     white-space: nowrap;
   }
 
-  .col-operations {
-    text-align: center;
-    button {
-      font-size: 80%;
-      line-height: 1.4;
-      padding: 0 15px;
-    }
-  }
-
   .highlight-run {
     background: #f6faf8;
   }
-}
-</style>
-
-<style lang="scss" scoped>
-// FIXME
-.uk-dropdown {
-  padding: 12px;
-  min-width: 0;
 }
 </style>
 

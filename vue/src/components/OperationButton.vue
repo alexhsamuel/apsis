@@ -57,6 +57,7 @@ export default {
   border: 1px solid #aaa;
   font-size: 85%;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: default;
 }
 
