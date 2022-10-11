@@ -120,7 +120,8 @@ export default {
 @import 'src/styles/vars.scss';
 
 .value {
-  width: 128px;
+  box-sizing: border-box;
+  width: 100%;
   height: 28px;
   background: white;
   border: 1px solid $global-frame-color;
@@ -138,7 +139,7 @@ export default {
 .drop {
   z-index: 1;
   position: absolute;
-  width: 0;
+  width: max-content;
   height: 0;
 }
 
@@ -146,7 +147,6 @@ export default {
   position: relative;
   top: 4px;
   background: white;
-  width: 152px;
   border: 1px solid $global-frame-color;
   box-shadow: 4px 4px 4px #eee;
   padding-top: 4px;

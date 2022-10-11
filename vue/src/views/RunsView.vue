@@ -16,7 +16,7 @@ div
 
     //- Combo box for selecting the run states filter.
     StatesSelect(
-      style="flex: 0 0 150px;"
+      style="flex: 0 0 180px;"
       :value="states"
       v-on:input="setStates($event)"
     )
@@ -135,12 +135,7 @@ export default {
 // FIXME: Elsewhere
 .flex-margin {
   display: flex;
-  > * {
-    margin-right: 16px;
-  }
-  > :last-child {
-    margin-right: 0;
-  }
+  gap: 16px;
 }
 </style>
 

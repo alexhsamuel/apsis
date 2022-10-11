@@ -53,5 +53,8 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
+.label {
+  margin-right: 1em;
+}
 </style>
