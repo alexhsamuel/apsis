@@ -1,13 +1,11 @@
 import './styles/index.scss'
 
 import App from './App'
-import Icons from 'uikit/dist/js/uikit-icons'
 import router from './router'
 import store from './store'
 import UIkit from 'uikit'
 import Vue from 'vue'
 
-UIkit.use(Icons)
 window.UIkit = UIkit
 
 Vue.config.productionTip = false
