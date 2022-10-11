@@ -5,7 +5,7 @@
     div.burger(
       tabindex=0
       v-on:mousedown.stop="show = !show"
-      v-on:onblur.self="onBlur"
+      v-on:blur.self="onBlur"
     )
       HamburgerIcon
     div.drop
@@ -44,6 +44,7 @@ export default {
       // the drop menu prematurely.  In that case, we'll close the drop menu
       // when it receives the bubbled-up click event later.
       const drop = this.$el.querySelector('.drop')
+      console.log('onBlur')
       if (!drop.contains(ev.explicitOriginalTarget))
         this.show = false
     }
