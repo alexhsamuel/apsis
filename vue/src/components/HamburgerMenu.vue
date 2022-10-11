@@ -44,7 +44,6 @@ export default {
       // the drop menu prematurely.  In that case, we'll close the drop menu
       // when it receives the bubbled-up click event later.
       const drop = this.$el.querySelector('.drop')
-      console.log('onBlur')
       if (!drop.contains(ev.explicitOriginalTarget))
         this.show = false
     }
