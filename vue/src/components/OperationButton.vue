@@ -8,9 +8,9 @@
 
 <script>
 import { capitalize } from 'lodash'
-import UIkit from 'uikit'
-
+import ConfirmationModal from '@/components/ConfirmationModal'
 import { getUrlForOperation } from '@/api.js'
+import Vue from 'vue'
 
 function titleCapitalize(string) {
   return string.split(' ').map(capitalize).join(' ')
@@ -22,10 +22,9 @@ export default {
 
   methods: {
     doOperation() {
+      const message = titleCapitalize(this.operation) + ' ' + this.run_id + '?'
       const url = getUrlForOperation(this.operation, this.run_id)
-      UIkit.modal.confirm(
-        titleCapitalize(this.operation) + ' ' + this.run_id + '?'
-      ).then(() =>
+      const fn = () =>
         fetch(url, { method: 'POST' })
           .then(async (response) => {
             if (response.ok) {
@@ -36,7 +35,12 @@ export default {
                 this.$router.push({ name: 'run', params: { run_id: result.show_run_id } })
             }
           })
-      )
+
+      const Class = Vue.extend(ConfirmationModal)
+      const modal = new Class({propsData: {message, ok: fn}})
+      // Mount and add the modal.  The modal destroys and removes itself.
+      modal.$mount()
+      this.$root.$el.appendChild(modal.$el)
     },
 
   },

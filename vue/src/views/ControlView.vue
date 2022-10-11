@@ -12,9 +12,9 @@ div
 
 <script>
 import _ from 'lodash'
-import uikit from 'uikit'
-
+import ConfirmationModal from '@/components/ConfirmationModal'
 import store from '@/store.js'
+import Vue from 'vue'
 
 export default {
   props: [],
@@ -32,18 +32,24 @@ export default {
   methods: {
     shutDown(restart) {
       const url = '/api/control/shut_down' + (restart ? '?restart' : '')
-      const msg = (restart ? 'Restart' : 'Shut down') + ' the Apsis server?'
-      uikit.modal.confirm(msg).then(
-        () => { 
-          fetch(url, {method: 'POST', body: '{}'})
-            .then((response) => response.json() )
-            .then((response) => {
-              // FIXME: Do something reasonable here.
-              console.log('shut down') 
-            })
-        }, 
-        () => null)
+      const message = (restart ? 'Restart' : 'Shut down') + ' the Apsis server?'
+      console.log(message)
+
+      const fn = () =>
+        fetch(url, {method: 'POST', body: '{}'})
+          .then((response) => response.json() )
+          .then((response) => {
+            // FIXME: Do something reasonable here.
+            console.log('shut down') 
+          })
+
+      const Class = Vue.extend(ConfirmationModal)
+      const modal = new Class({propsData: {message, ok: fn}})
+      // Mount and add the modal.  The modal destroys and removes itself.
+      modal.$mount()
+      this.$root.$el.appendChild(modal.$el)
     },
+
   },
 
 }
