@@ -24,53 +24,48 @@ div
       tr(v-if="loading")
         td(class="loading") Loading jobs...
 
-      tr(
+      tr.grid(
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
-        :class="[job ? 'job' : 'dir']"
-      ).grid
-        td
-          span(style="white-space: nowrap")
-            //- indent
-            span(:style="{ display: 'inline-block', width: (36 * subpath.length) + 'px' }")
+      )
 
-            //- a job
-            span(v-if="job")
-              span(style="display: inline-block; position: relative; left: -2px; top: -3px; width: 22px;")
-                svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
-                  path(d="M 100 600 L 1700 600 L 1700 1700 L 50 1700 L 100 600" stroke="#666" stroke-width="100" fill="transparent")
-                  path(d="M 100 600 L 250 1000 L 1550 1000 L 1700 600" stroke="#888" stroke-width="80" fill="transparent")
-                  path(d="M 500 600 a 200 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
+        //- a job
+        td.job.row-centered(v-if="job")
+          //- indent
+          div.flex-fixed(v-if="subpath.length > 0" :style="{ 'flex-basis': (30 * subpath.length) + 'px' }")
 
-              Job.name(:job-id="job.job_id" :name="name")
+          svg.flex-fixed(viewBox="0 100 1800 1800", xmlns="http://www.w3.org/2000/svg" style="flex-basis: 18px;")
+            path(d="M 200 600 L 1600 600 L 1600 1600 L 200 1600 L 200 600" stroke="#666" stroke-width="100" fill="transparent")
+            path(d="M 200 600 L 350 1000 L 1450 1000 L 1600 600" stroke="#888" stroke-width="80" fill="transparent")
+            path(d="M 500 600 a 250 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
 
-              div(style="display: inline-block; margin-left: 16px;")
-                JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
+          Job.name(:job-id="job.job_id" :name="name")
 
-            //- a dir entry
-            span.name(v-else)
-              span(v-on:click="toggleExpand(path)")
-                span.indent(style="display: inline-block; position: relative; left: -2px; top: -2px; width: 22px;")
-                  svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
-                    path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
-                a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
-                TriangleIcon.indent.folder-icon(
-                  v-if="isExpanded(path)"
-                  direction="down"
-                  style="position: relative; left: -3px; top: 0px;"
-                )
-                TriangleIcon.indent.folder-icon(
-                  v-else
-                  direction="right"
-                  style="position: relative; left: -5px; top: -1px;"
-                )
+          JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
+
+        //- a dir entry
+        td.dir.row-centered(v-else v-on:click="toggleExpand(path)")
+          //- indent
+          div.flex-fixed(v-if="subpath.length > 0" :style="{ 'flex-basis': (30 * subpath.length) + 'px' }")
+
+          svg.flex-fixed(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" style="flex-basis: 18px;")
+            path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
+
+          a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
+          TriangleIcon.indent.folder-icon(
+            v-if="isExpanded(path)"
+            direction="down"
+          )
+          TriangleIcon.indent.folder-icon(
+            v-else
+            direction="right"
+          )
 
         td.params
-          span.params(v-if="job && job.params.length > 0")
-            | {{ join(job.params, ', ') }}
+          span.params(v-if="job && job.params.length > 0") {{ join(job.params, ', ') }}
 
         td.description
-          div(v-if="job" v-html="markdown(exerptDescription(job.metadata.description || ''))")
+          div(v-html="job && markdown(exerptDescription(job.metadata.description || ''))")
 
 </template>
 
@@ -230,8 +225,18 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @import '../styles/vars.scss';
+
+.flex-fixed {
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+td.row-centered {
+  align-content: flex-start;
+  gap: 4px;
+}
 
 .dirnav {
   color: $apsis-dir-color;
@@ -270,11 +275,11 @@ export default {
     }
   }
 
-  .dir > td {
+  td.dir {
     height: 30px;
   }
 
-  .job > td {
+  td.job {
     height: 30px;
   }
 
