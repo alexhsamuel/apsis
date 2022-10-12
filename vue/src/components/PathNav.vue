@@ -1,9 +1,8 @@
 <template lang="pug">
 span
-  span: a.dirnav(v-on:click="$emit('path', '')")
+  a.dirnav(v-on:click="$emit('path', '')")
     HomeIcon(
-      style="display: relative; top: -3px;"
-    )
+  )
 
   span(v-if="this.parts.length > 0")
     |  / 
@@ -44,3 +43,14 @@ export default {
   },
 }
 </script>
+
+<style lang="scss" scoped>
+@import '../styles/vars.scss';
+
+.dirnav{
+  border: 1px solid transparent;
+  &:hover {
+    border: 1px solid $global-frame-color;
+  }
+}
+</style>
