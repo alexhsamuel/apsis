@@ -66,10 +66,12 @@ div
           td.col-state
             State(:state="run.state")
           td.col-reruns
-            span(v-show="index == 0 && groupRuns.length > 1")
-              | {{ groupRuns.length > 1 ? groupRuns.length : "" }}
-              span(v-on:click="toggleGroupExpand(groupRun.run_id)")
-                TriangleIcon(:direction="getGroupExpand(groupRun.run_id) ? 'up' : 'down'")
+            span(
+              v-if="index == 0 && groupRuns.length > 1"
+              v-on:click="toggleGroupExpand(groupRun.run_id)"
+            )
+              | {{ groupRuns.length }}
+              TriangleIcon(:direction="getGroupExpand(groupRun.run_id) ? 'up' : 'down'")
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
           td.col-start-time
@@ -314,8 +316,13 @@ table.runlist {
 
   .col-reruns {
     text-align: right;
-    font-size: 90%;
     white-space: nowrap;
+
+    & > span {
+      // Absolutely no idea why this is necessary.
+      position: relative;
+      top: -4px;
+    }
   }
 
   .col-elapsed {
