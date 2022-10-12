@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  table.widetable.joblist
+  table.widetable
     colgroup
       col(style="max-width: 300px;")
       col(style="max-width: 300px;")
@@ -9,12 +9,12 @@ div
     thead
       tr
         th
-          | Job
-          span(style="margin-left: 8px")
+          div.cell
+            | Job
             a.expand-button(v-on:click="expandAll(false)")
-              TriangleIcon(direction="right")
+              TriangleIcon.icon(direction="right")
             a.expand-button(v-on:click="expandAll(true)")
-              TriangleIcon(direction="down")
+              TriangleIcon.icon(direction="down")
 
         th Parameters
         th Description
@@ -28,38 +28,43 @@ div
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
       )
+        td(:style="{ 'padding-left': (30 * subpath.length) + 'px' }")
 
-        //- a job
-        td.job.row-centered(v-if="job")
-          //- indent
-          div.flex-fixed(v-if="subpath.length > 0" :style="{ 'flex-basis': (30 * subpath.length) + 'px' }")
-
-          svg.flex-fixed(viewBox="0 100 1800 1800", xmlns="http://www.w3.org/2000/svg" style="flex-basis: 18px;")
-            path(d="M 200 600 L 1600 600 L 1600 1600 L 200 1600 L 200 600" stroke="#666" stroke-width="100" fill="transparent")
-            path(d="M 200 600 L 350 1000 L 1450 1000 L 1600 600" stroke="#888" stroke-width="80" fill="transparent")
-            path(d="M 500 600 a 250 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
-
-          Job.name(:job-id="job.job_id" :name="name")
-
-          JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
-
-        //- a dir entry
-        td.dir.row-centered(v-else v-on:click="toggleExpand(path)")
-          //- indent
-          div.flex-fixed(v-if="subpath.length > 0" :style="{ 'flex-basis': (30 * subpath.length) + 'px' }")
-
-          svg.flex-fixed(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" style="flex-basis: 18px;")
-            path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
-
-          a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
-          TriangleIcon.indent.folder-icon(
-            v-if="isExpanded(path)"
-            direction="down"
+          //- a job
+          div.cell(
+            v-if="job" 
           )
-          TriangleIcon.indent.folder-icon(
-            v-else
-            direction="right"
+            svg.icon(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg")
+              path(d="M 200 600 L 1600 600 L 1600 1600 L 200 1600 L 200 600" stroke="#666" stroke-width="100" fill="transparent")
+              path(d="M 200 600 L 350 1000 L 1450 1000 L 1600 600" stroke="#888" stroke-width="80" fill="transparent")
+              path(d="M 500 600 a 250 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
+
+            Job.name(:job-id="job.job_id" :name="name")
+
+            JobLabel(
+              v-for="label in job.metadata.labels"
+              :key="label"
+              :label="label"
+            )
+
+          //- a dir entry
+          div.cell(
+            v-else 
+            v-on:click="toggleExpand(path)"
           )
+            svg.icon(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg")
+              path(d="M 200 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 200 1600 L 200 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
+
+            a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }}
+
+            TriangleIcon.indent.icon(
+              v-if="isExpanded(path)"
+              direction="down"
+            )
+            TriangleIcon.indent.icon(
+              v-else
+              direction="right"
+            )
 
         td.params
           span.params(v-if="job && job.params.length > 0") {{ join(job.params, ', ') }}
@@ -228,93 +233,76 @@ export default {
 <style lang="scss" scoped>
 @import '../styles/vars.scss';
 
-.flex-fixed {
-  flex-shrink: 0;
-  flex-grow: 0;
+span.indent {
+  width: 36px;
 }
 
-td.row-centered {
-  align-content: flex-start;
-  gap: 4px;
+th {
+  text-align: left;
 }
 
-.dirnav {
-  color: $apsis-dir-color;
+.loading {
+  color: $apsis-status-color;
 }
 
-.joblist {
-  span.indent {
-    width: 36px;
+a.expand-button {
+  color: $global-color;
+  border: 1px solid transparent;
+  &:hover {
+    border: 1px solid $global-frame-color;
   }
+}
 
-  th {
-    text-align: left;
+.icon {
+  width: 18px;
+  position: relative;
+  top: 4px;
+  margin-right: 4px;
+}
+
+div.cell {
+  white-space: nowrap;
+  height: 30px;
+}
+
+.job-title {
+  .name {
+    font-weight: 500;
   }
-
-  .loading {
-    color: $apsis-status-color;
-  }
-
-  a.expand-button {
-    display: inline-block;
-    width: 21px;
-    padding: 0 2px;
-    color: black;
-
-    border-radius: 14px;
-    color: $global-color;
-    &:hover {
-      background: #ddd;
+  .params {
+    padding-left: 0.2rem;
+    span {
+      padding: 0 0.2rem;
     }
   }
+}
 
-  a.dir {
-    color: inherit;
-    :hover {
-      color: inherit;
-    }
+.description {
+  font-size: 85%;
+  color: #777;
+
+  p {
+    margin: 0;
+  }
+}
+
+.schedule {
+  font-size: 85%;
+  padding-top: 4px;
+  ul {
+    margin: 0;
   }
 
-  td.dir {
-    height: 30px;
+  .disabled {
+    color: #aaa;
   }
+}
 
-  td.job {
-    height: 30px;
+a.dir {
+  cursor: default;
+
+  &:hover {
+    text-decoration: underline;
   }
-
-  .job-title {
-    .name {
-      font-weight: 500;
-    }
-    .params {
-      padding-left: 0.2rem;
-      span {
-        padding: 0 0.2rem;
-      }
-    }
-  }
-
-  .description {
-    font-size: 85%;
-    color: #777;
-
-    p {
-      margin: 0;
-    }
-  }
-
-  .schedule {
-    font-size: 85%;
-    padding-top: 4px;
-    ul {
-      margin: 0;
-    }
-
-    .disabled {
-      color: #aaa;
-    }
-  }
-
 }
 </style>
