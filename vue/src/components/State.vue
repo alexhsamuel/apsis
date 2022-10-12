@@ -31,10 +31,10 @@
       circle(cx="900" cy="900" r="800" fill="#a05050")
       path(d="M 600 600 L 1200 1200 M 600 1200 L 1200 600" stroke="#ffffff" stroke-width="200" stroke-linecap="round" fill="transparent")
       
-    span(
+    div(
       v-if="name"
       class="name"
-      v-bind:style="'color: ' + color"
+      :style="style"
     ) {{ state }}
     span(class="tooltiptext") {{ state.toUpperCase() }}
 </template>
@@ -56,12 +56,20 @@ export default {
   props: ['state', 'name'],
 
   computed: {
-    color() { return COLORS[this.state][0] },
+    style() {
+      return { color: COLORS[this.state] } 
+    },
   }
 }
 </script>
 
 <style lang="scss" scoped>
+span {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
 .name {
   margin-left: 0.3em;
   text-transform: uppercase;

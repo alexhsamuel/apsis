@@ -34,3 +34,10 @@ export default {
 
 }
 </script>
+
+<style lang="scss" scoped>
+.heading {
+  display: flex;
+  direction: row;
+}
+</style>

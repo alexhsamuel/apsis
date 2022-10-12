@@ -6,7 +6,7 @@ div
         | {{ run_id }}
         JobWithArgs(:job-id="run.job_id" :args="run.args").spaced
 
-    div
+    div.subhead
       State.state(:state="run.state" name)
       OperationButton(
         v-for="operation in run.operations"
@@ -30,7 +30,7 @@ div
       )
 
     Frame(title="Details")
-      div.pad
+      div
         table.fields
           tbody
             tr(v-if="run.message")
@@ -245,6 +245,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.subhead {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 .runs > div {
   margin-bottom: 1.5rem;
 }

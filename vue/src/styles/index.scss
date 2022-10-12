@@ -7,9 +7,6 @@
 // Your custom mixin overwrites.
 @mixin hook-card() { color: #000; }
 
-// UIkit.
-@import "uikit/src/scss/uikit-theme.scss";
-
 // Base application styles.
 @import "src/styles/base.scss";
 
