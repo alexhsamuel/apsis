@@ -1,9 +1,9 @@
 <template lang="pug">
 DropList(v-model="selIdx")
-  div(v-for="[label, states] in options")
-    span(style="float: right")
+  div.row-centered(v-for="[label, states] in options")
+    div.label {{ label }}       
+    div.states
       State(v-for="state in states" :key="state" :state="state")
-    span.label {{ label }}       
 
 </template>
 
@@ -56,5 +56,10 @@ export default {
 <style lang="scss" scoped>
 .label {
   margin-right: 1em;
+  flex-basis: 100%;
+}
+
+.states {
+  white-space: nowrap;
 }
 </style>

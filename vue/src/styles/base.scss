@@ -141,3 +141,9 @@ input {
   }
 }
 
+/* A flex row of items vertically centered.  */
+.row-centered {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}

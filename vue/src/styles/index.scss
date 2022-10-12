@@ -1,9 +1,6 @@
 // Custom variables and variable overwrites.
 @import "src/styles/vars.scss";
 
-// Default UIkit variables and mixins.
-@import "uikit/src/scss/mixins-theme.scss";
-
 // Your custom mixin overwrites.
 @mixin hook-card() { color: #000; }
 
