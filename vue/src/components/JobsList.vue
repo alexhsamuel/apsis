@@ -1,6 +1,6 @@
 <template lang="pug">
 div
-  table.widetable.joblist
+  table.widetable
     colgroup
       col(style="max-width: 300px;")
       col(style="max-width: 300px;")
@@ -9,20 +9,13 @@ div
     thead
       tr
         th
-          | Job
-          span(style="margin-left: 8px")
-            a.expand-button
-              span(
-                uk-icon="icon: triangle-right; ratio: 1.4"
-                style="position: relative; left: -3px; top: 0px;"
-                v-on:click="expandAll(false)"
-              )
-            a.expand-button
-              span(
-                uk-icon="icon: triangle-down; ratio: 1.4"
-                style="position: relative; left: -3px; top: 1px;"
-                v-on:click="expandAll(true)"
-              )
+          div.cell
+            | Job
+            a.expand-button(v-on:click="expandAll(false)")
+              TriangleIcon.icon(direction="right")
+            a.expand-button(v-on:click="expandAll(true)")
+              TriangleIcon.icon(direction="down")
+
         th Parameters
         th Description
         // th Schedule
@@ -31,53 +24,53 @@ div
       tr(v-if="loading")
         td(class="loading") Loading jobs...
 
-      tr(
+      tr.grid(
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
-        :class="[job ? 'job' : 'dir']"
-      ).grid
-        td
-          span(style="white-space: nowrap")
-            //- indent
-            span(:style="{ display: 'inline-block', width: (36 * subpath.length) + 'px' }")
+      )
+        td(:style="{ 'padding-left': (30 * subpath.length) + 'px' }")
 
-            //- a job
-            span(v-if="job")
-              span(style="display: inline-block; position: relative; left: -2px; top: -3px; width: 22px;")
-                svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
-                  path(d="M 100 600 L 1700 600 L 1700 1700 L 50 1700 L 100 600" stroke="#666" stroke-width="100" fill="transparent")
-                  path(d="M 100 600 L 250 1000 L 1550 1000 L 1700 600" stroke="#888" stroke-width="80" fill="transparent")
-                  path(d="M 500 600 a 200 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
+          //- a job
+          div.cell(
+            v-if="job" 
+          )
+            svg.icon(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg")
+              path(d="M 200 600 L 1600 600 L 1600 1600 L 200 1600 L 200 600" stroke="#666" stroke-width="100" fill="transparent")
+              path(d="M 200 600 L 350 1000 L 1450 1000 L 1600 600" stroke="#888" stroke-width="80" fill="transparent")
+              path(d="M 500 600 a 250 200 0 0 1 800 0" stroke="#888" stroke-width="150" fill="transparent")
 
-              Job.name(:job-id="job.job_id" :name="name")
+            Job.name(:job-id="job.job_id" :name="name")
 
-              div(style="display: inline-block; margin-left: 16px;")
-                JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
+            JobLabel(
+              v-for="label in job.metadata.labels"
+              :key="label"
+              :label="label"
+            )
 
-            //- a dir entry
-            span.name(v-else)
-              span(v-on:click="toggleExpand(path)")
-                span.indent(style="display: inline-block; position: relative; left: -2px; top: -2px; width: 22px;")
-                  svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
-                    path(d="M 100 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 100 1600 L 100 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
-                a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }} 
-                span.indent.folder-icon(
-                  v-if="isExpanded(path)"
-                  uk-icon="icon: triangle-down; ratio: 1.4"
-                  style="position: relative; left: -3px; top: 0px;"
-                )
-                span.indent.folder-icon(
-                  v-else
-                  uk-icon="icon: triangle-right; ratio: 1.4"
-                  style="position: relative; left: -5px; top: -1px;"
-                )
+          //- a dir entry
+          div.cell(
+            v-else 
+            v-on:click="toggleExpand(path)"
+          )
+            svg.icon(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg")
+              path(d="M 200 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 200 1600 L 200 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
+
+            a.dir(v-on:click="$emit('dir', path.join('/'))") {{ name }}
+
+            TriangleIcon.indent.icon(
+              v-if="isExpanded(path)"
+              direction="down"
+            )
+            TriangleIcon.indent.icon(
+              v-else
+              direction="right"
+            )
 
         td.params
-          span.params(v-if="job && job.params.length > 0")
-            | {{ join(job.params, ', ') }}
+          span.params(v-if="job && job.params.length > 0") {{ join(job.params, ', ') }}
 
         td.description
-          div(v-if="job" v-html="markdown(exerptDescription(job.metadata.description || ''))")
+          div(v-html="job && markdown(exerptDescription(job.metadata.description || ''))")
 
 </template>
 
@@ -88,6 +81,7 @@ import JobLabel from './JobLabel'
 import { filter, join, sortBy } from 'lodash'
 import Program from './Program'
 import showdown from 'showdown'
+import TriangleIcon from '@/components/icons/TriangleIcon'
 
 /**
  * Arranges an array of jobs into a tree by job ID path components.
@@ -155,6 +149,7 @@ export default {
     Job,
     JobLabel,
     Program,
+    TriangleIcon,
   },
 
   created() {
@@ -235,86 +230,79 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @import '../styles/vars.scss';
 
-.dirnav {
-  color: $apsis-dir-color;
+span.indent {
+  width: 36px;
 }
 
-.joblist {
-  span.indent {
-    width: 36px;
+th {
+  text-align: left;
+}
+
+.loading {
+  color: $apsis-status-color;
+}
+
+a.expand-button {
+  color: $global-color;
+  border: 1px solid transparent;
+  &:hover {
+    border: 1px solid $global-frame-color;
   }
+}
 
-  th {
-    text-align: left;
+.icon {
+  width: 18px;
+  position: relative;
+  top: 4px;
+  margin-right: 4px;
+}
+
+div.cell {
+  white-space: nowrap;
+  height: 30px;
+}
+
+.job-title {
+  .name {
+    font-weight: 500;
   }
-
-  .loading {
-    color: $apsis-status-color;
-  }
-
-  a.expand-button {
-    display: inline-block;
-    width: 21px;
-    padding: 0 2px;
-    color: black;
-
-    border-radius: 14px;
-    color: $global-color;
-    &:hover {
-      background: #ddd;
+  .params {
+    padding-left: 0.2rem;
+    span {
+      padding: 0 0.2rem;
     }
   }
+}
 
-  a.dir {
-    color: inherit;
-    :hover {
-      color: inherit;
-    }
+.description {
+  font-size: 85%;
+  color: #777;
+
+  p {
+    margin: 0;
+  }
+}
+
+.schedule {
+  font-size: 85%;
+  padding-top: 4px;
+  ul {
+    margin: 0;
   }
 
-  .dir > td {
-    height: 30px;
+  .disabled {
+    color: #aaa;
   }
+}
 
-  .job > td {
-    height: 30px;
+a.dir {
+  cursor: default;
+
+  &:hover {
+    text-decoration: underline;
   }
-
-  .job-title {
-    .name {
-      font-weight: 500;
-    }
-    .params {
-      padding-left: 0.2rem;
-      span {
-        padding: 0 0.2rem;
-      }
-    }
-  }
-
-  .description {
-    font-size: 85%;
-    color: #777;
-
-    p {
-      margin: 0;
-    }
-  }
-
-  .schedule {
-    font-size: 85%;
-    padding-top: 4px;
-    ul {
-      margin: 0;
-    }
-
-    .disabled {
-      color: #aaa;
-    }
-  }
-
 }
 </style>

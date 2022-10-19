@@ -1,11 +1,8 @@
 <template lang="pug">
 span
-  span: a.dirnav(v-on:click="$emit('path', '')")
-    div.folder-icon(
-      uk-icon="icon: home"
-      ratio="0.8"
-      style="display: relative; top: -3px;"
-    )
+  a.dirnav(v-on:click="$emit('path', '')")
+    HomeIcon(
+  )
 
   span(v-if="this.parts.length > 0")
     |  / 
@@ -17,10 +14,15 @@ span
 </template>
 
 <script>
+import HomeIcon from '@/components/icons/HomeIcon'
+
 export default {
   name: 'PathNav',
   props: {
     path: { type: String },
+  },
+  components: {
+    HomeIcon,
   },
 
   computed: {
@@ -41,3 +43,14 @@ export default {
   },
 }
 </script>
+
+<style lang="scss" scoped>
+@import '../styles/vars.scss';
+
+.dirnav{
+  border: 1px solid transparent;
+  &:hover {
+    border: 1px solid $global-frame-color;
+  }
+}
+</style>

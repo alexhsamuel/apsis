@@ -1,9 +1,8 @@
 <template lang="pug">
-  #app
-    navbar
+  .app
+    navbar.navbar
     ErrorToast
-    .uk-container.uk-container-expand.uk-margin-top
-      router-view
+    router-view.view
 </template>
 
 <script>
@@ -12,6 +11,7 @@ import navbar from '@/components/navbar'
 import LiveLog from '@/LiveLog.js'
 import RunsSocket from '@/RunsSocket'
 import store from '@/store.js'
+import { updateRuns } from '@/runs.js'
 
 export default {
   name: 'App',
@@ -30,29 +30,12 @@ export default {
 
   created() {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
-    this.runsSocket = new RunsSocket((msg) => {
-      const runs = Object.assign({}, this.store.state.runs)
-      let nadd = 0
-      let nchg = 0
-      let ndel = 0
-      for (const runId in msg.runs) {
-        const run = msg.runs[runId]
-        if (!run.state) {
-          delete runs[runId]
-          ndel++
-        }
-        else {
-          if (runId in runs)
-            nchg++
-          else
-            nadd++
-          // We never change the runs, so freeze them to avoid reactivity.
-          runs[runId] = Object.freeze(msg.runs[runId])
-        }
-      }
-      console.log('runs message:', nadd, 'add,', nchg, 'chg,', ndel, 'del')
-      this.store.state.runs = runs
-    })
+    const store = this.store
+    this.runsSocket = new RunsSocket(
+      msg => updateRuns(msg, store.state),
+      () => store.state.errors.pop('connection error'),
+      this.showToastError,
+    )
   },
 
   destroyed() {
@@ -60,16 +43,29 @@ export default {
     this.runsSocket.close()
   },
 
+  methods: {
+    showToastError(event) {
+      store.state.errors.push('connection error')
+    }
+  },
+
 }
 </script>
 
-<style lang="scss">
-#app {
+<style lang="scss" scoped>
+.app {
   max-width: none;
   margin-left: auto;
   margin-right: auto;
   font-family: "Roboto", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.view {
+  margin-top: 1.5rem;
+  max-width: none;
+  padding-left: 40px;
+  padding-right: 40px;
 }
 </style>
 

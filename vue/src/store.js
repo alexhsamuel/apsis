@@ -1,3 +1,4 @@
+import { filter, some } from 'lodash'
 import { formatTime } from '@/time'
 
 class Errors {
@@ -6,10 +7,18 @@ class Errors {
   errors = []
   nextErrorId = 0
 
-  add(message) {
+  push(message) {
+    // Suppress duplicate messages.
+    if (some(this.errors, e => e.message === message))
+      return
+
     const errorId = this.nextErrorId++
     this.errors.push({errorId, message, time: new Date()})
     return errorId
+  }
+
+  pop(message) {
+    this.errors = filter(this.errors, e => e.message !== message)
   }
 
   clear(errorId) {

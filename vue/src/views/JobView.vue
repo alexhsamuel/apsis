@@ -1,13 +1,13 @@
 <template lang="pug">
-div
+div.component
   div
-    span.title.uk-margin-right
+    span.title
       | Job 
       Job(:job-id="job_id")
     span(v-if="job && job.metadata.labels")
-      JobLabel(v-for="label in job.metadata.labels" :key="label" :label="label")
+      JobLabel.label(v-for="label in job.metadata.labels" :key="label" :label="label")
 
-  div.uk-margin-bottom(v-if="job" style="font-size:120%;")
+  div(v-if="job" style="font-size:120%;")
     | Parameters ({{ params }})
 
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
@@ -130,6 +130,19 @@ export default {
 
 <style lang="scss" scoped>
 @import '../styles/vars.scss';
+
+.component > div {
+  margin-bottom: 1rem;
+}
+
+.title {
+  margin-right: 1ex;
+}
+
+.label {
+  position: relative;
+  top: -4px;
+}
 
 // This is rubbish.
 .action {

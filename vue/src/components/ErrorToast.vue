@@ -1,17 +1,23 @@
 <template lang="pug">
 div
   div.error(v-for="err in Object.values(errors.errors)" :key="err.errorId")
-    span(uk-icon="close" v-on:click="close(err.errorId)").close 
+    button.close(v-on:click="close(err.errorId)")
+      CloseIcon
     | ERROR:
     | 
     tt {{ err.message }}
 </template>
 
 <script>
+import CloseIcon from '@/components/icons/CloseIcon'
 import store from '@/store'
 
 export default {
   props: [],
+
+  components: {
+    CloseIcon,
+  },
 
   data() {
     return {
@@ -38,6 +44,19 @@ export default {
 }
 
 .close {
+  width: 28px;
+  height: 28px;
+  padding: 2px;
   margin-right: 12px;
+  border: 1px solid transparent;
+
+  &:hover {
+    border: 1px solid #888;
+  }
+
+  & > svg {
+    position: relative;
+    top: -4px;
+  }
 }
 </style>

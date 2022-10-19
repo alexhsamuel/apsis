@@ -1,7 +1,8 @@
 <template lang="pug">
-span.uk-inline
-  span.uk-form-icon(uk-icon="icon: search")
-  input.uk-input(
+span.inline
+  span.icon
+    SearchIcon(color="#999")
+  input(
     v-model="input"
     v-on:change="search()"
     v-on:keyup.esc="input = ''; search()"
@@ -10,8 +11,14 @@ span.uk-inline
 </template>
 
 <script>
+import SearchIcon from '@/components/icons/SearchIcon'
+
 export default {
   props: ['value'],
+
+  components: {
+    SearchIcon,
+  },
 
   data() {
     return {
@@ -34,14 +41,26 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.uk-input {
-  &:focus {
-    border-color: #6b9;  // FIXME: Elsewhere.
-  }
+.inline {
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
 }
 
-.uk-form-icon {
+.icon {
   pointer-events: auto;
-  color: #999;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 40px;
+  height: 28px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+input {
+  padding-left: 32px;
+  height: 28px;
 }
 </style>

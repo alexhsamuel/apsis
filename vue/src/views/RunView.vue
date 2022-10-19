@@ -1,13 +1,13 @@
 <template lang="pug">
 div
-  span(v-if="run")
-    div.uk-margin-bottom
+  div.runs(v-if="run")
+    div
       span.title
         | {{ run_id }}
         JobWithArgs(:job-id="run.job_id" :args="run.args").spaced
 
-    div.uk-margin-bottom
-      State(:state="run.state" name).uk-text-bold.uk-margin-right
+    div.subhead
+      State.state(:state="run.state" name)
       OperationButton(
         v-for="operation in run.operations"
         :key="operation"
@@ -30,7 +30,7 @@ div
       )
 
     Frame(title="Details")
-      div.pad
+      div
         table.fields
           tbody
             tr(v-if="run.message")
@@ -71,7 +71,7 @@ div
               tt {{ value }}
 
     Frame(title="Output")
-      button.uk-button(
+      button(
         v-if="output && output.output_len && !outputData"
         v-on:click="fetchOutputData()"
       ) load {{ output.output_len }} bytes
@@ -245,8 +245,23 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.subhead {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.runs > div {
+  margin-bottom: 1.5rem;
+}
+
 .output {
   font-family: "Roboto mono", monospaced;
+}
+
+.state {
+  font-weight: bold;
+  margin-right: 2ex;
 }
 </style>
 

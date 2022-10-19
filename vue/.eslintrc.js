@@ -1,5 +1,7 @@
 // https://eslint.org/docs/user-guide/configuring
 
+const { off } = require("node-notifier");
+
 module.exports = {
   root: true,
   parserOptions: {
@@ -43,5 +45,6 @@ module.exports = {
     'key-spacing': 'off',
     'brace-style': 'off',
     'yield-star-spacing': 'off',
+    'yoda': 'off',
   }
 }

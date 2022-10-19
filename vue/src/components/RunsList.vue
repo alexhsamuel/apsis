@@ -66,12 +66,12 @@ div
           td.col-state
             State(:state="run.state")
           td.col-reruns
-            span(v-show="index == 0 && groupRuns.length > 1")
-              | {{ groupRuns.length > 1 ? groupRuns.length : "" }}
-              a(
-                v-bind:uk-icon="groupIcon(groupRun.run_id)"
-                v-on:click="toggleGroupExpand(groupRun.run_id)"
-              )
+            span(
+              v-if="index == 0 && groupRuns.length > 1"
+              v-on:click="toggleGroupExpand(groupRun.run_id)"
+            )
+              | {{ groupRuns.length }}
+              TriangleIcon(:direction="getGroupExpand(groupRun.run_id) ? 'up' : 'down'")
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
           td.col-start-time
@@ -79,18 +79,14 @@ div
           td.col-elapsed
             RunElapsed(:run="run")
           td.col-operations
-            div.uk-inline(v-if="run.operations.length > 0")
-              button.uk-button.uk-button-default.uk-button-small.operations-button(type="button")
-                span(uk-icon="icon: menu; ratio: 0.75")
-              div(uk-dropdown="pos: left-center")
-                ul.uk-nav.uk-dropdown-nav
-                  li: OperationButton(
-                    v-for="operation in run.operations" 
-                    :key="operation"
-                    :run_id="run.run_id"
-                    :operation="operation" 
-                    :button="true"
-                  )
+            HamburgerMenu(v-if="run.operations.length > 0")
+              OperationButton(
+                v-for="operation in run.operations" 
+                :key="operation"
+                :run_id="run.run_id"
+                :operation="operation" 
+                :button="true"
+              )
 
       tr(v-if="groups.omitScheduled > 0")
         td.note(colspan="8") {{ groups.omitScheduled }} scheduled runs not shown
@@ -101,6 +97,7 @@ div
 import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, uniq } from 'lodash'
 
 import { formatElapsed } from '../time'
+import HamburgerMenu from '@/components/HamburgerMenu'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import OperationButton from './OperationButton'
@@ -112,6 +109,7 @@ import State from '@/components/State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
+import TriangleIcon from '@/components/icons/TriangleIcon'
 
 function sortTime(run) {
   return run.times.schedule || run.times.running || run.times.error
@@ -148,15 +146,17 @@ export default {
   },
 
   components: {
-    OperationButton,
+    HamburgerMenu,
     Job,
     JobLabel,
+    OperationButton,
     Run,
     RunArgs,
     RunElapsed,
     State,
     StatesSelect,
     Timestamp,
+    TriangleIcon,
   },
 
   data() {
@@ -298,10 +298,6 @@ export default {
       return this.getGroupExpand(groupRun.run_id) ? groupRuns : [groupRun]
     },
 
-    groupIcon(runId) {
-      return this.getGroupExpand(runId) ? 'icon: chevron-up' : 'icon: chevron-down'
-    },
-
     formatElapsed,
   },
 
@@ -314,14 +310,19 @@ table.runlist {
     text-align: left;
   }
 
-  .col-run, .col-state {
+  .col-run, .col-state, .col-operations {
     text-align: center;
   }
 
   .col-reruns {
     text-align: right;
-    font-size: 90%;
     white-space: nowrap;
+
+    & > span {
+      // Absolutely no idea why this is necessary.
+      position: relative;
+      top: -4px;
+    }
   }
 
   .col-elapsed {
@@ -330,25 +331,9 @@ table.runlist {
     white-space: nowrap;
   }
 
-  .col-operations {
-    text-align: center;
-    button {
-      font-size: 80%;
-      line-height: 1.4;
-    }
-  }
-
   .highlight-run {
     background: #f6faf8;
   }
-}
-</style>
-
-<style lang="scss" scoped>
-// FIXME
-.uk-dropdown {
-  padding: 12px;
-  min-width: 0;
 }
 </style>
 

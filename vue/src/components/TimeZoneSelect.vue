@@ -1,5 +1,5 @@
 <template lang="pug">
-select#timeZone.uk-select.uk-form-width-small(
+select(
   v-model="timeZone"
   v-on:change="onTimeZoneChange"
 )
@@ -50,8 +50,17 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-#timeZone {
+@import 'src/styles/vars.scss';
+
+select {
+  display: inline-block;
+  vertical-align: middle;
+  width: 130px;
+  background: white;
+  border: 1px solid $global-frame-color;
+  padding-left: 4px;
   height: 3.5ex;
-  margin-left: 0.5em;
+  font: inherit;
+  color: $global-color;
 }
 </style>
