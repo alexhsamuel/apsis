@@ -22,7 +22,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-reruns Runs
+        th.col-reruns History
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -38,55 +38,47 @@ div
       //- Each group is represented by a single run, groupRun, but may contain
       //- one or more runs, groupRuns.  The group's expand state is keyed by
       //- groupRun.run_id.
-      template(v-for="([groupRun, groupRuns]) in groups.groups")
-        tr( 
-          v-for="(run, index) in getGroupVisibleRuns(groupRun, groupRuns)" 
-          :key="run.run_id"
-          :class="{ 'run-group-next': index > 0, 'highlight-run': run.run_id === highlightRunId }"
-        )
-          //- Show job name if enabled by 'showJob' and this is the group run.
-          td.col-job(v-if="showJob")
-            //- Is this the group run?
-            div(v-if="run.run_id === groupRun.run_id")
-              Job(:job-id="run.job_id")
-              JobLabel(
-                v-for="label in run.labels || []"
-                :label="label"
-                :key="label"
-              )
-          template(v-if="argColumnStyle === 'separate'")
-            td(v-for="param in params") {{ run.args[param] || '' }}
-          //- Else all together.
-          td.col-args(v-if="argColumnStyle === 'combined'")
-            span(v-if="run.run_id === groupRun.run_id")
-              RunArgs(:args="run.args")
+      tr(
+        v-for="([run, count]) in groups.groups"
+        :key="run.run_id"
+      )
+        //- Show job name if enabled by 'showJob' and this is the group run.
+        td.col-job(v-if="showJob")
+          //- Is this the group run?
+          Job(:job-id="run.job_id")
+          JobLabel(
+            v-for="label in run.labels || []"
+            :label="label"
+            :key="label"
+          )
 
-          td.col-run
-            Run(:run-id="run.run_id")
-          td.col-state
-            State(:state="run.state")
-          td.col-reruns
-            span(
-              v-if="index == 0 && groupRuns.length > 1"
-              v-on:click="toggleGroupExpand(groupRun.run_id)"
+        template(v-if="argColumnStyle === 'separate'")
+          td(v-for="param in params") {{ run.args[param] || '' }}
+        //- Else all together.
+        td.col-args(v-if="argColumnStyle === 'combined'")
+          RunArgs(:args="run.args")
+
+        td.col-run
+          Run(:run-id="run.run_id")
+        td.col-state
+          State(:state="run.state")
+        td.col-reruns
+          | {{ count === 1 ? '' : count + ' runs' }}
+        td.col-schedule-time
+          Timestamp(:time="run.times.schedule")
+        td.col-start-time
+          Timestamp(:time="run.times.running")
+        td.col-elapsed
+          RunElapsed(:run="run")
+        td.col-operations
+          HamburgerMenu(v-if="run.operations.length > 0")
+            OperationButton(
+              v-for="operation in run.operations" 
+              :key="operation"
+              :run_id="run.run_id"
+              :operation="operation" 
+              :button="true"
             )
-              | {{ groupRuns.length }}
-              TriangleIcon(:direction="getGroupExpand(groupRun.run_id) ? 'up' : 'down'")
-          td.col-schedule-time
-            Timestamp(:time="run.times.schedule")
-          td.col-start-time
-            Timestamp(:time="run.times.running")
-          td.col-elapsed
-            RunElapsed(:run="run")
-          td.col-operations
-            HamburgerMenu(v-if="run.operations.length > 0")
-              OperationButton(
-                v-for="operation in run.operations" 
-                :key="operation"
-                :run_id="run.run_id"
-                :operation="operation" 
-                :button="true"
-              )
 
       tr(v-if="groups.omitScheduled > 0")
         td.note(colspan="8") {{ groups.omitScheduled }} scheduled runs not shown
@@ -161,7 +153,6 @@ export default {
 
   data() {
     return { 
-      groupExpand: {},
       store,
     } 
   },
@@ -180,8 +171,12 @@ export default {
         runs = filter(runs, (new runsFilter.JobIdPathPrefix(this.path)).predicate)
       if (this.args)
         runs = filter(runs, run => isEqual(run.args, this.args))
+      runs = filter(runs, this.jobPredicate)
 
-      return filter(runs, this.jobPredicate)
+      // Sort by time.
+      runs = sortBy(runs, sortTime)
+
+      return runs
     },
   
     params() {
@@ -192,51 +187,14 @@ export default {
     // same run.  Groups are filtered by current filters, and sorted.
     groups() {
       const RUN_STATE_GROUPS = {
-          // Scheduled (and new) runs together.
-          'new': 'S',
+          'new': 'S',  
           'scheduled': 'S',
-          // Blocked runs.
-          'blocked': 'B',
-          // Running runs.
+          'waiting': 'R',
           'starting': 'R',
           'running': 'R',
-          // Completed runs together.
           'success': 'C',
           'failure': 'C',
           'error': 'C',
-      }
-
-      // Select run to show.
-      let runs = this.runs
-      let omitC = 0
-      let omitS = 0
-      if (this.maxScheduledRuns >= 0 || this.maxCompletedRuns >= 0) {
-        // Count up runs by run state group.
-        const counts = {}
-        for (const run of runs) {
-          let grp = RUN_STATE_GROUPS[run.state]
-          counts[grp] = (counts[grp] | 0) + 1
-        }
-
-        const S = counts['S'] | 0
-        if (this.maxScheduledRuns < S)
-          omitS = S - this.maxScheduledRuns
-
-        const C = counts['C'] | 0
-        if (this.maxCompletedRuns < C)
-          omitC = C - this.maxCompletedRuns
-
-        // Now actually omit them.
-        if (omitC > 0 || omitS > 0) {
-          let c = 0
-          let s = S - omitS
-          runs = filter(runs, run => {
-            const grp = RUN_STATE_GROUPS[run.state]
-            return grp === 'C' ? omitC <= c++
-                 : grp === 'S' ? s-- > 0
-                 : true
-          })
-        }
       }
 
       function instanceKey(run) {
@@ -247,57 +205,79 @@ export default {
       function groupKey(run) {
         const sgrp = RUN_STATE_GROUPS[run.state]
         return sgrp + (
-          // Blocked and running runs are never grouped.
-          (sgrp === 'B' || sgrp === 'R') ? run.run_id
+          // Waiting and running runs are never grouped.  
+          sgrp === 'R' ? run.run_id
           // Runs in other state are grouped by instance.
           : instanceKey(run)
         )
       }
 
-      let groups = entries(groupBy(runs, this.groupRuns ? groupKey : r => r.run_id))
+      let groups
+      if (this.groupRuns) {
+        groups = entries(groupBy(this.runs, this.groupRuns ? groupKey : r => r.run_id))
+        // For each group, select the principal run for the group to show.
+        groups = map(groups, ([key, runs]) => {
+          // Select the principal run for this group.
+          // - new/scheduled: the earliest run
+          // - blocked, running: not grouped
+          // - completed: the latest run
+          const sgrp = key[0]
+          const run = runs[sgrp === 'C' ? runs.length - 1 : 0]
 
-      // For each group, select the principal run for the group.  This is the
-      // run that is shown when the group is collapsed (i.e. not expanded).
-      groups = map(groups, ([key, runs]) => {
-        // Sort runs within each group.
-        runs = sortBy(runs, sortTime)
+          return [run, runs.length]
+        })
+      }
 
-        // Select the principal run for this group.
-        // - new/scheduled: the earliest run
-        // - blocked, running: not grouped
-        // - completed: the latest run
-        const sgrp = key[0]
-        const run = runs[sgrp === 'C' ? runs.length - 1 : 0]
+      else
+        groups = this.runs.map(r => [r, 1])
 
-        // Return the single run representing the group, and all runs in the group.
-        return [run, runs]
-      })
+      // // Select run to show.
+      // let runs = this.runs
+      // let omitC = 0
+      // let omitS = 0
+      // if (this.maxScheduledRuns >= 0 || this.maxCompletedRuns >= 0) {
+      //   // Count up runs by run state group.
+      //   const counts = {}
+      //   for (const run of runs) {
+      //     let grp = RUN_STATE_GROUPS[run.state]
+      //     counts[grp] = (counts[grp] | 0) + 1
+      //   }
+
+      //   const S = counts['S'] | 0
+      //   if (this.maxScheduledRuns < S)
+      //     omitS = S - this.maxScheduledRuns
+
+      //   const C = counts['C'] | 0
+      //   if (this.maxCompletedRuns < C)
+      //     omitC = C - this.maxCompletedRuns
+
+      //   // Now actually omit them.
+      //   if (omitC > 0 || omitS > 0) {
+      //     let c = 0
+      //     let s = S - omitS
+      //     runs = filter(runs, run => {
+      //       const grp = RUN_STATE_GROUPS[run.state]
+      //       return grp === 'C' ? omitC <= c++
+      //            : grp === 'S' ? s-- > 0
+      //            : true
+      //     })
+      //   }
+      // }
 
       // Sort groups by time of the principal run.
       groups = sortBy(groups, ([run, _]) => sortTime(run))
 
+      console.log('runs:', Object.keys(this.store.state.runs).length, 'filtered:', this.runs.length, 'groups:', groups.length)
       return {
         groups,
-        omitCompleted: omitC,
-        omitScheduled: omitS,
+        // omitCompleted: omitC,
+        // omitScheduled: omitS,
       }
     },
 
   },
 
   methods: {
-    getGroupExpand(id) {
-      return !!this.groupExpand[id]
-    },
-
-    toggleGroupExpand(id) {
-      this.$set(this.groupExpand, id, !this.groupExpand[id])
-    },
-
-    getGroupVisibleRuns(groupRun, groupRuns) {
-      return this.getGroupExpand(groupRun.run_id) ? groupRuns : [groupRun]
-    },
-
     formatElapsed,
   },
 
