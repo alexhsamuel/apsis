@@ -64,7 +64,9 @@ div
             Run(:run-id="run.run_id")
           td.col-state
             State(:state="run.state")
-          td.col-reruns {{ historyCount(trimmedGroups.counts[run.run_id]) }}
+          //- FIXME: Click to run with history expanded.
+          td.col-reruns
+            | {{ historyCount(trimmedGroups.counts[run.run_id]) }}
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
           td.col-start-time
@@ -303,7 +305,7 @@ export default {
     formatElapsed,
 
     historyCount(count) {
-      return count === 1 ? '' : count === 2 ? '1 run\u00a0\u00a0' : (count - 1) + ' runs'
+      return count === 1 ? '' : count === 2 ? '+1 run\u00a0\u00a0' : '+' + (count - 1) + ' runs'
     }
   },
 
