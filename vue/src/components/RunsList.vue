@@ -261,8 +261,6 @@ export default {
         // Don't truncate in the middle of a timestamp.
         earlierCount = timeIndex - this.maxEarlierRuns
         earlierTime = sortTime(runs[earlierCount])
-        while (earlierCount > 0 && sortTime(runs[earlierCount - 1]) === earlierTime)
-          --earlierCount
         runs = runs.slice(earlierCount)
         timeIndex -= earlierCount
       }
@@ -277,8 +275,6 @@ export default {
         // Don't truncate in the middle of a timestamp.
         laterCount = runs.length - (timeIndex + this.maxLaterRuns)
         laterTime = sortTime(runs[runs.length - laterCount])
-        while (laterCount < runs.length - 1 && sortTime(runs[runs.length - (laterCount - 1)]) === laterTime)
-          --laterCount
         runs = runs.slice(0, runs.length - laterCount)
       }
       else {
