@@ -34,7 +34,7 @@ div
 
       tr(v-if="trimmedGroups.earlierCount > 0")
         td.note(colspan="9")
-          | {{ trimmedGroups.earlierCount }} earlier runs not shown
+          | {{ trimmedGroups.earlierCount }} earlier rows not shown
 
       //- Each group is represented by a single run, groupRun, but may contain
       //- one or more runs, groupRuns.  The group's expand state is keyed by
@@ -85,7 +85,7 @@ div
 
       tr(v-if="trimmedGroups.laterCount > 0")
         td.note(colspan="9")
-          | {{ trimmedGroups.laterCount }} later runs not shown
+          | {{ trimmedGroups.laterCount }} later rows not shown
 
 </template>
 
@@ -137,8 +137,8 @@ export default {
     argColumnStyle : {type: String, default: 'combined'},
 
     time: {type: Date, default: null},
-    maxEarlierRuns: {type: Number, default: 100},
-    maxLaterRuns: {type: Number, default: 100},
+    maxEarlierRuns: {type: Number, default: 10},
+    maxLaterRuns: {type: Number, default: 10},
   },
 
   components: {
@@ -249,21 +249,21 @@ export default {
     },
 
     trimmedGroups() {
+      let start = new Date()
       const groups = this.groups
       let runs = groups.groups  // FIXME: !!
-      const time = (this.runTime || new Date()).toISOString()
+      const time = (this.time || new Date()).toISOString()
       let timeIndex = sortedIndexBy(runs, { times: { schedule: time } }, sortTime)
 
       let earlierTime
       let earlierCount
       if (this.maxEarlierRuns < timeIndex) {
         // Don't truncate in the middle of a timestamp.
-        earlierTime = sortTime(runs[timeIndex])
-        let i = timeIndex
-        while (i > 0 && sortTime(runs[i - 1]) === earlierTime)
-          --i
-        earlierCount = i - this.maxEarlierRuns
-        runs = runs.slice(i - this.maxEarlierRuns)
+        earlierCount = timeIndex - this.maxEarlierRuns
+        earlierTime = sortTime(runs[earlierCount])
+        while (earlierCount > 0 && sortTime(runs[earlierCount - 1]) === earlierTime)
+          --earlierCount
+        runs = runs.slice(earlierCount)
         timeIndex -= earlierCount
       }
       else {
@@ -275,20 +275,18 @@ export default {
       let laterCount
       if (this.maxLaterRuns < runs.length - timeIndex) {
         // Don't truncate in the middle of a timestamp.
-        let i = timeIndex
-        laterTime = sortTime(runs[timeIndex])
-        while (i < runs.length - 1 && sortTime(runs[i + 1]) === laterTime)
-          ++i
-        laterCount = runs.length - (i + this.maxLaterRuns)
-        runs = runs.slice(0, i + this.maxLaterRuns)
+        laterCount = runs.length - (timeIndex + this.maxLaterRuns)
+        laterTime = sortTime(runs[runs.length - laterCount])
+        while (laterCount < runs.length - 1 && sortTime(runs[runs.length - (laterCount - 1)]) === laterTime)
+          --laterCount
+        runs = runs.slice(0, runs.length - laterCount)
       }
       else {
         laterTime = null
         laterCount = 0
       }
 
-      console.log('runs:', Object.keys(this.store.state.runs).length, 'filtered:', this.runs.length, 'groups:', runs.length, 'earlier:', earlierCount, 'later:', laterCount)
-
+      console.log('runs:', Object.keys(this.store.state.runs).length, 'filtered:', this.runs.length, 'groups:', runs.length, 'earlier:', earlierCount, 'later:', laterCount, 'in:', (new Date() - start) * 0.001)
       return {
         groups: runs,
         counts: groups.counts,
@@ -314,6 +312,10 @@ export default {
 
 <style lang="scss">
 table.runlist {
+  .note {
+    height: 24px;
+  }
+
   .col-job, .col-args, .col-arg, .col-schedule-time, .col-start-time {
     text-align: left;
   }
