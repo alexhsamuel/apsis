@@ -354,7 +354,7 @@ table.runlist {
   }
 
   .timeSeparator {
-    border-top: 1px solid #eee;
+    border-top: 24px solid transparent;
     padding: 0;
   }
 }
