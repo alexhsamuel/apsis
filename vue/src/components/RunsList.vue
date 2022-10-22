@@ -215,27 +215,6 @@ export default {
     groups() {
       let t0 = new Date()
       let t1
-      const RUN_STATE_GROUPS = {
-          'new': 'S',  
-          'scheduled': 'S',
-          'waiting': 'R',
-          'starting': 'R',
-          'running': 'R',
-          'success': 'C',
-          'failure': 'C',
-          'error': 'C',
-      }
-
-      function groupKey(run) {
-        const sgrp = RUN_STATE_GROUPS[run.state]
-        return sgrp + (
-          sgrp === 'R'
-          // Waiting and running runs are never grouped.  
-          ? run.run_id
-          // Runs in other state are grouped by instance.
-          : run.instance_key
-        )
-      }
 
       let groups
       let counts = {}
@@ -246,7 +225,7 @@ export default {
         t0 = t1
 
         // For each group, select the principal run for the group to show.
-        groups = map(entries(groupBy(runs, groupKey)), ([key, runs]) => {
+        groups = map(entries(groupBy(runs, r => r.group_key)), ([key, runs]) => {
           // Select the principal run for this group.
           // - new/scheduled: the earliest run
           // - blocked, running: not grouped

@@ -4,10 +4,32 @@ export function joinArgs(args) {
   return toPairs(args).map(([n, v]) => n + '=' + v).join(', ')
 }
 
+const RUN_STATE_GROUPS = {
+  'new': 'S',  
+  'scheduled': 'S',
+  'waiting': 'R',
+  'starting': 'R',
+  'running': 'R',
+  'success': 'C',
+  'failure': 'C',
+  'error': 'C',
+}
+
+function groupKey(run) {
+  const sgrp = RUN_STATE_GROUPS[run.state]
+  return sgrp + (
+    sgrp === 'R'
+    // Waiting and running runs are never grouped.  
+    ? run.run_id
+    // Runs in other state are grouped by instance.
+    : run.job_id + '\0' + Object.values(run.args).join('\0')
+  )
+}
+
 /**
  * Returns the key by which runs are time-sorted.
  */
-export function sortTime(run) {
+function timeKey(run) {
   return run.times.schedule || run.times.running || run.times.error
 }
 
@@ -20,11 +42,11 @@ export function updateRuns(msg, state) {
   let nchg = 0
   let ndel = 0
 
-  // Add keys to runs in msg.
+  // Add sort and group keys to runs in msg.
   let msgRuns = Object.values(msg.runs)
   msgRuns.forEach(run => {
-    run.instance_key = run.job_id + '\0' + Object.values(run.args).join('\0')
-    run.time_key = sortTime(run)
+    run.group_key = groupKey(run)
+    run.time_key = timeKey(run)
   })
 
   // Pre-sort by time, to keep future sorts quick.
