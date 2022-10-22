@@ -81,8 +81,12 @@ export class JobIdPathPrefix {
   }
 
   get predicate() {
-    return run =>
-      run.job_id === this.path || run.job_id.startsWith(this.path + '/')
+    const path = this.path
+    const pathSlash = this.path + '/'
+    return run => {
+      const job_id = run.job_id
+      return job_id === path || job_id.startsWith(pathSlash)
+    }
   }
 }
 
