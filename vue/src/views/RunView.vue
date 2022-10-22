@@ -132,7 +132,7 @@ export default {
       outputRequested: false,  // FIXME: Remove?
       outputData: null,
       // Start with the run summary from the run state.
-      run: store.state.runs[this.run_id],
+      run: store.state.runs.get(this.run_id),
       store,
     }
   },
@@ -146,7 +146,7 @@ export default {
      * The state of the run summary in the store, for detecting updates.
      */
     storeState() {
-      const run = store.state.runs[this.run_id]
+      const run = store.state.runs.get(this.run_id)
       return run ? run.state : undefined
     },
   },
@@ -227,7 +227,7 @@ export default {
   watch: {
     // Reset state on nav from one run to another.
     '$route'(to, from) {
-      this.run = store.state.runs[this.run_id]
+      this.run = store.state.runs.get(this.run_id)
       this.output = null
       this.outputData = null
       this.outputRequested = false

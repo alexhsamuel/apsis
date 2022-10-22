@@ -36,7 +36,7 @@ class Store {
     logLines: [],
 
     // Map from run_id to (summary) runs.  Updated live.
-    runs: {},
+    runs: new Map(),
 
     // Current time, updated secondly, and its string representation.
     time: new Date(),

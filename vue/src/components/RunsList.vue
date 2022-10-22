@@ -169,13 +169,16 @@ export default {
 
     /** Runs, after filtering.  */
     runs() {
-      let runs = this.store.state.runs
+      let runs = Array.from(this.store.state.runs.values())
 
-      if (this.path)
-        runs = filter(runs, (new runsFilter.JobIdPathPrefix(this.path)).predicate)
+      if (this.path) {
+        const predicate = (new runsFilter.JobIdPathPrefix(this.path)).predicate
+        runs = filter(runs, predicate)
+      }
       if (this.args)
         runs = filter(runs, run => isEqual(run.args, this.args))
-      runs = filter(runs, this.jobPredicate)
+      if (this.jobPredicate) 
+        runs = filter(runs, this.jobPredicate)
 
       // Sort by time.
       runs = sortBy(runs, sortTime)
@@ -201,27 +204,22 @@ export default {
           'error': 'C',
       }
 
-      function instanceKey(run) {
-        // Assume args are in order.
-        return run.job_id + '\0' + Object.values(run.args).join('\0')
-      }
-
       function groupKey(run) {
         const sgrp = RUN_STATE_GROUPS[run.state]
         return sgrp + (
+          sgrp === 'R'
           // Waiting and running runs are never grouped.  
-          sgrp === 'R' ? run.run_id
+          ? run.run_id
           // Runs in other state are grouped by instance.
-          : instanceKey(run)
+          : run.instance_key
         )
       }
 
       let groups
       let counts = {}
-      if (this.groupRuns) {
-        groups = entries(groupBy(this.runs, this.groupRuns ? groupKey : r => r.run_id))
+      if (this.groupRuns)
         // For each group, select the principal run for the group to show.
-        groups = map(groups, ([key, runs]) => {
+        groups = map(entries(groupBy(this.runs, groupKey)), ([key, runs]) => {
           // Select the principal run for this group.
           // - new/scheduled: the earliest run
           // - blocked, running: not grouped
@@ -232,7 +230,6 @@ export default {
           counts[run.run_id] = runs.length
           return run
         })
-      }
 
       else {
         groups = this.runs
@@ -282,7 +279,7 @@ export default {
         laterCount = 0
       }
 
-      console.log('runs:', Object.keys(this.store.state.runs).length, 'filtered:', this.runs.length, 'groups:', runs.length, 'earlier:', earlierCount, 'later:', laterCount, 'in:', (new Date() - start) * 0.001)
+      console.log('runs:', this.store.state.runs.size, 'filtered:', this.runs.length, 'groups:', runs.length, 'earlier:', earlierCount, 'later:', laterCount, 'in:', (new Date() - start) * 0.001)
       return {
         groups: runs,
         counts: groups.counts,
