@@ -107,10 +107,6 @@ import store from '@/store.js'
 import Timestamp from './Timestamp'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 
-function sortTime(run) {
-  return run.times.schedule || run.times.running || run.times.error
-}
-
 export default { 
   name: 'RunsList',
   props: {
@@ -137,8 +133,8 @@ export default {
     argColumnStyle : {type: String, default: 'combined'},
 
     time: {type: Date, default: null},
-    maxEarlierRuns: {type: Number, default: 10},
-    maxLaterRuns: {type: Number, default: 10},
+    maxEarlierRuns: {type: Number, default: 100},
+    maxLaterRuns: {type: Number, default: 100},
   },
 
   components: {
@@ -169,20 +165,44 @@ export default {
 
     /** Runs, after filtering.  */
     runs() {
+      let t0 = new Date()
+      let t1
+
       let runs = Array.from(this.store.state.runs.values())
+      t1 = new Date()
+      console.log('runs-values', (t1 - t0) * 0.001)
+      t0 = t1
 
       if (this.path) {
         const predicate = (new runsFilter.JobIdPathPrefix(this.path)).predicate
         runs = filter(runs, predicate)
+        t1 = new Date()
+        console.log('runs-path-prefix', (t1 - t0) * 0.001)
+        t0 = t1
       }
-      if (this.args)
+      if (this.args) {
         runs = filter(runs, run => isEqual(run.args, this.args))
-      if (this.jobPredicate) 
+        t1 = new Date()
+        console.log('runs-args-filter', (t1 - t0) * 0.001)
+        t0 = t1
+      }
+      if (this.jobPredicate) {
         runs = filter(runs, this.jobPredicate)
+        t1 = new Date()
+        console.log('runs-job-predicate', (t1 - t0) * 0.001)
+        t0 = t1
+      }
 
       // Sort by time.
-      runs = sortBy(runs, sortTime)
+      t1 = new Date()
+      console.log('runs-before-sort', (t1 - t0) * 0.001)
+      t0 = t1
 
+      runs = sortBy(runs, r => r.time_key)
+
+      t1 = new Date()
+      console.log('runs-end', (t1 - t0) * 0.001)
+      t0 = t1
       return runs
     },
   
@@ -193,6 +213,8 @@ export default {
     // Array of rerun groups, each an array of runs that are reruns of the
     // same run.  Groups are filtered by current filters, and sorted.
     groups() {
+      let t0 = new Date()
+      let t1
       const RUN_STATE_GROUPS = {
           'new': 'S',  
           'scheduled': 'S',
@@ -217,9 +239,14 @@ export default {
 
       let groups
       let counts = {}
-      if (this.groupRuns)
+      if (this.groupRuns) {
+        const runs = this.runs
+        t1 = new Date()
+        console.log('groups-runs', (t1 - t0) * 0.001)
+        t0 = t1
+
         // For each group, select the principal run for the group to show.
-        groups = map(entries(groupBy(this.runs, groupKey)), ([key, runs]) => {
+        groups = map(entries(groupBy(runs, groupKey)), ([key, runs]) => {
           // Select the principal run for this group.
           // - new/scheduled: the earliest run
           // - blocked, running: not grouped
@@ -231,13 +258,22 @@ export default {
           return run
         })
 
+        t1 = new Date()
+        console.log('groups-groupBy', (t1 - t0) * 0.001)
+        t0 = t1
+      }
+
       else {
         groups = this.runs
         groups.forEach(r => { counts[r.run_id] = 1 })
       }
 
       // Sort groups by time.
-      groups = sortBy(groups, sortTime)
+      groups = sortBy(groups, r => r.time_key)
+
+      t1 = new Date()
+      console.log('groups-end', (t1 - t0) * 0.001)
+      t0 = t1
 
       return {
         groups,
@@ -250,14 +286,14 @@ export default {
       const groups = this.groups
       let runs = groups.groups  // FIXME: !!
       const time = (this.time || new Date()).toISOString()
-      let timeIndex = sortedIndexBy(runs, { times: { schedule: time } }, sortTime)
+      let timeIndex = sortedIndexBy(runs, { time_key: time }, r => r.time_key)
 
       let earlierTime
       let earlierCount
       if (this.maxEarlierRuns < timeIndex) {
         // Don't truncate in the middle of a timestamp.
         earlierCount = timeIndex - this.maxEarlierRuns
-        earlierTime = sortTime(runs[earlierCount])
+        earlierTime = runs[earlierCount].time_key
         runs = runs.slice(earlierCount)
         timeIndex -= earlierCount
       }
@@ -271,7 +307,7 @@ export default {
       if (this.maxLaterRuns < runs.length - timeIndex) {
         // Don't truncate in the middle of a timestamp.
         laterCount = runs.length - (timeIndex + this.maxLaterRuns)
-        laterTime = sortTime(runs[runs.length - laterCount])
+        laterTime = runs[runs.length - laterCount].time_key
         runs = runs.slice(0, runs.length - laterCount)
       }
       else {
