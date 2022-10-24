@@ -133,8 +133,8 @@ export default {
     argColumnStyle : {type: String, default: 'combined'},
 
     time: {type: Date, default: null},
-    maxEarlierRuns: {type: Number, default: 100},
-    maxLaterRuns: {type: Number, default: 100},
+    maxEarlierRuns: {type: Number, default: null},
+    maxLaterRuns: {type: Number, default: null},
   },
 
   components: {
@@ -269,7 +269,7 @@ export default {
 
       let earlierTime
       let earlierCount
-      if (this.maxEarlierRuns < timeIndex) {
+      if (typeof this.maxEarlierRuns === 'number' && this.maxEarlierRuns < timeIndex) {
         // Don't truncate in the middle of a timestamp.
         earlierCount = timeIndex - this.maxEarlierRuns
         earlierTime = runs[earlierCount].time_key
@@ -283,7 +283,7 @@ export default {
 
       let laterTime
       let laterCount
-      if (this.maxLaterRuns < runs.length - timeIndex) {
+      if (typeof this.maxLaterRuns === 'number' && this.maxLaterRuns < runs.length - timeIndex) {
         // Don't truncate in the middle of a timestamp.
         laterCount = runs.length - (timeIndex + this.maxLaterRuns)
         laterTime = runs[runs.length - laterCount].time_key
