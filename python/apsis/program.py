@@ -174,23 +174,26 @@ class NoOpProgram(Program):
     A program that does nothing and always succeeds.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, *, duration=0):
+        self.__duration = str(duration)
 
 
     def __str__(self):
-        return "no-op"
+        return "no-op" + (
+            "" if self.__duration is None else f" for {self.__duration} s"
+        )
 
 
     def bind(self, args):
-        return type(self)()
+        duration = or_none(template_expand)(self.__duration, args)
+        return type(self)(duration=duration)
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            pass
-        return cls()
+            duration = pop("duration", nstr, None)
+        return cls(duration=duration)
 
 
     async def start(self, run_id, cfg):
@@ -199,6 +202,9 @@ class NoOpProgram(Program):
 
 
     async def wait(self, run_id, run_state):
+        if self.__duration is not None:
+            duration = float(self.__duration)
+            await asyncio.sleep(duration)
         return ProgramSuccess()
 
 
