@@ -67,12 +67,15 @@ SSH_OPTIONS = dict(
     StrictHostKeyChecking   ="no",  # FIXME-CONFIG
 )
 
-def _get_agent_argv(*, host=None, user=None, connect=None):
+def _get_agent_argv(*, host=None, user=None, connect=None, state_dir=None):
     """
     Returns the argument vector to start the agent on `host` as `user`.
     """
     # FIXME-CONFIG: Configure how to start remote agents.
     argv = [sys.executable, "-m", "apsis.agent.main", "--log", "DEBUG"]
+
+    if state_dir is not None:
+        argv.extend(["--state-dir", str(state_dir)])
 
     try:
         pythonpath = os.environ.get("PYTHONPATH", "")
@@ -113,7 +116,8 @@ def _get_agent_name(user, host, port):
     return f"agent {user}{host}{port}"
 
 
-async def start_agent(*, host=None, user=None, connect=None, timeout=30):
+async def start_agent(
+        *, host=None, user=None, connect=None, timeout=30, state_dir=None):
     """
     Starts the agent on `host` as `user`.
 
@@ -126,7 +130,9 @@ async def start_agent(*, host=None, user=None, connect=None, timeout=30):
       The agent port and token.
     """
     name = _get_agent_name(user, host, None)
-    argv = _get_agent_argv(host=host, user=user, connect=connect)
+    argv = _get_agent_argv(
+        host=host, user=user, connect=connect, state_dir=state_dir
+    )
     log.debug(f"{name}: command: {' '.join(argv)}")
     proc = await asyncio.create_subprocess_exec(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -165,7 +171,7 @@ class Agent:
     # attempts is the number of delays.
     START_DELAYS = [ 0.5 * i**2 for i in range(6) ]
 
-    def __init__(self, host=None, user=None, *, connect=None):
+    def __init__(self, host=None, user=None, *, connect=None, state_dir=None):
         """
         :param host:
           Host to run on, or none for local.
@@ -175,12 +181,13 @@ class Agent:
           If true, connect to a running instance only.  If false, fail if an
           instance is already running.
         """
-        self.__host     = host
-        self.__user     = user
-        self.__connect  = connect
+        self.__host         = host
+        self.__user         = user
+        self.__connect      = connect
+        self.__state_dir    = state_dir
 
-        self.__lock     = asyncio.Lock()
-        self.__conn     = None
+        self.__lock         = asyncio.Lock()
+        self.__conn         = None
 
 
     def __str__(self):
@@ -200,9 +207,10 @@ class Agent:
             log.info(f"{self}: connecting")
             if self.__conn is None:
                 self.__conn = await start_agent(
-                    host    =self.__host,
-                    user    =self.__user,
-                    connect =self.__connect,
+                    host        =self.__host,
+                    user        =self.__user,
+                    connect     =self.__connect,
+                    state_dir   =self.__state_dir,
                 )
                 log.debug(f"{self}: connected")
 
