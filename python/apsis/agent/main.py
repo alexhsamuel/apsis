@@ -153,6 +153,9 @@ def main():
         "--no-stop", action="store_true", default=False,
         help="don't stop automatically after last process")
     parser.add_argument(
+        "--state-dir", metavar="DIR", type=Path, default=None,
+        help="write state file in DIR")
+    parser.add_argument(
         "--stop-time", metavar="SECS", default=300,
         help="wait SECS after last process before stopping [def: 300]")
     args = parser.parse_args()
@@ -160,7 +163,7 @@ def main():
     if args.log_level is not None:
         logging.getLogger(None).setLevel(getattr(logging, args.log_level))
 
-    state_dir = get_state_dir()
+    state_dir = args.state_dir if args.state_dir is not None else get_state_dir()
     print(f"using dir: {state_dir}", file=sys.stderr)
 
     # Check the pid file.  Is there already an instance running?
