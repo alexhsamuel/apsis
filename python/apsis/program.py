@@ -175,7 +175,7 @@ class NoOpProgram(Program):
     """
 
     def __init__(self, *, duration=0):
-        self.__duration = str(duration)
+        self.__duration = nstr(duration)
 
 
     def __str__(self):
