@@ -1,6 +1,41 @@
 <template lang="pug">
 div
-  table.widetable.runlist
+  div.time-controls(
+    v-if="timeControls"
+  )
+    | Show
+    DropList.counts(
+      :value="1"
+      v-on:input="maxRuns = COUNTS[$event] / 2"
+    )
+      div(
+        v-for="count in COUNTS"
+      )
+        div {{ count }}
+    | Runs Around
+    | {{ formatTime(groups.time, store.state.timeZone) }}
+    button(
+      v-on:click="showTime(groups.earlierTime)"
+      :disabled="groups.earlierCount == 0"
+    ) Earlier
+    button(
+      v-on:click="showTime('now')"
+    ) Now
+    button(
+      v-on:click="showTime(groups.laterTime)"
+      :disabled="groups.laterCount == 0"
+    ) Later
+    div
+     button.toggle.left(
+      :disabled="asc"
+      v-on:click="asc = true"
+     ) Asc
+     button.toggle.right(
+      :disabled="!asc"
+      v-on:click="asc = false"
+     ) Desc
+
+  table.runlist
     colgroup
       col(v-if="showJob" style="min-width: 10rem")
       template(v-if="argColumnStyle === 'separate'")
@@ -29,19 +64,24 @@ div
         th.col-operations Operations
 
     tbody
-      tr(v-if="trimmedGroups.groups.length == 0")
+      tr(v-if="groups.groups.length == 0")
         td.note(colspan="9") No runs.
 
-      tr(v-if="trimmedGroups.earlierCount > 0")
+      tr(v-if="(asc ? groups.earlierCount : groups.laterCount) > 0")
         td.note(colspan="9")
-          | {{ trimmedGroups.earlierCount }} earlier rows not shown
+          | {{ asc ? groups.earlierCount : groups.laterCount }}
+          | {{ asc ? 'earlier' : 'later' }} rows not shown
+          button(
+            v-on:click="showTime(asc ? groups.earlierTime : groups.laterTime)"
+          ) Show {{ asc ? 'Earlier' : 'Later' }}
 
       //- Each group is represented by a single run, groupRun, but may contain
       //- one or more runs, groupRuns.  The group's expand state is keyed by
       //- groupRun.run_id.
-      template(v-for="run, i in trimmedGroups.groups")
-        tr(v-if="i === trimmedGroups.timeIndex")
+      template(v-for="run, i in groups.groups")
+        tr(v-if="i === groups.nowIndex")
           td.timeSeparator(colspan="9")
+            div
 
         tr(:key="run.run_id")
           //- Show job name if enabled by 'showJob' and this is the group run.
@@ -66,9 +106,11 @@ div
             State(:state="run.state")
           //- FIXME: Click to run with history expanded.
           td.col-reruns
-            | {{ historyCount(trimmedGroups.counts[run.run_id]) }}
+            | {{ historyCount(groups.counts[run.run_id]) }}
           td.col-schedule-time
-            Timestamp(:time="run.times.schedule")
+            .tooltip
+              Timestamp(:time="run.times.schedule")
+              span.tooltiptext(v-if="run.state == 'scheduled'") in {{ startTime(run) }}
           td.col-start-time
             Timestamp(:time="run.times.running")
           td.col-elapsed
@@ -83,16 +125,21 @@ div
                 :button="true"
               )
 
-      tr(v-if="trimmedGroups.laterCount > 0")
+      tr(v-if="(asc ? groups.laterCount : groups.earlierCount) > 0")
         td.note(colspan="9")
-          | {{ trimmedGroups.laterCount }} later rows not shown
+          | {{ asc ? groups.laterCount : groups.earlierCount }}
+          | {{ asc ? 'later' : 'earlier' }} rows not shown
+          button(
+            v-on:click="showTime(asc ? groups.laterTime : groups.earlierTime)"
+          ) Show {{ asc ? 'Later' : 'Earler' }}
 
 </template>
 
 <script>
 import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
-import { formatElapsed } from '../time'
+import { formatElapsed, formatTime } from '../time'
+import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
@@ -132,12 +179,11 @@ export default {
     // - 'none' for no args at all, suitable for runs of a single (job, args)
     argColumnStyle : {type: String, default: 'combined'},
 
-    time: {type: Date, default: null},
-    maxEarlierRuns: {type: Number, default: null},
-    maxLaterRuns: {type: Number, default: null},
+    timeControls: {type: Boolean, default: false},
   },
 
   components: {
+    DropList,
     HamburgerMenu,
     Job,
     JobLabel,
@@ -154,6 +200,10 @@ export default {
   data() {
     return { 
       store,
+      time: 'now',
+      maxRuns: 50,
+      COUNTS: [20, 50, 100, 200, 500, 1000],
+      asc: true,
     } 
   },
 
@@ -212,7 +262,7 @@ export default {
 
     // Array of rerun groups, each an array of runs that are reruns of the
     // same run.  Groups are filtered by current filters, and sorted.
-    groups() {
+    allGroups() {
       let t0 = new Date()
       let t1
 
@@ -260,18 +310,19 @@ export default {
       }
     },
 
-    trimmedGroups() {
+    groups() {
       let start = new Date()
-      const groups = this.groups
-      let runs = groups.groups  // FIXME: !!
-      const time = (this.time || new Date()).toISOString()
+      const groups = this.allGroups
+      let runs = groups.groups   // FIXME
+      let now = (new Date()).toISOString()
+      const time = this.time === 'now' ? now : this.time
       let timeIndex = sortedIndexBy(runs, { time_key: time }, r => r.time_key)
 
       let earlierTime
       let earlierCount
-      if (typeof this.maxEarlierRuns === 'number' && this.maxEarlierRuns < timeIndex) {
+      if (this.timeControls && this.maxRuns < timeIndex) {
         // Don't truncate in the middle of a timestamp.
-        earlierCount = timeIndex - this.maxEarlierRuns
+        earlierCount = timeIndex - this.maxRuns
         earlierTime = runs[earlierCount].time_key
         runs = runs.slice(earlierCount)
         timeIndex -= earlierCount
@@ -283,9 +334,9 @@ export default {
 
       let laterTime
       let laterCount
-      if (typeof this.maxLaterRuns === 'number' && this.maxLaterRuns < runs.length - timeIndex) {
+      if (this.timeControls && this.maxRuns < runs.length - timeIndex) {
         // Don't truncate in the middle of a timestamp.
-        laterCount = runs.length - (timeIndex + this.maxLaterRuns)
+        laterCount = runs.length - (timeIndex + this.maxRuns)
         laterTime = runs[runs.length - laterCount].time_key
         runs = runs.slice(0, runs.length - laterCount)
       }
@@ -294,11 +345,19 @@ export default {
         laterCount = 0
       }
 
+      let nowIndex
+      if (runs.length > 0 && runs[0].time_key < now && now < runs[runs.length - 1].time_key)
+        nowIndex = sortedIndexBy(runs, { time_key: now }, r => r.time_key)
+
+      if (!this.asc)
+        runs.reverse()
+
       console.log('runs:', this.store.state.runs.size, 'filtered:', this.runs.length, 'groups:', runs.length, 'earlier:', earlierCount, 'later:', laterCount, 'in:', (new Date() - start) * 0.001)
       return {
         groups: runs,
         counts: groups.counts,
-        timeIndex,
+        nowIndex,
+        time,
         earlierTime,
         earlierCount,
         laterTime,
@@ -309,27 +368,81 @@ export default {
 
   methods: {
     formatElapsed,
+    formatTime,
 
     historyCount(count) {
       return count === 1 ? '' : count === 2 ? '+1 run\u00a0\u00a0' : '+' + (count - 1) + ' runs'
+    },
+
+    showTime(time) {
+      this.time = 
+        Math.abs(new Date(time) - new Date()) < 60000 ? 'now'
+        : time
+    },
+
+    startTime(run) {
+      if (run.times.schedule) {
+        const now = this.store.state.time
+        const schedule = new Date(run.times.schedule)
+        return formatElapsed((schedule - now) * 1e-3)
+      }
+      else
+        return ''
     }
   },
 
 }
 </script>
 
-<style lang="scss">
-table.runlist {
-  .note {
-    height: 24px;
+<style lang="scss" scoped>
+@import '@/styles/index.scss';
+
+.time-controls {
+  display: flex;
+  align-items: baseline;
+  gap: 1ex;
+  text-transform: uppercase;
+
+  .counts {
+    width: 6em;
+    text-align: right;
   }
 
-  .col-job, .col-args, .col-arg, .col-schedule-time, .col-start-time {
+  .toggle{
+    &[disabled] {
+      color: black;
+      background: #f0f0f0;
+    }
+    &.left:not(:hover) {
+      border-right-color: transparent;
+    }
+    &.right:not(:hover) {
+      border-left-color: transparent;
+    }
+  }
+}
+
+table {
+  @extend .widetable;
+
+  .note {
+    height: 24px;
+    button {
+      margin-left: 8px;
+      padding: 0 20px;
+    }
+  }
+
+  .col-job, .col-args, .col-arg {
     text-align: left;
   }
 
   .col-run, .col-state, .col-operations {
     text-align: center;
+  }
+
+  .col-schedule-time, .col-start-time {
+    text-align: right;
   }
 
   .col-reruns {
@@ -354,9 +467,10 @@ table.runlist {
   }
 
   .timeSeparator {
-    border-top: 24px solid transparent;
-    padding: 0;
+    div {
+      border-top: 4px solid #f8f8f8;
+    }
+    padding: 10px 12px 10px 0;
   }
 }
 </style>
-

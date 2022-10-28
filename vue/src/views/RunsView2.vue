@@ -7,10 +7,6 @@ div
       span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
         PathNav(:path="path" v-on:path="setPath($event)")
 
-    input(
-      v-model="time"
-    )
-
     //- Combo box for selecting the "since" start date of runs to show.
     SinceSelect(
       style="flex: 0 0 150px;"
@@ -35,11 +31,9 @@ div
   RunsList(
     :query="query"
     :path="path"
-    :maxEarlierRuns="50"
-    :maxLaterRuns="50"
-    :time="convertTime(time)"
+    :timeControls="true"
     v-on:path="setPath($event)"
-)
+  )
 
 </template>
 
@@ -50,8 +44,6 @@ import * as runsFilter from '@/runsFilter.js'
 import SearchInput from '@/components/SearchInput'
 import SinceSelect from '@/components/SinceSelect'
 import StatesSelect from '@/components/StatesSelect'
-import store from '@/store.js'
-import { parseTime } from '../time'
 
 export default {
   name: 'RunsView',
@@ -66,7 +58,6 @@ export default {
   data() {
     return {
       query: this.$route.query.q || '',
-      time: 'now',
     }
   },
 
@@ -99,20 +90,6 @@ export default {
   },
 
   methods: {
-    convertTime(time) {
-      console.log('convertTime', time)
-      switch (time) {
-        case null:
-        case undefined:
-        case '':
-        case 'now':
-          return null
-
-        default:
-          return parseTime(time, store.state.timeZone)
-      }
-    },
-
     // FIXME: Elsewhere.
     /**
      * Sets a query param in the route.
@@ -156,6 +133,11 @@ export default {
 </script>
 
 <style lang="scss">
+h3 {
+  margin: 0;
+  margin-bottom: 1ex;
+}
+
 // FIXME: Elsewhere
 .flex-margin {
   display: flex;
