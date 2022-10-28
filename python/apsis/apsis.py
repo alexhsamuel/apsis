@@ -18,7 +18,6 @@ from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgument
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
-from   .waiting import wait_loop
 
 log = logging.getLogger(__name__)
 
@@ -152,24 +151,86 @@ class Apsis:
         """
         Starts waiting for `run`.
         """
+        # Make sure the run is waiting.
         if run.state != run.STATE.waiting:
             self._transition(run, run.STATE.waiting)
 
+        # If a max waiting time is configured, compute the timeout for this run.
         cfg = self.cfg.get("waiting", {})
-
-        async def wait():
+        max_time = cfg.get("max_time", None)
+        if max_time is None:
+            timeout = None
+        else:
             try:
-                await wait_loop(self, run, cfg)
+                start = ora.Time(run.times["waiting"])
+            except KeyError:
+                log.error(f"waiting run missing waiting time: {run.run_id}")
+                # Fall back to current time.
+                start = ora.now()
+            timeout = start + max_time
+
+        async def loop():
+            """
+            The wait loop for a single run.
+            """
+            log.info(f"wait loop: {run.run_id}")
+            try:
+                conds = list(run.conds)
+
+                if len(conds) > 0:
+                    self.run_log.info(run, f"waiting for {conds[0]}")
+                while len(conds) > 0:
+                    cond = conds[0]
+
+                    # FIXME: In the future, we won't poll run conditions, but
+                    # rather check only on run transitions.
+                    result = cond.check_runs(self.run_store)
+                    if result is True:
+                        result = await cond.check()
+
+                    if isinstance(result, cond.Transition):
+                        # Force a transition.
+                        self.run_log.info(run, f"{cond} → {result.state}")
+                        self._transition(run, result.state)
+                        return
+
+                    elif result is True:
+                        self.run_log.info(run, f"satisfied {cond}")
+                        conds.pop(0)
+                        if len(conds) > 0:
+                            self.run_log.info(run, f"waiting for {conds[0]}")
+
+                    elif result is False:
+                        # First cond is still blocking.
+                        if timeout is not None:
+                            # Check for timeout while waiting.
+                            now = ora.now()
+                            remaining = timeout - now
+                            if 0 < remaining:
+                                sleep_time = min(cond.poll_interval, remaining)
+                            else:
+                                raise TimeoutWaiting(
+                                    f"time out waiting after {max_time} sec")
+                        else:
+                            sleep_time = cond.poll_interval
+
+                        await asyncio.sleep(sleep_time)
+
+                    else:
+                        assert False, f"invalid condition result: {result!r}"
+
+                else:
+                    # Start the run.
+                    self.__start(run)
+
             except asyncio.CancelledError:
                 raise
             except Exception:
                 msg = f"waiting for {run.conds[0]} failed"
                 log.error(msg, exc_info=True)
                 self._run_exc(run, message=msg)
-            else:
-                self.__start(run)
 
-        task = asyncio.ensure_future(wait())
+        task = asyncio.ensure_future(loop())
         self.__wait_tasks[run] = task
         task.add_done_callback(lambda _: self.__wait_tasks.pop(run))
 

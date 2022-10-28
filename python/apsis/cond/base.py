@@ -1,5 +1,7 @@
+from   dataclasses import dataclass
+
 from   apsis.lib.json import TypedJso
-from   apsis.runs import template_expand
+from   apsis.runs import Run, template_expand
 
 #-------------------------------------------------------------------------------
 
@@ -27,16 +29,34 @@ class Condition(TypedJso):
         """
 
 
-    async def check(self):
+    @dataclass
+    class Transition:
         """
-        Returns true if the condition is satisfied.
+        The run should transition to `state`.
+        """
+        state: Run.STATE
+
+
+
+    async def check(self) -> bool | Transition:
+        """
+        Checks if conditions have been met and the run is ready to start.
+
+        :return:
+          `True` if the run is ready, `False` otherwise, or `Transition` to
+          cause the run to transition to a new state.
         """
         return True
 
 
-    def check_runs(self, run_store):
+    def check_runs(self, run_store) -> bool | Transition:
         """
-        Returns true if run conditions are satisfied.
+        Checks if run-based conditions have been met and the run is ready to
+        start.
+
+        :return:
+          `True` if the run is ready, `False` otherwise, or `Transition` to
+          cause the run to transition to a new state.
         """
         return True
 
