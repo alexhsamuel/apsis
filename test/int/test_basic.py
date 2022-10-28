@@ -48,7 +48,6 @@ def test_jobs_exact_match(inst):
     assert ret == 0
 
 
-
 def test_stop_serve(inst):
     ret = inst.stop_serve()
     assert ret == 0
