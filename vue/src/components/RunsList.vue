@@ -12,8 +12,10 @@ div
         v-for="count in COUNTS"
       )
         div {{ count }}
-    | Runs Around
-    | {{ formatTime(groups.time, store.state.timeZone) }}
+    | Runs between
+    | {{ formatTime(groups.earlierTime, store.state.timeZone) }}
+    | and
+    | {{ formatTime(groups.laterTime, store.state.timeZone) }}
     button(
       v-on:click="showTime(groups.earlierTime)"
       :disabled="groups.earlierCount == 0"
@@ -25,15 +27,14 @@ div
       v-on:click="showTime(groups.laterTime)"
       :disabled="groups.laterCount == 0"
     ) Later
-    div
-     button.toggle.left(
-      :disabled="asc"
-      v-on:click="asc = true"
-     ) Asc
-     button.toggle.right(
-      :disabled="!asc"
-      v-on:click="asc = false"
-     ) Desc
+    button.toggle.left(
+    :disabled="asc"
+    v-on:click="asc = true"
+    ) Asc
+    button.toggle.right(
+    :disabled="!asc"
+    v-on:click="asc = false"
+    ) Desc
 
   table.runlist
     colgroup
@@ -408,10 +409,13 @@ export default {
     text-align: right;
   }
 
-  .toggle{
+  .toggle {
     &[disabled] {
       color: black;
       background: #f0f0f0;
+    }
+    &.right {
+      margin-left: -1.2ex;
     }
     &.left:not(:hover) {
       border-right-color: transparent;
@@ -420,6 +424,11 @@ export default {
       border-left-color: transparent;
     }
   }
+
+  button {
+    line-height: 28px;
+    height: 28px;
+  }
 }
 
 table {
@@ -427,9 +436,12 @@ table {
 
   .note {
     height: 24px;
+
     button {
       margin-left: 8px;
-      padding: 0 20px;
+      padding: 0 12px;
+      line-height: 20px;
+      height: 24px;
     }
   }
 
