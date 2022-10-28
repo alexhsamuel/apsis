@@ -129,10 +129,11 @@ class Run:
             "success",
             "failure",
             "error",
+            "skipped",
         )
     )
 
-    FINISHED = {STATE.success, STATE.failure, STATE.error}
+    FINISHED = {STATE.success, STATE.failure, STATE.error, STATE.skipped}
 
     # State model.  Allowed transitions _to_ each state.
     TRANSITIONS = {
@@ -141,9 +142,10 @@ class Run:
         STATE.waiting   : {STATE.new, STATE.scheduled},
         STATE.starting  : {STATE.scheduled, STATE.waiting},
         STATE.running   : {STATE.starting},
-        STATE.error     : {STATE.new, STATE.scheduled, STATE.waiting, STATE.starting, STATE.running},
+        STATE.error     : {STATE.new, STATE.scheduled, STATE.waiting, STATE.starting, STATE.running, STATE.skipped},
         STATE.success   : {STATE.running},
         STATE.failure   : {STATE.running},
+        STATE.skipped   : {STATE.new, STATE.scheduled, STATE.waiting},
     }
 
     # FIXME: Make the attributes read-only.

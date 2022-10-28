@@ -103,6 +103,13 @@ class Client:
         return self.__post("/api/v1/runs", run_id, "cancel")
 
 
+    def skip(self, run_id):
+        """
+        Skips a scheduled or waiting run.
+        """
+        return self.__post("/api/v1/runs", run_id, "skip")
+
+
     def start(self, run_id):
         """
         Forces a scheduled or waiting run to start.

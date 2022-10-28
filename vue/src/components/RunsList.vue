@@ -204,6 +204,7 @@ export default {
           'success': 'C',
           'failure': 'C',
           'error': 'C',
+          'skipped': 'C',
       }
 
       // Select run to show.

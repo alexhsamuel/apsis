@@ -13,6 +13,7 @@ const STATES = [
   'success',
   'failure',
   'error',
+  'skipped',
 ]
 
 export class StateTerm {
