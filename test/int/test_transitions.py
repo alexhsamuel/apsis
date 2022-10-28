@@ -1,3 +1,8 @@
+"""
+Tests basic transitions by running an Apsis service and interacting with it
+via the HTTP client.
+"""
+
 from   contextlib import closing
 import ora
 import pytest
@@ -36,6 +41,9 @@ def test_create_adhoc(inst):
 
 
 def test_skip(inst):
+    """
+    Schedules a new run for the future and skips it before it runs.
+    """
     client = inst.client
 
     # Create and schedule a run for a minute from now.
