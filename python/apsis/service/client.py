@@ -209,6 +209,10 @@ class Client:
         return next(iter(runs.values()))
 
 
+    def schedule_adhoc(self, time, job):
+        return self.__schedule(time, job)
+
+
     def schedule_program(self, time, args):
         """
         :param time:
@@ -229,7 +233,7 @@ class Client:
           The shell command to run.
         """
         return self.__schedule(time, {"program": str(command)})
-        
+
 
     def reload_jobs(self, *, dry_run=False):
         return self.__post("/api/control/reload_jobs", data={}, dry_run=dry_run)
