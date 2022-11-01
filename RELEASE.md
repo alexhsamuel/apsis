@@ -1,3 +1,12 @@
+# In progress
+
+- Add `run` param to `Condition.check_runs()`.  Custom condition classes need to
+  be updated.
+- Add support for inducing a transition from `Condition.check_runs()` by
+  returning a `Condition.Transition` value.
+- Add the `skip_dependency` condition type.
+
+
 # v0.13.1
 
 - Remove UIkit from the web UI, for performance.  Minor visual and behavioral changes.
