@@ -35,6 +35,7 @@ class Condition(TypedJso):
         The run should transition to `state`.
         """
         state: Run.STATE
+        reason: str = None
 
 
 

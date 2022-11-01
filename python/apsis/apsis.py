@@ -178,7 +178,7 @@ class Apsis:
                 conds = list(run.conds)
 
                 if len(conds) > 0:
-                    self.run_log.info(run, f"waiting for {conds[0]}")
+                    self.run_log.info(run, f"waiting for condition: {conds[0]}")
                 while len(conds) > 0:
                     cond = conds[0]
 
@@ -190,7 +190,8 @@ class Apsis:
 
                     if isinstance(result, cond.Transition):
                         # Force a transition.
-                        self.run_log.info(run, f"{cond} → {result.state}")
+                        self.run_log.info(
+                            run, result.reason or f"{cond} → {result.state}")
                         self._transition(run, result.state)
                         return
 
@@ -198,7 +199,8 @@ class Apsis:
                         self.run_log.info(run, f"satisfied {cond}")
                         conds.pop(0)
                         if len(conds) > 0:
-                            self.run_log.info(run, f"waiting for {conds[0]}")
+                            self.run_log.info(
+                                run, f"waiting for condition: {conds[0]}")
 
                     elif result is False:
                         # First cond is still blocking.
