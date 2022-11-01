@@ -10,8 +10,17 @@ jobs: /path/to/jobdir
 # loaded from the run database.
 runs_lookback: 2592000  # 30 days
 
-# Refuse to schedule runs older than this.
-schedule_max_age: 86400  # 1 day
+schedule:
+    # If specified, schedule only runs after this time.
+    since: null
+    # since: 2022-11-01T00:00:00Z
+
+    # How far into the future to schedule runs, in s.
+    horizon: 86400
+
+    # If specified, refuse to schedule runs older than this age, in s.
+    max_age: null
+    # max_age: 604800
 
 # The path to the database containing Apsis state.  Use "apsisctl create" to
 # create a new state database.
