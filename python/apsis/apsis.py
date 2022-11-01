@@ -184,7 +184,7 @@ class Apsis:
 
                     # FIXME: In the future, we won't poll run conditions, but
                     # rather check only on run transitions.
-                    result = cond.check_runs(self.run_store)
+                    result = cond.check_runs(run, self.run_store)
                     if result is True:
                         result = await cond.check()
 

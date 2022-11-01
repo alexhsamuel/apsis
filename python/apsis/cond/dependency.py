@@ -60,7 +60,7 @@ class Dependency(Condition):
 
     # FIXME: Handle exceptions when checking.
 
-    def check_runs(self, run_store):
+    def check_runs(self, run, run_store):
         _, deps = run_store.query(
             job_id=self.job_id, args=self.args, state=self.states)
         deps = iter(deps)

@@ -50,7 +50,7 @@ class Condition(TypedJso):
         return True
 
 
-    def check_runs(self, run_store) -> bool | Transition:
+    def check_runs(self, run, run_store) -> bool | Transition:
         """
         Checks if run-based conditions have been met and the run is ready to
         start.
