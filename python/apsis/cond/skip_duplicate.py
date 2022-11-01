@@ -12,6 +12,9 @@ log = logging.getLogger(__name__)
 class SkipDuplicate(Condition):
     """
     Transitions a run if another run with the same job_id and args exists.
+
+    This condition will never hold a run in the waiting state; it either
+    transitions it immediately or releases it.
     """
 
     DEFAULT_IF_STATES = ("waiting", "starting", "running")
@@ -38,7 +41,7 @@ class SkipDuplicate(Condition):
 
     def __str__(self):
         states = ", ".join( s.name for s in self.__if_states )
-        return f"transition to {self.__target.name} if another run {states}"
+        return f"transition to {self.__target.name} if another run is {states}"
 
 
     def to_jso(self):
@@ -66,19 +69,23 @@ class SkipDuplicate(Condition):
 
 
     def check_runs(self, run, run_store):
+        # Query runs with the same job_id and args as this one.
         _, runs = run_store.query(
             job_id=run.inst.job_id, args=run.inst.args,
             state=self.__if_states,
         )
+        # Exclude this run itself.
         runs = [ r for r in runs if r.run_id != run.run_id ]
-        log.debug(f"runs {run.inst} {self.__if_states}: {len(runs)}")
-        return (
-            self.Transition(
+
+        if len(runs) > 0:
+            # Found a match.  Transition this run.
+            return self.Transition(
                 self.__target,
                 f"transitioning to {self.__target.name} because "
                 f"{runs[0].run_id} {runs[0].state.name}"
-            ) if len(runs) > 0
-            else True
-        )
+            )
+        else:
+            # No match; we're good.
+            return True
 
 
