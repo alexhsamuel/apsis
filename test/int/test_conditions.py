@@ -116,3 +116,52 @@ def test_skip_duplicate(client):
     assert res["state"] == "running"
 
 
+def test_to_error(client):
+    """
+    Tests a custom skip_duplicate condition, which transitions runs to error if
+    there is already a failure or error run.
+    """
+    res = client.schedule("to error", {"color": "red"})
+    red0 = res["run_id"]
+    res = client.schedule("to error", {"color": "red"})
+    red1 = res["run_id"]
+    res = client.schedule("to error", {"color": "blue"})
+    blue0 = res["run_id"]
+
+    # All should run immediately.
+    for run_id in (red0, red1, blue0):
+        res = client.get_run(run_id)
+        assert res["state"] == "running"
+
+    # All should succeed.
+    time.sleep(1)
+    for run_id in (red0, red1, blue0):
+        res = client.get_run(run_id)
+        assert res["state"] == "success"
+
+    # Now mark a red one as failed.
+    res = client.mark(red1, "failure")
+
+    # Schedule another red and blue run.
+    res = client.schedule("to error", {"color": "red"})
+    red2 = res["run_id"]
+    res = client.schedule("to error", {"color": "blue"})
+    blue1 = res["run_id"]
+
+    # The red one should have been transitioned to error.
+    res = client.get_run(red2)
+    assert res["state"] == "error"
+    res = client.get_run(blue1)
+    assert res["state"] == "running"
+
+    # Mark both failure/error runs as success.
+    res = client.mark(red1, "success")
+    res = client.mark(red2, "success")
+
+    # A red run should go again.
+    res = client.schedule("to error", {"color": "red"})
+    red3 = res["run_id"]
+    res = client.get_run(red3)
+    assert res["state"] == "running"
+
+
