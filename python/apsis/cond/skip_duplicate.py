@@ -2,7 +2,7 @@ import logging
 
 from   apsis.lib import py
 from   apsis.lib.json import check_schema
-from   apsis.runs import Instance, to_state
+from   apsis.runs import Run, Instance, to_state
 from   .base import Condition
 
 log = logging.getLogger(__name__)
@@ -17,38 +17,40 @@ class SkipDuplicate(Condition):
     transitions it immediately or releases it.
     """
 
-    DEFAULT_IF_STATES = ("waiting", "starting", "running")
+    DEFAULT_CHECK_STATES = ("waiting", "starting", "running")
 
     def __init__(
             self, *,
-            if_states   =DEFAULT_IF_STATES,
-            target      ="skipped",
+            check_states=DEFAULT_CHECK_STATES,
+            target_state="skipped",
     ):
         """
-        :param if_states:
+        :param check_states:
           Run states to consider when looking for duplicates.
-        :param target:
-          The state to transition this run to.
+        :param target_state:
+          The state to transition this run to; must be a finished state.
         """
-        self.__if_states    = [ to_state(s) for s in py.iterize(if_states) ]
-        self.__target       = to_state(target)
+        self.__check_states = [ to_state(s) for s in py.iterize(check_states) ]
+        self.__target_state = to_state(target_state)
+        if self.__target_state not in Run.FINISHED:
+            raise ValueError(f"invalid targat state: {self.__target_state.name}")
 
 
     def __repr__(self):
         return py.format_ctor(
-            self, if_states=self.__if_states, target=self.__target)
+            self, check_states=self.__check_states, target_state=self.__target_state)
 
 
     def __str__(self):
-        states = ", ".join( s.name for s in self.__if_states )
-        return f"transition to {self.__target.name} if another run is {states}"
+        states = ", ".join( s.name for s in self.__check_states )
+        return f"transition to {self.__target_state.name} if another run is {states}"
 
 
     def to_jso(self):
         return {
             **super().to_jso(),
-            "if_states" : [ s.name for s in self.__if_states ],
-            "target"    : self.__target.name,
+            "check_states"  : [ s.name for s in self.__check_states ],
+            "target_state"  : self.__target_state.name,
         }
 
 
@@ -56,23 +58,24 @@ class SkipDuplicate(Condition):
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             return cls(
-                if_states   =pop("if_states", default=cls.DEFAULT_IF_STATES),
-                target      =pop("target", default="skipped"),
+                check_states    =pop("check_states", default=cls.DEFAULT_CHECK_STATES),
+                target_state    =pop("target_state", default="skipped"),
             )
 
 
     def bind(self, run, jobs):
         return type(self)(
-            if_states   =self.__if_states,
-            target      =self.__target,
+            check_states    =self.__check_states,
+            target_state    =self.__target_state,
         )
 
 
     def check_runs(self, run, run_store):
         # Query runs with the same job_id and args as this one.
         _, runs = run_store.query(
-            job_id=run.inst.job_id, args=run.inst.args,
-            state=self.__if_states,
+            job_id  =run.inst.job_id,
+            args    =run.inst.args,
+            state   =self.__check_states,
         )
         # Exclude this run itself.
         runs = [ r for r in runs if r.run_id != run.run_id ]
@@ -80,8 +83,8 @@ class SkipDuplicate(Condition):
         if len(runs) > 0:
             # Found a match.  Transition this run.
             return self.Transition(
-                self.__target,
-                f"transitioning to {self.__target.name} because "
+                self.__target_state,
+                f"transitioning to {self.__target_state.name} because "
                 f"{runs[0].run_id} {runs[0].state.name}"
             )
         else:
