@@ -178,7 +178,7 @@ class Client:
         return run
 
 
-    def schedule(self, job_id, args, time):
+    def schedule(self, job_id, args, time="now"):
         """
         Creates and schedules a new run.
         """

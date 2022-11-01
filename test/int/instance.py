@@ -4,6 +4,7 @@ import logging
 from   pathlib import Path
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 import ujson
@@ -109,6 +110,8 @@ class ApsisInstance:
     def close(self):
         if self.srv_proc is not None:
             self.stop_serve()
+            with open(self.log_path) as file:
+                sys.stdout.write(file.read())
 
 
     def run_apsis_cmd(self, *argv):
