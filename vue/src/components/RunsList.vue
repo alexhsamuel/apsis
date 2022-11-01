@@ -112,7 +112,7 @@ import Timestamp from './Timestamp'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 
 function sortTime(run) {
-  return run.times.schedule || run.times.running || run.times.error
+  return run.times.schedule || run.times.running || run.times.error || run.times.skipped
 }
 
 export default { 
