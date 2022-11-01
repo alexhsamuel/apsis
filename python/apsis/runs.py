@@ -88,6 +88,16 @@ class Instance:
         ) if isinstance(other, Instance) else NotImplemented
 
 
+    def to_jso(self):
+        return [self.job_id, self.args]
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        job_id, args = jso
+        return cls(job_id, args)
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -439,5 +449,17 @@ class RunStore:
             await asyncio.sleep(0.5)
             log.info("live query queue shut down")
 
+
+
+#-------------------------------------------------------------------------------
+
+def to_state(state):
+    if isinstance(state, Run.STATE):
+        return state
+    try:
+        return Run.STATE[state]
+    except KeyError:
+        pass
+    raise ValueError(f"not a state: {state!r}")
 
 
