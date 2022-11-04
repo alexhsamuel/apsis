@@ -84,8 +84,15 @@ export function parseTime(str, end, timeZone) {
     return null
 
   let date = parseDate(parts[0], timeZone)
-  if (date === null) 
-    return null
+  if (date === null) {
+    // Try to parse it as a time in today's date.
+    const daytime = parseDaytime(parts[0])
+    if (daytime === null)
+      return null
+    const now = moment(new Date()).tz(timeZone)
+    const x = [now.year(), now.month(), now.date()].concat(daytime)
+    return moment.tz(x, timeZone)
+  }
 
   if (parts.length === 2) {
     const daytime = parseDaytime(parts[1])

@@ -14,32 +14,6 @@ div
       )
         div {{ count }} runs
 
-    .label(:style="{'grid-row': asc ? 1 : 3, 'grid-column': 3}")
-      | From:
-    .field.disabled(:style="{'grid-row': asc ? 1 : 3, 'grid-column': 4}")
-      | {{ formatTime(groups.earlierTime) }}
-    button(
-      :style="{'grid-row': asc ? 1 : 3, 'grid-column': 5}"
-      v-on:click="showTime(groups.earlierTime)"
-      :disabled="groups.earlierCount == 0"
-    ) Earlier
-
-    button(
-      style="grid-row: 2; grid-column: 5;"
-      v-on:click="showTime('now')"
-      :disabled="time === 'now'"
-    ) Now
-
-    .label(:style="{'grid-row': asc ? 3 : 1, 'grid-column': 3}")
-      | To:
-    .field.disabled(:style="{'grid-row': asc ? 3 : 1, 'grid-column': 4}")
-      | {{ formatTime(groups.laterTime) }}
-    button(
-      :style="{'grid-row': asc ? 3 : 1, 'grid-column': 5}"
-      v-on:click="showTime(groups.laterTime)"
-      :disabled="groups.laterCount == 0"
-    ) Later
-
     .label(style="grid-row: 2; grid-column: 1") Order:
     div(style="grid-row: 2; grid-column: 2")
       button.toggle.left(
@@ -50,6 +24,41 @@ div
         :disabled="!asc"
         v-on:click="asc = false"
       ) &nbsp; Bwd &#8593;
+
+    .label(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 3}")
+      | From:
+    .field.disabled(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 4}")
+      | {{ formatTime(groups.earlierTime) }}
+    button(
+      :style="{'grid-row': asc ? 1 : 2, 'grid-column': 5}"
+      v-on:click="showTime(groups.earlierTime)"
+      :disabled="groups.earlierCount == 0"
+    ) Earlier
+
+    .label(:style="{'grid-row': asc ? 2 : 1, 'grid-column': 3}")
+      | To:
+    .field.disabled(:style="{'grid-row': asc ? 2 : 1, 'grid-column': 4}")
+      | {{ formatTime(groups.laterTime) }}
+    button(
+      :style="{'grid-row': asc ? 2 : 1, 'grid-column': 5}"
+      v-on:click="showTime(groups.laterTime)"
+      :disabled="groups.laterCount == 0"
+    ) Later
+
+    .label(style="grid-row: 1; grid-column: 6;") Show Time:
+    input.input-time(
+      style="grid-row: 1; grid-column: 7;"
+      type="text"
+      v-model="inputTime"
+      placeholder="Date / Time"
+      v-on:change="onTimeChange"
+    )
+    button(
+      style="grid-row: 2; grid-column: 7;"
+      v-on:click="showTime('now')"
+      :disabled="time === 'now'"
+    ) Show Now
+
 
   table.runlist
     colgroup
@@ -154,7 +163,7 @@ div
 <script>
 import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
-import { formatElapsed, formatTime } from '../time'
+import { formatElapsed, formatTime, parseTime } from '../time'
 import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
 import Job from '@/components/Job'
@@ -220,6 +229,8 @@ export default {
       maxRuns: 50,
       COUNTS: [20, 50, 100, 200, 500, 1000],
       asc: true,
+      inputTime: '',
+      profile: false,
     } 
   },
 
@@ -262,9 +273,11 @@ export default {
       let counts = {}
       if (this.groupRuns) {
         const runs = this.runs
-        t1 = new Date()
-        console.log('groups-runs', (t1 - t0) * 0.001)
-        t0 = t1
+        if (this.profile) {
+          t1 = new Date()
+          console.log('groups-runs', (t1 - t0) * 0.001)
+          t0 = t1
+        }
 
         // For each group, select the principal run for the group to show.
         groups = map(entries(groupBy(runs, r => r.group_key)), ([key, runs]) => {
@@ -279,9 +292,11 @@ export default {
           return run
         })
 
-        t1 = new Date()
-        console.log('groups-groupBy', (t1 - t0) * 0.001)
-        t0 = t1
+        if (this.profile) {
+          t1 = new Date()
+          console.log('groups-groupBy', (t1 - t0) * 0.001)
+          t0 = t1
+        }
       }
 
       else {
@@ -344,12 +359,14 @@ export default {
       if (!this.asc)
         runs.reverse()
 
-      console.log(
-        'runs:', this.store.state.runs.size, 'filtered:', this.runs.length, 'groups:', runs.length, 
-        'earlier:', earlierCount, earlierTime,
-        'later:', laterCount, laterTime,
-        'in:', (new Date() - start) * 0.001
-      )
+      if (this.profile)
+        console.log(
+          'runs:', this.store.state.runs.size, 'filtered:', this.runs.length, 'groups:', runs.length, 
+          'earlier:', earlierCount, earlierTime,
+          'later:', laterCount, laterTime,
+          'in:', (new Date() - start) * 0.001
+        )
+
       return {
         groups: runs,
         counts: groups.counts,
@@ -376,6 +393,7 @@ export default {
 
     showTime(time) {
       this.time = time
+      this.inputTime = ''
     },
 
     startTime(run) {
@@ -386,6 +404,14 @@ export default {
       }
       else
         return ''
+    },
+
+    onTimeChange(ev) {
+      const tz = store.state.timeZone
+      const time = parseTime(this.inputTime, false, tz).tz('UTC')
+      this.time = time.format()
+      this.inputTime = formatTime(time, tz)
+      console.log(ev)
     }
   },
 
@@ -397,15 +423,12 @@ export default {
 
 .time-controls {
   display: inline-grid;
-  grid-template-columns: repeat(5, auto);
-  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: repeat(7, auto);
+  grid-template-rows: repeat(2, 1fr);
   gap: 4px 12px;
   justify-items: left;
   align-items: baseline;
-
   white-space: nowrap;
-  // text-transform: uppercase;
-
   line-height: 28px;
   
   > * {
@@ -447,10 +470,15 @@ export default {
     }
   }
 
-  button {
+  .input-time {
+    width: 20ex;
+  }
+
+  button, input {
     line-height: 28px;
     height: 30px;
     vertical-align: baseline;
+    text-align: center;
   }
 }
 
