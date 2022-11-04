@@ -19,11 +19,11 @@ div
       button.toggle.left(
         :disabled="asc"
         v-on:click="asc = true"
-      ) &nbsp; Fwd &#8595;
+      ) &nbsp; Time &#8595;
       button.toggle.right(
         :disabled="!asc"
         v-on:click="asc = false"
-      ) &nbsp; Bwd &#8593;
+      ) &nbsp; Time &#8593;
 
     .label(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 3}")
       | From:
@@ -59,13 +59,17 @@ div
       :disabled="time === 'now'"
     ) {{ time === 'now' ? 'Showing Now' : 'Show Now' }}
 
-    div
+    div.tooltip
       input(
         style="grid-row: 1; grid-column: 9;"
         type="checkbox"
         v-model="grouping"
       )
       label Group Runs
+      span.tooltiptext
+        | Group scheduled runs by job ID and args.
+        br
+        | Group completed runs by job ID and args.
 
 
   table.runlist
@@ -110,8 +114,11 @@ div
 
       template(v-for="run, i in groups.groups")
         tr(v-if="i === groups.nowIndex")
-          td.timeSeparator(colspan="9")
-            div
+          td(colspan="9")
+            .timeSeparator
+              div.border
+              div.now now
+              div.border
 
         tr(:key="run.run_id")
           //- Show job name if enabled by 'showJob' and this is the group run.
@@ -556,10 +563,20 @@ table {
   }
 
   .timeSeparator {
-    div {
-      border-top: 4px solid #f8f8f8;
+    width: 100%;
+    display: flex;
+
+    .border {
+      flex-basis: 50%;
+      border-bottom: 2px dotted $global-frame-color;
+      margin-bottom: 0.5em;
+      line-height: 50%;
     }
-    padding: 10px 12px 10px 0;
+
+    .now {
+      margin: 0 8px;
+      color: $global-frame-color;
+    }
   }
 }
 </style>
