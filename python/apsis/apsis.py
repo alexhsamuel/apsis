@@ -513,22 +513,6 @@ class Apsis:
             return run
 
 
-    async def cancel(self, run):
-        """
-        Cancels a scheduled or waiting run.
-
-        Unschedules the run and sets it to the error state.
-        """
-        if run.state == run.STATE.scheduled:
-            self.scheduled.unschedule(run)
-        elif run.state == run.STATE.waiting:
-            await cancel_task(self.__wait_tasks.pop(run), f"waiting for {run}", log)
-        else:
-            raise RunError(f"can't cancel {run.run_id} in state {run.state.name}")
-        self.run_log.info(run, "cancelled")
-        self._transition(run, run.STATE.error, message="cancelled")
-
-
     async def skip(self, run):
         """
         Skips a scheduled or waiting run.

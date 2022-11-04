@@ -73,10 +73,9 @@ def _run_summary_to_jso(app, run):
 
     # Construct the set of valid operations for this run.
     operations = set()
-    # Start now or cancel a scheduled or waiting job.
+    # Start now or skip a scheduled or waiting job.
     if run.state in {run.STATE.scheduled, run.STATE.waiting}:
         operations.add("start")
-        operations.add("cancel")
         operations.add("skip")
     # Retry is available if the run didn't succeed.
     if run.state in run.FINISHED:
@@ -321,14 +320,6 @@ async def run_output(request, run_id, output_id):
 async def run_state_get(request, run_id):
     _, run = request.app.apsis.run_store.get(run_id)
     return response_json({"state": run.state})
-
-
-@API.route("/runs/<run_id>/cancel", methods={"POST"})
-async def run_cancel(request, run_id):
-    state = request.app.apsis
-    _, run = state.run_store.get(run_id)
-    await state.cancel(run)
-    return response_json({})
 
 
 @API.route("/runs/<run_id>/skip", methods={"POST"})

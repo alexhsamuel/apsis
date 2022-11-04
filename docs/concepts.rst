@@ -101,6 +101,7 @@ Each run, once created, is in one of these states:
 - **running**: The run has started and is currently running.
 - **success**: The run has completed successfully.
 - **failure**: The run has run amd completed unsuccesfully.
+- **skipped**: The run was skipped without running.
 - **error**: A problem occurred and the run was not started.  For example, the
   run is configured incorrectly, or Apsis was unable to start the program.
 
@@ -120,9 +121,11 @@ Apsis transitions a run among these state as follows:
   of them have been satisified, it starts the run's program and transitions it
   to **starting**.  If a run has no conditions, this happens immediately.
 
+- Before a run has started, it may be manually or automatically **skipped**
+
 - If Apsis is unable to start the program, it transitions the run to **error**.
 
-- If Apsis is able to start the progrma, it transitions the run to **running**.
+- If Apsis is able to start the program, it transitions the run to **running**.
 
 - When a **running** run finishes, Apsis transitions it to **success** or
   **failure**, depending on whether the run's program was successful.
@@ -130,20 +133,18 @@ Apsis transitions a run among these state as follows:
 - If Apsis encounters an internal error while handling a run in any state, it
   transitions it to **error**.
 
-You can induce these transitions as well:
+You can apply the following operations, to induce transitions explicitly:
 
-- You can *start* a **scheduled** run.  Apsis no longer waits for its schedule
-  time, and transitions it immediately to **waiting**.
-
-- You can *cancel* a **scheduled** run.  Apsis no longer waits for its schedule
-  time, and transitions it to **error**.
+- You can *start* a **scheduled**.  Apsis no longer waits for its schedule time,
+  and transitions it immediately to **waiting**.  If it has conditions that are
+  not yet fulfilled, it will not start immediately.
 
 - You can *start* a **waiting** run.  Apsis no longer checks its conditions,
   starts the run's program, and transitions the run to **running**.
 
-- You can *cancel* a **waiting** run.  Apsis no longer checks its conditions,
-  and transitions it to **error**.
+- You can *skip* a **scheduled** or **waiting** run.  Apsis no longer waits for
+  its schedule time or conditions, and transitions it to **skipped**.
 
-- You can *mark* a finished run (**success**, **failure**, or **error**) to a
-  different finished state.
+- You can *mark* a finished run (**success**, **failure**, **skipped**, or
+  **error**) to a different finished state.
 

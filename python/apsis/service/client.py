@@ -96,13 +96,6 @@ class Client:
         return self.__request("PUT", *path, data=data, **query)
 
 
-    def cancel(self, run_id):
-        """
-        Cancels a scheduled or waiting run.
-        """
-        return self.__post("/api/v1/runs", run_id, "cancel")
-
-
     def skip(self, run_id):
         """
         Skips a scheduled or waiting run.
