@@ -57,7 +57,15 @@ div
       style="grid-row: 2; grid-column: 7;"
       v-on:click="showTime('now')"
       :disabled="time === 'now'"
-    ) Show Now
+    ) {{ time === 'now' ? 'Showing Now' : 'Show Now' }}
+
+    div
+      input(
+        style="grid-row: 1; grid-column: 9;"
+        type="checkbox"
+        v-model="grouping"
+      )
+      label Group Runs
 
 
   table.runlist
@@ -68,7 +76,7 @@ div
       col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
       col(style="width: 4rem")
-      col(style="width: 5rem")
+      col(v-if="grouping" style="width: 5rem")
       col(style="width: 10rem")
       col(style="width: 10rem")
       col(style="width: 6rem")
@@ -82,7 +90,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-reruns History
+        th.col-reruns(v-if="grouping") History
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -100,9 +108,6 @@ div
             v-on:click="showTime(asc ? groups.earlierTime : groups.laterTime)"
           ) {{ asc ? 'Earlier' : 'Later' }}
 
-      //- Each group is represented by a single run, groupRun, but may contain
-      //- one or more runs, groupRuns.  The group's expand state is keyed by
-      //- groupRun.run_id.
       template(v-for="run, i in groups.groups")
         tr(v-if="i === groups.nowIndex")
           td.timeSeparator(colspan="9")
@@ -130,7 +135,7 @@ div
           td.col-state
             State(:state="run.state")
           //- FIXME: Click to run with history expanded.
-          td.col-reruns
+          td.col-reruns(v-if="grouping")
             | {{ historyCount(groups.counts[run.run_id]) }}
           td.col-schedule-time
             .tooltip
@@ -231,6 +236,7 @@ export default {
       asc: true,
       inputTime: '',
       profile: false,
+      grouping: this.groupRuns,
     } 
   },
 
@@ -271,7 +277,7 @@ export default {
 
       let groups
       let counts = {}
-      if (this.groupRuns) {
+      if (this.grouping) {
         const runs = this.runs
         if (this.profile) {
           t1 = new Date()
@@ -431,7 +437,7 @@ export default {
 
 .time-controls {
   display: inline-grid;
-  grid-template-columns: repeat(7, auto);
+  grid-template-columns: repeat(9, auto);
   grid-template-rows: repeat(2, 1fr);
   gap: 4px 12px;
   justify-items: left;
@@ -487,6 +493,12 @@ export default {
     height: 30px;
     vertical-align: baseline;
     text-align: center;
+  }
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0 8px;
   }
 }
 
