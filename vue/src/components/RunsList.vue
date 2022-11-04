@@ -19,11 +19,11 @@ div
       button.toggle.left(
         :disabled="asc"
         v-on:click="asc = true"
-      ) &nbsp; Time &#8679;
+      ) &nbsp; Time &#8681;
       button.toggle.right(
         :disabled="!asc"
         v-on:click="asc = false"
-      ) &nbsp; Time &#8681;
+      ) &nbsp; Time &#8679;
 
     .label(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 3}")
       | From:
