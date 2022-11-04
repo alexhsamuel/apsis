@@ -6,10 +6,6 @@ function getUrl() {
   return ['', 'api', 'v1'].concat(Array.from(arguments)).join('/')
 }
 
-export function getCancelUrl(run_id) {
-  return getUrl('runs', run_id, 'cancel')
-}
-
 export function getMarkUrl(run_id, state) {
   return getUrl('runs', run_id, 'mark', state)
 }
@@ -44,7 +40,6 @@ export function getStartUrl(run_id) {
 
 export function getUrlForOperation(operation, run_id) {
   switch (operation) {
-    case 'cancel': return getCancelUrl(run_id)
     case 'skip': return getSkipUrl(run_id)
     case 'start': return getStartUrl(run_id)
     case 'rerun': return getRerunUrl(run_id)
