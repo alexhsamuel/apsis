@@ -3,38 +3,48 @@ div
   div.time-controls(
     v-if="timeControls"
   )
-    | Show
     DropList.counts(
+      style="grid-row: 2; grid-column: 1;"
       :value="1"
       v-on:input="maxRuns = COUNTS[$event] / 2"
     )
       div(
         v-for="count in COUNTS"
       )
-        div {{ count }}
-    | Runs between
-    | {{ formatTime(groups.earlierTime, store.state.timeZone) }}
-    | and
-    | {{ formatTime(groups.laterTime, store.state.timeZone) }}
+        div {{ count }} runs
+
+    div(style="grid-row: 1; grid-column: 1;") Show:
+
+    div.field(:style="{'grid-row': asc ? 1 : 3, 'grid-column': 2}")
+      | {{ formatTime(groups.earlierTime, store.state.timeZone) }}
+    div.field(:style="{'grid-row': asc ? 3 : 1, 'grid-column': 2}")
+      | {{ formatTime(groups.laterTime, store.state.timeZone) }}
+
     button(
+      :style="{'grid-row': asc ? 1 : 3, 'grid-column': 3}"
       v-on:click="showTime(groups.earlierTime)"
       :disabled="groups.earlierCount == 0"
     ) Earlier
     button(
+      style="grid-row: 2; grid-column: 3;"
       v-on:click="showTime('now')"
+      :disabled="time === 'now'"
     ) Now
     button(
+      :style="{'grid-row': asc ? 3 : 1, 'grid-column': 3}"
       v-on:click="showTime(groups.laterTime)"
       :disabled="groups.laterCount == 0"
     ) Later
-    button.toggle.left(
-    :disabled="asc"
-    v-on:click="asc = true"
-    ) Asc
-    button.toggle.right(
-    :disabled="!asc"
-    v-on:click="asc = false"
-    ) Desc
+
+    div(style="grid-row: 2; grid-column: 2")
+      button.toggle.left(
+        :disabled="asc"
+        v-on:click="asc = true"
+      ) &nbsp; Fwd &#8595;
+      button.toggle.right(
+        :disabled="!asc"
+        v-on:click="asc = false"
+      ) &nbsp; Bwd &#8593;
 
   table.runlist
     colgroup
@@ -213,6 +223,9 @@ export default {
       // FIXME: Maybe the parent should provide a predicate directly?
       return this.query ? runsFilter.makePredicate(this.query) : null
     },
+
+    earlierRow() { return this.asc ? 1 : 3 },
+    laterRow() { return this.asc ? 3 : 1 },
 
     /** Runs, after filtering.  */
     runs() {
@@ -399,23 +412,40 @@ export default {
 @import '@/styles/index.scss';
 
 .time-controls {
-  display: flex;
+  display: inline-grid;
+  grid-template-columns: repeat(3, auto);
+  grid-template-rows:  repeat(3, 1fr);
+  gap: 4px 12px;
+  justify-items: center;
   align-items: baseline;
-  gap: 1ex;
-  text-transform: uppercase;
+
+  white-space: nowrap;
+  // text-transform: uppercase;
+
+  line-height: 28px;
+  
+  > * {
+    width: 100%;
+    box-sizing: border-box;
+  }
 
   .counts {
-    width: 6em;
+    width: 7em;
+    height: 32px;
     text-align: right;
+  }
+
+  .field {
+    width: 100%;
+    border: 1px solid $apsis-frame-color;
+    text-align: center;
+    background: #fcfcfc;
   }
 
   .toggle {
     &[disabled] {
       color: black;
       background: #f0f0f0;
-    }
-    &.right {
-      margin-left: -1.2ex;
     }
     &.left:not(:hover) {
       border-right-color: transparent;
@@ -427,7 +457,8 @@ export default {
 
   button {
     line-height: 28px;
-    height: 28px;
+    height: 30px;
+    vertical-align: baseline;
   }
 }
 
