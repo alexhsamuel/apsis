@@ -7,7 +7,7 @@ div
     DropList.counts(
       style="grid-row: 1; grid-column: 2;"
       :value="1"
-      v-on:input="maxRuns = COUNTS[$event] / 2"
+      v-on:input="maxRuns = COUNTS[$event]"
     )
       div(
         v-for="count in COUNTS"
@@ -191,6 +191,10 @@ import store from '@/store.js'
 import Timestamp from './Timestamp'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 
+function max(a, b) {
+  return a < b ? b : a
+}
+
 export default { 
   name: 'RunsList',
   props: {
@@ -330,17 +334,24 @@ export default {
       let start = new Date()
       const groups = this.allGroups
       let runs = groups.groups   // FIXME
+
+      // Determine the time to center around.
       let now = (new Date()).toISOString()
       const time = this.time === 'now' ? now : this.time
+      // Find the index corresponding to the central time.
       let timeIndex = sortedIndexBy(runs, { time_key: time }, r => r.time_key)
 
+      // We'll split runs between those earlier and later than the central time.
+      const earlierMax = max(this.maxRuns / 2, this.maxRuns - (runs.length - timeIndex))
+      const laterMax = max(this.maxRuns / 2, this.maxRuns - timeIndex)
+  
       let earlierTime
       let earlierCount
-      if (this.timeControls && this.maxRuns < timeIndex) {
+      if (this.timeControls && earlierMax < timeIndex) {
         // Don't truncate in the middle of a timestamp.
         while (0 < timeIndex && runs[timeIndex - 1].time_key === runs[timeIndex].time_key)
           timeIndex--
-        earlierCount = timeIndex - this.maxRuns
+        earlierCount = timeIndex - earlierMax
         earlierTime = runs[earlierCount].time_key
         runs = runs.slice(earlierCount)
         timeIndex -= earlierCount
@@ -352,11 +363,11 @@ export default {
 
       let laterTime
       let laterCount
-      if (this.timeControls && this.maxRuns < runs.length - timeIndex) {
+      if (this.timeControls && laterMax < runs.length - timeIndex) {
         // Don't truncate in the middle of a timestamp.
         while (timeIndex < runs.length - 1 && runs[timeIndex + 1].time_key === runs[timeIndex].time_key)
           timeIndex++
-        laterCount = runs.length - (timeIndex + this.maxRuns)
+        laterCount = runs.length - (timeIndex + laterMax)
         laterTime = runs[runs.length - laterCount].time_key
         runs = runs.slice(0, runs.length - laterCount)
       }
