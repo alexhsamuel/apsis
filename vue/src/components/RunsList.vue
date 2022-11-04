@@ -90,7 +90,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-reruns(v-if="grouping") History
+        th.col-reruns(v-if="grouping") Group
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -136,7 +136,7 @@ div
             State(:state="run.state")
           //- FIXME: Click to run with history expanded.
           td.col-reruns(v-if="grouping")
-            | {{ historyCount(groups.counts[run.run_id]) }}
+            | {{ historyCount(run, groups.counts[run.run_id]) }}
           td.col-schedule-time
             .tooltip
               Timestamp(:time="run.times.schedule")
@@ -389,8 +389,14 @@ export default {
   methods: {
     formatElapsed,
 
-    historyCount(count) {
-      return count === 1 ? '' : count === 2 ? '+1 run\u00a0\u00a0' : '+' + (count - 1) + ' runs'
+    historyCount(run, count) {
+      return (
+        count === 1 ? '' 
+        : '+' + (count - 1) + ' ' + (
+          run.group_key.startsWith('S') ? 'scheduled'
+          : 'completed'
+        )
+      )
     },
 
     formatTime(time) {
