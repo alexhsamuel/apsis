@@ -3,8 +3,9 @@ div
   div.time-controls(
     v-if="timeControls"
   )
+    .label(style="grid-row: 1; grid-column: 1;") Show:
     DropList.counts(
-      style="grid-row: 2; grid-column: 1;"
+      style="grid-row: 1; grid-column: 2;"
       :value="1"
       v-on:input="maxRuns = COUNTS[$event] / 2"
     )
@@ -13,29 +14,33 @@ div
       )
         div {{ count }} runs
 
-    div(style="grid-row: 1; grid-column: 1;") Show:
-
-    div.field(:style="{'grid-row': asc ? 1 : 3, 'grid-column': 2}")
-      | {{ formatTime(groups.earlierTime, store.state.timeZone) }}
-    div.field(:style="{'grid-row': asc ? 3 : 1, 'grid-column': 2}")
-      | {{ formatTime(groups.laterTime, store.state.timeZone) }}
-
+    .label(:style="{'grid-row': asc ? 1 : 3, 'grid-column': 3}")
+      | From:
+    .field.disabled(:style="{'grid-row': asc ? 1 : 3, 'grid-column': 4}")
+      | {{ formatTime(groups.earlierTime) }}
     button(
-      :style="{'grid-row': asc ? 1 : 3, 'grid-column': 3}"
+      :style="{'grid-row': asc ? 1 : 3, 'grid-column': 5}"
       v-on:click="showTime(groups.earlierTime)"
       :disabled="groups.earlierCount == 0"
     ) Earlier
+
     button(
-      style="grid-row: 2; grid-column: 3;"
+      style="grid-row: 2; grid-column: 5;"
       v-on:click="showTime('now')"
       :disabled="time === 'now'"
     ) Now
+
+    .label(:style="{'grid-row': asc ? 3 : 1, 'grid-column': 3}")
+      | To:
+    .field.disabled(:style="{'grid-row': asc ? 3 : 1, 'grid-column': 4}")
+      | {{ formatTime(groups.laterTime) }}
     button(
-      :style="{'grid-row': asc ? 3 : 1, 'grid-column': 3}"
+      :style="{'grid-row': asc ? 3 : 1, 'grid-column': 5}"
       v-on:click="showTime(groups.laterTime)"
       :disabled="groups.laterCount == 0"
     ) Later
 
+    .label(style="grid-row: 2; grid-column: 1") Order:
     div(style="grid-row: 2; grid-column: 2")
       button.toggle.left(
         :disabled="asc"
@@ -84,7 +89,7 @@ div
           | {{ asc ? 'earlier' : 'later' }} rows not shown
           button(
             v-on:click="showTime(asc ? groups.earlierTime : groups.laterTime)"
-          ) Show {{ asc ? 'Earlier' : 'Later' }}
+          ) {{ asc ? 'Earlier' : 'Later' }}
 
       //- Each group is represented by a single run, groupRun, but may contain
       //- one or more runs, groupRuns.  The group's expand state is keyed by
@@ -142,7 +147,7 @@ div
           | {{ asc ? 'later' : 'earlier' }} rows not shown
           button(
             v-on:click="showTime(asc ? groups.laterTime : groups.earlierTime)"
-          ) Show {{ asc ? 'Later' : 'Earler' }}
+          ) {{ asc ? 'Later' : 'Earler' }}
 
 </template>
 
@@ -229,45 +234,18 @@ export default {
 
     /** Runs, after filtering.  */
     runs() {
-      let t0 = new Date()
-      let t1
-
       let runs = Array.from(this.store.state.runs.values())
-      t1 = new Date()
-      console.log('runs-values', (t1 - t0) * 0.001)
-      t0 = t1
 
       if (this.path) {
         const predicate = (new runsFilter.JobIdPathPrefix(this.path)).predicate
         runs = filter(runs, predicate)
-        t1 = new Date()
-        console.log('runs-path-prefix', (t1 - t0) * 0.001)
-        t0 = t1
       }
-      if (this.args) {
+      if (this.args)
         runs = filter(runs, run => isEqual(run.args, this.args))
-        t1 = new Date()
-        console.log('runs-args-filter', (t1 - t0) * 0.001)
-        t0 = t1
-      }
-      if (this.jobPredicate) {
+      if (this.jobPredicate)
         runs = filter(runs, this.jobPredicate)
-        t1 = new Date()
-        console.log('runs-job-predicate', (t1 - t0) * 0.001)
-        t0 = t1
-      }
 
-      // Sort by time.
-      t1 = new Date()
-      console.log('runs-before-sort', (t1 - t0) * 0.001)
-      t0 = t1
-
-      runs = sortBy(runs, r => r.time_key)
-
-      t1 = new Date()
-      console.log('runs-end', (t1 - t0) * 0.001)
-      t0 = t1
-      return runs
+      return sortBy(runs, r => r.time_key)
     },
   
     params() {
@@ -314,10 +292,6 @@ export default {
       // Sort groups by time.
       groups = sortBy(groups, r => r.time_key)
 
-      t1 = new Date()
-      console.log('groups-end', (t1 - t0) * 0.001)
-      t0 = t1
-
       return {
         groups,
         counts,
@@ -336,6 +310,8 @@ export default {
       let earlierCount
       if (this.timeControls && this.maxRuns < timeIndex) {
         // Don't truncate in the middle of a timestamp.
+        while (0 < timeIndex && runs[timeIndex - 1].time_key === runs[timeIndex].time_key)
+          timeIndex--
         earlierCount = timeIndex - this.maxRuns
         earlierTime = runs[earlierCount].time_key
         runs = runs.slice(earlierCount)
@@ -350,6 +326,8 @@ export default {
       let laterCount
       if (this.timeControls && this.maxRuns < runs.length - timeIndex) {
         // Don't truncate in the middle of a timestamp.
+        while (timeIndex < runs.length - 1 && runs[timeIndex + 1].time_key === runs[timeIndex].time_key)
+          timeIndex++
         laterCount = runs.length - (timeIndex + this.maxRuns)
         laterTime = runs[runs.length - laterCount].time_key
         runs = runs.slice(0, runs.length - laterCount)
@@ -366,7 +344,12 @@ export default {
       if (!this.asc)
         runs.reverse()
 
-      console.log('runs:', this.store.state.runs.size, 'filtered:', this.runs.length, 'groups:', runs.length, 'earlier:', earlierCount, 'later:', laterCount, 'in:', (new Date() - start) * 0.001)
+      console.log(
+        'runs:', this.store.state.runs.size, 'filtered:', this.runs.length, 'groups:', runs.length, 
+        'earlier:', earlierCount, earlierTime,
+        'later:', laterCount, laterTime,
+        'in:', (new Date() - start) * 0.001
+      )
       return {
         groups: runs,
         counts: groups.counts,
@@ -382,16 +365,17 @@ export default {
 
   methods: {
     formatElapsed,
-    formatTime,
 
     historyCount(count) {
       return count === 1 ? '' : count === 2 ? '+1 run\u00a0\u00a0' : '+' + (count - 1) + ' runs'
     },
 
+    formatTime(time) {
+      return time ? formatTime(time, store.state.timeZone) : '\u00a0'
+    },
+
     showTime(time) {
-      this.time = 
-        Math.abs(new Date(time) - new Date()) < 60000 ? 'now'
-        : time
+      this.time = time
     },
 
     startTime(run) {
@@ -413,10 +397,10 @@ export default {
 
 .time-controls {
   display: inline-grid;
-  grid-template-columns: repeat(3, auto);
-  grid-template-rows:  repeat(3, 1fr);
+  grid-template-columns: repeat(5, auto);
+  grid-template-rows: repeat(3, 1fr);
   gap: 4px 12px;
-  justify-items: center;
+  justify-items: left;
   align-items: baseline;
 
   white-space: nowrap;
@@ -429,20 +413,28 @@ export default {
     box-sizing: border-box;
   }
 
+  .label {
+    text-align: right;
+  }
+
   .counts {
-    width: 7em;
+    width: 100%;
     height: 32px;
     text-align: right;
   }
 
   .field {
-    width: 100%;
+    display: inline-block;
     border: 1px solid $apsis-frame-color;
     text-align: center;
-    background: #fcfcfc;
+    padding: 0 12px;
+    &.disabled {
+      background: #fafafa;
+    }
   }
 
   .toggle {
+    padding: 0 12px;
     &[disabled] {
       color: black;
       background: #f0f0f0;
