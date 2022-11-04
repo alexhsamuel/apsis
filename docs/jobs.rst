@@ -50,7 +50,7 @@ If `params` is omitted, the job has no parameters.
 Parameters aren't required; a job without parameters can be run repeatedly, just
 like a cron job.
 
-    
+
 Program
 -------
 
@@ -157,6 +157,34 @@ given state.  Specify the job ID of the dependency, and any arguments.
 The arguments are template-expanded.  If the dependency job shares a param with
 the dependent job, it may be omitted; the same arg is used.
 
+
+Skipping Duplicates
+'''''''''''''''''''
+
+The `skip_duplicates` condition causes a run to transition to the _skipped_
+state if there is another run with the same job ID and arguments that is either
+waiting or running.
+
+.. code:: yaml
+
+    condition:
+        type: skip_duplicates
+
+By default, Apsis looks for other runs in the _waiting_, _starting_, or
+_running_ states to determine whether to skip this run.  You can override this
+with `check_states`.  You can also specify a different (finished) state to
+transition to.  For example, to transition a run to _error_ if there is already
+another run in either of the _failure_ or _error_ states:
+
+.. code:: yaml
+
+    condition:
+      type: skip_duplicates
+      check_states: [failure, error]
+      target_state: error
+
+As with other conditions, this condition is applied only when a run is in the
+_waiting_ state.
 
 
 Actions

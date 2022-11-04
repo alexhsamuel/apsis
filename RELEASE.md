@@ -1,5 +1,10 @@
-# in progress
+# In progress
 
+- Add `run` param to `Condition.check_runs()`.  Custom condition classes need to
+  be updated.
+- Add support for inducing a transition from `Condition.check_runs()` by
+  returning a `Condition.Transition` value.
+- Add the `skip_dependency` condition type.
 - Group scheduler config under `schedule` key.  Add `schedule.horizion` config.
   Rename `schedule_max_age` to `schedule.max_age`.
 

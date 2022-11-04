@@ -31,8 +31,6 @@ def test_args(client):
     """
     Tests that args in dependencies are processed correctly.
     """
-    res = client.get_jobs()
-
     res = client.schedule("dependent", {"date": "2022-11-01", "color": "red"})
     run_id = res["run_id"]
 
@@ -71,6 +69,99 @@ def test_args(client):
 
     # One dependency satisfied, but not the other one.
     res = client.get_run(run_id)
+    assert res["state"] == "running"
+
+
+def test_skip_duplicate(client):
+    """
+    Tests that a run is skipped if an identical run is running.
+    """
+    # Start a run, which runs for 1 s.
+    res = client.schedule("skippable", {"date": "2022-11-01"})
+    run_id = res["run_id"]
+
+    res = client.get_run(run_id)
+    assert res["state"] == "running"
+
+    # Start a couple of duplicates.
+    res = client.schedule("skippable", {"date": "2022-11-01"})
+    run_id0 = res["run_id"]
+    res = client.schedule("skippable", {"date": "2022-11-01"})
+    run_id1 = res["run_id"]
+
+    # They both should have been skipped.
+    res = client.get_run(run_id0)
+    assert res["state"] == "skipped"
+    res = client.get_run(run_id1)
+    assert res["state"] == "skipped"
+
+    # Start a job with a different date.
+    res = client.schedule("skippable", {"date": "2022-12-25"})
+    run_id2 = res["run_id"]
+
+    # This should not have been skipped; its date is different.
+    res = client.get_run(run_id2)
+    assert res["state"] == "running"
+
+    # Wait for the original run to complete.
+    time.sleep(1)
+    res = client.get_run(run_id)
+    assert res["state"] == "success"
+
+    # Now a rerun should be fine.
+    res = client.schedule("skippable", {"date": "2022-11-01"})
+    run_id3 = res["run_id"]
+
+    res = client.get_run(run_id3)
+    assert res["state"] == "running"
+
+
+def test_to_error(client):
+    """
+    Tests a custom skip_duplicate condition, which transitions runs to error if
+    there is already a failure or error run.
+    """
+    res = client.schedule("to error", {"color": "red"})
+    red0 = res["run_id"]
+    res = client.schedule("to error", {"color": "red"})
+    red1 = res["run_id"]
+    res = client.schedule("to error", {"color": "blue"})
+    blue0 = res["run_id"]
+
+    # All should run immediately.
+    for run_id in (red0, red1, blue0):
+        res = client.get_run(run_id)
+        assert res["state"] == "running"
+
+    # All should succeed.
+    time.sleep(1)
+    for run_id in (red0, red1, blue0):
+        res = client.get_run(run_id)
+        assert res["state"] == "success"
+
+    # Now mark a red one as failed.
+    res = client.mark(red1, "failure")
+
+    # Schedule another red and blue run.
+    res = client.schedule("to error", {"color": "red"})
+    red2 = res["run_id"]
+    res = client.schedule("to error", {"color": "blue"})
+    blue1 = res["run_id"]
+
+    # The red one should have been transitioned to error.
+    res = client.get_run(red2)
+    assert res["state"] == "error"
+    res = client.get_run(blue1)
+    assert res["state"] == "running"
+
+    # Mark both failure/error runs as success.
+    res = client.mark(red1, "success")
+    res = client.mark(red2, "success")
+
+    # A red run should go again.
+    res = client.schedule("to error", {"color": "red"})
+    red3 = res["run_id"]
+    res = client.get_run(red3)
     assert res["state"] == "running"
 
 

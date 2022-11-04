@@ -31,6 +31,10 @@
       circle(cx="900" cy="900" r="800" fill="#a05050")
       path(d="M 600 600 L 1200 1200 M 600 1200 L 1200 600" stroke="#ffffff" stroke-width="200" stroke-linecap="round" fill="transparent")
       
+    svg(v-else-if="state === 'skipped'" viewBox="0 -100 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
+      circle(cx="900" cy="900" r="800" fill="#d0d0d0")
+      path(d="M 0 0 L 1800 1800" stroke="#ffffff" stroke-width="200")
+      
     div(
       v-if="name"
       class="name"
@@ -49,6 +53,7 @@ const COLORS = {
   'error'          : '#ff0060',
   'success'        : '#00a000',
   'failure'        : '#a00000',
+  'skipped'        : '#606060',
 }
 
 export default {

@@ -67,7 +67,7 @@ class MaxRunning(Condition):
         return type(self)(count, job_id, run.inst.args)
 
 
-    def check_runs(self, run_store):
+    def check_runs(self, run, run_store):
         max_count = int(self.__count)
 
         # FIXME: Support query by args.

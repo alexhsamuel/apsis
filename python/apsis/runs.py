@@ -88,6 +88,16 @@ class Instance:
         ) if isinstance(other, Instance) else NotImplemented
 
 
+    def to_jso(self):
+        return [self.job_id, self.args]
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        job_id, args = jso
+        return cls(job_id, args)
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -129,10 +139,11 @@ class Run:
             "success",
             "failure",
             "error",
+            "skipped",
         )
     )
 
-    FINISHED = {STATE.success, STATE.failure, STATE.error}
+    FINISHED = {STATE.success, STATE.failure, STATE.error, STATE.skipped}
 
     # State model.  Allowed transitions _to_ each state.
     TRANSITIONS = {
@@ -141,9 +152,10 @@ class Run:
         STATE.waiting   : {STATE.new, STATE.scheduled},
         STATE.starting  : {STATE.scheduled, STATE.waiting},
         STATE.running   : {STATE.starting},
-        STATE.error     : {STATE.new, STATE.scheduled, STATE.waiting, STATE.starting, STATE.running},
+        STATE.error     : {STATE.new, STATE.scheduled, STATE.waiting, STATE.starting, STATE.running, STATE.skipped},
         STATE.success   : {STATE.running},
         STATE.failure   : {STATE.running},
+        STATE.skipped   : {STATE.new, STATE.scheduled, STATE.waiting},
     }
 
     # FIXME: Make the attributes read-only.
@@ -437,5 +449,17 @@ class RunStore:
             await asyncio.sleep(0.5)
             log.info("live query queue shut down")
 
+
+
+#-------------------------------------------------------------------------------
+
+def to_state(state):
+    if isinstance(state, Run.STATE):
+        return state
+    try:
+        return Run.STATE[state]
+    except KeyError:
+        pass
+    raise ValueError(f"not a state: {state!r}")
 
 

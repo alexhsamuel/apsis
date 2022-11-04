@@ -77,8 +77,9 @@ def _run_summary_to_jso(app, run):
     if run.state in {run.STATE.scheduled, run.STATE.waiting}:
         operations.add("start")
         operations.add("cancel")
+        operations.add("skip")
     # Retry is available if the run didn't succeed.
-    if run.state in {run.STATE.success, run.STATE.failure, run.STATE.error}:
+    if run.state in run.FINISHED:
         operations.add("rerun")
     # Terminate and kill are available for a running run.
     if run.state == run.STATE.running:
@@ -327,6 +328,14 @@ async def run_cancel(request, run_id):
     state = request.app.apsis
     _, run = state.run_store.get(run_id)
     await state.cancel(run)
+    return response_json({})
+
+
+@API.route("/runs/<run_id>/skip", methods={"POST"})
+async def run_skip(request, run_id):
+    state = request.app.apsis
+    _, run = state.run_store.get(run_id)
+    await state.skip(run)
     return response_json({})
 
 

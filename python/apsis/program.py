@@ -196,6 +196,13 @@ class NoOpProgram(Program):
         return cls(duration=duration)
 
 
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "duration": self.__duration,
+        }
+
+
     async def start(self, run_id, cfg):
         run_state = {}
         return ProgramRunning(run_state), self.wait(run_id, run_state)

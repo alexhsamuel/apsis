@@ -103,6 +103,13 @@ class Client:
         return self.__post("/api/v1/runs", run_id, "cancel")
 
 
+    def skip(self, run_id):
+        """
+        Skips a scheduled or waiting run.
+        """
+        return self.__post("/api/v1/runs", run_id, "skip")
+
+
     def start(self, run_id):
         """
         Forces a scheduled or waiting run to start.
@@ -202,6 +209,10 @@ class Client:
         return next(iter(runs.values()))
 
 
+    def schedule_adhoc(self, time, job):
+        return self.__schedule(time, job)
+
+
     def schedule_program(self, time, args):
         """
         :param time:
@@ -222,7 +233,7 @@ class Client:
           The shell command to run.
         """
         return self.__schedule(time, {"program": str(command)})
-        
+
 
     def reload_jobs(self, *, dry_run=False):
         return self.__post("/api/control/reload_jobs", data={}, dry_run=dry_run)
