@@ -2,7 +2,7 @@
   span(
     class="operation"
     :class="{ button: button }"
-    v-on:click="doOperation()"
+    v-on:mousedown="doOperation()"
   ) {{ operation }}
 </template>
 
@@ -70,4 +70,3 @@ export default {
 }
 
 </style>
-
