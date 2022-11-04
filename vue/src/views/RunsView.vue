@@ -4,6 +4,7 @@ div
     h3(style="flex: 1;")
       a.undersel(v-on:click="onShowJobs") Jobs
       a.undersel.sel(v-on:click="") Runs
+      a.undersel(v-on:click="onShowRuns2") Runs2
       span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
         PathNav(:path="path" v-on:path="setPath($event)")
 
@@ -127,6 +128,15 @@ export default {
         },
       })
     },
+
+    onShowRuns2() {
+      this.$router.push({
+        name: 'runs-list2',
+      query: {
+        path: this.path || undefined,
+      },
+    })
+  },
   },
 }
 </script>

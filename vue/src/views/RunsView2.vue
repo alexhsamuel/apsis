@@ -3,16 +3,10 @@ div
   .flex-margin
     h3(style="flex: 1;")
       a.undersel(v-on:click="onShowJobs") Jobs
-      a.undersel.sel(v-on:click="") Runs
+      a.undersel(v-on:click="onShowRuns") Runs
+      a.undersel.sel(v-on:click="") Runs2
       span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
         PathNav(:path="path" v-on:path="setPath($event)")
-
-    //- Combo box for selecting the "since" start date of runs to show.
-    SinceSelect(
-      style="flex: 0 0 150px;"
-      :value="since"
-      v-on:input="setSince($event)"
-    )
 
     //- Combo box for selecting the run states filter.
     StatesSelect(
@@ -38,11 +32,11 @@ div
 </template>
 
 <script>
+import * as jobsFilter from '@/jobsFilter.js'
 import PathNav from '@/components/PathNav'
 import RunsList from '@/components/RunsList'
 import * as runsFilter from '@/runsFilter.js'
 import SearchInput from '@/components/SearchInput'
-import SinceSelect from '@/components/SinceSelect'
 import StatesSelect from '@/components/StatesSelect'
 
 export default {
@@ -51,7 +45,6 @@ export default {
     PathNav,
     RunsList,
     SearchInput,
-    SinceSelect,
     StatesSelect,
   },
 
@@ -64,11 +57,6 @@ export default {
   computed: {
     path() {
       return this.$route.query.path
-    },
-
-    since() {
-      // Extract since from the query.
-      return runsFilter.SinceTerm.get(this.query)
     },
 
     states() {
@@ -105,10 +93,6 @@ export default {
       }
     },
 
-    setSince(since) {
-      this.query = runsFilter.SinceTerm.set(this.query, since)
-    },
-
     setStates(states) {
       this.query = runsFilter.StateTerm.set(this.query, states)
     },
@@ -125,6 +109,16 @@ export default {
         },
         query: {
           q: runsFilter.toJobsQuery(this.query) || undefined,
+        },
+      })
+    },
+
+    onShowRuns() {
+      this.$router.push({
+        name: 'runs-list',
+        query: {
+          path: this.path || undefined,
+          q: 'since:1d ' + jobsFilter.toRunsQuery(this.query),
         },
       })
     },
