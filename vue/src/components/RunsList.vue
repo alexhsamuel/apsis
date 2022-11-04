@@ -391,6 +391,9 @@ export default {
       return time ? formatTime(time, store.state.timeZone) : '\u00a0'
     },
 
+    /**
+     * Show runs around `time`.
+     */
     showTime(time) {
       this.time = time
       this.inputTime = ''
@@ -406,12 +409,17 @@ export default {
         return ''
     },
 
+    /**
+     * Handle explicit user time input by showing runs around the specified time.
+     */
     onTimeChange(ev) {
+      // Parse the input time, in the current time zone.
       const tz = store.state.timeZone
       const time = parseTime(this.inputTime, false, tz).tz('UTC')
+      // Show runs around this time.
       this.time = time.format()
+      // Replace the input field with the full canonicalized time.
       this.inputTime = formatTime(time, tz)
-      console.log(ev)
     }
   },
 
