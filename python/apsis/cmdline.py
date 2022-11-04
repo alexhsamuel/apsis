@@ -46,6 +46,7 @@ STATE_STYLE = {
     "success"   : Style(color="#00875f"),
     "failure"   : Style(color="#af0000"),
     "error"     : Style(color="#af00af"),
+    "skipped"   : Style(color="#888888"),
 }
 
 _STATE_SYM = {
@@ -56,6 +57,7 @@ _STATE_SYM = {
     "success"   : "+",
     "failure"   : "X",
     "error"     : "!",
+    "skipped"   : "-",
 }
 
 STATE_SYM = {

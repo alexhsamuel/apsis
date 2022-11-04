@@ -44,8 +44,6 @@ class Scheduler:
     Does not own any runs.
     """
 
-    HORIZON = 86400
-
     def __init__(self, cfg, jobs, schedule, stop):
         """
         :param jobs:
@@ -53,16 +51,26 @@ class Scheduler:
         :param schedule:
           Function of `time, run` that schedules a run.
         """
-        self.__cfg = cfg
+        cfg = cfg.get("schedule", {})
+
+        horizon = float(cfg.get("horizon", 86400))
+        assert horizon > 0
+
+        max_age = cfg.get("max_age")
+        if max_age is not None:
+            max_age = float(max_age)
+            assert max_age > 0
+
+        since = cfg.get("since")
+        if since is not None:
+            since = Time(since)
+            stop = max(stop, since)
+
         self.__jobs = jobs
         self.__stop = stop
         self.__schedule = schedule
-
-        since = self.__cfg.get("schedule_since")
-        if since is not None:
-            since = Time(since)
-            if since > self.__stop:
-                self.__stop = since
+        self.__horizon = horizon
+        self.__max_age = max_age
 
 
     def set_jobs(self, jobs):
@@ -104,18 +112,15 @@ class Scheduler:
                 # Make sure we're not too old.
                 time = now()
                 log.debug(f"scheduler loop: {time}")
-                try:
-                    max_age = self.__cfg.get("schedule_max_age")
-                except KeyError:
-                    pass
-                else:
-                    if max_age is not None and time - self.__stop > float(max_age):
-                        raise RuntimeError(
-                            f"last scheduled more than "
-                            f"schedule_max_age ({max_age} s) ago"
-                        )
 
-                await self.schedule(time + self.HORIZON)
+                if (
+                        self.__max_age is not None
+                        and self.__max_age < time - self.stop
+                ):
+                    raise RuntimeError(
+                        f"last scheduled more than {self.__max_age} s ago")
+
+                await self.schedule(time + self.__horizon)
                 await asyncio.sleep(60)
 
         except asyncio.CancelledError:

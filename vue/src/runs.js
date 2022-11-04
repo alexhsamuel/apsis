@@ -13,6 +13,7 @@ const RUN_STATE_GROUPS = {
   'success': 'C',
   'failure': 'C',
   'error': 'C',
+  'skipped': 'C',
 }
 
 function groupKey(run) {

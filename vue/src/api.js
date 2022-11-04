@@ -34,6 +34,10 @@ export function getSignalUrl(run_id, signame) {
   return getUrl('runs', run_id, 'signal', signame)
 }
 
+export function getSkipUrl(run_id) {
+  return getUrl('runs', run_id, 'skip')
+}
+
 export function getStartUrl(run_id) {
   return getUrl('runs', run_id, 'start')
 }
@@ -41,6 +45,7 @@ export function getStartUrl(run_id) {
 export function getUrlForOperation(operation, run_id) {
   switch (operation) {
     case 'cancel': return getCancelUrl(run_id)
+    case 'skip': return getSkipUrl(run_id)
     case 'start': return getStartUrl(run_id)
     case 'rerun': return getRerunUrl(run_id)
     case 'terminate': return getSignalUrl(run_id, 'SIGTERM')

@@ -1,0 +1,11 @@
+params: [color]
+
+program:
+  type: no-op
+  duration: 1
+
+condition:
+  type: skip_duplicate
+  check_states: [failure, error]
+  target_state: error
+

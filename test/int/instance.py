@@ -1,12 +1,16 @@
 from   contextlib import contextmanager
+import functools
 import logging
 from   pathlib import Path
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 import ujson
 import yaml
+
+import apsis.service.client
 
 #-------------------------------------------------------------------------------
 
@@ -56,7 +60,7 @@ class ApsisInstance:
             self.srv_proc = subprocess.Popen(
                 [
                     "apsisctl",
-                    "--log", "INFO",
+                    "--log", "DEBUG",
                     "serve",
                     "--config", str(self.cfg_path),
                     "--port", str(self.port),
@@ -86,6 +90,11 @@ class ApsisInstance:
             return False
 
 
+    @functools.cached_property
+    def client(self):
+        return apsis.service.client.Client(("localhost", self.port))
+
+
     @contextmanager
     def get_log(self):
         with open(self.log_path) as file:
@@ -101,6 +110,8 @@ class ApsisInstance:
     def close(self):
         if self.srv_proc is not None:
             self.stop_serve()
+            with open(self.log_path) as file:
+                sys.stdout.write(file.read())
 
 
     def run_apsis_cmd(self, *argv):

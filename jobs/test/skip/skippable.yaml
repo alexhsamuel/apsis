@@ -1,0 +1,9 @@
+params: [date]
+
+program:
+  type: no-op
+  duration: 60
+
+condition:
+  type: skip_duplicate
+

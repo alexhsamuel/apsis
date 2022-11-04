@@ -30,7 +30,7 @@ export default {
       ['Running', ['starting', 'running']],
       ['Successful', ['success']],
       ['Unsuccessful', ['failure', 'error']],
-      ['Started', ['running', 'success', 'failure', 'error']],
+      ['Started', ['running', 'success', 'failure', 'error', 'skipped']],
     ]
 
     // Convert our model, a list of states, to DropList's model, a selection idx.
