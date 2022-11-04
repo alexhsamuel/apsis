@@ -94,7 +94,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-reruns(v-if="grouping") Group
+        th.col-group(v-if="grouping") Group
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -142,14 +142,13 @@ div
           td.col-state
             State(:state="run.state")
           //- FIXME: Click to run with history expanded.
-          td.col-reruns(v-if="grouping")
+          td.col-group(v-if="grouping")
             | {{ historyCount(run, groups.counts[run.run_id]) }}
           td.col-schedule-time
-            .tooltip
-              Timestamp(:time="run.times.schedule")
-              span.tooltiptext(v-if="run.state == 'scheduled'") in {{ startTime(run) }}
+            Timestamp(:time="run.times.schedule")
           td.col-start-time
-            Timestamp(:time="run.times.running")
+            span(v-if="run.state === 'scheduled'") in {{ startTime(run) }}
+            Timestamp(v-else :time="run.times.running")
           td.col-elapsed
             RunElapsed(:run="run")
           td.col-operations
@@ -246,7 +245,7 @@ export default {
       COUNTS: [20, 50, 100, 200, 500, 1000],
       asc: true,
       inputTime: '',
-      profile: false,
+      profile: true,
       grouping: this.groupRuns,
     } 
   },
@@ -549,12 +548,16 @@ table {
   }
 
   .col-schedule-time, .col-start-time {
+    font-size: 90%;
+    color: #888;
     text-align: right;
   }
 
-  .col-reruns {
+  .col-group {
     text-align: right;
     white-space: nowrap;
+    color: #888;
+    font-size: 90%;
 
     & > span {
       // Absolutely no idea why this is necessary.

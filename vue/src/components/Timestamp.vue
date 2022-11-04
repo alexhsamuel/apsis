@@ -1,5 +1,5 @@
 <template lang="pug">
-span.timestamp(:class="{ past: str < store.state.timeStr }") {{ str }}
+span.timestamp {{ str }}
 </template>
 
 <script>
@@ -26,11 +26,6 @@ export default {
 
 <style lang="scss">
 .timestamp {
-  font-size: 90%;
   white-space: nowrap;
-
-  &.past {
-    color: #888;
-  }
 }
 </style>
