@@ -26,7 +26,6 @@ export default {
 
   methods: {
     elapsed() {
-      console.log('elapsed')
       const elapsed = (new Date(this.store.state.time) - new Date(this.time)) * 0.001
       return (
         elapsed > 0 ? formatDuration(elapsed) + ' ago'
