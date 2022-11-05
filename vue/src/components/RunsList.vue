@@ -363,7 +363,7 @@ export default {
       let laterCount
       if (this.timeControls && laterMax < runs.length - timeIndex) {
         // Don't truncate in the middle of a timestamp.
-        while (timeIndex < runs.length - 1 && runs[timeIndex + 1].time_key === runs[timeIndex].time_key)
+        while (timeIndex < runs.length - 1 && runs[timeIndex - 1].time_key === runs[timeIndex].time_key)
           timeIndex++
         laterCount = runs.length - (timeIndex + laterMax)
         laterTime = runs[runs.length - laterCount].time_key
