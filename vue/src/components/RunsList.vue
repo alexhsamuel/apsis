@@ -147,8 +147,7 @@ div
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
           td.col-start-time
-            span(v-if="run.state === 'scheduled'") in {{ startTime(run) }}
-            Timestamp(v-else :time="run.times.running")
+            Timestamp(v-if="run.times.running" :time="run.times.running")
           td.col-elapsed
             RunElapsed(:run="run")
           td.col-operations
@@ -174,7 +173,7 @@ div
 <script>
 import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
-import { formatElapsed, formatTime, parseTime } from '../time'
+import { formatDuration, formatElapsed, formatTime, parseTime } from '../time'
 import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
 import Job from '@/components/Job'
@@ -417,7 +416,7 @@ export default {
     },
 
     formatTime(time) {
-      return time ? formatTime(time, store.state.timeZone) : '\u00a0'
+      return time ? formatTime(time, this.store.state.timeZone) : '\u00a0'
     },
 
     /**
@@ -432,7 +431,7 @@ export default {
       if (run.times.schedule) {
         const now = this.store.state.time
         const schedule = new Date(run.times.schedule)
-        return formatElapsed((schedule - now) * 1e-3)
+        return formatDuration(Math.round((schedule - now) * 1e-3))
       }
       else
         return ''

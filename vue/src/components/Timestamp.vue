@@ -1,9 +1,11 @@
 <template lang="pug">
-span.timestamp {{ str }}
+span.timestamp.tooltip
+  | {{ str }}
+  span.tooltiptext {{ elapsed() }}
 </template>
 
 <script>
-import { formatTime } from '../time'
+import { formatDuration, formatTime } from '../time'
 import store from '../store'
 
 export default {
@@ -19,6 +21,17 @@ export default {
   computed: {
     str() {
       return formatTime(this.time, store.state.timeZone)
+    },
+  },
+
+  methods: {
+    elapsed() {
+      console.log('elapsed')
+      const elapsed = (new Date(this.store.state.time) - new Date(this.time)) * 0.001
+      return (
+        elapsed > 0 ? formatDuration(elapsed) + ' ago'
+        : 'in ' + formatDuration(-elapsed)
+      )
     },
   },
 }
