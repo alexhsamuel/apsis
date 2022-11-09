@@ -38,6 +38,20 @@ export function getStartUrl(run_id) {
   return getUrl('runs', run_id, 'start')
 }
 
+export function getSubmitRunUrl() {
+  return getUrl('runs')
+}
+
+export function getSubmitRunBody(job_id, args, time) {
+  return {
+    job_id,
+    args,
+    times: {
+      schedule: time,
+    },
+  }
+}
+
 export function getUrlForOperation(operation, run_id) {
   switch (operation) {
     case 'skip': return getSkipUrl(run_id)
