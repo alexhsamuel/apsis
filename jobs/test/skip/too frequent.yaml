@@ -8,4 +8,5 @@ condition:
 schedule:
   type: interval
   interval: 40
+  enabled: false
 
