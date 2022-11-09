@@ -1,6 +1,4 @@
-# In progress
-
-### Skipped runs
+# v0.14.0
 
 - Add the _skipped_ state and _skip_ operation.  Remove the _cancel_ operation;
   superceded by _skip_.
@@ -9,9 +7,6 @@
 - Add support for inducing a transition from `Condition.check_runs()` by
   returning a `Condition.Transition` value.
 - Add the `skip_dependency` condition type.
-
-### Config
-
 - Group scheduler config under `schedule` key.  Add `schedule.horizion` config.
   Rename `schedule_max_age` to `schedule.max_age`.
 
