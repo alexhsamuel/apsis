@@ -64,7 +64,7 @@ div.component
             th {{ key }}
             td {{ value }}
 
-  Frame(title="Schedule")
+  Frame(title="Schedule Run")
     table.schedule(v-if="job")
       tr(v-for="param in (job.params || [])" :key="'schedule' + param")
         th {{ param }}:
@@ -82,20 +82,20 @@ div.component
         )          
       tr.submit
         td
+        td
           button(
             :disabled="! scheduleReady"
             @click="scheduleRun"
           ) Schedule
-        td(v-if="scheduledRunId")
-          | Scheduled: &nbsp;
-          Run(:runId="scheduledRunId")
-          | &nbsp; {{ scheduledInstance }}
+          span(v-if="scheduledRunId") Scheduled: &nbsp;
+          Run(v-if="scheduledRunId" :runId="scheduledRunId")
 
 </template>
 
 <script>
 import * as api from '@/api'
 import { every, join, pickBy } from 'lodash'
+import ConfirmationModal from '@/components/ConfirmationModal'
 import Frame from '@/components/Frame'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
@@ -104,6 +104,8 @@ import Run from '@/components/Run'
 import RunsList from '@/components/RunsList'
 import showdown from 'showdown'
 import store from '@/store'
+import { formatTime, parseTime } from '@/time'
+import Vue from 'vue'
 
 export default {
   props: ['job_id'],
@@ -143,7 +145,12 @@ export default {
     },
 
     scheduleReady() {
-      return every(this.job.params.map(p => this.scheduleArgs[p]))
+      return (
+        every(this.job.params.map(p => this.scheduleArgs[p]))
+        && (this.scheduleTime === 'now'
+          || parseTime(this.scheduleTime, false, store.state.timeZone)
+        )
+      )
     },
   },
 
@@ -165,32 +172,49 @@ export default {
 
     setScheduleArg(param, ev) {
       this.$set(this.scheduleArgs, param, ev.target.value)
-      this.scheduledInstance = null
       this.scheduledRun = null
     },
 
     scheduleRun() {
+      const tz = store.state.timeZone
+      const time = (
+        this.scheduleTime === 'now' ? 'now' 
+        : parseTime(this.scheduleTime, false, tz)
+      )
+      console.assert(time, 'can\'t parse time')
+      
       const url = api.getSubmitRunUrl()
-      const body = api.getSubmitRunBody(this.job_id, this.scheduleArgs, this.scheduleTime)
+      const body = api.getSubmitRunBody(this.job_id, this.scheduleArgs, time === 'now' ? 'now' : time.format())
+
       const instance = (
         this.job.job_id + ' (' 
         + join(this.job.params.map(p => p + '=' + this.scheduleArgs[p]), ' ') + ')'
       )
+      const message = (
+        'Schedule ' + instance + ' for ' 
+        + (time === 'now' ? 'now' : formatTime(time, tz) + ' ' + tz) + '?'
+      )
 
-      fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body)
-      })
-        .then(async (response) => {
-          if (response.ok) {
-            const result = await response.json()
-            this.scheduledInstance = instance
-            this.scheduledRunId = Object.keys(result.runs)[0]
-          }
+      const fn = () => 
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body)
         })
+          .then(async (response) => {
+            if (response.ok) {
+              const result = await response.json()
+              this.scheduledRunId = Object.keys(result.runs)[0]
+            }
+          })
+
+      const Class = Vue.extend(ConfirmationModal)
+      const modal = new Class({propsData: {message, ok: fn}})
+      // Mount and add the modal.  The modal destroys and removes itself.
+      modal.$mount()
+      this.$root.$el.appendChild(modal.$el)
     },
   },
 
@@ -247,6 +271,7 @@ export default {
 
   button {
     background: #f0f6f0;
+    margin-right: 24px;
     padding: 0 20px;
     border-radius: 3px;
     border: 1px solid #aaa;
