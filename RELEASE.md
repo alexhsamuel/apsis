@@ -1,3 +1,8 @@
+# next
+
+- Add a "Schedule Run" frame to the web UI job view, for manual scheduling.
+
+
 # v0.14.0
 
 - Add the _skipped_ state and _skip_ operation.  Remove the _cancel_ operation;
