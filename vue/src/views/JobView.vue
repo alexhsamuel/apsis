@@ -64,17 +64,48 @@ div.component
             th {{ key }}
             td {{ value }}
 
+  Frame(title="Schedule Run")
+    table.schedule(v-if="job")
+      tr(v-for="param in (job.params || [])" :key="'schedule' + param")
+        th {{ param }}:
+        td
+          input(
+            @input="setScheduleArg(param, $event)"
+            @focus="scheduledRunId = ''"
+          )
+      tr.time
+       th Schedule Time:
+       td
+        input(
+          v-model="scheduleTime"
+          placeholder="time"
+        )          
+      tr.submit
+        td
+        td
+          button(
+            :disabled="! scheduleReady"
+            @click="scheduleRun"
+          ) Schedule
+          span(v-if="scheduledRunId") Scheduled: &nbsp;
+          Run(v-if="scheduledRunId" :runId="scheduledRunId")
+
 </template>
 
 <script>
-import { join, pickBy } from 'lodash'
+import * as api from '@/api'
+import { every, join, pickBy } from 'lodash'
+import ConfirmationModal from '@/components/ConfirmationModal'
 import Frame from '@/components/Frame'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import Program from '@/components/Program'
+import Run from '@/components/Run'
 import RunsList from '@/components/RunsList'
 import showdown from 'showdown'
 import store from '@/store'
+import { formatTime, parseTime } from '@/time'
+import Vue from 'vue'
 
 export default {
   props: ['job_id'],
@@ -84,6 +115,7 @@ export default {
     Job,
     JobLabel,
     Program,
+    Run,
     RunsList,
   },
 
@@ -91,12 +123,17 @@ export default {
     return {
       // Undefined before the job has loaded; null if the job doesn't exist.
       job: undefined,
+      // Form fields for schedule pane.
+      scheduleArgs: {},
+      scheduleTime: 'now',
+      scheduledInstance: null,
+      scheduledRunId: null,
     }
   },
 
   computed: {
     params() {
-      return join(this.job.params, ', ')
+      return this.job.params ? join(this.job.params, ', ') : []
     },
 
     // Metadata filtered, with keys omitted that are displayed specially.
@@ -104,6 +141,15 @@ export default {
       return pickBy(
         this.job.metadata,
         (v, k) => k !== 'description' && k !== 'labels'
+      )
+    },
+
+    scheduleReady() {
+      return (
+        every(this.job.params.map(p => this.scheduleArgs[p]))
+        && (this.scheduleTime === 'now'
+          || parseTime(this.scheduleTime, false, store.state.timeZone)
+        )
       )
     },
   },
@@ -123,6 +169,53 @@ export default {
 
   methods: {
     markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
+
+    setScheduleArg(param, ev) {
+      this.$set(this.scheduleArgs, param, ev.target.value)
+      this.scheduledRun = null
+    },
+
+    scheduleRun() {
+      const tz = store.state.timeZone
+      const time = (
+        this.scheduleTime === 'now' ? 'now' 
+        : parseTime(this.scheduleTime, false, tz)
+      )
+      console.assert(time, 'can\'t parse time')
+      
+      const url = api.getSubmitRunUrl()
+      const body = api.getSubmitRunBody(this.job_id, this.scheduleArgs, time === 'now' ? 'now' : time.format())
+
+      const instance = (
+        this.job.job_id + ' (' 
+        + join(this.job.params.map(p => p + '=' + this.scheduleArgs[p]), ' ') + ')'
+      )
+      const message = (
+        'Schedule ' + instance + ' for ' 
+        + (time === 'now' ? 'now' : formatTime(time, tz) + ' ' + tz) + '?'
+      )
+
+      const fn = () => 
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body)
+        })
+          .then(async (response) => {
+            if (response.ok) {
+              const result = await response.json()
+              this.scheduledRunId = Object.keys(result.runs)[0]
+            }
+          })
+
+      const Class = Vue.extend(ConfirmationModal)
+      const modal = new Class({propsData: {message, ok: fn}})
+      // Mount and add the modal.  The modal destroys and removes itself.
+      modal.$mount()
+      this.$root.$el.appendChild(modal.$el)
+    },
   },
 
 }
@@ -155,4 +248,56 @@ export default {
 .disabled {
   color: #888;
 }
-</style>
+
+.schedule {
+  border-spacing: 8px 4px;
+  white-space: nowrap;
+
+  th {
+    text-align: right;
+    text-transform: uppercase;
+    font-weight: normal;
+    font-size: 0.875rem;
+    color: #999;
+  }
+
+  td {
+    height: 38px;
+  }
+
+  input {
+    width: 24em;
+  }
+
+  button {
+    background: #f0f6f0;
+    margin-right: 24px;
+    padding: 0 20px;
+    border-radius: 3px;
+    border: 1px solid #aaa;
+    font-size: 85%;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: default;
+
+    &:hover:not(:disabled) {
+      background: #90e0a0;
+    }
+  }
+
+  .time {
+    td, th {
+      padding-top: 20px;
+    }
+  }
+
+  .submit {
+    td {
+      padding-top: 20px;
+    }
+    td:first-child {
+      text-align: right;
+    }
+  }
+}
+ </style>
