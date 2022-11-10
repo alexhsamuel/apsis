@@ -504,6 +504,7 @@ class Apsis:
 
         if time is None:
             self.run_log.info(run, "scheduling for immediate run")
+            self._transition(run, run.STATE.scheduled, times={"schedule": now()})
             self.__wait(run)
             return run
         else:
