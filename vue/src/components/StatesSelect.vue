@@ -1,12 +1,10 @@
 <template lang="pug">
   .combo(
-    v-on:keyup.enter.prevent="setShow()"
-    v-on:keyup.space.prevent="setShow()"
-    v-on:keyup.escape.prevent="setShow(false)"
+    @keyup.enter.prevent="setShow()"
+    @keyup.space.prevent="setShow()"
+    @keyup.escape.prevent="setShow(false)"
   )
-    .value(
-      v-on:mousedown.stop="setShow()"
-    )
+    .value(@mousedown.stop="setShow()" tabindex=0)
       span(v-if="value.length == 0") All States
       span(v-else) States:&nbsp;
       State(v-for="state in value" :key="'value-' + state" :state="state" :name="false")
@@ -18,14 +16,10 @@
     )
 
     #drop
-      #items(
-        v-show="show"
-        tabindex=0
-        v-on:blur="onBlur"
-      )
+      #items(v-show="show" tabindex=0)
         div
           label(for="all-states") All States 
-          input#all-states(type="checkbox" :checked="checked.length == 0" v-on:change="checkAll")
+          input#all-states(type="checkbox" :checked="checked.length == 0" @change="checkAll")
         div.separator
         div(v-for="state in STATES")
           label(:for="state")
@@ -39,6 +33,11 @@ import DropList from '@/components/DropList'
 import { STATES, sortStates } from '@/runs'
 import State from './State'
 
+/**
+ * Selected states indicator with droplist to select individual states.
+ * 
+ * `value` is an array of state names.  An empty array means all states.
+ */
 export default {
   name: 'StatesSelect',
   props: ['value'],
@@ -52,45 +51,31 @@ export default {
     console.log(this.value)
     return {
       STATES,
-      // Array of checked values.  Vue's checkbox adds or removes values.
+      // Array of checked values.
       checked: this.value.splice(),
+      // Whether the droplist is displayed.
       show: false,
     }
   },
 
   methods: {
+    /**
+     * Show or hide the droplist.  If undefined, toggle.
+     */
     setShow(show) {
       if (typeof show === 'undefined')
         show = !this.show
-      // if (this.show)
-      //   this.setValue()
-      // else
-      //   this.idx = this.value
       this.show = show
-      if (show) {
-        const el = this.$el.querySelector('#items')
-        console.log('focus', el)
-        el.focus()
-      }
     },
 
     checkAll(ev) {
-      // this.checked.length = 0
       this.$set(this, 'checked', [])
-    },
-
-    onBlur(ev) {
-      console.log('onBlur')
-    },
-
-    onClick(ev) {
-      console.log('onClick')
     },
   },
 
   watch: {
     checked(checked, old) {
-      console.log('checked ->', sortStates(checked))
+      // Send state to the parent.
       this.$emit('input', sortStates(checked))
     },
   },
