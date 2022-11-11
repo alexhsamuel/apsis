@@ -1,4 +1,4 @@
-import { toPairs } from 'lodash'
+import { sortBy, toPairs } from 'lodash'
 
 export function joinArgs(args) {
   return toPairs(args).map(([n, v]) => n + '=' + v).join(', ')
@@ -31,3 +31,18 @@ export function updateRuns(msg, state) {
   state.runs = runs
 }
 
+export const STATES = [
+  'new',
+  'scheduled',
+  'waiting',
+  'starting',
+  'running',
+  'success',
+  'failure',
+  'skipped',
+  'error',
+]
+
+export function sortStates(states) {
+  return sortBy(states, s => STATES.indexOf(s))
+}
