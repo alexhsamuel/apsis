@@ -1,20 +1,9 @@
 import * as jobsFilter from '@/jobsFilter.js'
 import { filter, includes, join, map, max, some } from 'lodash'
 import { prefixMatch, splitQuoted, combine } from '@/parse.js'
+import { STATES } from '@/runs.js'
 import { parseTimeOrOffset } from '@/time.js'
 import store from '@/store'
-
-const STATES = [
-  'new',
-  'scheduled',
-  'waiting',
-  'starting',
-  'running',
-  'success',
-  'failure',
-  'error',
-  'skipped',
-]
 
 export class StateTerm {
   constructor(states) {

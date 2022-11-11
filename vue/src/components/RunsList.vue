@@ -315,6 +315,10 @@ table.runlist {
     text-align: center;
   }
 
+  .col-state {
+    vertical-align: bottom;
+  }
+
   .col-reruns {
     text-align: right;
     white-space: nowrap;
