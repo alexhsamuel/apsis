@@ -189,10 +189,6 @@ import store from '@/store.js'
 import Timestamp from './Timestamp'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 
-function max(a, b) {
-  return a < b ? b : a
-}
-
 export default { 
   name: 'RunsList',
   props: {
@@ -333,45 +329,63 @@ export default {
       const groups = this.allGroups
       let runs = groups.groups   // FIXME
 
-      // Determine the time to center around.
       let now = (new Date()).toISOString()
+    
+      // Determine the time to center around.
       const time = this.time === 'now' ? now : this.time
-      // Find the index corresponding to the central time.
+      // Find the index corresponding to the center time.
       let timeIndex = sortedIndexBy(runs, { time_key: time }, r => r.time_key)
 
-      // We'll split runs between those earlier and later than the central time.
-      const earlierMax = max(this.maxRuns / 2, this.maxRuns - (runs.length - timeIndex))
-      const laterMax = max(this.maxRuns / 2, this.maxRuns - timeIndex)
-  
-      let earlierTime
-      let earlierCount
-      if (this.timeControls && earlierMax < timeIndex) {
-        // Don't truncate in the middle of a timestamp.
-        while (0 < timeIndex && runs[timeIndex - 1].time_key === runs[timeIndex].time_key)
-          timeIndex--
-        earlierCount = timeIndex - earlierMax
-        earlierTime = runs[earlierCount].time_key
-        runs = runs.slice(earlierCount)
-        timeIndex -= earlierCount
-      }
-      else {
-        earlierTime = null
-        earlierCount = 0
-      }
+      // Time cutoff and count of earlier runs not shown.
+      let earlierTime = null
+      let earlierCount = 0
+      // Time cutoff and count of later runs not shown.
+      let laterTime = null
+      let laterCount = 0
+      if (this.timeControls && this.maxRuns < runs.length) {
+        // There are more runs than fit in the view.  Decide how many runs to
+        // show before and after the center time.
+        var r0 = timeIndex
+        var r1 = runs.length - timeIndex
+        if (r0 < this.maxRuns / 2)
+          r1 = this.maxRuns - r0
+        else if (r1 < this.maxRuns / 2)
+          r0 = this.maxRuns - r1
+        else
+          r0 = r1 = this.maxRuns / 2
+        // console.log('length', runs.length, 'maxRuns', this.maxRuns, 'timeIndex', timeIndex, 'r0', r0, 'r1', r1)
 
-      let laterTime
-      let laterCount
-      if (this.timeControls && laterMax < runs.length - timeIndex) {
-        // Don't truncate in the middle of a timestamp.
-        while (timeIndex < runs.length - 1 && runs[timeIndex - 1].time_key === runs[timeIndex].time_key)
-          timeIndex++
-        laterCount = runs.length - (timeIndex + laterMax)
-        laterTime = runs[runs.length - laterCount].time_key
-        runs = runs.slice(0, runs.length - laterCount)
-      }
-      else {
-        laterTime = null
-        laterCount = 0
+        if (r0 < timeIndex) {
+          // Don't show some runs and omit others with identical timestamp.
+          while (
+            0 < timeIndex && timeIndex < runs.length
+            && runs[timeIndex - 1].time_key === runs[timeIndex].time_key
+          )
+            timeIndex--
+          // Number of earlier runs omitted.
+          earlierCount = timeIndex - r0
+          // Time cutoff of earlier runs omitted.
+          earlierTime = runs[earlierCount].time_key
+          // Omit the runs.
+          runs = runs.slice(earlierCount)
+          // Adjust the center time index accordingly.
+          timeIndex -= earlierCount
+        }
+
+        if (r1 < runs.length - timeIndex) {
+          // Don't show some runs and omit others with identical timestamp.
+          while (
+            0 < timeIndex && timeIndex < runs.length - 1
+            && runs[timeIndex - 1].time_key === runs[timeIndex].time_key
+          )
+            timeIndex++
+          // Number of later runs omitted.
+          laterCount = runs.length - (timeIndex + r1)
+          // Time cutoff of later runs omitted.
+          laterTime = runs[runs.length - laterCount].time_key
+          // Omit the runs.
+          runs = runs.slice(0, runs.length - laterCount)
+        }
       }
 
       let nowIndex
@@ -544,6 +558,10 @@ table {
 
   .col-run, .col-state, .col-operations {
     text-align: center;
+  }
+
+  .col-state {
+    vertical-align: bottom;
   }
 
   .col-schedule-time, .col-start-time {

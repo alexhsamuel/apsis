@@ -6,6 +6,11 @@ describe('State.vue', () => {
     const Constructor = Vue.extend(State)
     const vm = new Constructor({ propsData: { state: 'success', name: true } }).$mount()
     expect(vm.$el.querySelector('.name').textContent).toEqual('success')
+  })
+
+  it('should show a tooltip', () => {
+    const Constructor = Vue.extend(State)
+    const vm = new Constructor({ propsData: { state: 'success', name: false } }).$mount()
     expect(vm.$el.querySelector('.tooltiptext').textContent).toEqual('SUCCESS')
   })
 })
