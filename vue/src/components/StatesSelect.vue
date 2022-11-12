@@ -48,11 +48,10 @@ export default {
   },
 
   data() {
-    console.log(this.value)
     return {
       STATES,
       // Array of checked values.
-      checked: this.value.splice(),
+      checked: this.value.slice(),
       // Whether the droplist is displayed.
       show: false,
     }
