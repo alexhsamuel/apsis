@@ -48,11 +48,10 @@ export default {
   },
 
   data() {
-    console.log(this.value)
     return {
       STATES,
       // Array of checked values.
-      checked: this.value.splice(),
+      checked: this.value.slice(),
       // Whether the droplist is displayed.
       show: false,
     }
@@ -76,6 +75,7 @@ export default {
   watch: {
     checked(checked, old) {
       // Send state to the parent.
+      console.log('input ->', sortStates(checked))
       this.$emit('input', sortStates(checked))
     },
   },
