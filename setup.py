@@ -7,7 +7,7 @@ with (Path(sys.argv[0]).parent / "README.md").open("rt") as file:
 
 setuptools.setup(
     name            ="apsis",
-    version         ="0.14.0",
+    version         ="0.14.1",
     description     ="Easy-to-use task scheduler",
     long_description=long_description,
     url             ="https://github.com/alexhsamuel/apsis",
