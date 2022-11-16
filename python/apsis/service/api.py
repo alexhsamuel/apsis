@@ -447,6 +447,9 @@ async def websocket_runs(request, ws):
             # the next run is available.  Not sure how to do this.  ws.ping()
             # with a timeout doesn't appear to work.
             next_runs = [await queue.get()]
+            # Sleep a short while to allow additional runs to enqueue.  This
+            # avoids sending lots of short messages to the client.
+            await asyncio.sleep(0.5)
             # Drain the queue.
             while True:
                 try:
