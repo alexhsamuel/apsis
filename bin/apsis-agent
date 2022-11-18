@@ -15,12 +15,6 @@ from   apsis.agent.client import Agent
 
 #-------------------------------------------------------------------------------
 
-def sync(coro):
-    task = asyncio.ensure_future(coro)
-    asyncio.get_event_loop().run_until_complete(task)
-    return task.result()
-
-
 async def clean(agent):
     processes = await agent.get_processes()
     return await asyncio.gather(*(
@@ -101,7 +95,7 @@ elif args.cmd == "clean":
     result = clean(agent)
 
 try:
-    result = sync(result)
+    result = asyncio.run(result)
 except RuntimeError:
     logging.error(f"{args.cmd} failed", exc_info=True)
 else:
