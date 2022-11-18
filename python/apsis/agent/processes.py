@@ -67,53 +67,31 @@ def start(argv, cwd, env, stdin_fd, out_fd):
                 env_list = None  # Use execv instead of execve.
 
             executables = (os.fsencode(executable), )
-            
-            # FIXME: Clean up.
-            if sys.version_info.minor > 7:
-                pid = _posixsubprocess.fork_exec(
-                    argv, 
-                    executables,
-                    True,                   # close_fds
-                    (err_write, ),          # pass_fds
-                    str(cwd), 
-                    env_list,
-                    stdin_fd,               # stdin read
-                    -1,                     # stdin write
-                    -1,                     # stdout read
-                    out_fd,                 # stdout write
-                    -1,                     # stderr read
-                    out_fd,                 # stderr write
-                    err_read, 
-                    err_write,
-                    True,                   # restore_signals
-                    True,                   # start_new_session
-                    None,                   # gid
-                    None,                   # gids
-                    None,                   # uid
-                    -1,                     # umask
-                    None,                   # preexec_fn
-                )
-            else:
-                # Python 3.7 API.
-                pid = _posixsubprocess.fork_exec(
-                    argv, 
-                    executables,
-                    True,                   # close_fds
-                    (err_write, ),          # pass_fds
-                    str(cwd), 
-                    env_list,
-                    stdin_fd,               # stdin read
-                    -1,                     # stdin write
-                    -1,                     # stdout read
-                    out_fd,                 # stdout write
-                    -1,                     # stderr read
-                    out_fd,                 # stderr write
-                    err_read, 
-                    err_write,
-                    True,                   # restore_signals
-                    True,                   # start_new_session
-                    None,                   # preexec_fn
-                )
+
+            pid = _posixsubprocess.fork_exec(
+                argv,
+                executables,
+                True,                   # close_fds
+                (err_write, ),          # pass_fds
+                str(cwd),
+                env_list,
+                stdin_fd,               # stdin read
+                -1,                     # stdin write
+                -1,                     # stdout read
+                out_fd,                 # stdout write
+                -1,                     # stderr read
+                out_fd,                 # stderr write
+                err_read,
+                err_write,
+                True,                   # restore_signals
+                True,                   # start_new_session
+                None,                   # gid
+                None,                   # gids
+                None,                   # uid
+                -1,                     # umask
+                None,                   # preexec_fn
+            )
+
         finally:
             # be sure the FD is closed no matter what
             os.close(err_write)
@@ -164,7 +142,7 @@ def start(argv, cwd, env, stdin_fd, out_fd):
                         err_msg += ': ' + repr(executable)
             raise exc_type(errnum, err_msg)
         raise exc_type(err_msg)
-    
+
     else:
         return pid
 
@@ -280,7 +258,7 @@ class Processes:
             """
             return (
                 None if self.status is None
-                else os.WEXITSTATUS(self.status) if os.WIFEXITED(self.status) 
+                else os.WEXITSTATUS(self.status) if os.WIFEXITED(self.status)
                 else None
             )
 
@@ -289,7 +267,7 @@ class Processes:
         def signal(self):
             return (
                 None if self.status is None
-                else signal.Signals(os.WTERMSIG(self.status)).name 
+                else signal.Signals(os.WTERMSIG(self.status)).name
                 if os.WIFSIGNALED(self.status)
                 else None
             )
@@ -297,7 +275,6 @@ class Processes:
 
 
     def __init__(self, dir_path: Path):
-        # FIXME: mkdir here?
         self.__dir_path = dir_path
         self.__procs = {}
         self.__pids = {}
@@ -309,7 +286,7 @@ class Processes:
         """
         proc = self.Process(str(uuid.uuid4()))
         proc.program = {
-            "argv"  : [ str(a) for a in argv ],  # FIXME?
+            "argv"  : [ str(a) for a in argv ],
             "cwd"   : str(cwd),
             "env"   : env,
             "stdin" : stdin,
@@ -342,7 +319,7 @@ class Processes:
             proc.exception = exc
             proc_dir.clean()
             proc_dir = None
-            
+
         except:
             proc_dir.clean()
             proc_dir = None
