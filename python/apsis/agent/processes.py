@@ -147,7 +147,6 @@ def start(argv, cwd, env, stdin_fd, out_fd):
         return pid
 
 
-
 #-------------------------------------------------------------------------------
 
 class ProcessDir:
@@ -304,9 +303,12 @@ class Processes:
 
             proc.start_time = now()
 
-            with proc_dir.get_stdin_fd(stdin) as stdin_fd, \
-                 proc_dir.get_out_fd() as out_fd:
+            with (
+                    proc_dir.get_stdin_fd(stdin) as stdin_fd,
+                    proc_dir.get_out_fd() as out_fd
+            ):
                 proc.pid = start(argv, cwd, env, stdin_fd, out_fd)
+
             log.info(f"started: pid={proc.pid}")
 
             proc.state = "run"
