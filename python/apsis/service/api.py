@@ -8,7 +8,7 @@ from   urllib.parse import unquote
 import websockets
 
 from   apsis.apsis import reschedule_runs
-from   apsis.lib.api import response_json, error, time_to_jso, to_bool
+from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
 from   ..jobs import jso_to_job
@@ -309,11 +309,14 @@ async def run_output_meta(request, run_id):
 @API.route("/runs/<run_id>/output/<output_id>", methods={"GET"})
 async def run_output(request, run_id, output_id):
     try:
-        data = request.app.apsis.outputs.get_data(run_id, output_id)
+        output = request.app.apsis.outputs.get_output(run_id, output_id)
     except LookupError as exc:
         return error(exc, 404)
     else:
-        return sanic.response.raw(data)
+        headers, data = encode_response(
+            request.headers, output.data, output.compression)
+        headers["Content-Type"] = output.metadata.content_type
+        return sanic.response.raw(data, headers=headers)
 
 
 @API.route("/runs/<run_id>/state", methods={"GET"})

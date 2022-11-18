@@ -38,7 +38,7 @@ class OutputMetadata:
 
 class Output:
 
-    def __init__(self, metadata: OutputMetadata, data: bytes, compression=None):
+    def __init__(self, metadata: OutputMetadata, data, compression=None):
         """
         :param metadata:
           Information about the data.
@@ -49,15 +49,18 @@ class Output:
         """
         self.metadata       = metadata
         self.data           = data
-        self.compression    = None
-    
+        self.compression    = compression
 
 
-def program_outputs(output: bytes):
+
+def program_outputs(output, *, length=None, compression=None):
+    if length is None:
+        length = len(output)
     return {
         "output": Output(
-            OutputMetadata("combined stdout & stderr", length=len(output)),
-            output
+            OutputMetadata("combined stdout & stderr", length=length),
+            output,
+            compression=compression,
         ),
     }
 
@@ -357,6 +360,9 @@ def _get_agent(host, user):
 
 class AgentProgram(Program):
 
+    # Compression for program output.
+    COMPRESSION = "br"
+
     def __init__(self, argv, *, host=None, user=None):
         self.__argv = tuple( str(a) for a in argv )
         self.__host = nstr(host)
@@ -476,8 +482,10 @@ class AgentProgram(Program):
                 break
 
         status = proc["status"]
-        output = await agent.get_process_output(proc_id)
-        outputs = program_outputs(output)
+        output, length = await agent.get_process_output(
+            proc_id, compression=self.COMPRESSION)
+        outputs = program_outputs(
+            output, length=length, compression=self.COMPRESSION)
 
         try:
             if status == 0:
