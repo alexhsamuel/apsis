@@ -24,6 +24,7 @@ setuptools.setup(
     ],
 
     install_requires=[
+        "brotli",
         "jinja2",
         "ora",
         "pyyaml",
