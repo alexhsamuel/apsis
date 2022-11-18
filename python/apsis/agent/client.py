@@ -7,6 +7,7 @@ import requests
 import shlex
 import subprocess
 import sys
+from   urllib.parse import quote_plus
 import warnings
 
 from   apsis.lib.asyn import communicate
@@ -227,7 +228,8 @@ class Agent:
                 log.debug(f"{self}: conn changed; not disconnecting")
 
 
-    async def request(self, method, endpoint, data=None, *, restart=False):
+    async def request(
+            self, method, endpoint, data=None, *, args={}, restart=False):
         """
         Performs an HTTP request to the agent.
 
@@ -254,7 +256,12 @@ class Agent:
 
             port, token = await self.connect()
             url_host = if_none(self.__host, "localhost")
+            # FIXME: Use library.
             url = f"https://{url_host}:{port}/api/v1" + endpoint
+            if len(args) > 0:
+                url += "?" + "&".join(
+                    f"{k}={quote_plus(v)}" for k, v in args.items() 
+                )
 
             try:
                 # FIXME: For now, we use no server verification when
@@ -364,15 +371,28 @@ class Agent:
         return rsp.json()["process"]
 
 
-    async def get_process_output(self, proc_id) -> bytes:
+    async def get_process_output(self, proc_id, *, compression=None):
         """
         Returns process output.
+
+        :return:
+          The output in the requested compression format, and its uncompressed
+          length.
         """
-        rsp = await self.request("GET", f"/processes/{proc_id}/output")
+        args = {} if compression is None else {"compression": compression}
+        rsp = await self.request(
+            "GET", f"/processes/{proc_id}/output", args=args)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
         rsp.raise_for_status()
-        return rsp.content
+        try:
+            length = int(rsp.headers["X-Raw-Length"])
+        except KeyError:
+            # Probably an old agent that doesn't send this header.
+            # FIXME: Clean this up.
+            log.error(f"missing X-Raw-Length from agent {self}")
+            length = len(rsp.content)
+        return rsp.content, length
 
 
     async def del_process(self, proc_id):
