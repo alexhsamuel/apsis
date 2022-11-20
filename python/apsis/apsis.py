@@ -442,7 +442,7 @@ class Apsis:
         run._transition(time, state, **kw_args)
 
         # Persist outputs.
-        # FIXME: We are persisting runs assuming all are new.  This is only
+        # FIXME: We are persisting outputs assuming all are new.  This is only
         # OK for the time being because outputs are always added on the final
         # transition.  In general, we have to persist new outputs only.
         for output_id, output in outputs.items():
