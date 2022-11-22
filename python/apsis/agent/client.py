@@ -376,8 +376,8 @@ class Agent:
         Returns process output.
 
         :return:
-          The output in the requested compression format, and its uncompressed
-          length.
+          The output, its uncompressed length, and the actual compression
+          format.
         """
         args = {} if compression is None else {"compression": compression}
         rsp = await self.request(
@@ -387,12 +387,15 @@ class Agent:
         rsp.raise_for_status()
         try:
             length = int(rsp.headers["X-Raw-Length"])
+            cmpr = rsp.headers["X-Compression"]
         except KeyError:
             # Probably an old agent that doesn't send this header.
             # FIXME: Clean this up.
-            log.error(f"missing X-Raw-Length from agent {self}")
-            length = len(rsp.content)
-        return rsp.content, length
+            log.error(f"missing X-Raw-Length or X-Compression from agent {self}")
+            return rsp.content, len(rsp.content), None
+        else:
+            assert cmpr == compression
+            return rsp.content, length, compression
 
 
     async def del_process(self, proc_id):

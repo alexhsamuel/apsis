@@ -482,10 +482,11 @@ class AgentProgram(Program):
                 break
 
         status = proc["status"]
-        output, length = await agent.get_process_output(
+        output, length, compression = await agent.get_process_output(
             proc_id, compression=self.COMPRESSION)
         outputs = program_outputs(
-            output, length=length, compression=self.COMPRESSION)
+            output, length=length, compression=compression)
+        log.info(f"got output: {length} bytes, {compression or 'uncompressed'}")
 
         try:
             if status == 0:

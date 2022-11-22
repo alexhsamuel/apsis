@@ -186,7 +186,9 @@ async def process_get_output(req, proc_id):
     with open(proc.proc_dir.out_path, "rb") as file:
         data = file.read()
 
-    length = len(data)
+    # Indicate the raw (uncompressed) length in a header.
+    headers = {"X-Raw-Length": str(len(data))}
+
     match compression:
         case None:
             pass
@@ -196,9 +198,9 @@ async def process_get_output(req, proc_id):
             data = zlib.compress(data)
         case "gzip":
             data = gzip.compress(data, mtime=0)
+    if compression is not None:
+        headers |= {"X-Compression": compression}
 
-    # Indicate the raw (uncompressed) length in a header.
-    headers = {"X-Raw-Length": str(length), }
     return sanic.response.raw(data, status=200, headers=headers)
 
 
