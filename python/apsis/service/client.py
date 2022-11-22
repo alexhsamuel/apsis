@@ -126,6 +126,16 @@ class Client:
         return self.__get("/api/v1/jobs", label=label)
 
 
+    def get_outputs(self, run_id):
+        """
+        Returns output metadata for `run_id`.
+        """
+        url = self.__url("/api/v1/runs", run_id, "outputs")
+        resp = requests.get(url)
+        resp.raise_for_status()
+        return resp.json()
+
+
     def get_output(self, run_id, output_id) -> bytes:
         url = self.__url("/api/v1/runs", run_id, "output", output_id)
         resp = requests.get(url)
