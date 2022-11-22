@@ -18,7 +18,7 @@ async def _wait(agent, proc_id):
     else:
         assert False, "proc failed to complete in 1 s"
 
-    output = await agent.get_process_output(proc_id)
+    output, _ = await agent.get_process_output(proc_id)
     stop = await agent.del_process(proc_id)
 
     return proc, output, stop

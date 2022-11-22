@@ -1,3 +1,4 @@
+brotli
 jinja2
 numpy
 ora

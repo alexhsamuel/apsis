@@ -1,5 +1,7 @@
 import asyncio
+import brotli
 import functools
+import gzip
 import logging
 import os
 from   pathlib import Path
@@ -7,6 +9,7 @@ import sanic
 import socket
 import traceback
 import ujson
+import zlib
 
 from   apsis.lib.sys import get_username, to_signal
 from   .processes import NoSuchProcessError
@@ -35,8 +38,8 @@ def exc_error(exc, status, log=None):
 
 
 def rusage_to_jso(rusage):
-    usage = { 
-        n: getattr(rusage, n) 
+    usage = {
+        n: getattr(rusage, n)
         for n in dir(rusage)
         if n.startswith("ru_")
     }
@@ -167,15 +170,38 @@ async def process_get(req, proc_id):
     proc = req.app.ctx.processes[proc_id]
     return response({"process": proc_to_jso(proc)})
 
-    
+
 @API.route("/processes/<proc_id>/output", methods={"GET"})
 @auth
 async def process_get_output(req, proc_id):
+    try:
+        compression, = req.args["compression"]
+    except KeyError:
+        compression = None
+    else:
+        if compression not in {"br", "deflate", "gzip"}:
+            return error(f"unknown compression: {compression!r}", 400)
+
     proc = req.app.ctx.processes[proc_id]
     with open(proc.proc_dir.out_path, "rb") as file:
-        # FIXME: Stream it?
         data = file.read()
-    return sanic.response.raw(data, status=200)
+
+    # Indicate the raw (uncompressed) length in a header.
+    headers = {"X-Raw-Length": str(len(data))}
+
+    match compression:
+        case None:
+            pass
+        case "br":
+            data = brotli.compress(data)
+        case "deflate":
+            data = zlib.compress(data)
+        case "gzip":
+            data = gzip.compress(data, mtime=0)
+    if compression is not None:
+        headers |= {"X-Compression": compression}
+
+    return sanic.response.raw(data, status=200, headers=headers)
 
 
 @API.route("/processes/<proc_id>/signal/<signal>", methods={"PUT"})
