@@ -1,6 +1,9 @@
 # next
 
 - Add a "Schedule Run" frame to the web UI job view, for manual scheduling.
+- Apsis now compresses program outputs with Brotli before storing to the
+  database.  The HTTP service also returns Brotli-compressed output, if the user
+  agent supports this encoding.
 
 
 # v0.14.0

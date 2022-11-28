@@ -438,21 +438,28 @@ class OutputDB:
         }
 
 
-    def get_data(self, run_id, output_id) -> bytes:
+    def get_output(self, run_id, output_id) -> Output:
         cols = self.TABLE.c
         query = (
-            sa.select([cols.compression, cols.data])
+            sa.select([
+                cols.name,
+                cols.length,
+                cols.content_type,
+                cols.data,
+                cols.compression,
+            ])
             .where((cols.run_id == run_id) & ((cols.output_id == output_id)))
         )
         rows = list(self.__engine.execute(query))
         if len(rows) == 0:
             raise LookupError(f"no output {output_id} for {run_id}")
         else:
-            (compression, data), = rows
-            if compression is None:
-                return data
-            else:
-                raise NotImplementedError(f"compression: {compression}")
+            r, = rows
+            return Output(
+                OutputMetadata(r[0], r[1], content_type=r[2]),
+                data=r[3],
+                compression=r[4],
+            )
 
 
 

@@ -21,7 +21,7 @@ def run_apsisctl(*argv):
 class ApsisInstance:
 
     # FIXME: Choose an available port.
-    def __init__(self, *, port=5005, job_dir=None):
+    def __init__(self, *, port=5005, job_dir=None, cfg={}):
         self.port       = int(port)
 
         self.tmp_dir    = Path(tempfile.mkdtemp())
@@ -34,7 +34,7 @@ class ApsisInstance:
         self.cfg_path   = self.tmp_dir / "config.yaml"
         self.log_path   = self.tmp_dir / "apsis.log"
 
-        self.cfg        = None
+        self.cfg        = cfg
         self.srv_proc   = None
 
 
@@ -42,8 +42,9 @@ class ApsisInstance:
         run_apsisctl("create", self.db_path)
 
 
+    # FIXME: Remove cfg param.
     def write_cfg(self, cfg={}):
-        self.cfg = {
+        self.cfg |= {
             "database": str(self.db_path),
             "job_dir": str(self.jobs_dir),
             **cfg

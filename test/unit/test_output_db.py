@@ -11,7 +11,7 @@ def test0():
     len(db.get_metadata("r42")) == 0
 
     with pytest.raises(LookupError):
-        db.get_data("r42", "output")
+        db.get_output("r42", "output")
 
     data = b"The quick brown fox jumped over the lazy dogs.\x01\x02\x03"
     output = Output(OutputMetadata("combined output", len(data)), data)
@@ -21,7 +21,6 @@ def test0():
     assert list(meta.keys()) == ["output"]
     assert meta["output"].name == "combined output"
 
-    assert db.get_data("r42", "output") == data
+    assert db.get_output("r42", "output").data == data
 
-    
 

@@ -162,11 +162,11 @@ class Apsis:
             timeout = None
         else:
             try:
-                start = ora.Time(run.times["waiting"])
+                start = Time(run.times["waiting"])
             except KeyError:
                 log.error(f"waiting run missing waiting time: {run.run_id}")
                 # Fall back to current time.
-                start = ora.now()
+                start = now()
             timeout = start + max_time
 
         async def loop():
@@ -206,8 +206,7 @@ class Apsis:
                         # First cond is still blocking.
                         if timeout is not None:
                             # Check for timeout while waiting.
-                            now = ora.now()
-                            remaining = timeout - now
+                            remaining = timeout - now()
                             if 0 < remaining:
                                 sleep_time = min(cond.poll_interval, remaining)
                             else:
@@ -443,7 +442,7 @@ class Apsis:
         run._transition(time, state, **kw_args)
 
         # Persist outputs.
-        # FIXME: We are persisting runs assuming all are new.  This is only
+        # FIXME: We are persisting outputs assuming all are new.  This is only
         # OK for the time being because outputs are always added on the final
         # transition.  In general, we have to persist new outputs only.
         for output_id, output in outputs.items():

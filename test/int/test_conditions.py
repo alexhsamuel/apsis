@@ -11,9 +11,10 @@ from   instance import ApsisInstance
 
 #-------------------------------------------------------------------------------
 
+job_dir = Path(__file__).absolute().parent / "test_conditions_jobs"
+
 @pytest.fixture(scope="module")
 def inst():
-    job_dir = Path(__file__).absolute().parent / "test_conditions_jobs"
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
@@ -70,6 +71,36 @@ def test_args(client):
     # One dependency satisfied, but not the other one.
     res = client.get_run(run_id)
     assert res["state"] == "running"
+
+
+def test_args_max_waiting():
+    """
+    Tests that a run waiting for more than `waiting.max_time` is
+    transitioned to error.
+    """
+    with closing(ApsisInstance(job_dir=job_dir, port=5006)) as inst:
+        inst.create_db()
+        inst.write_cfg({"waiting": {"max_time": 1}})
+        inst.start_serve()
+        inst.wait_for_serve()
+        client = inst.client
+
+        res = client.schedule("dependent", {"date": "2022-11-01", "color": "red"})
+        run_id = res["run_id"]
+
+        # This job depends on dependency(date=2022-11-01 flavor=vanilla) and
+        # dependency(date=2022-11-01 flavor=chocolate).
+        res = client.get_run(run_id)
+        assert res["state"] == "waiting"
+
+        # Run the first of the dependencies.
+        res = client.schedule("dependency", {"date": "2022-11-01", "flavor": "vanilla"})
+        time.sleep(1)
+
+        # After a second, its second dependency is not yet satisified, so it is
+        # transitioned to error.
+        res = client.get_run(run_id)
+        assert res["state"] == "error"
 
 
 def test_skip_duplicate(client):
@@ -163,5 +194,6 @@ def test_to_error(client):
     red3 = res["run_id"]
     res = client.get_run(red3)
     assert res["state"] == "running"
+
 
 

@@ -409,6 +409,7 @@ class RunStore:
     def query_live(self, *, since=None):
         queue = asyncio.Queue()
         self.__queues.add(queue)
+        log.info(f"added client runs queue; current: {len(self.__queues)}")
 
         when, runs = self.query(since=since)
         queue.put_nowait((when, runs))

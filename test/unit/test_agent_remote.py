@@ -21,7 +21,7 @@ async def test_run_localhost(tmpdir):
         # FIXME: Embarrassing.  Need a way to await the process.
         await asyncio.sleep(0.1)
         process = await agent.get_process(proc_id)
-        output = await agent.get_process_output(proc_id)
+        output, _ = await agent.get_process_output(proc_id)
         await agent.del_process(proc_id)
         return process["return_code"], output
 

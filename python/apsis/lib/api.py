@@ -1,4 +1,10 @@
+import brotli
+import gzip
+import logging
 import sanic
+import zlib
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -24,5 +30,42 @@ def to_bool(string):
         return False
     else:
         raise ValueError(f"unknown bool: {string}")
+
+
+def encode_response(headers, data, compression):
+    """
+    Encodes data for a response.
+
+    :param headers:
+      Request headers.
+    :param data:
+      Response data bytes.
+    :param compression:
+      Current compression of data.
+    :return:
+      Header dict for the response, and the payload data.
+    """
+    accept = headers.get("Accept-Encoding", "*")
+    # Split fields, and drop quality values.
+    accept = { p.strip().split(";")[0] for p in accept.split(",") }
+
+    if "*" in accept or compression in accept:
+        # The current compression is accepted.
+        encoding = compression
+
+    else:
+        # Use identity, which is always implicitly acceptable.
+        match compression:
+            case "br":
+                data = brotli.decompress(data)
+            case "deflate":
+                data = zlib.decompress(data)
+            case "gzip":
+                data = gzip.decompress(data)
+            case _:
+                raise RuntimeError(f"can't decompress: {compression}")
+        encoding = "identity"
+
+    return {"Content-Encoding": encoding}, data
 
 
