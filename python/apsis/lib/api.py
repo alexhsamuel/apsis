@@ -62,6 +62,8 @@ def encode_response(headers, data, compression):
                 data = zlib.decompress(data)
             case "gzip":
                 data = gzip.decompress(data)
+            case None:
+                pass
             case _:
                 raise RuntimeError(f"can't decompress: {compression}")
         encoding = "identity"
