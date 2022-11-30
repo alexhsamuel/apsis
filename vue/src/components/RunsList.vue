@@ -6,42 +6,42 @@ div
     .label(style="grid-row: 1; grid-column: 1;") Show:
     DropList.counts(
       style="grid-row: 1; grid-column: 2;"
-      :value="1"
-      v-on:input="maxRuns = COUNTS[$event]"
+      :value="SHOWNUMRUNS_OPTIONS.findIndex(n => n === showNumRuns) || 1"
+      @input="$emit('showNumRuns', SHOWNUMRUNS_OPTIONS[$event])"
     )
       div(
-        v-for="count in COUNTS"
+        v-for="count in SHOWNUMRUNS_OPTIONS"
       )
         div {{ count }} runs
 
     .label(style="grid-row: 2; grid-column: 1") Order:
     div(style="grid-row: 2; grid-column: 2")
       button.toggle.left(
-        :disabled="asc"
-        v-on:click="asc = true"
+        :disabled="timeAsc"
+        @click="$emit('timeAsc', true)"
       ) &nbsp; Time &#8681;
       button.toggle.right(
-        :disabled="!asc"
-        v-on:click="asc = false"
+        :disabled="!timeAsc"
+        @click="$emit('timeAsc', false)"
       ) &nbsp; Time &#8679;
 
-    .label(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 3}")
+    .label(:style="{'grid-row': timeAsc ? 1 : 2, 'grid-column': 3}")
       | From:
-    .field.disabled(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 4}")
+    .field.disabled(:style="{'grid-row': timeAsc ? 1 : 2, 'grid-column': 4}")
       | {{ formatTime(groups.earlierTime) }}
     button(
-      :style="{'grid-row': asc ? 1 : 2, 'grid-column': 5}"
-      v-on:click="showTime(groups.earlierTime)"
+      :style="{'grid-row': timeAsc ? 1 : 2, 'grid-column': 5}"
+      @click="showTime(groups.earlierTime)"
       :disabled="groups.earlierCount == 0"
     ) Earlier
 
-    .label(:style="{'grid-row': asc ? 2 : 1, 'grid-column': 3}")
+    .label(:style="{'grid-row': timeAsc ? 2 : 1, 'grid-column': 3}")
       | To:
-    .field.disabled(:style="{'grid-row': asc ? 2 : 1, 'grid-column': 4}")
+    .field.disabled(:style="{'grid-row': timeAsc ? 2 : 1, 'grid-column': 4}")
       | {{ formatTime(groups.laterTime) }}
     button(
-      :style="{'grid-row': asc ? 2 : 1, 'grid-column': 5}"
-      v-on:click="showTime(groups.laterTime)"
+      :style="{'grid-row': timeAsc ? 2 : 1, 'grid-column': 5}"
+      @click="showTime(groups.laterTime)"
       :disabled="groups.laterCount == 0"
     ) Later
 
@@ -51,11 +51,11 @@ div
       type="text"
       v-model="inputTime"
       placeholder="Date / Time"
-      v-on:change="onTimeChange"
+      @change="onTimeChange"
     )
     button(
       style="grid-row: 2; grid-column: 7;"
-      v-on:click="showTime('now')"
+      @click="showTime('now')"
       :disabled="time === 'now'"
     ) {{ time === 'now' ? 'Showing Now' : 'Show Now' }}
 
@@ -63,7 +63,8 @@ div
       input(
         style="grid-row: 1; grid-column: 9;"
         type="checkbox"
-        v-model="grouping"
+        :checked="groupRuns"
+        @input="$emit('groupRuns', $event.target.checked)"
       )
       label Group Runs
       span.tooltiptext
@@ -80,7 +81,7 @@ div
       col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
       col(style="width: 4rem")
-      col(v-if="grouping" style="width: 5rem")
+      col(v-if="groupRuns" style="width: 5rem")
       col(style="width: 10rem")
       col(style="width: 10rem")
       col(style="width: 6rem")
@@ -94,7 +95,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-group(v-if="grouping") Group
+        th.col-group(v-if="groupRuns") Group
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -104,13 +105,13 @@ div
       tr(v-if="groups.groups.length == 0")
         td.note(colspan="9") No runs.
 
-      tr(v-if="(asc ? groups.earlierCount : groups.laterCount) > 0")
+      tr(v-if="(timeAsc ? groups.earlierCount : groups.laterCount) > 0")
         td.note(colspan="9")
-          | {{ asc ? groups.earlierCount : groups.laterCount }}
-          | {{ asc ? 'earlier' : 'later' }} rows not shown
+          | {{ timeAsc ? groups.earlierCount : groups.laterCount }}
+          | {{ timeAsc ? 'earlier' : 'later' }} rows not shown
           button(
-            v-on:click="showTime(asc ? groups.earlierTime : groups.laterTime)"
-          ) {{ asc ? 'Earlier' : 'Later' }}
+            @click="showTime(timeAsc ? groups.earlierTime : groups.laterTime)"
+          ) {{ timeAsc ? 'Earlier' : 'Later' }}
 
       template(v-for="run, i in groups.groups")
         tr(v-if="i === groups.nowIndex")
@@ -142,7 +143,7 @@ div
           td.col-state
             State(:state="run.state")
           //- FIXME: Click to run with history expanded.
-          td.col-group(v-if="grouping")
+          td.col-group(v-if="groupRuns")
             | {{ historyCount(run, groups.counts[run.run_id]) }}
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -160,13 +161,13 @@ div
                 :button="true"
               )
 
-      tr(v-if="(asc ? groups.laterCount : groups.earlierCount) > 0")
+      tr(v-if="(timeAsc ? groups.laterCount : groups.earlierCount) > 0")
         td.note(colspan="9")
-          | {{ asc ? groups.laterCount : groups.earlierCount }}
-          | {{ asc ? 'later' : 'earlier' }} rows not shown
+          | {{ timeAsc ? groups.laterCount : groups.earlierCount }}
+          | {{ timeAsc ? 'later' : 'earlier' }} rows not shown
           button(
-            v-on:click="showTime(asc ? groups.laterTime : groups.earlierTime)"
-          ) {{ asc ? 'Later' : 'Earler' }}
+            @click="showTime(timeAsc ? groups.laterTime : groups.earlierTime)"
+          ) {{ timeAsc ? 'Later' : 'Earler' }}
 
 </template>
 
@@ -193,6 +194,11 @@ export default {
   name: 'RunsList',
   props: {
     query: {type: String, default: ''},
+    showNumRuns: {type: Number, default: 50},
+    timeAsc: {type: Boolean, default: true},
+    // If true, group together related runs.
+    groupRuns: {type: Boolean, default: true},
+
     // Either a job ID path prefix; can be a full job ID.
     path: {type: String, default: null},
 
@@ -201,9 +207,6 @@ export default {
 
     // If true, show the job ID column.
     showJob: {type: Boolean, default: true},
-
-    // If true, group together related runs.
-    groupRuns: {type: Boolean, default: true},
 
     // If not null, highlight the run with this run ID.
     highlightRunId: {type: String, default: null},
@@ -236,12 +239,10 @@ export default {
     return { 
       store,
       time: 'now',
-      maxRuns: 50,
-      COUNTS: [20, 50, 100, 200, 500, 1000],
-      asc: true,
+      SHOWNUMRUNS_OPTIONS: [20, 50, 100, 200, 500, 1000],
       inputTime: '',
       profile: true,
-      grouping: this.groupRuns,
+      log: console.log,
     } 
   },
 
@@ -251,8 +252,8 @@ export default {
       return this.query ? runsFilter.makePredicate(this.query) : null
     },
 
-    earlierRow() { return this.asc ? 1 : 3 },
-    laterRow() { return this.asc ? 3 : 1 },
+    earlierRow() { return this.timeAsc ? 1 : 3 },
+    laterRow() { return this.timeAsc ? 3 : 1 },
 
     /** Runs, after filtering.  */
     runs() {
@@ -282,7 +283,7 @@ export default {
 
       let groups
       let counts = {}
-      if (this.grouping) {
+      if (this.groupRuns) {
         const runs = this.runs
         if (this.profile) {
           t1 = new Date()
@@ -342,18 +343,18 @@ export default {
       // Time cutoff and count of later runs not shown.
       let laterTime = null
       let laterCount = 0
-      if (this.timeControls && this.maxRuns < runs.length) {
+      if (this.timeControls && this.showNumRuns < runs.length) {
         // There are more runs than fit in the view.  Decide how many runs to
         // show before and after the center time.
         var r0 = timeIndex
         var r1 = runs.length - timeIndex
-        if (r0 < this.maxRuns / 2)
-          r1 = this.maxRuns - r0
-        else if (r1 < this.maxRuns / 2)
-          r0 = this.maxRuns - r1
+        if (r0 < this.showNumRuns / 2)
+          r1 = this.showNumRuns - r0
+        else if (r1 < this.showNumRuns / 2)
+          r0 = this.showNumRuns - r1
         else
-          r0 = r1 = this.maxRuns / 2
-        // console.log('length', runs.length, 'maxRuns', this.maxRuns, 'timeIndex', timeIndex, 'r0', r0, 'r1', r1)
+          r0 = r1 = this.showNumRuns / 2
+        // console.log('length', runs.length, 'showNumRuns', this.showNumRuns, 'timeIndex', timeIndex, 'r0', r0, 'r1', r1)
 
         if (r0 < timeIndex) {
           // Don't show some runs and omit others with identical timestamp.
@@ -392,7 +393,7 @@ export default {
       if (runs.length > 0 && runs[0].time_key < now && now < runs[runs.length - 1].time_key)
         nowIndex = sortedIndexBy(runs, { time_key: now }, r => r.time_key)
 
-      if (!this.asc)
+      if (!this.timeAsc)
         runs.reverse()
 
       if (this.profile)

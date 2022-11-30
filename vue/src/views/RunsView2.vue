@@ -25,8 +25,14 @@ div
   RunsList(
     :query="query"
     :path="path"
-    :timeControls="true"
     v-on:path="setPath($event)"
+    :timeControls="true"
+    :showNumRuns="showNumRuns"
+    v-on:showNumRuns="showNumRuns = $event"
+    :timeAsc="timeAsc"
+    v-on:timeAsc="timeAsc = $event"
+    :groupRuns="groupRuns"
+    v-on:groupRuns="groupRuns = $event"
   )
 
 </template>
@@ -38,6 +44,8 @@ import RunsList from '@/components/RunsList'
 import * as runsFilter from '@/runsFilter.js'
 import SearchInput from '@/components/SearchInput'
 import StatesSelect from '@/components/StatesSelect'
+
+const SHOWNUMRUNS_DEFAULT = 50
 
 export default {
   name: 'RunsView',
@@ -51,6 +59,9 @@ export default {
   data() {
     return {
       query: this.$route.query.q || '',
+      showNumRuns: parseInt(this.$route.query['num'] || SHOWNUMRUNS_DEFAULT),
+      timeAsc: !('desc' in this.$route.query),
+      groupRuns: !('nogroup' in this.$route.query),
     }
   },
 
@@ -71,6 +82,18 @@ export default {
       this.setQueryParam('q', query || undefined)
     },
 
+    showNumRuns(showNumRuns) {
+      this.setQueryParam('num', showNumRuns === SHOWNUMRUNS_DEFAULT ? undefined : showNumRuns)
+    },
+
+    timeAsc(timeAsc) {
+      this.setQueryParam('desc', timeAsc ? undefined : null)
+    },
+
+    groupRuns(groupRuns) {
+      this.setQueryParam('nogroup', groupRuns ? undefined : null)
+    },
+
     '$route'(to, from) {
       // Set the query from the URL query.
       this.query = to.query.q || ''
@@ -82,13 +105,18 @@ export default {
     /**
      * Sets a query param in the route.
      * @param param - the query param name
-     * @param val - the value to set, or undefined to remove
+     * @param val - the value to set, null for no value, or undefined to remove
      */
     setQueryParam(param, val) {
-      val = val ? val.trim() : ''
+      if (val !== undefined && val !== null)
+        val = val.toString().trim()
+
       if (this.$route.query[param] !== val) {
-        // Set only this param, keeping the reqest of the query.
-        const query = Object.assign({}, this.$route.query, { [param]: val })
+        const query = Object.assign({}, this.$route.query)
+        if (val === undefined)
+          delete query[param]
+        else
+          query[param] = val
         this.$router.push({ query })
       }
     },
