@@ -1,4 +1,4 @@
-from   .base import Schedule
+from   .base import Schedule, DaytimeSpec
 from   .daily import DailySchedule
 from   .daily_interval import DailyIntervalSchedule
 from   .explicit import ExplicitSchedule
