@@ -1,7 +1,7 @@
 import logging
 import ora
 
-from   apsis.lib.json import check_schema
+from   apsis.lib.json import check_schema, to_array
 from   .base import Schedule
 
 log = logging.getLogger(__name__)
@@ -48,8 +48,7 @@ class DailySchedule(Schedule):
         start_date -= self.date_shift
 
         if start_date in self.calendar:
-            date = start_date
-            date = self.calendar.shift(date, -self.cal_shift)
+            date = self.calendar.shift(start_date, -self.cal_shift)
             # Find the next daytime.
             for i, daytime in enumerate(self.daytimes):
                 if start_daytime <= daytime:
@@ -119,8 +118,7 @@ class DailySchedule(Schedule):
             args        = pop("args", default={})
             tz          = pop("tz", ora.TimeZone)
             calendar    = ora.get_calendar(pop("calendar", default="all"))
-            daytimes    = pop("daytime")
-            daytimes    = [daytimes] if isinstance(daytimes, (str, int)) else daytimes
+            daytimes    = to_array(pop("daytime"))
             daytimes    = [ ora.Daytime(d) for d in daytimes ]
             date_shift  = pop("date_shift", int, default=0)
             cal_shift   = pop("cal_shift", int, default=0)

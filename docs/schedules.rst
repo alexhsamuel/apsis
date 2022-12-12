@@ -110,6 +110,8 @@ The daily schedule will automatically provide args for params `date`, `time`,
 `daytime`, `calendar`, and `tz`, though you can override these explicitly.
 
 
+.. _shifts:
+
 Date and calendar shift
 ```````````````````````
 
@@ -188,4 +190,19 @@ As with the daily schedule, speficy a calendar to run on certain days only.
 
 The daily schedule will automatically provide args for params `date`, `time`,
 `daytime`, `calendar`, and `tz`, though you can override these explicitly.
+
+You can also specify a date and/or calendar shift (see :ref:`shifts`).
+
+.. code:: yaml
+
+    schedule:
+        type: daily-interval
+        start:
+          daytime: 12:00:00
+          cal_shift: -1
+        stop:
+          daytime: 17:00:00
+          date_shift: -1
+        ...
+
 

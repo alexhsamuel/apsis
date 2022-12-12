@@ -2,14 +2,11 @@ import logging
 import ora
 
 from   apsis.lib.json import check_schema
-from   .base import Schedule
+from   .base import Schedule, DaytimeSpec
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-
-# Could be helpful for the start to be <0 and the stop to be >=24, to make
-# overnight intervals easier to express.
 
 class DailyIntervalSchedule(Schedule):
 
@@ -20,11 +17,8 @@ class DailyIntervalSchedule(Schedule):
         super().__init__(enabled=enabled)
         self.tz         = ora.TimeZone(tz)
         self.calendar   = calendar
-        self.start      = ora.Daytime(start)
-        self.stop       = ora.Daytime(stop)
-        if self.stop <= self.start:
-            raise ValueError(
-                f"no times in with between {self.start} and {self.stop}")
+        self.start      = DaytimeSpec.ensure(start)
+        self.stop       = DaytimeSpec.ensure(stop)
         self.interval   = float(interval)
         if not (0 < self.interval < 86400):
             raise ValueError(f"invalid interval: {self.interval}")
@@ -35,7 +29,7 @@ class DailyIntervalSchedule(Schedule):
         res = (
             f"{self.calendar} "
             f"every {self.interval} sec "
-            f"from {self.start:%C} to {self.stop:%C} {self.tz}"
+            f"from {self.start} to {self.stop} {self.tz}"
         )
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
@@ -48,35 +42,54 @@ class DailyIntervalSchedule(Schedule):
         Generates scheduled times starting not before `start`.
         """
         start = ora.Time(start)
-        date, _ = start @ self.tz
-        date = self.calendar.after(date)
+        # Figure out which date to schedule from.  Make sure we account
+        # for date and cal shifts in either the start or stop.
+        date = min(
+            self.start.get_start_date(start, self.tz, self.calendar),
+            self.stop .get_start_date(start, self.tz, self.calendar),
+        )
 
+        # Loop over dates.
         while True:
-            daytime = self.start
-            while daytime < self.stop:
-                try:
-                    time = (date, daytime) @ self.tz
-                except ora.NonexistentDateDaytime:
-                    # Landed on a DST transformation.
-                    log.warning(
-                        "skipping nonexistent schedule time "
-                        f"{date} {daytime} {self.tz}"
-                    )
-                    continue
+            # Compute the start time for this date.
+            try:
+                date_start = self.start.to_local(date, self.tz, self.calendar)
+            except ora.NonexistentDateDaytime:
+                # Landed on a DST transition.
+                # FIXME: Use the time right before the transition.
+                log.warning(
+                    "skipping nonexistent start time "
+                    f"{date} {self.start} {self.tz}"
+                )
+                continue
+
+            # Compute the stop time for this date.
+            try:
+                date_stop = self.stop.to_local(date, self.tz, self.calendar)
+            except ora.NonexistentDateDaytime:
+                # Landed on a DST transition.
+                # FIXME: Use the time right after the transition.
+                log.warning(
+                    "skipping nonexistent stop time "
+                    f"{date} {self.stop} {self.tz}"
+                )
+                continue
+
+            # Generate times between them with the interval.
+            time = date_start
+            while time < date_stop:
                 if start <= time:
+                    sched_date, daytime = time @ self.tz
                     yield time, {
                         "date"      : str(date),
+                        "sched_date": str(sched_date),
                         "time"      : str(time),
                         "daytime"   : str(daytime),
                         "calendar"  : str(self.calendar),
                         "tz"        : str(self.tz),
                         **self.args
                     }
-                next_daytime = daytime + self.interval
-                if next_daytime < daytime:
-                    # We wrapped around.
-                    break
-                daytime = next_daytime
+                time += self.interval
 
             date = self.calendar.after(date + 1)
 
@@ -86,8 +99,8 @@ class DailyIntervalSchedule(Schedule):
             **super().to_jso(),
             "tz"        : str(self.tz),
             "calendar"  : repr(self.calendar),
-            "start"     : str(self.start),
-            "stop"      : str(self.stop),
+            "start"     : self.start.to_jso(),
+            "stop"      : self.stop.to_jso(),
             "interval"  : self.interval,
             "args"      : self.args,
             "enabled"   : self.enabled,
@@ -99,8 +112,8 @@ class DailyIntervalSchedule(Schedule):
         with check_schema(jso) as pop:
             tz          = pop("tz", ora.TimeZone)
             calendar    = ora.get_calendar(pop("calendar", default="all"))
-            start       = pop("start", ora.Daytime)
-            stop        = pop("stop", ora.Daytime)
+            start       = DaytimeSpec.from_jso(pop("start"))
+            stop        = DaytimeSpec.from_jso(pop("stop"))
             interval    = pop("interval", int)
             args        = pop("args", default={})
             enabled     = pop("enabled", bool, default=True)
