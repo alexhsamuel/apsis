@@ -1,9 +1,10 @@
 import itertools
 import ora
 from   ora import Daytime, get_calendar
+import yaml
 
 from   apsis.lib import itr
-from   apsis.schedule import DailyIntervalSchedule, DaytimeSpec
+from   apsis.schedule import Schedule, DailyIntervalSchedule, DaytimeSpec
 
 #-------------------------------------------------------------------------------
 
@@ -129,5 +130,31 @@ def test_daily_interval_cal_shift_start():
     # DST ends.
     assert s[0] == ora.Time("2022-11-07T12:00:00-05:00")
     assert s[1]["date"] == "2022-11-04"
+
+
+JSON_COMPAT = """
+schedule:
+  type: daily-interval
+  calendar: Mon-Fri
+  tz: America/New_York
+  start: 22:00:00
+  stop: 23:59:59
+  interval: 300
+"""
+
+def test_from_json_compat():
+    """
+    Tests loading JSON without the `DaytimeSpec` syntax, i.e. bare start and stop times.
+    """
+    jso = yaml.load(JSON_COMPAT, Loader=yaml.SafeLoader)
+    sched = Schedule.from_jso(jso["schedule"])
+    assert isinstance(sched, DailyIntervalSchedule)
+    assert "2022-12-11" not in sched.calendar
+    assert "2022-12-12" in sched.calendar
+    assert sched.start.daytime == Daytime(22, 0, 0)
+    assert sched.start.date_shift == sched.start.cal_shift == 0
+    assert sched.stop.daytime == Daytime(23, 59, 59)
+    assert sched.stop.date_shift == sched.stop.cal_shift == 0
+    assert sched.interval == 300
 
 
