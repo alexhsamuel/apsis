@@ -78,3 +78,8 @@ $ cd docs
 $ make html
 ```
 
+
+# Tests
+
+Apsis requires `pytest` and `pytest-asyncio` to run Python tests.
+
