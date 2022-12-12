@@ -9,7 +9,7 @@ from   instance import ApsisInstance, run_apsisctl
 
 @pytest.fixture(scope="module")
 def inst():
-    job_dir = Path(__file__).parent / "jobs_basic"
+    job_dir = Path(__file__).parent / "jobs"
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()

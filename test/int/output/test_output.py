@@ -8,7 +8,7 @@ from   instance import ApsisInstance
 
 #-------------------------------------------------------------------------------
 
-job_dir = Path(__file__).absolute().parent / "test_output_jobs"
+job_dir = Path(__file__).absolute().parent / "jobs"
 
 @pytest.fixture(scope="module")
 def inst(agent_state_dir):
