@@ -349,13 +349,8 @@ class ShellCommandProgram(ProcessProgram):
 #-------------------------------------------------------------------------------
 
 @functools.lru_cache(maxsize=None)
-def _get_agent_fqdn(fqdn, user):
+def _get_agent(fqdn, user):
     return Agent(host=fqdn, user=user)
-
-
-def _get_agent(host, user):
-    host = None if host is None else socket.getfqdn(host)
-    return _get_agent_fqdn(host, user)
 
 
 class AgentProgram(Program):
@@ -371,6 +366,11 @@ class AgentProgram(Program):
 
     def __str__(self):
         return join_args(self.__argv)
+
+
+    def __get_agent(self, host):
+        host = None if host is None else socket.getfqdn(host)
+        return _get_agent(host, self.__user)
 
 
     def bind(self, args):
@@ -424,7 +424,7 @@ class AgentProgram(Program):
         }
 
         try:
-            agent = _get_agent(host, self.__user)
+            agent = self.__get_agent(host)
             proc = await agent.start_process(argv, env=env, restart=True)
 
         except Exception as exc:
@@ -465,7 +465,7 @@ class AgentProgram(Program):
     async def wait(self, run_id, run_state):
         host = run_state["host"]
         proc_id = run_state["proc_id"]
-        agent = _get_agent(host, self.__user)
+        agent = self.__get_agent(host)
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
@@ -510,7 +510,7 @@ class AgentProgram(Program):
 
     async def signal(self, run_state, signum):
         proc_id = run_state["proc_id"]
-        agent = _get_agent(run_state["host"], self.__user)
+        agent = self.__get_agent(run_state["host"])
         await agent.signal(proc_id, signum)
 
 
