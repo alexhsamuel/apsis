@@ -14,6 +14,7 @@ class DaytimeSpec:
     schedule.
     """
 
+    # Order of attributes is important for dataclass(order=True).
     cal_shift   : int = 0
     date_shift  : int = 0
     daytime     : ora.Daytime
@@ -76,17 +77,18 @@ class DaytimeSpec:
 
     @classmethod
     def from_jso(cls, jso):
-        if isinstance(jso, str):
+        if isinstance(jso, dict):
+            with check_schema(jso) as pop:
+                daytime     = pop("daytime", ora.Daytime)
+                date_shift  = pop("date_shift", int, default=0)
+                cal_shift   = pop("cal_shift", int, default=0)
+                return cls(
+                    daytime=daytime, date_shift=date_shift, cal_shift=cal_shift)
+
+        else:
             # Simple form: just a daytime.
             daytime = ora.Daytime(jso)
-            return cls(daytime)
-
-        with check_schema(jso) as pop:
-            daytime     = pop("daytime", ora.Daytime)
-            date_shift  = pop("date_shift", int, default=0)
-            cal_shift   = pop("cal_shift", int, default=0)
-            return cls(
-                daytime=daytime, date_shift=date_shift, cal_shift=cal_shift)
+            return cls(daytime=daytime)
 
 
 
