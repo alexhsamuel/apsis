@@ -1,5 +1,11 @@
 # Developing
 
+To set up a dev environment in a venv or conda env,
+```
+$ pip install -r requirements.txt
+$ pip install -e .[dev]
+```
+
 To initialize an instance DB,
 ```
 $ apsisctl create apsis.db
