@@ -2,7 +2,7 @@ import logging
 
 from   apsis.lib import py
 from   apsis.lib.json import check_schema
-from   apsis.runs import Run, Instance, to_state
+from   apsis.runs import Run, to_state
 from   .base import Condition
 
 log = logging.getLogger(__name__)
