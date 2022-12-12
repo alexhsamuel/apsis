@@ -97,8 +97,11 @@ def get_state_dir():
     """
     Returns the state directory path, creating it if necessary.
     """
-    user = pwd.getpwuid(os.getuid()).pw_name
-    path = Path(tempfile.gettempdir()) / f"apsis-agent-{user}"
+    try:
+        path = Path(os.environ["APSIS_AGENT_STATE_DIR"])
+    except KeyError:
+        user = pwd.getpwuid(os.getuid()).pw_name
+        path = Path(tempfile.gettempdir()) / f"apsis-agent-{user}"
     with suppress(FileExistsError):
         os.mkdir(path, mode=0o700)
     os.chmod(path, 0o700)

@@ -52,7 +52,7 @@ class ApsisInstance:
         with open(self.cfg_path, "w") as file:
             yaml.dump(self.cfg, file)
 
- 
+
     def start_serve(self):
         assert self.cfg is not None
         assert self.srv_proc is None

@@ -11,14 +11,14 @@ from   instance import ApsisInstance
 job_dir = Path(__file__).absolute().parent / "test_output_jobs"
 
 @pytest.fixture(scope="module")
-def inst():
+def inst(agent_state_dir):
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()
         inst.wait_for_serve()
         yield inst
- 
+
 
 @pytest.fixture
 def client(inst, scope="module"):
@@ -27,7 +27,7 @@ def client(inst, scope="module"):
 
 #-------------------------------------------------------------------------------
 
-def test_output(client):
+def test_output_basic(client):
     res = client.schedule("printf", {"string": "hello\n"})
     run_id = res["run_id"]
     # FIXME
