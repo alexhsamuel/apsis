@@ -138,7 +138,7 @@ schedule:
   calendar: Mon-Fri
   tz: America/New_York
   start: 22:00:00
-  stop: 23:59:59
+  stop: "23:59:59"
   interval: 300
 """
 
