@@ -47,32 +47,30 @@ async def test_connect():
     """
     Tests that a second agent client will connect to the same running agent.
     """
-    agent0 = apsis.agent.client.Agent()
-    conn0 = await agent0.connect()
-
-    agent1 = apsis.agent.client.Agent()
-    conn1 = await agent1.connect()
+    agent = apsis.agent.client.Agent()
+    conn0 = await agent.connect()
+    conn1 = await agent.connect()
 
     # Should be the same.
     assert conn1 == conn0
 
-    proc_id0 = (await agent0.start_process(["/bin/echo", "Hello, 0!"]))["proc_id"]
-    proc_id1 = (await agent1.start_process(["/bin/echo", "Hello, 1!"]))["proc_id"]
+    proc_id0 = (await agent.start_process(["/bin/echo", "Hello, 0!"]))["proc_id"]
+    proc_id1 = (await agent.start_process(["/bin/echo", "Hello, 1!"]))["proc_id"]
 
-    proc, output, stop = await _wait(agent0, proc_id0)
+    proc, output, stop = await _wait(agent, proc_id0)
     assert proc["status"] == 0
     assert output == b"Hello, 0!\n"
     assert not stop
 
-    proc, output, stop = await _wait(agent1, proc_id1)
+    proc, output, stop = await _wait(agent, proc_id1)
     assert proc["status"] == 0
     assert output == b"Hello, 1!\n"
     assert stop
 
-    await agent0.stop()
+    await agent.stop()
 
-    assert not await agent0.is_running()
-    assert not await agent1.is_running()
+    assert not await agent.is_running()
+    assert not await agent.is_running()
 
 
 @pytest.mark.asyncio
