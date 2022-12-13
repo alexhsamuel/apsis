@@ -21,8 +21,8 @@ jobs:
       run: pip3 install -e .[dev]
 
     - name: Run Python unit tets
-      run: pytest test/unit
+      run: pytest test/unit -m "not local_ssh"
 
     - name: Run Python integration tets
-      run: pytest test/int
+      run: pytest test/int -m "not local_ssh"
 

@@ -6,6 +6,7 @@ from   apsis.agent.client import Agent
 
 #-------------------------------------------------------------------------------
 
+@pytest.mark.local_ssh
 @pytest.mark.asyncio
 async def test_run_localhost(tmpdir):
     path = Path(tmpdir) / "output.txt"
