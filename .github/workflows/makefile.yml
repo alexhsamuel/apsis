@@ -21,8 +21,8 @@ jobs:
       run: pip3 install -e .[dev]
 
     - name: Run Python unit tets
-      run: pytest -v test/unit
+      run: pytest test/unit
 
     - name: Run Python integration tets
-      run: pytest -v test/int
+      run: pytest test/int
 
