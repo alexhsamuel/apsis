@@ -391,7 +391,10 @@ class Agent:
         except KeyError:
             # Probably an old agent that doesn't send this header.
             # FIXME: Clean this up.
-            log.error(f"missing X-Raw-Length or X-Compression from agent {self}")
+            if compression is not None:
+                # Asked for compression but didn't get this.
+                log.error(
+                    f"missing X-Raw-Length or X-Compression from agent {self}")
             return rsp.content, len(rsp.content), None
         else:
             assert cmpr == compression
