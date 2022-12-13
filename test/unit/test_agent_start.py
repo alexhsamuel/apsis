@@ -72,9 +72,7 @@ async def test_connect():
     assert output == b"Hello, 1!\n"
     assert stop
 
-    await agent.stop()
-
-    assert not await agent.is_running()
+    assert await agent.stop()
     assert not await agent.is_running()
 
 
