@@ -11,13 +11,13 @@ import signal
 import socket
 import ssl
 import sys
-import tempfile
 import time
 
 from   . import SSL_CERT, SSL_KEY
 from   ..lib.daemon import daemonize
 from   ..lib.pidfile import PidFile
 from   .api import API
+from   .base import get_default_state_dir
 from   .processes import Processes
 
 #-------------------------------------------------------------------------------
@@ -93,15 +93,12 @@ SANIC_LOG_CONFIG = {
 
 #-------------------------------------------------------------------------------
 
-def get_state_dir():
+def make_state_dir(path):
     """
-    Returns the state directory path, creating it if necessary.
+    Creates the state dir, if necessary.
     """
-    try:
-        path = Path(os.environ["APSIS_AGENT_STATE_DIR"])
-    except KeyError:
-        user = pwd.getpwuid(os.getuid()).pw_name
-        path = Path(tempfile.gettempdir()) / f"apsis-agent-{user}"
+    if path is None:
+        path = get_default_state_dir()
     with suppress(FileExistsError):
         os.mkdir(path, mode=0o700)
     os.chmod(path, 0o700)
@@ -166,7 +163,8 @@ def main():
     if args.log_level is not None:
         logging.getLogger(None).setLevel(getattr(logging, args.log_level))
 
-    state_dir = args.state_dir if args.state_dir is not None else get_state_dir()
+    state_dir = get_default_state_dir() if args.state_dir is None else args.state_dir
+    make_state_dir(state_dir)
     print(f"using dir: {state_dir}", file=sys.stderr)
 
     # Check the pid file.  Is there already an instance running?

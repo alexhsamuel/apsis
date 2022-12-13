@@ -1,15 +1,19 @@
 import asyncio
+import contextlib
 import errno
 import itertools
 import logging
 import os
 import requests
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 from   urllib.parse import quote_plus
 import warnings
 
+from   .base import get_default_state_dir
 from   apsis.lib.asyn import communicate
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
@@ -168,6 +172,8 @@ async def start_agent(
 
 class Agent:
 
+    STATE_DIR = get_default_state_dir()
+
     # Delays between attempts to start the agent-- back off.  The number of
     # attempts is the number of delays.
     START_DELAYS = [ 0.5 * i**2 for i in range(6) ]
@@ -185,7 +191,7 @@ class Agent:
         self.__host         = host
         self.__user         = user
         self.__connect      = connect
-        self.__state_dir    = state_dir
+        self.__state_dir    = self.STATE_DIR if state_dir is None else state_dir
 
         self.__lock         = asyncio.Lock()
         self.__conn         = None
@@ -432,5 +438,25 @@ class Agent:
         rsp.raise_for_status()
         return rsp.json()["stop"]
 
+
+
+@contextlib.contextmanager
+def test_state_dir():
+    """
+    For automated tests, set the agent state dir to a unique private path.
+    """
+    state_dir = tempfile.mkdtemp(prefix="apsis-agent-test-")
+    log.info(f"test agent state dir: {state_dir}")
+    old_state_dir = Agent.STATE_DIR
+    Agent.STATE_DIR = state_dir
+
+    try:
+        yield
+
+    finally:
+        Agent.STATE_DIR = old_state_dir
+        # Clean up the state dir.
+        log.debug(f"cleaning up test agent state dir: {state_dir}")
+        shutil.rmtree(state_dir)
 
 
