@@ -25,21 +25,26 @@ async def _wait(agent, proc_id):
 
 @pytest.mark.asyncio
 async def test_start_stop():
-    agent = apsis.agent.client.Agent()
-    await agent.connect()
+    # FIXME: Use a separate just for this test.  This is probably because there
+    # is a race between stopping the agent and starting a new one.
+    with apsis.agent.client.test_state_dir():
+        agent = apsis.agent.client.Agent()
+        await agent.connect()
 
-    proc_id = (await agent.start_process(["/bin/echo", "Hello, world!"]))["proc_id"]
-    proc, output, stop = await _wait(agent, proc_id)
-    assert proc["state"] == "done"
-    assert proc["status"] == 0
-    assert proc["return_code"] == 0
-    assert proc["signal"] is None
-    assert output == b"Hello, world!\n"
-    assert stop
+        proc_id = (
+            await agent.start_process(["/bin/echo", "Hello, world!"])
+        )["proc_id"]
+        proc, output, stop = await _wait(agent, proc_id)
+        assert proc["state"] == "done"
+        assert proc["status"] == 0
+        assert proc["return_code"] == 0
+        assert proc["signal"] is None
+        assert output == b"Hello, world!\n"
+        assert stop
 
-    await agent.stop()
+        await agent.stop()
 
-    assert not await agent.is_running()
+        assert not await agent.is_running()
 
 
 @pytest.mark.asyncio
