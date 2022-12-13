@@ -28,6 +28,9 @@ async def test_communicate_timeout():
     except asyncio.TimeoutError as exc:
         assert exc.stdout == b"foo\n"
         assert exc.stderr == b"bar\n"
+        # Clean up the process, so that it doesn't outlive the event loop.
+        await proc.wait()
     else:
         assert False, "should have timed out"
+
 
