@@ -34,8 +34,8 @@ def test_jobs(inst):
     jobs = inst.run_apsis_json("jobs")
     assert len(jobs) > 0
 
-    job = jobs[0]
-    assert job["job_id"] == "job1"
+    job_ids = { j["job_id"] for j in jobs }
+    assert "job1" in job_ids
 
 
 def test_jobs_exact_match(inst):
