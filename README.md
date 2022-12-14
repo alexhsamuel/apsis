@@ -23,7 +23,7 @@ for embedding in other applications that require task scheduling.
 ### Dependencies
 
 Apsis is built on,
-- Python 3.7
+- Python 3.10
 - the [Sanic](https://github.com/channelcat/sanic) web server
 - the [Ora](https://github.com/alexhsamuel/ora) time library
 - [Vue.js](https://vuejs.org/) for the web UI
