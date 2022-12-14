@@ -35,6 +35,13 @@ setuptools.setup(
         "ujson",
     ],
 
+    extras_require={
+        "dev": [
+            "pytest",
+            "pytest-asyncio",
+        ],
+    },
+
     package_dir     ={"": "python"},
     packages        =[
         "apsis",

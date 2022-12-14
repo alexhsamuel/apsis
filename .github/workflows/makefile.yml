@@ -1,0 +1,28 @@
+name: Apsis CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Python dependencies
+      run: pip3 install -r requirements.txt
+
+    - name: Install package
+      run: pip3 install -e .[dev]
+
+    - name: Run Python unit tets
+      run: pytest test/unit -m "not local_ssh"
+
+    - name: Run Python integration tets
+      run: pytest test/int -m "not local_ssh"
+

@@ -1,11 +1,9 @@
 import itertools
 import ora
-from   ora import Date, Time, Daytime, UTC, get_calendar
+from   ora import Date, Time, Daytime, UTC
 import pytest
 
-from   apsis.lib import itr
 from   apsis.schedule import DailySchedule, IntervalSchedule
-from   apsis.schedule.daily_interval import DailyIntervalSchedule
 
 #-------------------------------------------------------------------------------
 
@@ -210,46 +208,5 @@ def test_interval_schedule_eq():
 
     s5 = IntervalSchedule(3600, {"foo": 42}, phase=600)
     assert s0 != s5
-
-
-def test_daily_interval():
-    sched = DailyIntervalSchedule(
-        "America/New_York",
-        ora.get_calendar("Mon-Fri"),
-        "12:00:00", "16:00:00",
-        2700,
-        {"name": "foo"},
-    )
-    res = list(itertools.islice(sched("2022-05-20T13:00:00-04:00"), 50))
-
-    cal = get_calendar("Mon-Fri")
-    for t, _ in res:
-        d, y = t @ "America/New_York"
-        assert d in cal
-        assert Daytime(12, 0, 0) <= y < Daytime(16, 0, 0)
-
-    for (t0, a0), (t1, a1) in itr.pairwise(res):
-        assert next(sched(t0 -    1))[0] == t0
-        assert next(sched(t0 +    1))[0] == t1
-        assert next(sched(t0 + 2699))[0] == t1
-        assert next(sched(t0 + 2700))[0] == t1
-        assert next(sched(t1 -    1))[0] == t1
-
-
-def test_daily_interval_wrap():
-    sched = DailyIntervalSchedule(
-        "America/New_York",
-        ora.get_calendar("Mon-Fri"),
-        "22:00:00", "23:59:59",
-        300,
-        {}
-    )
-
-    times = sched("2022-06-10T23:45:00-04:00")
-    assert next(times)[0] == ora.Time("2022-06-10T23:45:00-04:00")
-    assert next(times)[0] == ora.Time("2022-06-10T23:50:00-04:00")
-    assert next(times)[0] == ora.Time("2022-06-10T23:55:00-04:00")
-    assert next(times)[0] == ora.Time("2022-06-13T22:00:00-04:00")
-    assert next(times)[0] == ora.Time("2022-06-13T22:05:00-04:00")
 
 

@@ -1,5 +1,11 @@
 # Developing
 
+To set up a dev environment in a venv or conda env,
+```
+$ pip install -r requirements.txt
+$ pip install -e .[dev]
+```
+
 To initialize an instance DB,
 ```
 $ apsisctl create apsis.db
@@ -77,4 +83,9 @@ Install the `sphinx` and `sphinx-rtd-theme` packages, then,
 $ cd docs
 $ make html
 ```
+
+
+# Tests
+
+Apsis requires `pytest` and `pytest-asyncio` to run Python tests.
 
