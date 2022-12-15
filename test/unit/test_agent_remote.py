@@ -1,15 +1,13 @@
-import asyncio
 from   pathlib import Path
-import pytest
+import tepy.dec
 
 from   apsis.agent.client import Agent
 
 #-------------------------------------------------------------------------------
 
-@pytest.mark.local_ssh
-@pytest.mark.asyncio
+@tepy.dec.tmpdir()
 async def test_run_localhost(tmpdir):
-    path = Path(tmpdir) / "output.txt"
+    path = tmpdir / "output.txt"
     assert not path.is_file()
 
     agent = Agent(host="localhost")

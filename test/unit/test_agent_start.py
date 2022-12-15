@@ -1,6 +1,6 @@
 import asyncio
+import contextlib
 import time
-import pytest
 
 import apsis.agent.client
 
@@ -23,7 +23,6 @@ async def _wait(agent, proc_id):
     return proc, output, stop
 
 
-@pytest.mark.asyncio
 async def test_start_stop():
     # FIXME: Use a separate just for this test.  This is probably because there
     # is a race between stopping the agent and starting a new one.
@@ -47,7 +46,7 @@ async def test_start_stop():
         assert not await agent.is_running()
 
 
-@pytest.mark.asyncio
+@apsis.agent.client.test_state_dir()
 async def test_connect():
     """
     Tests that a second agent client will connect to the same running agent.
@@ -76,7 +75,7 @@ async def test_connect():
     assert not await agent.is_running()
 
 
-@pytest.mark.asyncio
+@apsis.agent.client.test_state_dir()
 async def test_concurrent_start():
     """
     Checks that concurrent agent starts all use the same agent.

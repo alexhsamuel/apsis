@@ -1,12 +1,14 @@
 import os
 from   pathlib import Path
+import tepy.dec
 
 from   apsis.lib.pidfile import PidFile
 
 #-------------------------------------------------------------------------------
 
+@tepy.dec.tmpdir()
 def test_lock_data(tmpdir):
-    path = Path(tmpdir) / "pidfile"
+    path = tmpdir / "pidfile"
     token = "hello, world!\n"
 
     pf0 = PidFile(path)
