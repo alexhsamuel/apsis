@@ -268,7 +268,7 @@ cmd.add_argument(
 
 def cmd_signal(client, args):
     for run_id in args.run_id:
-        client.signal(run_id, args.signum)
+        client.signal(run_id, args.signum.upper())
 
 
 cmd = parser.add_command(
