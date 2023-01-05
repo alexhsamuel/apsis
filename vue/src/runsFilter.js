@@ -1,9 +1,7 @@
 import * as jobsFilter from '@/jobsFilter.js'
-import { filter, includes, join, map, max, some } from 'lodash'
+import { filter, includes, join, map, some } from 'lodash'
 import { prefixMatch, splitQuoted, combine } from '@/parse.js'
 import { STATES } from '@/runs.js'
-import { parseTimeOrOffset } from '@/time.js'
-import store from '@/store'
 
 export class StateTerm {
   constructor(states) {
@@ -126,35 +124,6 @@ export class LabelTerm {
 
 // -----------------------------------------------------------------------------
 
-export class SinceTerm {
-  constructor(str) {
-    this.str = str
-  }
-
-  toString() {
-    return 'since:' + this.str
-  }
-
-  get predicate() {
-    const date = parseTimeOrOffset(this.str, false, store.state.timeZone)
-    if (date === null)
-      return run => false
-    else
-      return run => new Date(max(Object.values(run.times))) >= date
-  }
-
-  static get(query) {
-    const terms = filter(map(splitQuoted(query), parse), t => t instanceof SinceTerm)
-    return terms.length === 0 ? '' : terms[0].str
-  }
-  
-  static set(query, str) {
-    return replace(query, SinceTerm, str ? new SinceTerm(str) : null)
-  }
-}
-
-// -----------------------------------------------------------------------------
-
 function parse(part) {
   const clx = part.indexOf(':')
   const eqx = part.indexOf('=')
@@ -164,8 +133,6 @@ function parse(part) {
     const val = part.substr(clx + 1)
     if (tag === 'state' || tag === 'states')
       return new StateTerm(val)
-    else if (tag === 'since')
-      return new SinceTerm(val)
     else if (tag === 'label')
       return new LabelTerm(val)
     else
