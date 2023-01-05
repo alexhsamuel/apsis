@@ -1,4 +1,4 @@
-# next
+# v0.15.0
 
 - Add a "Schedule Run" frame to the web UI job view, for manual scheduling.
 - Apsis now compresses program outputs with Brotli before storing to the
