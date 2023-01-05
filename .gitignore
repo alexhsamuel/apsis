@@ -7,7 +7,6 @@ archive-*.db
 *-journal
 doc
 env
-env.sh
 work/
 python/apsis.egg-info
 .cache/
