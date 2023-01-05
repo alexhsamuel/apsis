@@ -3,7 +3,7 @@ div
   .flex-margin
     h3(style="flex: 1;")
       a.undersel(v-on:click="onShowJobs") Jobs
-      a.undersel.sel(v-on:click="") Runs2
+      a.undersel.sel(v-on:click="") Runs
       span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
         PathNav(:path="path" v-on:path="setPath($event)")
 

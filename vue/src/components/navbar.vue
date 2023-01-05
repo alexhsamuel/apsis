@@ -13,7 +13,7 @@ nav
     | APSİS
 
   router-link.link(to="/jobs") Jobs
-  router-link.link(to="/runs2?q=since:1d") Runs
+  router-link.link(to="/runs?q=since:1d") Runs
   router-link.link(to="/control") Control
 
   .spacer(style="flex-basis: 100%")
