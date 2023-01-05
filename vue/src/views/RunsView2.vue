@@ -3,7 +3,6 @@ div
   .flex-margin
     h3(style="flex: 1;")
       a.undersel(v-on:click="onShowJobs") Jobs
-      a.undersel(v-on:click="onShowRuns") Runs
       a.undersel.sel(v-on:click="") Runs2
       span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
         PathNav(:path="path" v-on:path="setPath($event)")
@@ -32,7 +31,6 @@ div
 </template>
 
 <script>
-import * as jobsFilter from '@/jobsFilter.js'
 import PathNav from '@/components/PathNav'
 import RunsList from '@/components/RunsList'
 import * as runsFilter from '@/runsFilter.js'
@@ -109,16 +107,6 @@ export default {
         },
         query: {
           q: runsFilter.toJobsQuery(this.query) || undefined,
-        },
-      })
-    },
-
-    onShowRuns() {
-      this.$router.push({
-        name: 'runs-list',
-        query: {
-          path: this.path || undefined,
-          q: 'since:1d ' + jobsFilter.toRunsQuery(this.query),
         },
       })
     },
