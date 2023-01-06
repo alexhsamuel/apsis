@@ -3,6 +3,7 @@
 // - help buttons for some controls
 // - always show something in Date / Time input
 // - fix CSS
+// - add down arrow to droplists
 // - button for showing/hiding controls
 // - fix up job view
 // - fix up run view
@@ -23,8 +24,8 @@ div
       input
       .label States:
       StatesSelect(
-        :value="states"
-        v-on:input="setStates($event)"
+        v-model="states_"
+        @input="$emit('states', $event)"
       )
       div.tooltip
         label Group Runs:
@@ -225,8 +226,12 @@ export default {
   name: 'RunsList',
   props: {
     query: {type: String, default: ''},
+    
     // Either a job ID path prefix; can be a full job ID.
     path: {type: String, default: null},
+
+    // Show only runs in one of these states; null for all states.
+    states: {type: Array, default: null},
 
     // Args to match.  If not null, shows only runs with exact args match.
     args: {type: Object, default: null},
@@ -272,9 +277,10 @@ export default {
       COUNTS: [20, 50, 100, 200, 500, 1000],
       asc: true,
       inputTime: '',
-      profile: true,
+      // If true, show profiling on console.log.
+      profile: false,
       grouping: this.groupRuns,
-      states: runsFilter.StateTerm.get(this.query),
+      states_: this.states,
     } 
   },
 
@@ -299,6 +305,10 @@ export default {
         runs = filter(runs, run => isEqual(run.args, this.args))
       if (this.jobPredicate)
         runs = filter(runs, this.jobPredicate)
+      if (this.states_) {
+        const predicate = (new runsFilter.StateTerm(this.states_)).predicate
+        runs = filter(runs, predicate)
+      }
 
       return sortBy(runs, r => r.time_key)
     },

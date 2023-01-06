@@ -2,17 +2,10 @@
 div
   .flex-margin
     h3(style="flex: 1;")
-      a.undersel(v-on:click="onShowJobs") Jobs
-      a.undersel.sel(v-on:click="") Runs
+      a.undersel(@click="onShowJobs") Jobs
+      a.undersel.sel(@click="") Runs
       span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
-        PathNav(:path="path" v-on:path="setPath($event)")
-
-    //- Combo box for selecting the run states filter.
-    StatesSelect(
-      style="flex: 0 0 180px;"
-      :value="states"
-      v-on:input="setStates($event)"
-    )
+        PathNav(:path="path" @path="setPath")
 
     //- Input box for the search string.
     SearchInput.search-input(
@@ -25,7 +18,8 @@ div
     :query="query"
     :path="path"
     :timeControls="true"
-    v-on:path="setPath($event)"
+    @path="setPath"
+    @states="onSetStates"
   )
 
 </template>
@@ -80,19 +74,25 @@ export default {
     /**
      * Sets a query param in the route.
      * @param param - the query param name
-     * @param val - the value to set, or undefined to remove
+     * @param val - the value to set, or null / undefined to remove
      */
     setQueryParam(param, val) {
-      val = val ? val.trim() : ''
+      if (val)
+        val = val.trim()
       if (this.$route.query[param] !== val) {
         // Set only this param, keeping the reqest of the query.
-        const query = Object.assign({}, this.$route.query, { [param]: val })
+        const query = Object.assign({}, this.$route.query)
+        if (val === null || val === undefined)
+          delete query[param]
+        else
+          query[param] = val
         this.$router.push({ query })
       }
     },
 
-    setStates(states) {
-      this.query = runsFilter.StateTerm.set(this.query, states)
+    onSetStates(states) {
+      console.log('onSetStates', states)
+      this.setQueryParam('states', states === null ? null : states.join(','))
     },
 
     setPath(path) {
