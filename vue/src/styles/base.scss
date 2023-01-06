@@ -1,7 +1,7 @@
 @import 'src/styles/vars.scss';
 
 html {
-  color: #444;
+  color: $global-color;
 }
 
 body {
@@ -98,16 +98,19 @@ tt {
 }
 
 button {
-  background-color: transparent;
-  border-radius: 0;
+  background: #f0f6f0;
+  border-radius: 3px;
   border: 1px solid #e5e5e5;
-  font-size: 0.875rem;
-  line-height: 38px;
+  box-sizing: border-box;
+  color: $global-color;
+  font-family: inherit;
+  font-weight: inherit;
   padding: 0 30px;
   text-transform: uppercase;
-  vertical-align: middle;
+  // vertical-align: middle;
 
-  &:hover {
+  &:hover:not(:disabled) {
+    background: #90e0a0;
     border-color: #b2b2b2;
   }
 
@@ -126,13 +129,11 @@ input {
   box-sizing: border-box;
   color: #444;
   font: inherit;
-  height: 40px;
   max-width: 100%;
   overflow: visible;
   padding: 0 10px;
-  vertical-align: middle;
-  width: 100%;
-  outline: none;
+  // vertical-align: middle;
+  // outline: none;
 
   &:focus, &:active {
     border-color: $global-focus-color;
