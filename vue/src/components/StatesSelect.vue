@@ -75,7 +75,6 @@ export default {
   watch: {
     checked(checked, old) {
       // Send state to the parent.
-      console.log('input ->', sortStates(checked))
       this.$emit('input', sortStates(checked))
     },
   },
