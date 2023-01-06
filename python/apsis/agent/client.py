@@ -172,8 +172,9 @@ async def start_agent(
 
 class Agent:
 
-    # Path to the agent's state dir.  Note that the agent runs on a different
-    # host.  If none, the agent chooses a tmp dir; this is the usual behavior.
+    # Path to the agent's state dir.  Note that the agent may run on a different
+    # host and as a different user.  If none, the agent chooses a tmp dir; this
+    # is the usual behavior.
     STATE_DIR = None
 
     # Delays between attempts to start the agent-- back off.  The number of
