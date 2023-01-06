@@ -1,75 +1,107 @@
+// Todo:
+// - remove controls from RunsView
+// - help buttons for some controls
+// - always show something in Date / Time input
+// - fix CSS
+// - button for showing/hiding controls
+// - fix up job view
+// - fix up run view
+
 <template lang="pug">
 div
-  div.time-controls(
-    v-if="timeControls"
-  )
-    .label(style="grid-row: 1; grid-column: 1;") Show:
-    DropList.counts(
-      style="grid-row: 1; grid-column: 2;"
-      :value="1"
-      v-on:input="maxRuns = COUNTS[$event]"
-    )
-      div(
-        v-for="count in COUNTS"
+  div.controls
+    template.job-controls
+      .label Job Path:
+      input
+      .label Keywords:
+      input
+      .label Labels:
+      input
+
+    template.run-controls
+      .label Run Args:
+      input
+      .label States:
+      StatesSelect(
+        :value="states"
+        v-on:input="setStates($event)"
       )
-        div {{ count }} runs
-
-    .label(style="grid-row: 2; grid-column: 1") Order:
-    div(style="grid-row: 2; grid-column: 2")
-      button.toggle.left(
-        :disabled="asc"
-        v-on:click="asc = true"
-      ) &nbsp; Time &#8681;
-      button.toggle.right(
-        :disabled="!asc"
-        v-on:click="asc = false"
-      ) &nbsp; Time &#8679;
-
-    .label(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 3}")
-      | From:
-    .field.disabled(:style="{'grid-row': asc ? 1 : 2, 'grid-column': 4}")
-      | {{ formatTime(groups.earlierTime) }}
-    button(
-      :style="{'grid-row': asc ? 1 : 2, 'grid-column': 5}"
-      v-on:click="showTime(groups.earlierTime)"
-      :disabled="groups.earlierCount == 0"
-    ) Earlier
-
-    .label(:style="{'grid-row': asc ? 2 : 1, 'grid-column': 3}")
-      | To:
-    .field.disabled(:style="{'grid-row': asc ? 2 : 1, 'grid-column': 4}")
-      | {{ formatTime(groups.laterTime) }}
-    button(
-      :style="{'grid-row': asc ? 2 : 1, 'grid-column': 5}"
-      v-on:click="showTime(groups.laterTime)"
-      :disabled="groups.laterCount == 0"
-    ) Later
-
-    .label(style="grid-row: 1; grid-column: 6;") Show Time:
-    input.input-time(
-      style="grid-row: 1; grid-column: 7;"
-      type="text"
-      v-model="inputTime"
-      placeholder="Date / Time"
-      v-on:change="onTimeChange"
-    )
-    button(
-      style="grid-row: 2; grid-column: 7;"
-      v-on:click="showTime('now')"
-      :disabled="time === 'now'"
-    ) {{ time === 'now' ? 'Showing Now' : 'Show Now' }}
-
-    div.tooltip
+      div.tooltip
+        label Group Runs:
+        span.tooltiptext
+          | Group scheduled runs by job ID and args.
+          br
+          | Group completed runs by job ID and args.
       input(
-        style="grid-row: 1; grid-column: 9;"
         type="checkbox"
         v-model="grouping"
       )
-      label Group Runs
-      span.tooltiptext
-        | Group scheduled runs by job ID and args.
-        br
-        | Group completed runs by job ID and args.
+
+    template.time-controls(v-if="timeControls")
+      //- Number of runs to show.
+      .label Show:
+      DropList.counts(
+        :value="1"
+        v-on:input="maxRuns = COUNTS[$event]"
+      )
+        div(
+          v-for="count in COUNTS"
+        )
+          div {{ count }} runs
+
+      //- Show Time and earier / now / later buttons.
+      .label Time:
+      div
+        button(
+          style="padding: 0 4px;"
+          v-on:click="showTime(groups.earlierTime)"
+          :disabled="groups.earlierCount == 0"
+        )
+          TriangleIcon(
+            style="width: 1rem;"
+            direction="left"
+          )
+        input.input-time(
+          type="text"
+          v-model="inputTime"
+          placeholder="Date / Time"
+          v-on:change="onTimeChange"
+        )
+        button(
+          style="padding: 0 8px;"
+          v-on:click="showTime('now')"
+          :disabled="time === 'now'"
+        ) Now
+        button(
+          style="padding: 0 4px;"
+          v-on:click="showTime(groups.laterTime)"
+          :disabled="groups.laterCount == 0"
+        )
+          TriangleIcon(
+            style="width: 1rem;"
+            direction="right"
+          )
+
+      div
+      div
+
+      .label Order:
+      div
+        button.toggle.left(
+          :disabled="asc"
+          v-on:click="asc = true"
+        ) &nbsp; Time &#8681;
+        button.toggle.right(
+          :disabled="!asc"
+          v-on:click="asc = false"
+        ) &nbsp; Time &#8679;
+
+      .label
+        | Showing time:
+      .label
+        | {{ formatTime(groups.earlierTime) }}
+        | &mdash;
+        | {{ formatTime(groups.laterTime) }}
 
 
   table.runlist
@@ -242,6 +274,7 @@ export default {
       inputTime: '',
       profile: true,
       grouping: this.groupRuns,
+      states: runsFilter.StateTerm.get(this.query),
     } 
   },
 
@@ -471,28 +504,27 @@ export default {
 <style lang="scss" scoped>
 @import '@/styles/index.scss';
 
-.time-controls {
-  display: inline-grid;
-  grid-template-columns: repeat(9, auto);
-  grid-template-rows: repeat(2, 1fr);
+.controls {
+  display: grid;
+  max-width: 80rem;
+  grid-template-columns: repeat(3, 0fr 1fr);
+
   gap: 4px 12px;
   justify-items: left;
   align-items: baseline;
   white-space: nowrap;
   line-height: 28px;
+  margin-bottom: 21px;
   
   > * {
+    height: 30px;
+  }
+
+  > input {
     width: 100%;
-    box-sizing: border-box;
   }
 
   .label {
-    text-align: right;
-  }
-
-  .counts {
-    width: 100%;
-    height: 32px;
     text-align: right;
   }
 
@@ -502,13 +534,13 @@ export default {
     text-align: center;
     padding: 0 12px;
     &.disabled {
-      background: #fafafa;
+      border: none;
     }
   }
 
   .toggle {
     padding: 0 12px;
-    &[disabled] {
+    &:disabled {
       color: black;
       background: #f0f0f0;
     }
@@ -520,21 +552,20 @@ export default {
     }
   }
 
-  .input-time {
-    width: 20ex;
-  }
-
-  button, input {
-    line-height: 28px;
-    height: 30px;
-    vertical-align: baseline;
+  button {
     text-align: center;
+    height: 100%;
   }
 
   input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    margin: 0 8px;
+  }
+
+  .counts {
+    width: 100%;
+    height: 32px;
+    text-align: right;
   }
 }
 
