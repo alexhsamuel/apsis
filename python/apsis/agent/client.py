@@ -172,13 +172,16 @@ async def start_agent(
 
 class Agent:
 
-    STATE_DIR = get_default_state_dir()
+    # Path to the agent's state dir.  Note that the agent may run on a different
+    # host and as a different user.  If none, the agent chooses a tmp dir; this
+    # is the usual behavior.
+    STATE_DIR = None
 
     # Delays between attempts to start the agent-- back off.  The number of
     # attempts is the number of delays.
     START_DELAYS = [ 0.5 * i**2 for i in range(6) ]
 
-    def __init__(self, host=None, user=None, *, connect=None, state_dir=None):
+    def __init__(self, host=None, user=None, *, connect=None):
         """
         :param host:
           Host to run on, or none for local.
@@ -191,7 +194,7 @@ class Agent:
         self.__host         = host
         self.__user         = user
         self.__connect      = connect
-        self.__state_dir    = self.STATE_DIR if state_dir is None else state_dir
+        self.__state_dir    = self.STATE_DIR
 
         self.__lock         = asyncio.Lock()
         self.__conn         = None
