@@ -313,7 +313,6 @@ export default {
     runs() {
       let runs = Array.from(this.store.state.runs.values())
 
-      console.log('runs', this.query.keywords)
       if (this.query.keywords) {
         const re = new RegExp(this.query.keywords.join('|'))
         runs = filter(runs, run => run.job_id.search(re) !== -1)
