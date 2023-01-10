@@ -17,6 +17,14 @@ div
 <script>
 import RunsList from '@/components/RunsList'
 
+/** Strips off all occurrences of `suffix` at the end of `string`.  */
+function rstrip(string, suffix) {
+  const len = suffix.length
+  while (len <= string.length && string.slice(-len) === suffix)
+    string = string.slice(0, -len)
+  return string
+}
+
 export default {
   name: 'RunsView',
   components: {
@@ -70,7 +78,7 @@ export default {
     urlToQuery(url) {
       const splitWords = (param) => param ? param.split(',') : null
       return {
-        path: url.path || null,
+        path: url.path ? rstrip(url.path, '/') : null,
         keywords: splitWords(url.keywords),
         labels: splitWords(url.labels),
         states: splitWords(url.states),
