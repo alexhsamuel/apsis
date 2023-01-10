@@ -25,8 +25,8 @@ div
       )
       .label Job Path:
       PathNav(
-        :path="path"
-        @path="path = $event; emitQuery()"
+        :path="query.path"
+        @path="query.path = $event; emitQuery()"
       )
       .label Labels:
       WordsInput(
@@ -300,8 +300,6 @@ export default {
       // If true, show profiling on console.log.
       profile: false,
       grouping: this.groupRuns,
-
-      path: this.query.path,
     } 
   },
 
@@ -324,8 +322,8 @@ export default {
         runs = filter(runs, predicate)
       }
 
-      if (this.path) {
-        const predicate = (new runsFilter.JobIdPathPrefix(this.path)).predicate
+      if (this.query.path) {
+        const predicate = (new runsFilter.JobIdPathPrefix(this.query.path)).predicate
         runs = filter(runs, predicate)
       }
       if (this.args)
