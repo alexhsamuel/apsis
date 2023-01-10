@@ -1,6 +1,5 @@
 // Todo:
 // - wire up to RunsView URL:
-//   - run args
 //   - group runs
 //   - show
 //   - times
@@ -37,7 +36,10 @@ div
 
     template.run-controls
       .label Run Args:
-      input
+      WordsInput(
+        v-model:value="query.args"
+        @change="emitQuery()"
+      )
       .label States:
       StatesSelect(
         v-model="query.states"
@@ -220,7 +222,7 @@ div
 </template>
 
 <script>
-import { entries, filter, flatten, groupBy, includes, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
+import { entries, filter, flatten, groupBy, includes, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
 import { formatDuration, formatElapsed, formatTime, parseTime } from '../time'
 import DropList from '@/components/DropList'
@@ -246,14 +248,47 @@ function includesAny(arr0, arr1) {
   return false
 }
 
+/**
+ * Constructs a predicate fn for matching runs with `args`.
+ * 
+ * `args` is an array of "param=value" or "param" strings.  The former requires
+ * the given param have the cooresponding arg value.  The latter requires that
+ * it have any arg value at all.  The result is the conjunction of these.
+ * 
+ * For example, the `args` array ["fruit=mango", "color"] produced a predicate
+ * that matches all runs that both have a "fruit" param with arg value "mango",
+ * and also have any value at all ofr the "color" param.
+ */
+function getArgPredicate(args) {
+  const argObj = {}
+  for (const arg of args) {
+    const i = arg.indexOf('=')
+    if (i === -1)
+      argObj[arg] = null
+    else
+      argObj[arg.slice(0, i)] = arg.slice(i + 1)
+  }
+
+  return run => {
+    for (const param in argObj) {
+      const value = run.args[param]
+      if (value === undefined)
+        // Not present.
+        return false
+      const ref = argObj[param]
+      if (ref !== null && value !== ref)
+        // Wrong arg value.
+        return false
+    }
+    return true
+  }
+}
+
 export default { 
   name: 'RunsList',
   props: {
     query: {type: Object, default: null},
     
-    // Args to match.  If not null, shows only runs with exact args match.
-    args: {type: Object, default: null},
-
     // If true, show the job ID column.
     showJob: {type: Boolean, default: true},
 
@@ -322,8 +357,8 @@ export default {
         runs = filter(runs, run => includes(this.query.states, run.state))
       if (this.query.labels)
         runs = filter(runs, run => includesAny(this.query.labels, run.labels))
-      if (this.args)
-        runs = filter(runs, run => isEqual(run.args, this.args))
+      if (this.query.args) 
+        runs = filter(runs, getArgPredicate(this.query.args))
       if (this.query.keywords) {
         const re = new RegExp(this.query.keywords.join('|'))
         runs = filter(runs, run => run.job_id.search(re) !== -1)

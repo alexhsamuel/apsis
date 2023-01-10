@@ -73,6 +73,7 @@ export default {
       this.setQueryParam('keywords', joinWords(this.query.keywords))
       this.setQueryParam('labels', joinWords(this.query.labels))
       this.setQueryParam('states', joinWords(this.query.states))
+      this.setQueryParam('args', joinWords(this.query.args))
     },
 
     urlToQuery(url) {
@@ -82,6 +83,7 @@ export default {
         keywords: splitWords(url.keywords),
         labels: splitWords(url.labels),
         states: splitWords(url.states),
+        args: splitWords(url.args),
       }
     },
 
