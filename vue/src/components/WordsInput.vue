@@ -1,7 +1,6 @@
 <template lang="pug">
   input(
     v-model="text"
-    @input="onInput"
     @change="onChange"
   )
 </template>
@@ -18,29 +17,17 @@ export default {
   data() {
     return {
       text: this.value ? this.value.join(' ') : '',
-      lastInputValue: this.value,
     }
-  },
-
-  computed: {
-    inputValue() {
-      return this.text ? this.text.split(' ').filter(w => w) : null
-    },
   },
 
   methods: {
     onChange() {
-      // Emit 'change' only if the value has effectively changed.
-      if (!isEqual(this.inputValue, this.lastInputValue)) {
-        this.$emit('change', this.inputValue)
-        this.lastInputValue = this.inputValue
+      // Emit 'input' and 'change' only if the value is effectively different.
+      const value = this.text ? this.text.split(' ').filter(w => w) : null
+      if (!isEqual(value, this.value)) {
+        this.$emit('input', value)
+        this.$emit('change', value)
       }
-    },
-
-    onInput() {
-      // Emit 'input' only if the value is effectively different.
-      if (!isEqual(this.inputValue, this.value))
-        this.$emit('input', this.inputValue)
     },
   },
 }
