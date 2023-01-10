@@ -219,7 +219,7 @@ div
 </template>
 
 <script>
-import { entries, filter, flatten, groupBy, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
+import { entries, filter, flatten, groupBy, includes, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
 import { formatDuration, formatElapsed, formatTime, parseTime } from '../time'
 import DropList from '@/components/DropList'
@@ -231,7 +231,6 @@ import PathNav from '@/components/PathNav'
 import Run from '@/components/Run'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
-import * as runsFilter from '@/runsFilter.js'
 import State from '@/components/State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
@@ -311,23 +310,23 @@ export default {
     runs() {
       let runs = Array.from(this.store.state.runs.values())
 
+      // Apply query filters in the order that seems most likely to put
+      // the cheapest and most selective filters first.
+      if (this.query.path) {
+        const path = this.query.path
+        const prefix = path + '/'
+        runs = filter(runs, run => run.job_id === path || run.job_id.startsWith(prefix))
+      }
+      if (this.query.states)
+        runs = filter(runs, run => includes(this.query.states, run.state))
+      if (this.query.labels)
+        runs = filter(runs, run => includesAny(this.query.labels, run.labels))
+      if (this.args)
+        runs = filter(runs, run => isEqual(run.args, this.args))
       if (this.query.keywords) {
         const re = new RegExp(this.query.keywords.join('|'))
         runs = filter(runs, run => run.job_id.search(re) !== -1)
       }
-      if (this.query.labels)
-        runs = filter(runs, run => includesAny(this.query.labels, run.labels))
-      if (this.query.states) {
-        const predicate = (new runsFilter.StateTerm(this.query.states)).predicate
-        runs = filter(runs, predicate)
-      }
-
-      if (this.query.path) {
-        const predicate = (new runsFilter.JobIdPathPrefix(this.query.path)).predicate
-        runs = filter(runs, predicate)
-      }
-      if (this.args)
-        runs = filter(runs, run => isEqual(run.args, this.args))
 
       return sortBy(runs, r => r.time_key)
     },
