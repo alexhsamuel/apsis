@@ -1,8 +1,8 @@
 <template lang="pug">
   input(
-    :value="text"
+    v-model="text"
     @input="onInput"
-    @change="$emit('change')"
+    @change="onChange"
   )
 </template>
 
@@ -15,18 +15,32 @@ export default {
     value: {type: Array, default: null},
   },
 
+  data() {
+    return {
+      text: this.value ? this.value.join(' ') : '',
+      lastInputValue: this.value,
+    }
+  },
+
   computed: {
-    text() {
-      return this.value ? this.value.join(' ') : ''
+    inputValue() {
+      return this.text ? this.text.split(' ').filter(w => w) : null
     },
   },
 
   methods: {
-    onInput(ev) {
-      const text = ev.target.value.trim()
-      const value = text ? text.split(' ') : null
-      if (!isEqual(value, this.value))
-        this.$emit('input', value)
+    onChange() {
+      // Emit 'change' only if the value has effectively changed.
+      if (!isEqual(this.inputValue, this.lastInputValue)) {
+        this.$emit('change', this.inputValue)
+        this.lastInputValue = this.inputValue
+      }
+    },
+
+    onInput() {
+      // Emit 'input' only if the value is effectively different.
+      if (!isEqual(this.inputValue, this.value))
+        this.$emit('input', this.inputValue)
     },
   },
 }
