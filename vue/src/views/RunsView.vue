@@ -4,28 +4,16 @@ div
     h3(style="flex: 1;")
       a.undersel(@click="onShowJobs") Jobs
       a.undersel.sel(@click="") Runs
-      span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
-        PathNav(:path="path" @path="setPath")
-
-    //- Input box for the search string.
-    SearchInput.search-input(
-      v-model="query"
-      style="flex: 0 0 300px;"
-    )
 
   //- The table of runs.
   RunsList(
-    :query="query"
-    :path="path"
+    :query="urlToQuery($route.query)"
     :timeControls="true"
-    @path="setPath"
-    @states="onSetStates"
   )
 
 </template>
 
 <script>
-import PathNav from '@/components/PathNav'
 import RunsList from '@/components/RunsList'
 import * as runsFilter from '@/runsFilter.js'
 import SearchInput from '@/components/SearchInput'
@@ -34,23 +22,12 @@ import StatesSelect from '@/components/StatesSelect'
 export default {
   name: 'RunsView',
   components: {
-    PathNav,
     RunsList,
     SearchInput,
     StatesSelect,
   },
 
-  data() {
-    return {
-      query: this.$route.query.q || '',
-    }
-  },
-
   computed: {
-    path() {
-      return this.$route.query.path
-    },
-
     states() {
       // Extract states from the query.
       return runsFilter.StateTerm.get(this.query)
@@ -58,15 +35,15 @@ export default {
   },
 
   watch: {
-    query(query) {
-      // If the query changed, add it to the URL.
-      this.setQueryParam('q', query || undefined)
-    },
+    // query(query) {
+    //   // If the query changed, add it to the URL.
+    //   this.setQueryParam('q', query || undefined)
+    // },
 
-    '$route'(to, from) {
-      // Set the query from the URL query.
-      this.query = to.query.q || ''
-    },
+    // '$route'(to, from) {
+    //   // Set the query from the URL query.
+    //   this.query = to.query.q || ''
+    // },
   },
 
   methods: {
@@ -90,13 +67,18 @@ export default {
       }
     },
 
+    urlToQuery(query) {
+      const splitWords = (words) => words ? words.split(',') : null
+      return {
+        path: query.path,
+        keywords: splitWords(query.keywords),
+        labels: splitWords(query.labels),
+      }
+    },
+
     onSetStates(states) {
       console.log('onSetStates', states)
       this.setQueryParam('states', states === null ? null : states.join(','))
-    },
-
-    setPath(path) {
-      this.setQueryParam('path', path)
     },
 
     onShowJobs() {
@@ -106,7 +88,8 @@ export default {
           path: this.path || undefined,
         },
         query: {
-          q: runsFilter.toJobsQuery(this.query) || undefined,
+          // FIXME
+          // q: runsFilter.toJobsQuery(this.query) || undefined,
         },
       })
     },

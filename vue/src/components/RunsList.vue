@@ -17,12 +17,19 @@
 div
   div.controls
     template.job-controls
-      .label Job Path:
-      input
       .label Keywords:
-      input
+      WordsInput(
+        v-model:value="keywords"
+      )
+      .label Job Path:
+      PathNav(
+        :path="path"
+        @path="path = $event"
+      )
       .label Labels:
-      input
+      WordsInput(
+        v-model:value="labels"
+      )
 
     template.run-controls
       .label Run Args:
@@ -216,7 +223,8 @@ import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
-import OperationButton from './OperationButton'
+import OperationButton from '@/components/OperationButton'
+import PathNav from '@/components/PathNav'
 import Run from '@/components/Run'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
@@ -226,15 +234,20 @@ import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import Timestamp from './Timestamp'
 import TriangleIcon from '@/components/icons/TriangleIcon'
+import WordsInput from '@/components/WordsInput'
+
+function includesAny(arr0, arr1) {
+  for (const el of arr0)
+    if (arr1.includes(el))
+      return true
+  return false
+}
 
 export default { 
   name: 'RunsList',
   props: {
-    query: {type: String, default: ''},
+    query: {type: Object, default: null},
     
-    // Either a job ID path prefix; can be a full job ID.
-    path: {type: String, default: null},
-
     // Show only runs in one of these states; null for all states.
     states: {type: Array, default: null},
 
@@ -265,6 +278,7 @@ export default {
     Job,
     JobLabel,
     OperationButton,
+    PathNav,
     Run,
     RunArgs,
     RunElapsed,
@@ -272,6 +286,7 @@ export default {
     StatesSelect,
     Timestamp,
     TriangleIcon,
+    WordsInput,
   },
 
   data() {
@@ -286,15 +301,14 @@ export default {
       profile: false,
       grouping: this.groupRuns,
       states_: this.states,
+
+      path: this.query.path,
+      keywords: this.query.keywords,
+      labels: this.query.labels,
     } 
   },
 
   computed: {
-    jobPredicate() {
-      // FIXME: Maybe the parent should provide a predicate directly?
-      return this.query ? runsFilter.makePredicate(this.query) : null
-    },
-
     earlierRow() { return this.asc ? 1 : 3 },
     laterRow() { return this.asc ? 3 : 1 },
 
@@ -302,14 +316,19 @@ export default {
     runs() {
       let runs = Array.from(this.store.state.runs.values())
 
+      if (this.keywords) {
+        const re = new RegExp(this.keywords.join('|'))
+        runs = filter(runs, run => run.job_id.search(re) !== -1)
+      }
+      if (this.labels)
+        runs = filter(runs, run => includesAny(this.labels, run.labels))
+
       if (this.path) {
         const predicate = (new runsFilter.JobIdPathPrefix(this.path)).predicate
         runs = filter(runs, predicate)
       }
       if (this.args)
         runs = filter(runs, run => isEqual(run.args, this.args))
-      if (this.jobPredicate)
-        runs = filter(runs, this.jobPredicate)
       if (this.states_) {
         const predicate = (new runsFilter.StateTerm(this.states_)).predicate
         runs = filter(runs, predicate)

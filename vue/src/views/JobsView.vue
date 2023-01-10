@@ -25,7 +25,6 @@ div
 import JobsList from '@/components/JobsList'
 import PathNav from '@/components/PathNav'
 import SearchInput from '@/components/SearchInput'
-import * as jobsFilter from '@/jobsFilter.js'
 
 function toPathStr(path) {
   return (
@@ -76,7 +75,6 @@ export default {
         name: 'runs-list',
         query: {
           path: this.pathStr || undefined,
-          q: jobsFilter.toRunsQuery(this.query),
         },
       })
     },
