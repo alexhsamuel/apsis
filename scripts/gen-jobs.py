@@ -15,6 +15,8 @@ MAX_SCHEDULED_DAILY = 288
 
 MAX_JOB_ID_DEPTH = 3
 
+LABELS = ("foo", "bar", "baz", "bif")
+
 #--------------------------------------------------------------------------------
 
 def random_daytime():
@@ -33,6 +35,11 @@ args = parser.parse_args()
 
 for _ in range(args.num):
     params = []
+
+    labels = list({
+        random.choice(LABELS)
+        for _ in range(int(random.uniform(0, 2) ** 2))
+    })
 
     program = {
         "type": "no-op",
@@ -61,6 +68,9 @@ for _ in range(args.num):
         params.append("date")
 
     job = {
+        "metadata": {
+            "labels": labels,
+        },
         "params": params,
         "program": program,
         "schedule": schedule,
