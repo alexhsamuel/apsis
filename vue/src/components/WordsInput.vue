@@ -2,6 +2,7 @@
   input(
     :value="text"
     @input="onInput"
+    @change="$emit('change')"
   )
 </template>
 
