@@ -1,7 +1,7 @@
 <template lang="pug">
-  svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg")
+  svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="1rem")
     path(
-      d="M 400 700 L 1400 700 L 900 1300 L 400 700"
+      d="M 300 500 L 1500 500 L 900 1400 L 300 500"
       stroke="none"
       :transform="rotation"
       :fill="color"
