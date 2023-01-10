@@ -7,7 +7,8 @@ div
 
   //- The table of runs.
   RunsList(
-    :query="urlToQuery($route.query)"
+    :query="query"
+    @query="updateUrl"
     :timeControls="true"
   )
 
@@ -15,35 +16,25 @@ div
 
 <script>
 import RunsList from '@/components/RunsList'
-import * as runsFilter from '@/runsFilter.js'
-import SearchInput from '@/components/SearchInput'
-import StatesSelect from '@/components/StatesSelect'
 
 export default {
   name: 'RunsView',
   components: {
     RunsList,
-    SearchInput,
-    StatesSelect,
   },
 
-  computed: {
-    states() {
-      // Extract states from the query.
-      return runsFilter.StateTerm.get(this.query)
-    },
+  data() {
+    return {
+      query: this.urlToQuery(this.$route.query),
+    }
   },
 
   watch: {
-    // query(query) {
-    //   // If the query changed, add it to the URL.
-    //   this.setQueryParam('q', query || undefined)
-    // },
-
-    // '$route'(to, from) {
-    //   // Set the query from the URL query.
-    //   this.query = to.query.q || ''
-    // },
+    // When the route changes due to the browser's forward/back buttons,
+    // trigger an update to the query.
+    '$route'(to, from) {
+      this.$set(this, 'query', this.urlToQuery(to.query))
+    }
   },
 
   methods: {
@@ -67,18 +58,23 @@ export default {
       }
     },
 
-    urlToQuery(query) {
-      const splitWords = (words) => words ? words.split(',') : null
-      return {
-        path: query.path,
-        keywords: splitWords(query.keywords),
-        labels: splitWords(query.labels),
-      }
+    /** Updates the route URL query from the runs query.  */
+    updateUrl() {
+      const joinWords = (words) => words ? words.join(',') : null
+      this.setQueryParam('path', this.query.path || null)
+      this.setQueryParam('keywords', joinWords(this.query.keywords))
+      this.setQueryParam('labels', joinWords(this.query.labels))
+      this.setQueryParam('states', joinWords(this.query.states))
     },
 
-    onSetStates(states) {
-      console.log('onSetStates', states)
-      this.setQueryParam('states', states === null ? null : states.join(','))
+    urlToQuery(url) {
+      const splitWords = (param) => param ? param.split(',') : null
+      return {
+        path: url.path || null,
+        keywords: splitWords(url.keywords),
+        labels: splitWords(url.labels),
+        states: splitWords(url.states),
+      }
     },
 
     onShowJobs() {
@@ -86,10 +82,6 @@ export default {
         name: 'jobs-list',
         params: {
           path: this.path || undefined,
-        },
-        query: {
-          // FIXME
-          // q: runsFilter.toJobsQuery(this.query) || undefined,
         },
       })
     },

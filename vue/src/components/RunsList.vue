@@ -1,10 +1,11 @@
 // Todo:
 // - wire up to RunsView URL:
-//   - job path
-//   - job keywords
-//   - job labels
 //   - run args
-// - remove controls from RunsView
+//   - group runs
+//   - show
+//   - times
+//   - order
+// - only update view URL on _change_, not on _input_
 // - help buttons for some controls
 // - always show something in Date / Time input
 // - fix CSS
@@ -19,16 +20,18 @@ div
     template.job-controls
       .label Keywords:
       WordsInput(
-        v-model:value="keywords"
+        v-model:value="query.keywords"
+        @change="emitQuery()"
       )
       .label Job Path:
       PathNav(
         :path="path"
-        @path="path = $event"
+        @path="path = $event; emitQuery()"
       )
       .label Labels:
       WordsInput(
-        v-model:value="labels"
+        v-model:value="query.labels"
+        @change="emitQuery()"
       )
 
     template.run-controls
@@ -36,8 +39,8 @@ div
       input
       .label States:
       StatesSelect(
-        v-model="states_"
-        @input="$emit('states', $event)"
+        v-model="query.states"
+        @input="emitQuery()"
       )
       div.tooltip
         label Group Runs:
@@ -248,9 +251,6 @@ export default {
   props: {
     query: {type: Object, default: null},
     
-    // Show only runs in one of these states; null for all states.
-    states: {type: Array, default: null},
-
     // Args to match.  If not null, shows only runs with exact args match.
     args: {type: Object, default: null},
 
@@ -300,11 +300,8 @@ export default {
       // If true, show profiling on console.log.
       profile: false,
       grouping: this.groupRuns,
-      states_: this.states,
 
       path: this.query.path,
-      keywords: this.query.keywords,
-      labels: this.query.labels,
     } 
   },
 
@@ -316,12 +313,17 @@ export default {
     runs() {
       let runs = Array.from(this.store.state.runs.values())
 
-      if (this.keywords) {
-        const re = new RegExp(this.keywords.join('|'))
+      console.log('runs', this.query.keywords)
+      if (this.query.keywords) {
+        const re = new RegExp(this.query.keywords.join('|'))
         runs = filter(runs, run => run.job_id.search(re) !== -1)
       }
-      if (this.labels)
-        runs = filter(runs, run => includesAny(this.labels, run.labels))
+      if (this.query.labels)
+        runs = filter(runs, run => includesAny(this.query.labels, run.labels))
+      if (this.query.states) {
+        const predicate = (new runsFilter.StateTerm(this.query.states)).predicate
+        runs = filter(runs, predicate)
+      }
 
       if (this.path) {
         const predicate = (new runsFilter.JobIdPathPrefix(this.path)).predicate
@@ -329,10 +331,6 @@ export default {
       }
       if (this.args)
         runs = filter(runs, run => isEqual(run.args, this.args))
-      if (this.states_) {
-        const predicate = (new runsFilter.StateTerm(this.states_)).predicate
-        runs = filter(runs, predicate)
-      }
 
       return sortBy(runs, r => r.time_key)
     },
@@ -529,7 +527,11 @@ export default {
       this.time = time.format()
       // Replace the input field with the full canonicalized time.
       this.inputTime = formatTime(time, tz)
-    }
+    },
+
+    emitQuery() {
+      this.$emit('query', null)
+    },
   },
 
 }
