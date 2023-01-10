@@ -13,6 +13,7 @@
 // - button for showing/hiding controls
 // - fix up job view
 // - fix up run view
+// - get rid of runs filter
 
 <template lang="pug">
 div
