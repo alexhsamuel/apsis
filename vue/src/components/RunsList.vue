@@ -1,6 +1,5 @@
 // Todo:
 // - wire up to RunsView URL:
-//   - group runs
 //   - show
 //   - times
 //   - order
@@ -53,7 +52,8 @@ div
           | Group completed runs by job ID and args.
       input(
         type="checkbox"
-        v-model="grouping"
+        v-model="query.grouping"
+        @change="emitQuery"
       )
 
     template.time-controls(v-if="timeControls")
@@ -131,7 +131,7 @@ div
       col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
       col(style="width: 4rem")
-      col(v-if="grouping" style="width: 5rem")
+      col(v-if="query.grouping" style="width: 5rem")
       col(style="width: 10rem")
       col(style="width: 10rem")
       col(style="width: 6rem")
@@ -145,7 +145,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-group(v-if="grouping") Group
+        th.col-group(v-if="query.grouping") Group
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -193,7 +193,7 @@ div
           td.col-state
             State(:state="run.state")
           //- FIXME: Click to run with history expanded.
-          td.col-group(v-if="grouping")
+          td.col-group(v-if="query.grouping")
             | {{ historyCount(run, groups.counts[run.run_id]) }}
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -292,9 +292,6 @@ export default {
     // If true, show the job ID column.
     showJob: {type: Boolean, default: true},
 
-    // If true, group together related runs.
-    groupRuns: {type: Boolean, default: true},
-
     // If not null, highlight the run with this run ID.
     highlightRunId: {type: String, default: null},
 
@@ -334,7 +331,6 @@ export default {
       inputTime: '',
       // If true, show profiling on console.log.
       profile: false,
-      grouping: this.groupRuns,
     } 
   },
 
@@ -379,7 +375,7 @@ export default {
 
       let groups
       let counts = {}
-      if (this.grouping) {
+      if (this.query.grouping) {
         const runs = this.runs
         if (this.profile) {
           t1 = new Date()

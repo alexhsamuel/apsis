@@ -46,34 +46,48 @@ export default {
   },
 
   methods: {
-    // FIXME: Elsewhere.
-    /**
-     * Sets a query param in the route.
-     * @param param - the query param name
-     * @param val - the value to set, or null / undefined to remove
-     */
-    setQueryParam(param, val) {
-      if (val)
-        val = val.trim()
-      if (this.$route.query[param] !== val) {
-        // Set only this param, keeping the reqest of the query.
-        const query = Object.assign({}, this.$route.query)
-        if (val === null || val === undefined)
-          delete query[param]
-        else
-          query[param] = val
-        this.$router.push({ query })
-      }
-    },
-
     /** Updates the route URL query from the runs query.  */
     updateUrl() {
       const joinWords = (words) => words ? words.join(',') : null
-      this.setQueryParam('path', this.query.path || null)
-      this.setQueryParam('keywords', joinWords(this.query.keywords))
-      this.setQueryParam('labels', joinWords(this.query.labels))
-      this.setQueryParam('states', joinWords(this.query.states))
-      this.setQueryParam('args', joinWords(this.query.args))
+
+      const oldQuery = this.$route.query
+      var query = {...oldQuery}
+      var changed = false
+      // Set a param, and marks changes.  If val is undefined, sets the param
+      // without value.  If val is null, removes the param.  Note that in
+      // the URL query object, a _null_ value indicates set without value.
+      function set(param, val) {
+        if (val)
+          val = val.trim()
+
+        if (val === null && oldQuery[param] !== undefined) {
+          // Remove.
+          delete query[param]
+          changed = true
+        }
+        else if (val === undefined && oldQuery[param] !== null) {
+          // Set without value.
+          query[param] = null
+          changed = true
+        }
+        else if (oldQuery[param] !== val) {
+          // Add.
+          query[param] = val === undefined ? null : val
+          changed = true
+        }
+      } 
+
+      set('path', this.query.path || null)
+      set('keywords', joinWords(this.query.keywords))
+      set('labels', joinWords(this.query.labels))
+      set('states', joinWords(this.query.states))
+      set('args', joinWords(this.query.args))
+      set('grouping', this.query.grouping ? undefined : null)
+ 
+      if (changed) {
+        console.log('push', query)
+        this.$router.push({ query })
+      }
     },
 
     urlToQuery(url) {
@@ -84,6 +98,7 @@ export default {
         labels: splitWords(url.labels),
         states: splitWords(url.states),
         args: splitWords(url.args),
+        grouping: url.grouping === null,
       }
     },
 
