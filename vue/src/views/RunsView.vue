@@ -60,6 +60,7 @@ export default {
         args: splitWords(url.args),
         grouping: url.grouping === null,
         show: url.show || 50,
+        time: url.time || 'now',
       }
     },
 
@@ -85,6 +86,7 @@ export default {
       set('args', joinWords(query.args))
       set('grouping', query.grouping ? null : undefined)
       set('show', query.show === 50 ? undefined : query.show)
+      set('time', query.time === 'now' ? undefined : query.time)
       return url
     },
 

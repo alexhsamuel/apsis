@@ -1,7 +1,5 @@
 // Todo:
 // - wire up to RunsView URL:
-//   - show
-//   - times
 //   - order
 // - only update view URL on _change_, not on _input_
 // - help buttons for some controls
@@ -65,9 +63,9 @@ div
 
       //- Show Time and earier / now / later buttons.
       .label Time:
-      div
+      div(style="display: flex;")
         button(
-          style="padding: 0 4px;"
+          style="padding: 0 4px; border-top-right-radius: 0; border-bottom-right-radius: 0;"
           v-on:click="showTime(groups.earlierTime)"
           :disabled="groups.earlierCount == 0"
         )
@@ -75,19 +73,11 @@ div
             style="width: 1rem;"
             direction="left"
           )
-        input.input-time(
-          type="text"
-          v-model="inputTime"
-          placeholder="Date / Time"
-          v-on:change="onTimeChange"
+        TimeInput(
+          v-model="query_.time"
         )
         button(
-          style="padding: 0 8px;"
-          v-on:click="showTime('now')"
-          :disabled="time === 'now'"
-        ) Now
-        button(
-          style="padding: 0 4px;"
+          style="padding: 0 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"
           v-on:click="showTime(groups.laterTime)"
           :disabled="groups.laterCount == 0"
         )
@@ -232,7 +222,8 @@ import RunElapsed from '@/components/RunElapsed'
 import State from '@/components/State'
 import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
-import Timestamp from './Timestamp'
+import TimeInput from '@/components/TimeInput'
+import Timestamp from '@/components/Timestamp'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 import WordsInput from '@/components/WordsInput'
 
@@ -313,6 +304,7 @@ export default {
     RunElapsed,
     State,
     StatesSelect,
+    TimeInput,
     Timestamp,
     TriangleIcon,
     WordsInput,
@@ -423,7 +415,7 @@ export default {
       let now = (new Date()).toISOString()
     
       // Determine the time to center around.
-      const time = this.time === 'now' ? now : this.time
+      const time = this.query_.time === 'now' ? now : this.query_.time
       // Find the index corresponding to the center time.
       let timeIndex = sortedIndexBy(runs, { time_key: time }, r => r.time_key)
 
@@ -538,7 +530,7 @@ export default {
      * Show runs around `time`.
      */
     showTime(time) {
-      this.time = time
+      this.query_.time = time
       this.inputTime = ''
     },
 
@@ -555,12 +547,12 @@ export default {
     /**
      * Handle explicit user time input by showing runs around the specified time.
      */
-    onTimeChange(ev) {
+    onTimeChange() {
       // Parse the input time, in the current time zone.
       const tz = store.state.timeZone
       const time = parseTime(this.inputTime, false, tz).tz('UTC')
       // Show runs around this time.
-      this.time = time.format()
+      this.query_.time = time.format()
       // Replace the input field with the full canonicalized time.
       this.inputTime = formatTime(time, tz)
     },
