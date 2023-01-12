@@ -83,6 +83,7 @@ export default {
       set('states', joinWords(this.query.states))
       set('args', joinWords(this.query.args))
       set('grouping', this.query.grouping ? undefined : null)
+      set('show', this.query.show === 50 ? null : this.query.show)
  
       if (changed) {
         console.log('push', query)
@@ -99,6 +100,7 @@ export default {
         states: splitWords(url.states),
         args: splitWords(url.args),
         grouping: url.grouping === null,
+        show: url.show || 50,
       }
     },
 

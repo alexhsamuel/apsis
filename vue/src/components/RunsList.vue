@@ -61,7 +61,7 @@ div
       .label Show:
       DropList.counts(
         :value="1"
-        v-on:input="maxRuns = COUNTS[$event]"
+        v-on:input="$set(query, 'show', COUNTS[$event]); emitQuery()"
       )
         div(
           v-for="count in COUNTS"
@@ -325,7 +325,6 @@ export default {
     return { 
       store,
       time: 'now',
-      maxRuns: 50,
       COUNTS: [20, 50, 100, 200, 500, 1000],
       asc: true,
       inputTime: '',
@@ -435,18 +434,17 @@ export default {
       // Time cutoff and count of later runs not shown.
       let laterTime = null
       let laterCount = 0
-      if (this.timeControls && this.maxRuns < runs.length) {
+      if (this.timeControls && this.query.show < runs.length) {
         // There are more runs than fit in the view.  Decide how many runs to
         // show before and after the center time.
         var r0 = timeIndex
         var r1 = runs.length - timeIndex
-        if (r0 < this.maxRuns / 2)
-          r1 = this.maxRuns - r0
-        else if (r1 < this.maxRuns / 2)
-          r0 = this.maxRuns - r1
+        if (r0 < this.query.show / 2)
+          r1 = this.query.show - r0
+        else if (r1 < this.query.show / 2)
+          r0 = this.query.show - r1
         else
-          r0 = r1 = this.maxRuns / 2
-        // console.log('length', runs.length, 'maxRuns', this.maxRuns, 'timeIndex', timeIndex, 'r0', r0, 'r1', r1)
+          r0 = r1 = this.query.show / 2
 
         if (r0 < timeIndex) {
           // Don't show some runs and omit others with identical timestamp.
