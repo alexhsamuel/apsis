@@ -19,30 +19,26 @@ div
     template.job-controls
       .label Keywords:
       WordsInput(
-        v-model:value="query.keywords"
-        @change="emitQuery()"
+        v-model="query_.keywords"
       )
       .label Job Path:
       PathNav(
-        :path="query.path"
-        @path="query.path = $event; emitQuery()"
+        :path="query_.path"
+        @path="query_.path = $event"
       )
       .label Labels:
       WordsInput(
-        v-model:value="query.labels"
-        @change="emitQuery()"
+        v-model="query_.labels"
       )
 
     template.run-controls
       .label Run Args:
       WordsInput(
-        v-model:value="query.args"
-        @change="emitQuery()"
+        v-model="query_.args"
       )
       .label States:
       StatesSelect(
-        v-model="query.states"
-        @input="emitQuery()"
+        v-model="query_.states"
       )
       div.tooltip
         label Group Runs:
@@ -52,8 +48,7 @@ div
           | Group completed runs by job ID and args.
       input(
         type="checkbox"
-        v-model="query.grouping"
-        @change="emitQuery"
+        v-model="query_.grouping"
       )
 
     template.time-controls(v-if="timeControls")
@@ -61,7 +56,7 @@ div
       .label Show:
       DropList.counts(
         :value="1"
-        v-on:input="$set(query, 'show', COUNTS[$event]); emitQuery()"
+        @input="onShowInput"
       )
         div(
           v-for="count in COUNTS"
@@ -131,7 +126,7 @@ div
       col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
       col(style="width: 4rem")
       col(style="width: 4rem")
-      col(v-if="query.grouping" style="width: 5rem")
+      col(v-if="query_.grouping" style="width: 5rem")
       col(style="width: 10rem")
       col(style="width: 10rem")
       col(style="width: 6rem")
@@ -145,7 +140,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-group(v-if="query.grouping") Group
+        th.col-group(v-if="query_.grouping") Group
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -193,7 +188,7 @@ div
           td.col-state
             State(:state="run.state")
           //- FIXME: Click to run with history expanded.
-          td.col-group(v-if="query.grouping")
+          td.col-group(v-if="query_.grouping")
             | {{ historyCount(run, groups.counts[run.run_id]) }}
           td.col-schedule-time
             Timestamp(:time="run.times.schedule")
@@ -240,6 +235,8 @@ import store from '@/store.js'
 import Timestamp from './Timestamp'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 import WordsInput from '@/components/WordsInput'
+
+const COUNTS = [20, 50, 100, 200, 500, 1000]
 
 function includesAny(arr0, arr1) {
   for (const el of arr0)
@@ -325,11 +322,13 @@ export default {
     return { 
       store,
       time: 'now',
-      COUNTS: [20, 50, 100, 200, 500, 1000],
       asc: true,
       inputTime: '',
       // If true, show profiling on console.log.
       profile: false,
+      query_: {...this.query},
+
+      COUNTS,
     } 
   },
 
@@ -343,19 +342,19 @@ export default {
 
       // Apply query filters in the order that seems most likely to put
       // the cheapest and most selective filters first.
-      if (this.query.path) {
-        const path = this.query.path
+      if (this.query_.path) {
+        const path = this.query_.path
         const prefix = path + '/'
         runs = filter(runs, run => run.job_id === path || run.job_id.startsWith(prefix))
       }
-      if (this.query.states)
-        runs = filter(runs, run => includes(this.query.states, run.state))
-      if (this.query.labels)
-        runs = filter(runs, run => includesAny(this.query.labels, run.labels))
-      if (this.query.args) 
-        runs = filter(runs, getArgPredicate(this.query.args))
-      if (this.query.keywords) {
-        const re = new RegExp(this.query.keywords.join('|'))
+      if (this.query_.states)
+        runs = filter(runs, run => includes(this.query_.states, run.state))
+      if (this.query_.labels)
+        runs = filter(runs, run => includesAny(this.query_.labels, run.labels))
+      if (this.query_.args) 
+        runs = filter(runs, getArgPredicate(this.query_.args))
+      if (this.query_.keywords) {
+        const re = new RegExp(this.query_.keywords.join('|'))
         runs = filter(runs, run => run.job_id.search(re) !== -1)
       }
 
@@ -374,7 +373,7 @@ export default {
 
       let groups
       let counts = {}
-      if (this.query.grouping) {
+      if (this.query_.grouping) {
         const runs = this.runs
         if (this.profile) {
           t1 = new Date()
@@ -434,17 +433,18 @@ export default {
       // Time cutoff and count of later runs not shown.
       let laterTime = null
       let laterCount = 0
-      if (this.timeControls && this.query.show < runs.length) {
+      const show = this.query_.show
+      if (this.timeControls && show < runs.length) {
         // There are more runs than fit in the view.  Decide how many runs to
         // show before and after the center time.
         var r0 = timeIndex
         var r1 = runs.length - timeIndex
-        if (r0 < this.query.show / 2)
-          r1 = this.query.show - r0
-        else if (r1 < this.query.show / 2)
-          r0 = this.query.show - r1
+        if (r0 < show / 2)
+          r1 = show - r0
+        else if (r1 < show / 2)
+          r0 = show - r1
         else
-          r0 = r1 = this.query.show / 2
+          r0 = r1 = show / 2
 
         if (r0 < timeIndex) {
           // Don't show some runs and omit others with identical timestamp.
@@ -506,6 +506,16 @@ export default {
       }
     },
   },
+  
+  watch: {
+    // Whenever any parts of our query change, inform the parent.
+    query_: {
+      deep: true,
+      handler: function (query) {
+        this.$emit('query', query)
+      }
+    },
+  },
 
   methods: {
     formatElapsed,
@@ -555,9 +565,10 @@ export default {
       this.inputTime = formatTime(time, tz)
     },
 
-    emitQuery() {
-      this.$emit('query', null)
+    onShowInput(ev) {
+      this.$set(this.query_, 'show', COUNTS[ev])
     },
+
   },
 
 }

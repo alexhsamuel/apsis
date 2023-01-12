@@ -8,13 +8,14 @@ div
   //- The table of runs.
   RunsList(
     :query="query"
-    @query="updateUrl"
+    @query="onQueryChange"
     :timeControls="true"
   )
 
 </template>
 
 <script>
+import { isEqual } from 'lodash'
 import RunsList from '@/components/RunsList'
 
 /** Strips off all occurrences of `suffix` at the end of `string`.  */
@@ -46,51 +47,9 @@ export default {
   },
 
   methods: {
-    /** Updates the route URL query from the runs query.  */
-    updateUrl() {
-      const joinWords = (words) => words ? words.join(',') : null
-
-      const oldQuery = this.$route.query
-      var query = {...oldQuery}
-      var changed = false
-      // Set a param, and marks changes.  If val is undefined, sets the param
-      // without value.  If val is null, removes the param.  Note that in
-      // the URL query object, a _null_ value indicates set without value.
-      function set(param, val) {
-        if (val)
-          val = val.trim()
-
-        if (val === null && oldQuery[param] !== undefined) {
-          // Remove.
-          delete query[param]
-          changed = true
-        }
-        else if (val === undefined && oldQuery[param] !== null) {
-          // Set without value.
-          query[param] = null
-          changed = true
-        }
-        else if (oldQuery[param] !== val) {
-          // Add.
-          query[param] = val === undefined ? null : val
-          changed = true
-        }
-      } 
-
-      set('path', this.query.path || null)
-      set('keywords', joinWords(this.query.keywords))
-      set('labels', joinWords(this.query.labels))
-      set('states', joinWords(this.query.states))
-      set('args', joinWords(this.query.args))
-      set('grouping', this.query.grouping ? undefined : null)
-      set('show', this.query.show === 50 ? null : this.query.show)
- 
-      if (changed) {
-        console.log('push', query)
-        this.$router.push({ query })
-      }
-    },
-
+    /**
+     * Converts the query part of a URL to a query object for RunsList.
+     */
     urlToQuery(url) {
       const splitWords = (param) => param ? param.split(',') : null
       return {
@@ -102,6 +61,40 @@ export default {
         grouping: url.grouping === null,
         show: url.show || 50,
       }
+    },
+
+    /**
+     * Renders the query object from RunsList as the query part of a URL.
+     */
+    queryToUrl(query) {
+      const url = {}
+      function set(param, val) {
+        if (val === undefined)
+          ;
+        else if (val === null)
+          url[param] = null
+        else
+          url[param] = val.toString().trim()
+      }
+
+      const joinWords = (words) => words ? words.join(',') : undefined
+      set('path', query.path || undefined)
+      set('keywords', joinWords(query.keywords))
+      set('labels', joinWords(query.labels))
+      set('states', joinWords(query.states))
+      set('args', joinWords(query.args))
+      set('grouping', query.grouping ? null : undefined)
+      set('show', query.show === 50 ? undefined : query.show)
+      return url
+    },
+
+    onQueryChange(query) {
+      // Convert the RunsList query to URL query.  If anything has changed,
+      // push this to the router to update the browser URL and push an element
+      // onto the undo stack.
+      const url = this.queryToUrl(query)
+      if (!isEqual(this.$route.query, url))
+        this.$router.push({ query: url })
     },
 
     onShowJobs() {
