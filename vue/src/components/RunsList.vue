@@ -1,7 +1,4 @@
 // Todo:
-// - wire up to RunsView URL:
-//   - order
-// - only update view URL on _change_, not on _input_
 // - help buttons for some controls
 // - always show something in Date / Time input
 // - fix CSS
@@ -92,12 +89,12 @@ div
       .label Order:
       div
         button.toggle.left(
-          :disabled="asc"
-          v-on:click="asc = true"
+          :disabled="query_.asc"
+          v-on:click="query_.asc = true"
         ) &nbsp; Time &#8681;
         button.toggle.right(
-          :disabled="!asc"
-          v-on:click="asc = false"
+          :disabled="!query_.asc"
+          v-on:click="query_.asc = false"
         ) &nbsp; Time &#8679;
 
       .label
@@ -140,13 +137,13 @@ div
       tr(v-if="groups.groups.length == 0")
         td.note(colspan="9") No runs.
 
-      tr(v-if="(asc ? groups.earlierCount : groups.laterCount) > 0")
+      tr(v-if="(query_.asc ? groups.earlierCount : groups.laterCount) > 0")
         td.note(colspan="9")
-          | {{ asc ? groups.earlierCount : groups.laterCount }}
-          | {{ asc ? 'earlier' : 'later' }} rows not shown
+          | {{ query_.asc ? groups.earlierCount : groups.laterCount }}
+          | {{ query_.asc ? 'earlier' : 'later' }} rows not shown
           button(
-            v-on:click="showTime(asc ? groups.earlierTime : groups.laterTime)"
-          ) {{ asc ? 'Earlier' : 'Later' }}
+            v-on:click="showTime(query._asc ? groups.earlierTime : groups.laterTime)"
+          ) {{ query_.asc ? 'Earlier' : 'Later' }}
 
       template(v-for="run, i in groups.groups")
         tr(v-if="i === groups.nowIndex")
@@ -196,13 +193,13 @@ div
                 :button="true"
               )
 
-      tr(v-if="(asc ? groups.laterCount : groups.earlierCount) > 0")
+      tr(v-if="(query_.asc ? groups.laterCount : groups.earlierCount) > 0")
         td.note(colspan="9")
-          | {{ asc ? groups.laterCount : groups.earlierCount }}
-          | {{ asc ? 'later' : 'earlier' }} rows not shown
+          | {{ query_.asc ? groups.laterCount : groups.earlierCount }}
+          | {{ query_.asc ? 'later' : 'earlier' }} rows not shown
           button(
-            v-on:click="showTime(asc ? groups.laterTime : groups.earlierTime)"
-          ) {{ asc ? 'Later' : 'Earler' }}
+            v-on:click="showTime(query_.asc ? groups.laterTime : groups.earlierTime)"
+          ) {{ query_.asc ? 'Later' : 'Earler' }}
 
 </template>
 
@@ -314,7 +311,6 @@ export default {
     return { 
       store,
       time: 'now',
-      asc: true,
       inputTime: '',
       // If true, show profiling on console.log.
       profile: false,
@@ -325,9 +321,6 @@ export default {
   },
 
   computed: {
-    earlierRow() { return this.asc ? 1 : 3 },
-    laterRow() { return this.asc ? 3 : 1 },
-
     /** Runs, after filtering.  */
     runs() {
       let runs = Array.from(this.store.state.runs.values())
@@ -475,7 +468,7 @@ export default {
       if (runs.length > 0 && runs[0].time_key < now && now < runs[runs.length - 1].time_key)
         nowIndex = sortedIndexBy(runs, { time_key: now }, r => r.time_key)
 
-      if (!this.asc)
+      if (!this.query_.asc)
         runs.reverse()
 
       if (this.profile)

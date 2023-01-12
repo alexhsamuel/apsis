@@ -61,6 +61,7 @@ export default {
         grouping: url.grouping === null,
         show: url.show || 50,
         time: url.time || 'now',
+        asc: url.asc !== null,
       }
     },
 
@@ -87,6 +88,7 @@ export default {
       set('grouping', query.grouping ? null : undefined)
       set('show', query.show === 50 ? undefined : query.show)
       set('time', query.time === 'now' ? undefined : query.time)
+      set('asc', query.asc ? undefined : null)
       return url
     },
 
