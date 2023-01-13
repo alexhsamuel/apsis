@@ -10,22 +10,34 @@
 div
   div.controls
     template.job-controls
-      .label Keywords:
+      .label 
+        | Keywords:
+        HelpButton
+          p Syntax: <b>keyword keyword&hellip;</b>
+          p Show only runs whose job ID matches at least one <b>keyword</b>.
       WordsInput(
         v-model="query_.keywords"
+      )
+      .label
+        | Labels:
+        HelpButton
+          p Syntax: <b>label label&hellip;</b>
+          p Show only runs with at least one <b>label</b>.
+      WordsInput(
+        v-model="query_.labels"
       )
       .label Job Path:
       PathNav(
         :path="query_.path"
         @path="query_.path = $event"
       )
-      .label Labels:
-      WordsInput(
-        v-model="query_.labels"
-      )
 
     template.run-controls
-      .label Run Args:
+      .label
+        | Run Args:
+        HelpButton
+          p Syntax: <b>arg=value arg=value&hellip;</b>
+          p Show only runs which have all run args <b>arg</b> set to corresponding <b>value</b>.
       WordsInput(
         v-model="query_.args"
       )
@@ -33,16 +45,26 @@ div
       StatesSelect(
         v-model="query_.states"
       )
-      div.tooltip
-        label Group Runs:
-        span.tooltiptext
-          | Group scheduled runs by job ID and args.
-          br
-          | Group completed runs by job ID and args.
-      input(
-        type="checkbox"
-        v-model="query_.grouping"
-      )
+      .label
+        | Repeated:
+        HelpButton
+          p How to present repeated runs, <i>i.e.</i> runs with the same job ID and run args.
+          p <b>Show</b> each run individually.
+          p <b>Hide</b> repeated runs, combined by run state:
+            ul
+              li Hide all completed runs before the latest completed.
+              li Hide all scheduled runs after the earliest scheduled.
+              li Show all runs in other states.
+            | An additional column shows the number of hidden runs.
+      div
+        button.toggle.left(
+          :disabled="!query_.grouping"
+          @click="query_.grouping = false"
+        ) Show
+        button.toggle.left(
+          :disabled="query_.grouping"
+          @click="query_.grouping = true"
+        ) Hide
 
     template.time-controls(v-if="timeControls")
       //- Number of runs to show.
@@ -57,7 +79,12 @@ div
           div {{ count }} runs
 
       //- Show Time and earier / now / later buttons.
-      .label Time:
+      .label
+        | Time:
+        HelpButton
+          p Show the runs nearest this time, immediately before and after.
+          p <b>Now</b> tracks the current time.
+          p Specify another date and/or time. The arrows page backward or forward.
       div(style="display: flex;")
         button(
           style="padding: 0 4px; border-top-right-radius: 0; border-bottom-right-radius: 0;"
@@ -82,7 +109,10 @@ div
       div
       div
 
-      .label Order:
+      .label
+        | Order:
+        HelpButton
+          p Show runs in descending or ascending time order.
       div
         button.toggle.left(
           :disabled="query_.asc"
@@ -123,7 +153,7 @@ div
         th.col-args(v-if="argColumnStyle == 'combined'") Args
         th.col-run Run
         th.col-state State
-        th.col-group(v-if="query_.grouping") Group
+        th.col-group(v-if="query_.grouping") Hidden
         th.col-schedule-time Schedule
         th.col-start-time Start
         th.col-elapsed Elapsed
@@ -205,6 +235,7 @@ import { entries, filter, flatten, groupBy, includes, keys, map, sortBy, sortedI
 import { formatDuration, formatElapsed, formatTime, parseTime } from '../time'
 import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
+import HelpButton from '@/components/HelpButton'
 import Job from '@/components/Job'
 import JobLabel from '@/components/JobLabel'
 import OperationButton from '@/components/OperationButton'
@@ -288,6 +319,7 @@ export default {
   components: {
     DropList,
     HamburgerMenu,
+    HelpButton,
     Job,
     JobLabel,
     OperationButton,
@@ -580,6 +612,7 @@ export default {
 
   .label {
     text-align: right;
+    white-space: nowrap;
   }
 
   .field {
