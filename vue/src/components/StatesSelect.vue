@@ -109,7 +109,9 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>@import 'src/styles/vars.scss';
+<style lang="scss" scoped>
+@import 'src/styles/vars.scss';
+
 .value {
   box-sizing: border-box;
   width: 16em;
