@@ -1,7 +1,7 @@
 <template lang="pug">
-   svg(viewBox="0 000 1800 1800", xmlns="http://www.w3.org/2000/svg" width="1rem" style="position: relative; top: 2px;")
+   svg(viewBox="0 000 1800 1800", xmlns="http://www.w3.org/2000/svg" style="width: 1rem;")
       path(
-        d="M 300 500 H 1500 M 300 900 H 1500 M 300 1300 H 1500"
+        d="M 300 700 H 1500 M 300 1100 H 1500 M 300 1500 H 1500"
         :stroke="color"
         stroke-width="100"
         stroke-linecap="round"
