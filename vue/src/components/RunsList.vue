@@ -670,6 +670,10 @@ export default {
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
     }
+    &:hover {
+      background: $control-hover-color;
+      border-color: $control-hover-border;
+    }
   }
 
   button {

@@ -110,8 +110,8 @@ tt {
   // text-transform: uppercase;
 
   &:hover:not(:disabled) {
-    background: #90e0a0;
-    border-color: #b2b2b2;
+    background: $control-hover-color;
+    border-color: $control-hover-border;
   }
 
   &.button-danger {
