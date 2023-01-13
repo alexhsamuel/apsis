@@ -689,6 +689,11 @@ export default {
   button {
     text-align: center;
     height: 100%;
+
+    svg {
+      height: 100%;
+      vertical-align: center;
+    }
   }
 
   input[type="checkbox"] {
