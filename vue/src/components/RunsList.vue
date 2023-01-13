@@ -17,7 +17,7 @@ div
         )
         HelpButton
           p Syntax: <b>keyword keyword&hellip;</b>
-          p Show only runs whose job ID matches at least one <b>keyword</b>.
+          p Show only runs whose job ID contains each <b>keyword</b>.
 
       div
         .label Labels:
@@ -26,7 +26,7 @@ div
         )
         HelpButton
           p Syntax: <b>label label&hellip;</b>
-          p Show only runs with at least one <b>label</b>.
+          p Show only runs with each <b>label</b>.
 
       div
         .label Job Path:
@@ -266,11 +266,24 @@ import WordsInput from '@/components/WordsInput'
 
 const COUNTS = [20, 50, 100, 200, 500, 1000]
 
-function includesAny(arr0, arr1) {
+/**
+ * Returns true if each member of `keywords` is a substring of `string`.
+ */
+function matchKeywords(keywords, string) {
+  for (const keyword of keywords)
+    if (string.indexOf(keyword) === -1)
+      return false
+  return true
+}
+
+/**
+ * Returns true if each members of `arr0` is in `arr1`.
+ */
+function includesAll(arr0, arr1) {
   for (const el of arr0)
-    if (arr1.includes(el))
-      return true
-  return false
+    if (!arr1.includes(el))
+      return false
+  return true
 }
 
 /**
@@ -376,13 +389,11 @@ export default {
       if (this.query_.states)
         runs = filter(runs, run => includes(this.query_.states, run.state))
       if (this.query_.labels)
-        runs = filter(runs, run => includesAny(this.query_.labels, run.labels))
+        runs = filter(runs, run => includesAll(this.query_.labels, run.labels))
       if (this.query_.args) 
         runs = filter(runs, getArgPredicate(this.query_.args))
-      if (this.query_.keywords) {
-        const re = new RegExp(this.query_.keywords.join('|'))
-        runs = filter(runs, run => run.job_id.search(re) !== -1)
-      }
+      if (this.query_.keywords)
+        runs = filter(runs, run => matchKeywords(this.query_.keywords, run.job_id))
 
       return sortBy(runs, r => r.time_key)
     },
