@@ -1,5 +1,4 @@
 // Todo:
-// - ESC clears WordsInput
 // - add reset filters button
 // - add down arrow to droplists
 // - button for showing/hiding controls

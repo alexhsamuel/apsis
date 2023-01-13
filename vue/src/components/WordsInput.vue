@@ -2,6 +2,7 @@
   input(
     v-model="text"
     @change="onChange"
+    @keyup.escape="text = ''; onChange()"
   )
 </template>
 
