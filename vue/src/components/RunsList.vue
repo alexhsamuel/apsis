@@ -1,7 +1,5 @@
 // Todo:
 // - help buttons for some controls
-// - always show something in Date / Time input
-// - fix CSS
 // - add down arrow to droplists
 // - button for showing/hiding controls
 // - fix up job view
