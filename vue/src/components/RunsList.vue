@@ -1,5 +1,6 @@
 // Todo:
-// - help buttons for some controls
+// - ESC clears WordsInput
+// - add reset filters button
 // - add down arrow to droplists
 // - button for showing/hiding controls
 // - fix up job view
@@ -9,126 +10,139 @@
 <template lang="pug">
 div
   div.controls
-    template.job-controls
-      .label 
-        | Keywords:
+    template
+      div
+        .label Keywords:
+        WordsInput(
+          v-model="query_.keywords"
+        )
         HelpButton
           p Syntax: <b>keyword keyword&hellip;</b>
           p Show only runs whose job ID matches at least one <b>keyword</b>.
-      WordsInput(
-        v-model="query_.keywords"
-      )
-      .label
-        | Labels:
+
+      div
+        .label Labels:
+        WordsInput(
+          v-model="query_.labels"
+        )
         HelpButton
           p Syntax: <b>label label&hellip;</b>
           p Show only runs with at least one <b>label</b>.
-      WordsInput(
-        v-model="query_.labels"
-      )
-      .label Job Path:
-      PathNav(
-        :path="query_.path"
-        @path="query_.path = $event"
-      )
 
-    template.run-controls
-      .label
-        | Run Args:
+      div
+        .label Job Path:
+        PathNav(
+          :path="query_.path"
+          @path="query_.path = $event"
+        )
+
+    template
+      div
+        .label Run Args:
+        WordsInput(
+          v-model="query_.args"
+        )
         HelpButton
           p Syntax: <b>arg=value arg=value&hellip;</b>
           p Show only runs which have all run args <b>arg</b> set to corresponding <b>value</b>.
-      WordsInput(
-        v-model="query_.args"
-      )
-      .label States:
-      StatesSelect(
-        v-model="query_.states"
-      )
-      .label
-        | Repeated:
-        HelpButton
-          p How to present repeated runs, <i>i.e.</i> runs with the same job ID and run args.
-          p <b>Show</b> each run individually.
-          p <b>Hide</b> repeated runs, combined by run state:
-            ul
-              li Hide all completed runs before the latest completed.
-              li Hide all scheduled runs after the earliest scheduled.
-              li Show all runs in other states.
-            | An additional column shows the number of hidden runs.
-      div
-        button.toggle.left(
-          :disabled="!query_.grouping"
-          @click="query_.grouping = false"
-        ) Show
-        button.toggle.left(
-          :disabled="query_.grouping"
-          @click="query_.grouping = true"
-        ) Hide
 
-    template.time-controls(v-if="timeControls")
-      //- Number of runs to show.
-      .label Show:
-      DropList.counts(
-        :value="1"
-        @input="onShowInput"
-      )
-        div(
-          v-for="count in COUNTS"
+      div
+        .label States:
+        StatesSelect(
+          v-model="query_.states"
         )
-          div {{ count }} runs
+
+      div
+        .label Repeated:
+        div
+          button.toggle.left(
+            :disabled="!query_.grouping"
+            @click="query_.grouping = false"
+          ) Show
+          button.toggle.right(
+            :disabled="query_.grouping"
+            @click="query_.grouping = true"
+          ) Hide
+          | &nbsp;
+          HelpButton
+            p How to present repeated runs, <i>i.e.</i> runs with the same job ID and run args.
+            p <b>Show</b> each run individually.
+            p <b>Hide</b> repeated runs, combined by run state:
+              ul
+                li Hide all completed runs before the latest completed.
+                li Hide all scheduled runs after the earliest scheduled.
+                li Show all runs in other states.
+              | An additional column shows the number of hidden runs.
+
+    template(v-if="timeControls")
+      //- Number of runs to show.
+      div
+        .label Show:
+        DropList.counts(
+          :value="1"
+          @input="onShowInput"
+          style="max-width: 9.5em;"
+        )
+          div(
+            v-for="count in COUNTS"
+          )
+            div {{ count }} runs
 
       //- Show Time and earier / now / later buttons.
-      .label
-        | Time:
+      div
+        .label Time:
+        div(style="display: flex; height: 100%;")
+          button(
+            style="padding: 0 4px; border-top-right-radius: 0; border-bottom-right-radius: 0;"
+            v-on:click="showTime(groups.earlierTime)"
+            :disabled="groups.earlierCount == 0"
+          )
+            TriangleIcon(
+              direction="left"
+            )
+          TimeInput(
+            v-model="query_.time"
+          )
+          button(
+            style="padding: 0 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"
+            v-on:click="showTime(groups.laterTime)"
+            :disabled="groups.laterCount == 0"
+          )
+            TriangleIcon(
+              direction="right"
+            )
         HelpButton
           p Show the runs nearest this time, immediately before and after.
           p <b>Now</b> tracks the current time.
           p Specify another date and/or time. The arrows page backward or forward.
-      div(style="display: flex;")
-        button(
-          style="padding: 0 4px; border-top-right-radius: 0; border-bottom-right-radius: 0;"
-          v-on:click="showTime(groups.earlierTime)"
-          :disabled="groups.earlierCount == 0"
-        )
-          TriangleIcon(
-            direction="left"
-          )
-        TimeInput(
-          v-model="query_.time"
-        )
-        button(
-          style="padding: 0 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"
-          v-on:click="showTime(groups.laterTime)"
-          :disabled="groups.laterCount == 0"
-        )
-          TriangleIcon(
-            direction="right"
-          )
+
+      div &nbsp;
 
       div
-      div
+        .label Order:
+        div
+          button.toggle.left(
+            :disabled="query_.asc"
+            v-on:click="query_.asc = true"
+          ) &nbsp; Time &#8681;
+          button.toggle.right(
+            :disabled="!query_.asc"
+            v-on:click="query_.asc = false"
+          ) &nbsp; Time &#8679;
+          | &nbsp;
+          HelpButton
+            p Show runs in descending or ascending time order.
+        div &nbsp;
 
-      .label
-        | Order:
-        HelpButton
-          p Show runs in descending or ascending time order.
       div
-        button.toggle.left(
-          :disabled="query_.asc"
-          v-on:click="query_.asc = true"
-        ) &nbsp; Time &#8681;
-        button.toggle.right(
-          :disabled="!query_.asc"
-          v-on:click="query_.asc = false"
-        ) &nbsp; Time &#8679;
+        .label &nbsp
+        div(style="display: grid; width: 100%; grid-template-columns: 1fr 1em 1fr;")
+          span(style="justify-self: start") {{ formatTime(groups.earlierTime) }}
+          span &mdash;
+          span(style="justify-self: end") {{ formatTime(groups.laterTime) }}
+        div &nbsp;
 
-      .label
-        | Showing time:
-      .label
-        | {{ formatTime(groups.earlierTime) }}
-        | &mdash;
-        | {{ formatTime(groups.laterTime) }}
+      div &nbsp;
 
 
   table.runlist
@@ -492,12 +506,15 @@ export default {
         }
       }
 
-      let nowIndex
+      var nowIndex
       if (runs.length > 0 && runs[0].time_key < now && now < runs[runs.length - 1].time_key)
         nowIndex = sortedIndexBy(runs, { time_key: now }, r => r.time_key)
 
-      if (!this.query_.asc)
+      if (!this.query_.asc) {
         runs.reverse()
+        if (nowIndex)
+          nowIndex = runs.length - nowIndex
+      }
 
       if (this.profile)
         console.log(
@@ -590,24 +607,36 @@ export default {
 <style lang="scss" scoped>
 @import '@/styles/index.scss';
 
+
 .controls {
   display: grid;
   max-width: 80rem;
-  grid-template-columns: repeat(3, 0fr 1fr);
+  grid-template-columns: repeat(3, 1fr);
 
-  gap: 4px 12px;
+  gap: 8px 1.5em;
   justify-items: left;
   align-items: baseline;
   white-space: nowrap;
   line-height: 28px;
   margin-bottom: 21px;
   
-  > * {
-    height: 30px;
-  }
-
   > input {
     width: 100%;
+  }
+
+  > div {
+    display: grid;
+    height: 30px;
+    width: 100%;
+    grid-template-columns: 5em 1fr 1em;
+    justify-items: left;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 4px;
+
+    > div:not(.label) {
+      height: 100%;
+    }
   }
 
   .label {
@@ -628,14 +657,18 @@ export default {
   .toggle {
     padding: 0 12px;
     &:disabled {
-      color: black;
-      background: #f0f0f0;
+      background: $global-select-background;
     }
-    &.left:not(:hover) {
-      border-right-color: transparent;
+    &:not(:disabled) {
+      background: white;
     }
-    &.right:not(:hover) {
-      border-left-color: transparent;
+    &.left {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    &.right{
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
     }
   }
 

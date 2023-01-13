@@ -122,7 +122,7 @@ export default {
 .value {
   box-sizing: border-box;
   width: 100%;
-  height: 28px;
+  height: 100%;
   background: white;
   border: 1px solid $global-frame-color;
   padding: 0px 12px;
@@ -153,7 +153,7 @@ export default {
   padding-bottom: 4px;
 
   div {
-    padding: 6px 12px;
+    padding: 3px 12px;
   }
 
   :hover {

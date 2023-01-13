@@ -36,7 +36,6 @@ export default {
 @import 'src/styles/vars.scss';
 
 .base {
-  margin-left: 0.25em;
   display: inline-block;
   vertical-align: middle;
 }

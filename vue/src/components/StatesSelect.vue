@@ -117,7 +117,7 @@ export default {
   width: 16em;
   background: white;
   border: 1px solid $global-frame-color;
-  padding: 4px 12px 3px 12px;
+  padding: 0 12px;
   text-transform: uppercase;
 
   display: inline-flex;
