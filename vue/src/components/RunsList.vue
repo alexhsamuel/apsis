@@ -67,7 +67,6 @@ div
           :disabled="groups.earlierCount == 0"
         )
           TriangleIcon(
-            style="width: 1rem;"
             direction="left"
           )
         TimeInput(
@@ -79,7 +78,6 @@ div
           :disabled="groups.laterCount == 0"
         )
           TriangleIcon(
-            style="width: 1rem;"
             direction="right"
           )
 
