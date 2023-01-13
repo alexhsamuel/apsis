@@ -697,7 +697,7 @@ table {
   @extend .widetable;
 
   .note {
-    height: 24px;
+    height: 40px;
 
     button {
       margin-left: 8px;
