@@ -141,7 +141,12 @@ div
           span(style="justify-self: end") {{ formatTime(groups.laterTime) }}
         div &nbsp;
 
-      div &nbsp;
+      div
+        button(
+          @click="onReset"
+        ) Reset Filters
+        div &nbsp;
+        div &nbsp;
 
 
   table.runlist
@@ -609,6 +614,9 @@ export default {
       this.$set(this.query_, 'show', COUNTS[ev])
     },
 
+    onReset() {
+      this.$emit('query', {})
+    }
   },
 
 }
@@ -623,7 +631,7 @@ export default {
   max-width: 80rem;
   grid-template-columns: repeat(3, 1fr);
 
-  gap: 8px 1.5em;
+  gap: 8px 2em;
   justify-items: left;
   align-items: baseline;
   white-space: nowrap;
