@@ -23,7 +23,6 @@ export default {
 
   computed: {
     input() {
-      console.log('input for', this.value)
       return (
         this.value === 'now' ? '' 
         : formatTime(new Date(this.value), store.state.timeZone)
