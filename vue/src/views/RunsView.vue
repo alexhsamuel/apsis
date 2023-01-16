@@ -60,7 +60,7 @@ export default {
         states: splitWords(url.states),
         args: url.args ? arrayToArgs(splitWords(url.args)) : null,
         grouping: url.grouping === null,
-        show: url.show || 50,
+        show: url.show ? parseInt(url.show) : 50,
         time: url.time || 'now',
         asc: url.asc !== null,
       }
