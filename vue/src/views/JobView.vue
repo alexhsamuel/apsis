@@ -17,8 +17,9 @@ div.component
 
   Frame(title="Runs")
     RunsList(
-      :path="job_id" 
-      :showJob="false"
+      :query="{path: job_id, show: 20}" 
+      :show-job="false"
+      :job-controls="false"
       argColumnStyle="separate"
       style="max-height: 28rem; overflow-y: auto;"
     )

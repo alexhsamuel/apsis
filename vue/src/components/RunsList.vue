@@ -2,8 +2,8 @@
 // - add reset filters button
 // - add down arrow to droplists
 // - button for showing/hiding controls
-// - fix up job view
-// - fix up run view
+// - clean up visuals
+// - fix slashes in URL job paths
 // - get rid of runs filter
 
 <template lang="pug">
