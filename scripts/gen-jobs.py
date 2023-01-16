@@ -17,23 +17,19 @@ MAX_JOB_ID_DEPTH = 3
 
 LABELS = ("foo", "bar", "baz", "bif")
 
+PROB_ARG = 0.05
+ARGS = {
+    "fruit": ("apple", "pear", "kiwi", "mango"),
+    "hue": ("red", "blue", "green", "yellow"),
+}
+
 #--------------------------------------------------------------------------------
 
 def random_daytime():
     return str(ora.Daytime.from_ssm(random.randint(0, 86399)))
 
-#--------------------------------------------------------------------------------
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "num", metavar="NUM", type=int,
-    help="generate NUM jobs")
-parser.add_argument(
-    "--output", metavar="DIR", type=Path, default=Path("./jobs"),
-    help="generate to DIR [def: ./jobs]")
-args = parser.parse_args()
-
-for _ in range(args.num):
+def gen_job():
     params = []
 
     labels = list({
@@ -67,7 +63,12 @@ for _ in range(args.num):
         }
         params.append("date")
 
-    job = {
+    for param, args in ARGS.items():
+        if random.random() < PROB_ARG:
+            params.append(param)
+            schedule.setdefault("args", {})[param] = random.choice(args)
+
+    return {
         "metadata": {
             "labels": labels,
         },
@@ -76,7 +77,9 @@ for _ in range(args.num):
         "schedule": schedule,
     }
 
-    job_id = "/".join((
+
+def gen_job_id():
+    return "/".join((
         *(
             f"group{random.randint(0, 100)}"
             for _ in range(random.randint(0, MAX_JOB_ID_DEPTH))
@@ -84,6 +87,21 @@ for _ in range(args.num):
         f"job{random.randint(0, 100000)}"
     ))
 
+
+#--------------------------------------------------------------------------------
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "num", metavar="NUM", type=int,
+    help="generate NUM jobs")
+parser.add_argument(
+    "--output", metavar="DIR", type=Path, default=Path("./jobs"),
+    help="generate to DIR [def: ./jobs]")
+args = parser.parse_args()
+
+for _ in range(args.num):
+    job = gen_job()
+    job_id = gen_job_id()
     path = (args.output / job_id).with_suffix(".yaml")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as file:
