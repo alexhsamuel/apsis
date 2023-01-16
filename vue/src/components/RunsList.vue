@@ -9,7 +9,7 @@
 <template lang="pug">
 div
   div.controls
-    template
+    template(v-if="jobControls")
       div
         .label Keywords:
         WordsInput(
@@ -35,7 +35,7 @@ div
           @path="query_.path = $event"
         )
 
-    template
+    template(v-if="runControls")
       div
         .label Run Args:
         WordsInput(
@@ -79,8 +79,8 @@ div
       div
         .label Show:
         DropList.counts(
-          :value="1"
-          @input="onShowInput"
+          :value="showIndex"
+          @input="query_.show = COUNTS[$event]"
           style="max-width: 9.5em;"
         )
           div(
@@ -142,12 +142,12 @@ div
           span(style="justify-self: end") {{ formatTime(groups.laterTime) }}
         div &nbsp;
 
-      div
-        button(
-          @click="onReset"
-        ) Reset Filters
-        div &nbsp;
-        div &nbsp;
+      //- div
+      //-   button(
+      //-     @click="onReset"
+      //-   ) Reset Filters
+      //-   div &nbsp;
+      //-   div &nbsp;
 
 
   table.runlist
@@ -337,7 +337,9 @@ export default {
     // - 'none' for no args at all, suitable for runs of a single (job, args)
     argColumnStyle : {type: String, default: 'combined'},
 
-    timeControls: {type: Boolean, default: false},
+    jobControls: {type: Boolean, default: true},
+    runControls: {type: Boolean, default: true},
+    timeControls: {type: Boolean, default: true},
   },
 
   components: {
@@ -360,6 +362,7 @@ export default {
   },
 
   data() {
+    console.log('data: query =', this.query)
     return { 
       store,
       time: 'now',
@@ -375,7 +378,7 @@ export default {
         show: 50,
         time: 'now',
         grouping: false,   // don't hide repeated runs
-        asc: false,        // show time descending
+        asc: true,        // show time descending
         ...this.query
       },
 
@@ -384,6 +387,11 @@ export default {
   },
 
   computed: {
+    showIndex() {
+      console.log('showIndex', this.query_.show, '->', COUNTS.indexOf(this.query_.show))
+      return COUNTS.indexOf(this.query_.show)
+    },
+
     /** Runs, after filtering.  */
     runs() {
       let runs = Array.from(this.store.state.runs.values())
@@ -614,10 +622,6 @@ export default {
       this.query_.time = time.format()
       // Replace the input field with the full canonicalized time.
       this.inputTime = formatTime(time, tz)
-    },
-
-    onShowInput(ev) {
-      this.$set(this.query_, 'show', COUNTS[ev])
     },
 
     onReset() {
