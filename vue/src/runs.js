@@ -87,3 +87,26 @@ export const STATES = [
 export function sortStates(states) {
   return sortBy(states, s => STATES.indexOf(s))
 }
+
+/**
+ * Converts a run args dict to an array of PARAM=VALUE strings.
+ */
+export function argsToArray(args) {
+  return Object.entries(args).map(([param, val]) => param + '=' + val)
+}
+
+/**
+ * Converts an array of PARAM=VALUE strings to an args dict.
+ */
+export function arrayToArgs(arr) {
+  const args = {}
+  for (const el of arr) {
+    const i = el.indexOf('=')
+    if (i === -1)
+      args[el] = null
+    else
+      args[el.slice(0, i)] = el.slice(i + 1)
+  }
+  return args
+}
+

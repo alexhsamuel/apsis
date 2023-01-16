@@ -16,6 +16,7 @@ div
 
 <script>
 import { isEqual } from 'lodash'
+import { argsToArray, arrayToArgs } from '@/runs'
 import RunsList from '@/components/RunsList'
 
 /** Strips off all occurrences of `suffix` at the end of `string`.  */
@@ -57,7 +58,7 @@ export default {
         keywords: splitWords(url.keywords),
         labels: splitWords(url.labels),
         states: splitWords(url.states),
-        args: splitWords(url.args),
+        args: url.args ? arrayToArgs(splitWords(url.args)) : null,
         grouping: url.grouping === null,
         show: url.show || 50,
         time: url.time || 'now',
@@ -79,7 +80,7 @@ export default {
           url[param] = val.toString().trim()
       }
 
-      const joinWords = (words) => words ? words.join(',') : undefined
+      const joinWords = (words) => words !== null ? argsToArray(words).join(',') : undefined
       set('path', query.path || undefined)
       set('keywords', joinWords(query.keywords))
       set('labels', joinWords(query.labels))

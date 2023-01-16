@@ -39,7 +39,8 @@ div
       div
         .label Run Args:
         WordsInput(
-          v-model="query_.args"
+          :value="query_.args !== null ? argsToArray(query_.args) : null"
+          @change="query_.args = $event ? arrayToArgs($event) : null"
         )
         HelpButton
           p Syntax: <b>arg=value arg=value&hellip;</b>
@@ -250,7 +251,8 @@ div
 <script>
 import { entries, filter, flatten, groupBy, includes, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
-import { formatDuration, formatElapsed, formatTime, parseTime } from '../time'
+import { argsToArray, arrayToArgs } from '@/runs'
+import { formatDuration, formatElapsed, formatTime, parseTime } from '@/time'
 import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
 import HelpButton from '@/components/HelpButton'
@@ -303,22 +305,13 @@ function includesAll(arr0, arr1) {
  * and also have any value at all ofr the "color" param.
  */
 function getArgPredicate(args) {
-  const argObj = {}
-  for (const arg of args) {
-    const i = arg.indexOf('=')
-    if (i === -1)
-      argObj[arg] = null
-    else
-      argObj[arg.slice(0, i)] = arg.slice(i + 1)
-  }
-
   return run => {
-    for (const param in argObj) {
+    for (const param in args) {
       const value = run.args[param]
       if (value === undefined)
         // Not present.
         return false
-      const ref = argObj[param]
+      const ref = args[param]
       if (ref !== null && value !== ref)
         // Wrong arg value.
         return false
@@ -373,7 +366,18 @@ export default {
       inputTime: '',
       // If true, show profiling on console.log.
       profile: false,
-      query_: {...this.query},
+      query_: {
+        path: null,
+        states: null,      // all states
+        labels: null,      // no label filters
+        args: null,        // no arg filters
+        keywords: null,    // no keyword filters
+        show: 50,
+        time: 'now',
+        grouping: false,   // don't hide repeated runs
+        asc: false,        // show time descending
+        ...this.query
+      },
 
       COUNTS,
     } 
@@ -476,7 +480,7 @@ export default {
       let laterTime = null
       let laterCount = 0
       const show = this.query_.show
-      if (this.timeControls && show < runs.length) {
+      if (show < runs.length) {
         // There are more runs than fit in the view.  Decide how many runs to
         // show before and after the center time.
         var r0 = timeIndex
@@ -564,6 +568,8 @@ export default {
 
   methods: {
     formatElapsed,
+    arrayToArgs,
+    argsToArray,
 
     historyCount(run, count) {
       return (
