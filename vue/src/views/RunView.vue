@@ -18,14 +18,15 @@ div
 
     Frame(title="Run History" closed)
       RunsList(
-        :path="run.job_id"
-        :args="run.args || {}"
-        :group-runs="false"
         :show-job="false"
         :max-completed-runs="12"
         :max-scheduled-runs="12"
         arg-column-style="separate"
         :highlight-run-id="run.run_id"
+        :job-controls="false"
+        :run-controls="false"
+        :time-controls="true"
+        :query="{show: 20, path: run.job_id, args: run.args || {}}"
         style="max-height: 28rem; overflow-y: auto;"
       )
 
