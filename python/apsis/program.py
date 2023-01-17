@@ -9,6 +9,7 @@ import traceback
 
 from   .agent.client import Agent, NoSuchProcessError
 from   .host_group import expand_host
+from   .lib.api import decompress
 from   .lib.json import TypedJso, check_schema
 from   .lib.py import or_none, nstr
 from   .lib.sys import get_username
@@ -43,13 +44,20 @@ class Output:
         :param metadata:
           Information about the data.
         :param data:
-          The data bytes.
+          The data bytes; these may be compressed.
         :pamam compression:
           The compresison type, or `None` for uncompressed.
         """
         self.metadata       = metadata
         self.data           = data
         self.compression    = compression
+
+
+    def get_uncompressed_data(self) -> bytes:
+        """
+        Returns the output data, decompressing if necessary.
+        """
+        return decompress(self.data, self.compression)
 
 
 

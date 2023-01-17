@@ -193,7 +193,7 @@ async def process_get_output(req, proc_id):
         case None:
             pass
         case "br":
-            data = brotli.compress(data)
+            data = brotli.compress(data, mode=brotli.MODE_TEXT, quality=5)
         case "deflate":
             data = zlib.compress(data)
         case "gzip":
