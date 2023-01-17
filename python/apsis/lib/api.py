@@ -32,6 +32,24 @@ def to_bool(string):
         raise ValueError(f"unknown bool: {string}")
 
 
+def decompress(data, compression) -> bytes:
+    """
+    Decompresses `data` assuming it is compressed with `compression`.
+    """
+    match compression:
+        case "br":
+            data = brotli.decompress(data)
+        case "deflate":
+            data = zlib.decompress(data)
+        case "gzip":
+            data = gzip.decompress(data)
+        case None:
+            pass
+        case _:
+            raise RuntimeError(f"can't decompress: {compression}")
+    return data
+
+
 def encode_response(headers, data, compression):
     """
     Encodes data for a response.
@@ -55,17 +73,7 @@ def encode_response(headers, data, compression):
 
     else:
         # Use identity, which is always implicitly acceptable.
-        match compression:
-            case "br":
-                data = brotli.decompress(data)
-            case "deflate":
-                data = zlib.decompress(data)
-            case "gzip":
-                data = gzip.decompress(data)
-            case None:
-                pass
-            case _:
-                raise RuntimeError(f"can't decompress: {compression}")
+        data = decompress(data, compression)
         encoding = "identity"
 
     return {"Content-Encoding": encoding}, data
