@@ -1,3 +1,4 @@
+import brotli
 from   contextlib import closing
 from   pathlib import Path
 import pytest
@@ -53,7 +54,11 @@ def test_large_output_compression(inst):
     res = client.get_run(run_id)
     assert res["state"] == "success"
 
-    # Examine the output in the database.
+    # Get the output from the client.
+    output = client.get_output(run_id, "output")
+    assert len(output) == 1048576
+
+    # Examine the output directly in the database.
     with sqlite3.connect(inst.db_path) as conn:
         cursor = conn.execute(
             """
@@ -70,5 +75,6 @@ def test_large_output_compression(inst):
         assert length == 1048576
         assert compression == "br"
         assert len(data) < 1024  # compresses real nice
+        assert len(brotli.decompress(data)) == 1048576
 
 
