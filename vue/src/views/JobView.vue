@@ -21,7 +21,7 @@ div.component
       :show-job="false"
       :job-controls="false"
       argColumnStyle="separate"
-      style="max-height: 28rem; overflow-y: auto;"
+      style="max-height: 60em; overflow-y: auto;"
     )
 
   Frame(title="Details")

@@ -27,7 +27,7 @@ div
         :run-controls="false"
         :time-controls="true"
         :query="{show: 20, path: run.job_id, args: run.args || {}}"
-        style="max-height: 28rem; overflow-y: auto;"
+        style="max-height: 60rem; overflow-y: auto;"
       )
 
     Frame(title="Details")
