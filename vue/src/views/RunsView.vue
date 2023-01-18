@@ -127,8 +127,3 @@ h3 {
 }
 </style>
 
-<style lang="scss" scoped>
-.search-input {
-  width: 50%;
-}
-</style>
