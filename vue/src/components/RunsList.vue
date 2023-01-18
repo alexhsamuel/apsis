@@ -2,6 +2,7 @@
 // - add reset filters button
 // - add down arrow to droplists
 // - button for showing/hiding controls
+// - get rid of underlined view switcher
 // - clean up visuals
 // - fix slashes in URL job paths
 // - get rid of runs filter
@@ -642,7 +643,7 @@ export default {
 }
 
 .controls {
-  max-width: calc(100% - 4em);
+  width: 80em;
   border: 1px solid $global-frame-color;
   padding: 16px 16px;
   margin-bottom: 1.5em;
