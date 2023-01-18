@@ -150,101 +150,102 @@ div
       //-   div &nbsp;
 
 
-  table.runlist
-    colgroup
-      col(v-if="showJob" style="min-width: 10rem")
-      template(v-if="argColumnStyle === 'separate'")
-        col(v-for="param in params")
-      col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
-      col(style="width: 4rem")
-      col(style="width: 4rem")
-      col(v-if="query_.grouping" style="width: 5rem")
-      col(style="width: 10rem")
-      col(style="width: 10rem")
-      col(style="width: 6rem")
-      col(style="width: 4rem")
-
-    thead
-      tr
-        th.col-job(v-if="showJob") Job
+  div.runlist
+    table.runlist
+      colgroup
+        col(v-if="showJob" style="min-width: 10rem")
         template(v-if="argColumnStyle === 'separate'")
-          th.col-arg(v-for="param in params") {{ param }}
-        th.col-args(v-if="argColumnStyle == 'combined'") Args
-        th.col-run Run
-        th.col-state State
-        th.col-group(v-if="query_.grouping") Hidden
-        th.col-schedule-time Schedule
-        th.col-start-time Start
-        th.col-elapsed Elapsed
-        th.col-operations Operations
+          col(v-for="param in params")
+        col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
+        col(style="width: 4rem")
+        col(style="width: 4rem")
+        col(v-if="query_.grouping" style="width: 5rem")
+        col(style="width: 10rem")
+        col(style="width: 10rem")
+        col(style="width: 6rem")
+        col(style="width: 4rem")
 
-    tbody
-      tr(v-if="groups.groups.length == 0")
-        td.note(colspan="9") No runs.
-
-      tr(v-if="(query_.asc ? groups.earlierCount : groups.laterCount) > 0")
-        td.note(colspan="9")
-          | {{ query_.asc ? groups.earlierCount : groups.laterCount }}
-          | {{ query_.asc ? 'earlier' : 'later' }} rows not shown
-          button(
-            v-on:click="showTime(query._asc ? groups.earlierTime : groups.laterTime)"
-          ) {{ query_.asc ? 'Earlier' : 'Later' }}
-
-      template(v-for="run, i in groups.groups")
-        tr(v-if="i === groups.nowIndex")
-          td(colspan="9")
-            .timeSeparator
-              div.border
-              div.now now
-              div.border
-
-        tr(:key="run.run_id")
-          //- Show job name if enabled by 'showJob' and this is the group run.
-          td.col-job(v-if="showJob")
-            //- Is this the group run?
-            Job(:job-id="run.job_id")
-            JobLabel(
-              v-for="label in run.labels || []"
-              :label="label"
-              :key="label"
-            )
-
+      thead
+        tr
+          th.col-job(v-if="showJob") Job
           template(v-if="argColumnStyle === 'separate'")
-            td(v-for="param in params") {{ run.args[param] || '' }}
-          //- Else all together.
-          td.col-args(v-if="argColumnStyle === 'combined'")
-            RunArgs(:args="run.args")
+            th.col-arg(v-for="param in params") {{ param }}
+          th.col-args(v-if="argColumnStyle == 'combined'") Args
+          th.col-run Run
+          th.col-state State
+          th.col-group(v-if="query_.grouping") Hidden
+          th.col-schedule-time Schedule
+          th.col-start-time Start
+          th.col-elapsed Elapsed
+          th.col-operations Operations
 
-          td.col-run
-            Run(:run-id="run.run_id")
-          td.col-state
-            State(:state="run.state")
-          //- FIXME: Click to run with history expanded.
-          td.col-group(v-if="query_.grouping")
-            | {{ historyCount(run, groups.counts[run.run_id]) }}
-          td.col-schedule-time
-            Timestamp(:time="run.times.schedule")
-          td.col-start-time
-            Timestamp(v-if="run.times.running" :time="run.times.running")
-          td.col-elapsed
-            RunElapsed(:run="run")
-          td.col-operations
-            HamburgerMenu(v-if="run.operations.length > 0")
-              OperationButton(
-                v-for="operation in run.operations" 
-                :key="operation"
-                :run_id="run.run_id"
-                :operation="operation" 
-                :button="true"
+      tbody
+        tr(v-if="groups.groups.length == 0")
+          td.note(colspan="9") No runs.
+
+        tr(v-if="(query_.asc ? groups.earlierCount : groups.laterCount) > 0")
+          td.note(colspan="9")
+            | {{ query_.asc ? groups.earlierCount : groups.laterCount }}
+            | {{ query_.asc ? 'earlier' : 'later' }} rows not shown
+            button(
+              v-on:click="showTime(query._asc ? groups.earlierTime : groups.laterTime)"
+            ) {{ query_.asc ? 'Earlier' : 'Later' }}
+
+        template(v-for="run, i in groups.groups")
+          tr(v-if="i === groups.nowIndex")
+            td(colspan="9")
+              .timeSeparator
+                div.border
+                div.now now
+                div.border
+
+          tr(:key="run.run_id")
+            //- Show job name if enabled by 'showJob' and this is the group run.
+            td.col-job(v-if="showJob")
+              //- Is this the group run?
+              Job(:job-id="run.job_id")
+              JobLabel(
+                v-for="label in run.labels || []"
+                :label="label"
+                :key="label"
               )
 
-      tr(v-if="(query_.asc ? groups.laterCount : groups.earlierCount) > 0")
-        td.note(colspan="9")
-          | {{ query_.asc ? groups.laterCount : groups.earlierCount }}
-          | {{ query_.asc ? 'later' : 'earlier' }} rows not shown
-          button(
-            v-on:click="showTime(query_.asc ? groups.laterTime : groups.earlierTime)"
-          ) {{ query_.asc ? 'Later' : 'Earler' }}
+            template(v-if="argColumnStyle === 'separate'")
+              td(v-for="param in params") {{ run.args[param] || '' }}
+            //- Else all together.
+            td.col-args(v-if="argColumnStyle === 'combined'")
+              RunArgs(:args="run.args")
+
+            td.col-run
+              Run(:run-id="run.run_id")
+            td.col-state
+              State(:state="run.state")
+            //- FIXME: Click to run with history expanded.
+            td.col-group(v-if="query_.grouping")
+              | {{ historyCount(run, groups.counts[run.run_id]) }}
+            td.col-schedule-time
+              Timestamp(:time="run.times.schedule")
+            td.col-start-time
+              Timestamp(v-if="run.times.running" :time="run.times.running")
+            td.col-elapsed
+              RunElapsed(:run="run")
+            td.col-operations
+              HamburgerMenu(v-if="run.operations.length > 0")
+                OperationButton(
+                  v-for="operation in run.operations" 
+                  :key="operation"
+                  :run_id="run.run_id"
+                  :operation="operation" 
+                  :button="true"
+                )
+
+        tr(v-if="(query_.asc ? groups.laterCount : groups.earlierCount) > 0")
+          td.note(colspan="9")
+            | {{ query_.asc ? groups.laterCount : groups.earlierCount }}
+            | {{ query_.asc ? 'later' : 'earlier' }} rows not shown
+            button(
+              v-on:click="showTime(query_.asc ? groups.laterTime : groups.earlierTime)"
+            ) {{ query_.asc ? 'Later' : 'Earler' }}
 
 </template>
 
@@ -634,19 +635,26 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/styles/index.scss';
-
+.runs-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
 
 .controls {
-  display: grid;
-  max-width: 80rem;
-  grid-template-columns: repeat(3, 1fr);
+  max-width: calc(100% - 4em);
+  border: 1px solid $global-frame-color;
+  padding: 16px 16px;
+  margin-bottom: 1.5em;
 
-  gap: 8px 2em;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 2em;
   justify-items: left;
   align-items: baseline;
+
   white-space: nowrap;
   line-height: 28px;
-  margin-bottom: 21px;
   
   > input {
     width: 100%;
@@ -726,8 +734,12 @@ export default {
   }
 }
 
-table {
+table.runlist {
   @extend .widetable;
+
+  thead {
+    position: sticky;
+  }
 
   .note {
     height: 40px;

@@ -53,6 +53,7 @@ export default {
 <style lang="scss" scoped>
 .top {
   display: flex;
+  flex-direction: row;
 }
 
 input {
