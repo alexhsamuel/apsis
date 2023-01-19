@@ -82,7 +82,7 @@ div
       div
         .label Show:
         DropList.counts(
-          :value="showIndex"
+          :value="COUNTS.indexOf(query_.show)"
           @input="query_.show = COUNTS[$event]"
           style="max-width: 9.5em;"
         )
@@ -253,7 +253,7 @@ div
 </template>
 
 <script>
-import { entries, filter, flatten, groupBy, includes, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
+import { entries, filter, flatten, groupBy, includes, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
 import { argsToArray, arrayToArgs } from '@/runs'
 import { formatDuration, formatElapsed, formatTime, parseTime } from '@/time'
@@ -366,7 +366,6 @@ export default {
   },
 
   data() {
-    console.log('data: query =', this.query)
     return { 
       store,
       time: 'now',
@@ -391,11 +390,6 @@ export default {
   },
 
   computed: {
-    showIndex() {
-      console.log('showIndex', this.query_.show, '->', COUNTS.indexOf(this.query_.show))
-      return COUNTS.indexOf(this.query_.show)
-    },
-
     /** Runs, after filtering.  */
     runs() {
       let runs = Array.from(this.store.state.runs.values())
@@ -569,10 +563,29 @@ export default {
   },
   
   watch: {
+    query: {
+      deep: true,
+      handler(query, old) {
+        console.log('watch query', query)
+        for (const key of Object.keys(query)) {
+          const o = old[key]
+          const n = query[key]
+          const c = this.query_[key]
+          if (!isEqual(o, n) && !isEqual(n, c)) {
+            console.log('changed:', key, c, '->', n)
+            console.log('this.query_.keywords', this.query_.keywords)
+            this.$set(this.query_, key, n)
+            console.log('this.query_.keywords', this.query_.keywords)
+          }
+        }
+      },
+    },
+
     // Whenever any parts of our query change, inform the parent.
     query_: {
       deep: true,
-      handler: function (query) {
+      handler(query, old) {
+        console.log('watch query_', query)
         this.$emit('query', query)
       }
     },

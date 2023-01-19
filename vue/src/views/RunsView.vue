@@ -42,7 +42,7 @@ export default {
   watch: {
     // When the route changes due to the browser's forward/back buttons,
     // trigger an update to the query.
-    '$route'(to, from) {
+    '$route'(to) {
       this.$set(this, 'query', this.urlToQuery(to.query))
     }
   },
@@ -80,12 +80,12 @@ export default {
           url[param] = val.toString().trim()
       }
 
-      const joinWords = (words) => words !== null ? argsToArray(words).join(',') : undefined
+      const joinWords = (words) => words !== null ? words.join(',') : undefined
       set('path', query.path || undefined)
       set('keywords', joinWords(query.keywords))
       set('labels', joinWords(query.labels))
       set('states', joinWords(query.states))
-      set('args', joinWords(query.args))
+      set('args', joinWords(query.args === null ? null : argsToArray(query.args)))
       set('grouping', query.grouping ? null : undefined)
       set('show', query.show === 50 ? undefined : query.show)
       set('time', query.time === 'now' ? undefined : query.time)
