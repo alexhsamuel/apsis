@@ -1,12 +1,12 @@
 <template lang="pug">
 div
   div.runs(v-if="run")
-    div
-      span.title
-        | {{ run_id }}
-        JobWithArgs(:job-id="run.job_id" :args="run.args").spaced
-
+    div.title
+      | Run {{ run_id }}
     div.subhead
+      JobWithArgs(:job-id="run.job_id" :args="run.args")
+
+    div.buttons.row-centered
       State.state(:state="run.state" name)
       OperationButton(
         v-for="operation in run.operations"
@@ -248,13 +248,16 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.subhead {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+.title {
+  margin-bottom: 0.5rem;
 }
 
-.runs > div {
+.subhead {
+  margin-bottom: 1rem;
+  font-size: 130%;
+}
+
+.buttons {
   margin-bottom: 1.5rem;
 }
 
