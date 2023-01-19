@@ -370,21 +370,22 @@ export default {
   data() {
     return { 
       store,
-      time: 'now',
       // If true, show profiling on console.log.
       profile: false,
-
-      path: null,
-      states: null,      // all states
-      labels: null,      // no label filters
-      args: null,        // no arg filters
-      keywords: null,    // no keyword filters
-      show: 50,
-      grouping: false,   // don't hide repeated runs
-      asc: true,         // show time descending
-      ...this.query,
-
       COUNTS,
+
+      args: null,        // no arg filters
+      asc: true,         // show time descending
+      grouping: false,   // don't hide repeated runs
+      keywords: null,    // no keyword filters
+      labels: null,      // no label filters
+      path: null,
+      show: 50,
+      states: null,      // all states
+      time: 'now',
+
+      // Initialize with the query prop.
+      ...this.query,
     }
   },
 
@@ -562,34 +563,28 @@ export default {
   },
   
   watch: {
+    // If parent updates the query prop, update our state correspondingly.
     query: {
       deep: true,
-      handler(query, old) {
-        console.log('watch query', query)
+      handler(query) {
         for (const key of Object.keys(query)) {
-          const o = old[key]
           const n = query[key]
-          const c = this[key]
-          if (!isEqual(o, n) && !isEqual(n, c)) {
-            console.log('changed:', key, c, '->', n)
-            console.log('this.keywords', this.keywords)
+          if (!isEqual(n, this[key]))
             this.$set(this, key, n)
-            console.log('this.keywords', this.keywords)
-          }
         }
       },
     },
 
-    // Whenever any parts of our query change, inform the parent.
-    path() { this.emitQuery() },
-    states() { this.emitQuery() },
-    labels() { this.emitQuery() },
+    // Whenever our query state changes, inform the parent.
     args() { this.emitQuery() },
-    keywords() { this.emitQuery() },
-    show() { this.emitQuery() },
-    time() { this.emitQuery() },
-    grouping() { this.emitQuery() },
     asc() { this.emitQuery() },
+    grouping() { this.emitQuery() },
+    keywords() { this.emitQuery() },
+    labels() { this.emitQuery() },
+    path() { this.emitQuery() },
+    show() { this.emitQuery() },
+    states() { this.emitQuery() },
+    time() { this.emitQuery() },
 
   },
 
@@ -598,8 +593,8 @@ export default {
     arrayToArgs,
     argsToArray,
 
+    // Sends our current state to the parent as a query object.
     emitQuery() {
-      console.log('emitting query')
       this.$emit('query', {
         path: this.path,
         states: this.states,
