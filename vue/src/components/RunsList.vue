@@ -1,11 +1,13 @@
 // Todo:
-// - add reset filters button
-// - add down arrow to droplists
+// - fix back button
 // - button for showing/hiding controls
 // - get rid of underlined view switcher
 // - clean up visuals
 // - fix slashes in URL job paths
 // - get rid of runs filter
+
+// - add reset filters button
+// - add down arrow to droplists
 
 <template lang="pug">
 div
@@ -115,7 +117,7 @@ div
         HelpButton
           p Show the runs nearest this time, immediately before and after.
           p <b>Now</b> tracks the current time.
-          p Specify another date and/or time. The arrows page backward or forward.
+          p Specify another date and/or time. The arrows move backward or forward in time.
 
       div &nbsp;
 
@@ -189,7 +191,7 @@ div
             | {{ query_.asc ? groups.earlierCount : groups.laterCount }}
             | {{ query_.asc ? 'earlier' : 'later' }} rows not shown
             button(
-              v-on:click="showTime(query._asc ? groups.earlierTime : groups.laterTime)"
+              v-on:click="showTime(query_.asc ? groups.earlierTime : groups.laterTime)"
             ) {{ query_.asc ? 'Earlier' : 'Later' }}
 
         template(v-for="run, i in groups.groups")
