@@ -4,11 +4,20 @@
     @keyup.space.prevent="setShow()"
     @keyup.escape.prevent="setShow(false)"
   )
-    .value(@mousedown.stop="setShow()" tabindex=0)
+    .value(
+      tabindex=0
+      @mousedown.stop="setShow()"
+    )
       span(v-if="allChecked") All States
       span(v-else-if="noneChecked") No States
       span(v-else) States:&nbsp;
       State(v-for="state in value" :key="'value-' + state" :state="state" :name="false")
+
+      span(style="flex-grow: 99999;")
+      TriangleIcon(
+        style="width: 1em;"
+        direction="down"
+      )
 
     //- Full-window underlay to capture clicks outside the droplist.
     #under(
@@ -39,7 +48,8 @@
 <script>
 import DropList from '@/components/DropList'
 import { STATES, sortStates } from '@/runs'
-import State from './State'
+import State from '@/components/State'
+import TriangleIcon from '@/components/icons/TriangleIcon'
 
 /**
  * Selected states indicator with droplist to select individual states.
@@ -55,6 +65,7 @@ export default {
   components: {
     DropList,
     State,
+    TriangleIcon,
   },
 
   data() {
@@ -112,12 +123,18 @@ export default {
 <style lang="scss" scoped>
 @import 'src/styles/vars.scss';
 
+.combo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border: 1px solid $global-frame-color;
+  padding: 0 8px 0 12px;
+}
+
 .value {
   box-sizing: border-box;
   width: 16em;
   background: white;
-  border: 1px solid $global-frame-color;
-  padding: 0 12px;
   text-transform: uppercase;
 
   display: inline-flex;
@@ -144,15 +161,15 @@ export default {
 #drop {
   z-index: 2;
   position: absolute;
-  width: max-content;
   height: 0;
 }
 
 #items {
   position: relative;
-  top: 4px;
+  left: -13px;
+  top: 1.2em;
   box-sizing: border-box;
-  width: 16em;
+  width: calc(100% + 2em);
   background: white;
   border: 1px solid $global-frame-color;
   box-shadow: 4px 4px 4px #eee;
