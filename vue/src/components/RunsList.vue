@@ -7,7 +7,6 @@
 // - get rid of runs filter
 
 // - add reset filters button
-// - add down arrow to droplists
 
 <template lang="pug">
 div
@@ -84,7 +83,6 @@ div
         DropList.counts(
           :value="COUNTS.indexOf(show)"
           @input="show = COUNTS[$event]"
-          style="max-width: 9.5em;"
         )
           div(
             v-for="count in COUNTS"
@@ -733,7 +731,7 @@ export default {
   }
 
   .counts {
-    width: 100%;
+    width: 6em;
     height: 32px;
     text-align: right;
   }
