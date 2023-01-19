@@ -1,10 +1,5 @@
 <template lang="pug">
 div
-  .flex-margin
-    h3(style="flex: 1;")
-      a.undersel(@click="onShowJobs") Jobs
-      a.undersel.sel(@click="") Runs
-
   //- The table of runs.
   RunsList(
     :query="query"
@@ -20,7 +15,9 @@ import { argsToArray, arrayToArgs } from '@/runs'
 import RunsList from '@/components/RunsList'
 import { formatCompactUTCTime, parseCompactUTCTime } from '@/time'
 
-/** Strips off all occurrences of `suffix` at the end of `string`.  */
+/**
+ * Strips off all occurrences of `suffix` at the end of `string`.
+ */
 function rstrip(string, suffix) {
   const len = suffix.length
   while (len <= string.length && string.slice(-len) === suffix)
