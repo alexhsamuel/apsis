@@ -5,7 +5,7 @@ import ControlView  from '@/views/ControlView'
 import JobView      from '@/views/JobView'
 import JobsView     from '@/views/JobsView'
 import RunView      from '@/views/RunView'
-import RunsView    from '@/views/RunsView'
+import RunsView     from '@/views/RunsView'
 
 Vue.use(Router)
 
