@@ -1,5 +1,7 @@
 // Todo:
 // - fix back button
+// - fix states combo content valign
+// - clean up time in URL
 // - button for showing/hiding controls
 // - get rid of underlined view switcher
 // - clean up visuals
@@ -16,7 +18,7 @@ div
       div
         .label Keywords:
         WordsInput(
-          v-model="query_.keywords"
+          v-model="keywords"
         )
         HelpButton
           p Syntax: <b>keyword keyword&hellip;</b>
@@ -25,7 +27,7 @@ div
       div
         .label Labels:
         WordsInput(
-          v-model="query_.labels"
+          v-model="labels"
         )
         HelpButton
           p Syntax: <b>label label&hellip;</b>
@@ -34,16 +36,16 @@ div
       div
         .label Job Path:
         PathNav(
-          :path="query_.path"
-          @path="query_.path = $event"
+          :path="path"
+          @path="path = $event"
         )
 
     template(v-if="runControls")
       div
         .label Run Args:
         WordsInput(
-          :value="query_.args !== null ? argsToArray(query_.args) : null"
-          @change="query_.args = $event ? arrayToArgs($event) : null"
+          :value="args !== null ? argsToArray(args) : null"
+          @change="args = $event ? arrayToArgs($event) : null"
         )
         HelpButton
           p Syntax: <b>arg=value arg=value&hellip;</b>
@@ -52,19 +54,19 @@ div
       div
         .label States:
         StatesSelect(
-          v-model="query_.states"
+          v-model="states"
         )
 
       div
         .label Repeated:
         div
           button.toggle.left(
-            :disabled="!query_.grouping"
-            @click="query_.grouping = false"
+            :disabled="!grouping"
+            @click="grouping = false"
           ) Show
           button.toggle.right(
-            :disabled="query_.grouping"
-            @click="query_.grouping = true"
+            :disabled="grouping"
+            @click="grouping = true"
           ) Hide
           | &nbsp;
           HelpButton
@@ -82,8 +84,8 @@ div
       div
         .label Show:
         DropList.counts(
-          :value="COUNTS.indexOf(query_.show)"
-          @input="query_.show = COUNTS[$event]"
+          :value="COUNTS.indexOf(show)"
+          @input="show = COUNTS[$event]"
           style="max-width: 9.5em;"
         )
           div(
@@ -97,18 +99,18 @@ div
         div(style="display: flex; height: 100%;")
           button(
             style="padding: 0 4px; border-top-right-radius: 0; border-bottom-right-radius: 0;"
-            v-on:click="showTime(groups.earlierTime)"
+            v-on:click="time = groups.earlierTime"
             :disabled="groups.earlierCount == 0"
           )
             TriangleIcon(
               direction="left"
             )
           TimeInput(
-            v-model="query_.time"
+            v-model="time"
           )
           button(
             style="padding: 0 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"
-            v-on:click="showTime(groups.laterTime)"
+            v-on:click="time = groups.laterTime"
             :disabled="groups.laterCount == 0"
           )
             TriangleIcon(
@@ -125,12 +127,12 @@ div
         .label Order:
         div
           button.toggle.left(
-            :disabled="query_.asc"
-            v-on:click="query_.asc = true"
+            :disabled="asc"
+            v-on:click="asc = true"
           ) &nbsp; Time &#8681;
           button.toggle.right(
-            :disabled="!query_.asc"
-            v-on:click="query_.asc = false"
+            :disabled="!asc"
+            v-on:click="asc = false"
           ) &nbsp; Time &#8679;
           | &nbsp;
           HelpButton
@@ -162,7 +164,7 @@ div
         col(v-if="argColumnStyle === 'combined'" style="min-width: 10rem; max-width: 100%;")
         col(style="width: 4rem")
         col(style="width: 4rem")
-        col(v-if="query_.grouping" style="width: 5rem")
+        col(v-if="grouping" style="width: 5rem")
         col(style="width: 10rem")
         col(style="width: 10rem")
         col(style="width: 6rem")
@@ -176,7 +178,7 @@ div
           th.col-args(v-if="argColumnStyle == 'combined'") Args
           th.col-run Run
           th.col-state State
-          th.col-group(v-if="query_.grouping") Hidden
+          th.col-group(v-if="grouping") Hidden
           th.col-schedule-time Schedule
           th.col-start-time Start
           th.col-elapsed Elapsed
@@ -186,13 +188,13 @@ div
         tr(v-if="groups.groups.length == 0")
           td.note(colspan="9") No runs.
 
-        tr(v-if="(query_.asc ? groups.earlierCount : groups.laterCount) > 0")
+        tr(v-if="(asc ? groups.earlierCount : groups.laterCount) > 0")
           td.note(colspan="9")
-            | {{ query_.asc ? groups.earlierCount : groups.laterCount }}
-            | {{ query_.asc ? 'earlier' : 'later' }} rows not shown
+            | {{ asc ? groups.earlierCount : groups.laterCount }}
+            | {{ asc ? 'earlier' : 'later' }} rows not shown
             button(
-              v-on:click="showTime(query_.asc ? groups.earlierTime : groups.laterTime)"
-            ) {{ query_.asc ? 'Earlier' : 'Later' }}
+              v-on:click="time = asc ? groups.earlierTime : groups.laterTime"
+            ) {{ asc ? 'Earlier' : 'Later' }}
 
         template(v-for="run, i in groups.groups")
           tr(v-if="i === groups.nowIndex")
@@ -224,7 +226,7 @@ div
             td.col-state
               State(:state="run.state")
             //- FIXME: Click to run with history expanded.
-            td.col-group(v-if="query_.grouping")
+            td.col-group(v-if="grouping")
               | {{ historyCount(run, groups.counts[run.run_id]) }}
             td.col-schedule-time
               Timestamp(:time="run.times.schedule")
@@ -242,13 +244,13 @@ div
                   :button="true"
                 )
 
-        tr(v-if="(query_.asc ? groups.laterCount : groups.earlierCount) > 0")
+        tr(v-if="(asc ? groups.laterCount : groups.earlierCount) > 0")
           td.note(colspan="9")
-            | {{ query_.asc ? groups.laterCount : groups.earlierCount }}
-            | {{ query_.asc ? 'later' : 'earlier' }} rows not shown
+            | {{ asc ? groups.laterCount : groups.earlierCount }}
+            | {{ asc ? 'later' : 'earlier' }} rows not shown
             button(
-              v-on:click="showTime(query_.asc ? groups.laterTime : groups.earlierTime)"
-            ) {{ query_.asc ? 'Later' : 'Earler' }}
+              v-on:click="time = asc ? groups.laterTime : groups.earlierTime"
+            ) {{ asc ? 'Later' : 'Earler' }}
 
 </template>
 
@@ -256,7 +258,7 @@ div
 import { entries, filter, flatten, groupBy, includes, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
 import { argsToArray, arrayToArgs } from '@/runs'
-import { formatDuration, formatElapsed, formatTime, parseTime } from '@/time'
+import { formatDuration, formatElapsed, formatTime } from '@/time'
 import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
 import HelpButton from '@/components/HelpButton'
@@ -369,24 +371,21 @@ export default {
     return { 
       store,
       time: 'now',
-      inputTime: '',
       // If true, show profiling on console.log.
       profile: false,
-      query_: {
-        path: null,
-        states: null,      // all states
-        labels: null,      // no label filters
-        args: null,        // no arg filters
-        keywords: null,    // no keyword filters
-        show: 50,
-        time: 'now',
-        grouping: false,   // don't hide repeated runs
-        asc: true,        // show time descending
-        ...this.query
-      },
+
+      path: null,
+      states: null,      // all states
+      labels: null,      // no label filters
+      args: null,        // no arg filters
+      keywords: null,    // no keyword filters
+      show: 50,
+      grouping: false,   // don't hide repeated runs
+      asc: true,         // show time descending
+      ...this.query,
 
       COUNTS,
-    } 
+    }
   },
 
   computed: {
@@ -396,19 +395,19 @@ export default {
 
       // Apply query filters in the order that seems most likely to put
       // the cheapest and most selective filters first.
-      if (this.query_.path) {
-        const path = this.query_.path
+      if (this.path) {
+        const path = this.path
         const prefix = path + '/'
         runs = filter(runs, run => run.job_id === path || run.job_id.startsWith(prefix))
       }
-      if (this.query_.states)
-        runs = filter(runs, run => includes(this.query_.states, run.state))
-      if (this.query_.labels)
-        runs = filter(runs, run => includesAll(this.query_.labels, run.labels))
-      if (this.query_.args) 
-        runs = filter(runs, getArgPredicate(this.query_.args))
-      if (this.query_.keywords)
-        runs = filter(runs, run => matchKeywords(this.query_.keywords, run.job_id))
+      if (this.states)
+        runs = filter(runs, run => includes(this.states, run.state))
+      if (this.labels)
+        runs = filter(runs, run => includesAll(this.labels, run.labels))
+      if (this.args)
+        runs = filter(runs, getArgPredicate(this.args))
+      if (this.keywords)
+        runs = filter(runs, run => matchKeywords(this.keywords, run.job_id))
 
       return sortBy(runs, r => r.time_key)
     },
@@ -425,7 +424,7 @@ export default {
 
       let groups
       let counts = {}
-      if (this.query_.grouping) {
+      if (this.grouping) {
         const runs = this.runs
         if (this.profile) {
           t1 = new Date()
@@ -475,7 +474,7 @@ export default {
       let now = (new Date()).toISOString()
     
       // Determine the time to center around.
-      const time = this.query_.time === 'now' ? now : this.query_.time
+      const time = this.time === 'now' ? now : this.time
       // Find the index corresponding to the center time.
       let timeIndex = sortedIndexBy(runs, { time_key: time }, r => r.time_key)
 
@@ -485,7 +484,7 @@ export default {
       // Time cutoff and count of later runs not shown.
       let laterTime = null
       let laterCount = 0
-      const show = this.query_.show
+      const show = this.show
       if (show < runs.length) {
         // There are more runs than fit in the view.  Decide how many runs to
         // show before and after the center time.
@@ -535,7 +534,7 @@ export default {
       if (runs.length > 0 && runs[0].time_key < now && now < runs[runs.length - 1].time_key)
         nowIndex = sortedIndexBy(runs, { time_key: now }, r => r.time_key)
 
-      if (!this.query_.asc) {
+      if (!this.asc) {
         runs.reverse()
         if (nowIndex)
           nowIndex = runs.length - nowIndex
@@ -570,31 +569,49 @@ export default {
         for (const key of Object.keys(query)) {
           const o = old[key]
           const n = query[key]
-          const c = this.query_[key]
+          const c = this[key]
           if (!isEqual(o, n) && !isEqual(n, c)) {
             console.log('changed:', key, c, '->', n)
-            console.log('this.query_.keywords', this.query_.keywords)
-            this.$set(this.query_, key, n)
-            console.log('this.query_.keywords', this.query_.keywords)
+            console.log('this.keywords', this.keywords)
+            this.$set(this, key, n)
+            console.log('this.keywords', this.keywords)
           }
         }
       },
     },
 
     // Whenever any parts of our query change, inform the parent.
-    query_: {
-      deep: true,
-      handler(query, old) {
-        console.log('watch query_', query)
-        this.$emit('query', query)
-      }
-    },
+    path() { this.emitQuery() },
+    states() { this.emitQuery() },
+    labels() { this.emitQuery() },
+    args() { this.emitQuery() },
+    keywords() { this.emitQuery() },
+    show() { this.emitQuery() },
+    time() { this.emitQuery() },
+    grouping() { this.emitQuery() },
+    asc() { this.emitQuery() },
+
   },
 
   methods: {
     formatElapsed,
     arrayToArgs,
     argsToArray,
+
+    emitQuery() {
+      console.log('emitting query')
+      this.$emit('query', {
+        path: this.path,
+        states: this.states,
+        labels: this.labels,
+        args: this.args,
+        keywords: this.keywords,
+        show: this.show,
+        time: this.time,
+        grouping: this.grouping,
+        asc: this.asc,
+      })
+    },
 
     historyCount(run, count) {
       return (
@@ -610,14 +627,6 @@ export default {
       return time ? formatTime(time, this.store.state.timeZone) : '\u00a0'
     },
 
-    /**
-     * Show runs around `time`.
-     */
-    showTime(time) {
-      this.query_.time = time
-      this.inputTime = ''
-    },
-
     startTime(run) {
       if (run.times.schedule) {
         const now = this.store.state.time
@@ -626,19 +635,6 @@ export default {
       }
       else
         return ''
-    },
-
-    /**
-     * Handle explicit user time input by showing runs around the specified time.
-     */
-    onTimeChange() {
-      // Parse the input time, in the current time zone.
-      const tz = store.state.timeZone
-      const time = parseTime(this.inputTime, false, tz).tz('UTC')
-      // Show runs around this time.
-      this.query_.time = time.format()
-      // Replace the input field with the full canonicalized time.
-      this.inputTime = formatTime(time, tz)
     },
 
     onReset() {
