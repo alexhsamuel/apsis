@@ -1,6 +1,6 @@
 <template lang="pug">
 router-link(
-  :to="{ name: 'job', params: { job_id: jobId }}"
+  :to="{ path: '/job/' + jobId }"
 ) {{ label }}
 
 </template>

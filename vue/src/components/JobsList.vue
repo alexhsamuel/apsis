@@ -380,7 +380,7 @@ table {
 
   .description {
     font-size: 85%;
-    color: #777;
+    color: $global-light-color;
 
     p {
       margin: 0;

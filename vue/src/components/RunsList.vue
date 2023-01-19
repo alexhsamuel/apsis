@@ -133,13 +133,6 @@ div
           span(style="justify-self: end") {{ formatTime(groups.laterTime) }}
         div &nbsp;
 
-      //- div
-      //-   button(
-      //-     @click="onReset"
-      //-   ) Reset Filters
-      //-   div &nbsp;
-      //-   div &nbsp;
-
 
   div.runlist
     table.runlist
@@ -173,6 +166,8 @@ div
       tbody
         tr(v-if="groups.groups.length == 0")
           td.note(colspan="9") No runs.
+        tr(v-else)
+          td.spacer(colspan="9")
 
         tr(v-if="(asc ? groups.earlierCount : groups.laterCount) > 0")
           td.note(colspan="9")
@@ -599,10 +594,6 @@ export default {
       else
         return ''
     },
-
-    onReset() {
-      this.$emit('query', {})
-    }
   },
 
 }
@@ -714,6 +705,10 @@ table.runlist {
 
   thead {
     position: sticky;
+  }
+
+  .spacer {
+    height: 0;
   }
 
   .note {
