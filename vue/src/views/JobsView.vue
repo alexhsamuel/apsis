@@ -1,30 +1,18 @@
 <template lang="pug">
 div
-  div.controls(style="display: flex")
-    div(style="flex: 1;")
-      h3
-        a.undersel.sel() Jobs
-        a.undersel(v-on:click="onShowRuns") Runs
-        span(v-if="pathStr" style="font-size: 16px; padding: 0 8px;")  
-          PathNav(:path="pathStr" v-on:path="setPath($event)")
-
-    SearchInput.search(
-      v-model="query"
-      style="flex: 0 0 300px;"
-    )
-
   JobsList(
-    :dir="pathStr"
-    :query="query"
-    v-on:dir="setPath($event)"
+    :path="path"
+    @path="path = $event"
+    :keywords="keywords"
+    @keywords="keywords = $event"
+    :labels="labels"
+    @labels="labels = $event"
   )
 
 </template>
 
 <script>
 import JobsList from '@/components/JobsList'
-import PathNav from '@/components/PathNav'
-import SearchInput from '@/components/SearchInput'
 
 function toPathStr(path) {
   return (
@@ -44,66 +32,56 @@ function toPathParts(path) {
 
 export default {
   name: 'JobsView',
-  props: [
-    // Accept both str and array paths.  vue-router always returns a path
-    // string, but if we $router.push a string params, it URL-encodes
-    // path seps.  So, we $router.push an array of path parts instead.
-    // But then we have to accept both str and array paths.
-    'path',
-  ],
+  props: {
+  },
+
   components: {
     JobsList,
-    PathNav,
-    SearchInput,
   },
 
   data() {
+    const labels = this.$route.query.labels
+    const keywords = this.$route.query.keywords
+
     return {
-      query: this.$route.query.q || '',
+      keywords: keywords ? keywords.split(',') : null,
+      labels: labels ? labels.split(',') : null,
+      path: toPathStr(this.$route.params.path),
     }
   },
 
-  computed: {
-    pathStr() {
-      return toPathStr(this.path)
-    },
-  },
-
   methods: {
-    onShowRuns() {
+    pushRoute() {
+      const joinWords = (words) => words !== null ? words.join(',') : undefined
       this.$router.push({
-        name: 'runs-list',
-        query: {
-          path: this.pathStr || undefined,
+        params: {
+          path: toPathParts(this.path),
         },
+        query: {
+          keywords: joinWords(this.keywords),
+          labels: joinWords(this.labels),
+        }
       })
-    },
-
-    setPath(path) {
-      if (toPathStr(this.$route.params.path) !== path)
-        // Push path as an array of path components rather than as a str,
-        // since Vue will URL-encode path seps otherwise.  See above.
-        this.$router.push({ name: 'jobs-list', params: { path: toPathParts(path) } })
     },
   },
 
   watch: {
-    query(query) {
-      // If the query changed, add it to the URL query.
-      const q = query || undefined
-      if (this.$route.query.q !== q)
-        this.$router.push({ query: { q } })
+    '$route'(to) {
+      const keywords = this.$route.query.keywords
+      const labels = this.$route.query.labels
+      console.log('$route to', keywords, labels)
+
+      this.keywords = keywords ? keywords.split(',') : null
+      this.labels = labels ? labels.split(',') : null
+      this.path = toPathStr(this.$route.params.path)
     },
+
+    path() { this.pushRoute() },
+    keywords() { this.pushRoute() },
+    labels() { this.pushRoute() },
   },
 }
 </script>
 
 <style lang="scss" scoped>
-.controls {
-  margin-bottom: 1rem;
-}
-
-.search {
-  width: 400px;
-}
 </style>
