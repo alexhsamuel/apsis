@@ -146,3 +146,15 @@ export function parseTimeOrOffset(str, end, timeZone) {
   return time
 }
 
+// Converts a full ISO time string to a compact UTC with 1 s resolution,
+// e.g. 20230119T123304Z.
+export function formatCompactUTCTime(str) {
+  const time = moment.utc(str).tz('UTC')
+  return time.format('YYYYMMDD[T]HHmmss[Z]')
+}
+
+// Converts compact UTC to full ISO-8859 UTC.
+export function parseCompactUTCTime(str) {
+  return moment.utc(str).format()
+}
+

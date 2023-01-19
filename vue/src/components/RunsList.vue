@@ -1,7 +1,6 @@
 // Todo:
-// - clean up time in URL
-// - button for showing/hiding controls
 // - get rid of underlined view switcher
+// - button for showing/hiding controls
 // - clean up visuals
 // - fix slashes in URL job paths
 // - get rid of runs filter

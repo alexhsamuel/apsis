@@ -18,6 +18,7 @@ div
 import { isEqual } from 'lodash'
 import { argsToArray, arrayToArgs } from '@/runs'
 import RunsList from '@/components/RunsList'
+import { formatCompactUTCTime, parseCompactUTCTime } from '@/time'
 
 /** Strips off all occurrences of `suffix` at the end of `string`.  */
 function rstrip(string, suffix) {
@@ -61,7 +62,7 @@ export default {
         args: url.args ? arrayToArgs(splitWords(url.args)) : null,
         grouping: url.grouping === null,
         show: url.show ? parseInt(url.show) : 50,
-        time: url.time || 'now',
+        time: url.time ? parseCompactUTCTime(url.time) : 'now',
         asc: url.asc !== null,
       }
     },
@@ -88,7 +89,7 @@ export default {
       set('args', joinWords(query.args === null ? null : argsToArray(query.args)))
       set('grouping', query.grouping ? null : undefined)
       set('show', query.show === 50 ? undefined : query.show)
-      set('time', query.time === 'now' ? undefined : query.time)
+      set('time', query.time === 'now' ? undefined : formatCompactUTCTime(query.time))
       set('asc', query.asc ? undefined : null)
       return url
     },
