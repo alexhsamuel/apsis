@@ -7,6 +7,7 @@ div
     @keywords="keywords = $event"
     :labels="labels"
     @labels="labels = $event"
+    @showRuns="showRuns"
   )
 
 </template>
@@ -61,6 +62,17 @@ export default {
           keywords: joinWords(this.keywords),
           labels: joinWords(this.labels),
         }
+      })
+    },
+
+    showRuns() {
+      this.$router.push({
+        name: 'runs-list',
+        query: {
+          path: this.path,
+          keywords: this.keywords ? this.keywords.join(',') : undefined,
+          labels: this.labels ? this.labels.join(',') : undefined,
+        },
       })
     },
   },

@@ -626,13 +626,12 @@ export default {
 
 .controls {
   width: 80em;
-  border: 1px solid $global-frame-color;
-  padding: 16px 16px;
-  margin-bottom: 1.5em;
+  margin-top: 1em;
+  margin-bottom: 2em;
 
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px 2em;
+  gap: 12px 2em;
   justify-items: left;
   align-items: baseline;
 

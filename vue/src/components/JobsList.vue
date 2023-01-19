@@ -28,6 +28,17 @@ div
         p Syntax: <b>label label&hellip;</b>
         p Show only jobs with each <b>label</b>.
 
+  div.buttons
+    button(
+      @click="expandAll(true)"
+    ) Expand All
+    button(
+      @click="expandAll(false)"
+    ) Collapse All
+    button(
+      @click="$emit('showRuns')"
+    ) Show Runs
+
   table.widetable
     colgroup
       col(style="max-width: 300px;")
@@ -39,14 +50,9 @@ div
         th
           div.cell
             | Job
-            a.expand-button(v-on:click="expandAll(false)")
-              TriangleIcon.icon(direction="right")
-            a.expand-button(v-on:click="expandAll(true)")
-              TriangleIcon.icon(direction="down")
 
         th Parameters
         th Description
-        // th Schedule
 
     tbody
       tr(v-if="loading")
@@ -287,9 +293,7 @@ export default {
 
 .controls {
   width: 80em;
-  border: 1px solid $global-frame-color;
-  padding: 16px 16px;
-  margin-bottom: 1.5em;
+  margin-top: 1em;
 
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -325,6 +329,17 @@ export default {
   }
 }
 
+.buttons {
+  height: 30px;
+  margin-top: 1em;
+  margin-bottom: 2em;
+
+  button {
+    height: 100%;
+    margin-right: 8px;
+  }
+}
+
 table {
   span.indent {
     width: 36px;
@@ -338,24 +353,16 @@ table {
     color: $apsis-status-color;
   }
 
-  a.expand-button {
-    color: $global-color;
-    border: 1px solid transparent;
-    &:hover {
-      border: 1px solid $global-frame-color;
-    }
-  }
-
   .icon {
     width: 18px;
-    position: relative;
-    top: 4px;
-    margin-right: 4px;
   }
 
   div.cell {
-    white-space: nowrap;
     height: 30px;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0 4px;
   }
 
   .job-title {
