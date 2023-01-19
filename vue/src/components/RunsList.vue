@@ -1,5 +1,4 @@
 // Todo:
-// - get rid of runs filter
 // - better expand / collapse all buttons in JobsList
 
 // - button for showing/hiding controls
