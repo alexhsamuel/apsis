@@ -1,6 +1,6 @@
 <template lang="pug">
 div.frame
-  div.row-centered(
+  div.heading.row-centered(
     v-on:click="open = !open"
     style="cursor: default; gap: 4px;"
   )
