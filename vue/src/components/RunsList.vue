@@ -213,7 +213,9 @@ div
               State(:state="run.state")
             //- FIXME: Click to run with history expanded.
             td.col-group(v-if="grouping")
-              | {{ historyCount(run, groups.counts[run.run_id]) }}
+              router-link.hidden(
+                :to="{ name: 'run', params: { run_id: run.run_id }, query: { runs: null } }"
+              ) {{ historyCount(run, groups.counts[run.run_id]) }}
             td.col-schedule-time
               Timestamp(:time="run.times.schedule")
             td.col-start-time
@@ -739,14 +741,14 @@ table.runlist {
 
   .col-schedule-time, .col-start-time {
     font-size: 90%;
-    color: #888;
+    color: $global-light-color;
     text-align: right;
   }
 
   .col-group {
     text-align: right;
     white-space: nowrap;
-    color: #888;
+    color: $global-light-color;
     font-size: 90%;
 
     & > span {
@@ -764,6 +766,14 @@ table.runlist {
 
   .highlight-run {
     background: #f6faf8;
+  }
+
+  .hidden {
+    color: $global-light-color;
+    cursor: default;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .timeSeparator {

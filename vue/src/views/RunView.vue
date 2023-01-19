@@ -16,7 +16,10 @@ div
         :button="true"
       )
 
-    Frame(title="Run History" closed)
+    Frame(
+      title="Run History"
+      :closed="isCollapsed.runs"
+    )
       RunsList(
         :show-job="false"
         :max-completed-runs="12"
@@ -126,8 +129,7 @@ export default {
   data() {
     return {
       isCollapsed: {
-        runs: true,
-        metadata: true,
+        runs: this.$route.query.runs !== null,
       },
       output: null,
       outputRequested: false,  // FIXME: Remove?

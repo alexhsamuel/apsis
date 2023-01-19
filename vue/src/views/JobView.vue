@@ -247,7 +247,7 @@ export default {
 }
 
 .disabled {
-  color: #888;
+  color: $global-light-color;
 }
 
 .schedule {
