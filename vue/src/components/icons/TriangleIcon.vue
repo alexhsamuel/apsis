@@ -1,8 +1,8 @@
 <template lang="pug">
   svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" style="width: 1rem;")
     path(
-      d="M 300 500 L 1500 500 L 900 1400 L 300 500"
-      stroke="none"
+      d="M 200 500 L 1600 500 L 900 1500 L 200 500"
+      :stroke="none"
       :transform="rotation"
       :fill="color"
     )
@@ -13,7 +13,7 @@ export default {
   props: {
     color: {
       type: String,
-      default: '#333',
+      default: '#555',
     },
     direction: {
       type: String,
