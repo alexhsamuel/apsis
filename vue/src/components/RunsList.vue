@@ -1,16 +1,23 @@
 // Todo:
 // - get rid of underlined view switcher
-// - button for showing/hiding controls
 // - clean up visuals
-// - fix slashes in URL job paths
 // - get rid of runs filter
+// - better expand / collapse all buttons in JobsList
 
+// - button for showing/hiding controls
 // - add reset filters button
 
 <template lang="pug">
 div
   div.controls
     template(v-if="jobControls")
+      div
+        .label Job Path:
+        PathNav(
+          :path="path"
+          @path="path = $event"
+        )
+
       div
         .label Keywords:
         WordsInput(
@@ -28,13 +35,6 @@ div
         HelpButton
           p Syntax: <b>label label&hellip;</b>
           p Show only runs with each <b>label</b>.
-
-      div
-        .label Job Path:
-        PathNav(
-          :path="path"
-          @path="path = $event"
-        )
 
     template(v-if="runControls")
       div
@@ -70,8 +70,8 @@ div
             p <b>Show</b> each run individually.
             p <b>Hide</b> repeated runs, combined by run state:
               ul
-                li Hide all completed runs before the latest completed.
-                li Hide all scheduled runs after the earliest scheduled.
+                li Show the <i>latest completed</i> run; hide all previous completed runs.
+                li Show the <i>earliest scheduled</i> run; hide all subsequent scheduled runs.
                 li Show all runs in other states.
               | An additional column shows the number of hidden runs.
 
@@ -252,7 +252,7 @@ div
 <script>
 import { entries, filter, flatten, groupBy, includes, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
-import { argsToArray, arrayToArgs } from '@/runs'
+import { argsToArray, arrayToArgs, matchKeywords, includesAll } from '@/runs'
 import { formatDuration, formatElapsed, formatTime } from '@/time'
 import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
@@ -273,26 +273,6 @@ import TriangleIcon from '@/components/icons/TriangleIcon'
 import WordsInput from '@/components/WordsInput'
 
 const COUNTS = [20, 50, 100, 200, 500, 1000]
-
-/**
- * Returns true if each member of `keywords` is a substring of `string`.
- */
-function matchKeywords(keywords, string) {
-  for (const keyword of keywords)
-    if (string.indexOf(keyword) === -1)
-      return false
-  return true
-}
-
-/**
- * Returns true if each members of `arr0` is in `arr1`.
- */
-function includesAll(arr0, arr1) {
-  for (const el of arr0)
-    if (!arr1.includes(el))
-      return false
-  return true
-}
 
 /**
  * Constructs a predicate fn for matching runs with `args`.
@@ -637,6 +617,7 @@ export default {
 
 <style lang="scss" scoped>
 @import '@/styles/index.scss';
+
 .runs-list {
   display: flex;
   flex-direction: column;

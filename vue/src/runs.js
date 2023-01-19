@@ -110,3 +110,23 @@ export function arrayToArgs(arr) {
   return args
 }
 
+/**
+ * Returns true if each member of `keywords` is a substring of `string`.
+ */
+export function matchKeywords(keywords, string) {
+  for (const keyword of keywords)
+    if (string.indexOf(keyword) === -1)
+      return false
+  return true
+}
+
+/**
+ * Returns true if each members of `arr0` is in `arr1`.
+ */
+export function includesAll(arr0, arr1) {
+  for (const el of arr0)
+    if (!arr1.includes(el))
+      return false
+  return true
+}
+
