@@ -1,6 +1,4 @@
 // Todo:
-// - fix back button
-// - fix states combo content valign
 // - clean up time in URL
 // - button for showing/hiding controls
 // - get rid of underlined view switcher

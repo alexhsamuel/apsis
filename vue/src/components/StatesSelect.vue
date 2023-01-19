@@ -123,7 +123,7 @@ export default {
   display: inline-flex;
   flex-direction: row;
   justify-content: left;
-  align-items: start;
+  align-items: center;
   gap: 1px;
 
   &:focus {
