@@ -86,11 +86,6 @@ div
             v-else 
             v-on:click="toggleExpand(path)"
           )
-            svg.icon(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg")
-              path(d="M 200 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 200 1600 L 200 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
-
-            a.dir(v-on:click="$emit('path', path.join('/'))") {{ name }}
-
             TriangleIcon.indent.icon(
               v-if="isExpanded(path)"
               direction="down"
@@ -99,6 +94,11 @@ div
               v-else
               direction="right"
             )
+
+            svg.icon(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg")
+              path(d="M 200 300 L 700 300 L 800 500 L 1600 500 L 1600 1600 L 200 1600 L 200 300" stroke="#666" stroke-width="100" fill="#f2f6f4")
+
+            a.dir(v-on:click="$emit('path', path.join('/'))") {{ name }}
 
         td.params
           span.params(v-if="job && job.params.length > 0") {{ join(job.params, ', ') }}
@@ -355,6 +355,7 @@ table {
 
   .icon {
     width: 18px;
+    margin-right: 4px;
   }
 
   div.cell {
