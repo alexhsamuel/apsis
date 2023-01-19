@@ -1,9 +1,3 @@
-// Todo:
-// - better expand / collapse all buttons in JobsList
-
-// - button for showing/hiding controls
-// - add reset filters button
-
 <template lang="pug">
 div
   div.controls
