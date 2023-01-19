@@ -1,6 +1,4 @@
 // Todo:
-// - get rid of underlined view switcher
-// - clean up visuals
 // - get rid of runs filter
 // - better expand / collapse all buttons in JobsList
 

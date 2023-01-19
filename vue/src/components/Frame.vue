@@ -1,6 +1,9 @@
 <template lang="pug">
 div.frame
-  div.heading(v-on:click="open = !open" style="cursor: default")
+  div.row-centered(
+    v-on:click="open = !open"
+    style="cursor: default; gap: 4px;"
+  )
     | {{ title }}
     TriangleIcon(
       :direction="open ? 'down' : 'right'"
@@ -36,10 +39,4 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.heading {
-  display: flex;
-  direction: row;
-  align-items: center;
-  gap: 0 4px;
-}
 </style>
