@@ -1,5 +1,7 @@
 <template lang="pug">
 div
+  h1 Runs
+
   //- The table of runs.
   RunsList(
     :query="query"

@@ -13,6 +13,12 @@ a {
   text-decoration: none;
 }
 
+h1 {
+  font-size: 200%;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
 h3 {
   font-size: 1.5rem;
   line-height: 1.4;
@@ -145,3 +151,4 @@ input {
   flex-direction: row;
   align-items: center;
 }
+

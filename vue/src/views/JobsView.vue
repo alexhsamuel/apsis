@@ -1,5 +1,7 @@
 <template lang="pug">
 div
+  h1 Jobs
+
   JobsList(
     :path="path"
     @path="path = $event"
