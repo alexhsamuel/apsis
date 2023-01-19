@@ -31,6 +31,12 @@ export default {
       }
     },
   },
+
+  watch: {
+    value(value) {
+      this.text = this.value ? this.value.join(' ') : ''
+    },
+  },
 }
 </script>
 
