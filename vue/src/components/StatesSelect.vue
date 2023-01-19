@@ -46,7 +46,6 @@
 </template>
 
 <script>
-import DropList from '@/components/DropList'
 import { STATES, sortStates } from '@/runs'
 import State from '@/components/State'
 import TriangleIcon from '@/components/icons/TriangleIcon'
@@ -63,7 +62,6 @@ export default {
   },
 
   components: {
-    DropList,
     State,
     TriangleIcon,
   },
