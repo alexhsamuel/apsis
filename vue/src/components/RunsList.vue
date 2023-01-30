@@ -170,7 +170,7 @@ div
             ) {{ asc ? 'Earlier' : 'Later' }}
 
         template(v-for="run, i in groups.groups")
-          tr(v-if="i === groups.nowIndex")
+          tr(v-if="nowIndicator && i === groups.nowIndex")
             td(colspan="9")
               .timeSeparator
                 div.border
@@ -302,6 +302,9 @@ export default {
     jobControls: {type: Boolean, default: true},
     runControls: {type: Boolean, default: true},
     timeControls: {type: Boolean, default: true},
+
+    // If true, show a row indicating the current time.
+    nowIndicator: {type: Boolean, default: true},
   },
 
   components: {
