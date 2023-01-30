@@ -333,7 +333,7 @@ export default {
 
       args: null,        // no arg filters
       asc: true,         // show time descending
-      grouping: false,   // don't hide repeated runs
+      grouping: true,    // hide repeated runs
       keywords: null,    // no keyword filters
       labels: null,      // no label filters
       path: null,

@@ -59,7 +59,7 @@ export default {
         labels: splitWords(url.labels),
         states: splitWords(url.states),
         args: url.args ? arrayToArgs(splitWords(url.args)) : null,
-        grouping: url.grouping === null,
+        grouping: url.ungroup !== null,
         show: url.show ? parseInt(url.show) : 50,
         time: url.time ? parseCompactUTCTime(url.time) : 'now',
         asc: url.asc !== null,
@@ -86,7 +86,7 @@ export default {
       set('labels', joinWords(query.labels))
       set('states', joinWords(query.states))
       set('args', joinWords(query.args === null ? null : argsToArray(query.args)))
-      set('grouping', query.grouping ? null : undefined)
+      set('ungroup', query.grouping ? undefined : null)
       set('show', query.show === 50 ? undefined : query.show)
       set('time', query.time === 'now' ? undefined : formatCompactUTCTime(query.time))
       set('asc', query.asc ? undefined : null)
