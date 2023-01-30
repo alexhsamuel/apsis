@@ -90,20 +90,18 @@ tt {
 }
 
 @mixin button {
-  background: #f0f6f0;
+  background: $global-button-color;
   border-radius: 3px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid $global-frame-color;
   box-sizing: border-box;
   color: $global-color;
   font-family: inherit;
   font-weight: inherit;
   cursor: default;
   padding: 0 30px;
-  // text-transform: uppercase;
 
   &:hover:not(:disabled) {
     background: $control-hover-color;
-    border-color: $control-hover-border;
   }
 
   &.button-danger {
@@ -127,7 +125,7 @@ button {
 input {
   background-color: transparent;
   border-radius: 0;
-  border: 1px solid #e5e5e5;
+  border: 1px solid $global-frame-color;
   box-sizing: border-box;
   color: #444;
   font: inherit;
