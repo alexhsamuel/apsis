@@ -47,15 +47,11 @@ div
       div
         .label Repeated:
         div
-          button.toggle.left(
-            :disabled="!grouping"
-            @click="grouping = false"
-          ) Show
-          button.toggle.right(
-            :disabled="grouping"
-            @click="grouping = true"
-          ) Hide
-          | &nbsp;
+          | Show
+          Toggle.toggle(
+            v-model="grouping"
+          )
+          | Hide &nbsp;
           HelpButton
             p How to present repeated runs, <i>i.e.</i> runs with the same job ID and run args.
             p <b>Show</b> each run individually.
@@ -112,21 +108,17 @@ div
       div
         .label Order:
         div
-          button.toggle.left(
-            :disabled="asc"
-            v-on:click="asc = true"
-          ) &nbsp; Time &#8681;
-          button.toggle.right(
-            :disabled="!asc"
-            v-on:click="asc = false"
-          ) &nbsp; Time &#8679;
-          | &nbsp;
+          | Time &#8679;
+          Toggle.toggle(
+            v-model="asc"
+          )
+          | Time &#8681; &nbsp;
           HelpButton
-            p Show runs in descending or ascending time order.
+            p Time runs chronologically upward or downward.
         div &nbsp;
 
       div
-        .label &nbsp
+        .label Showing:
         div(style="display: grid; width: 100%; grid-template-columns: 1fr 1em 1fr;")
           span(style="justify-self: start") {{ formatTime(groups.earlierTime) }}
           span &mdash;
@@ -257,6 +249,7 @@ import StatesSelect from '@/components/StatesSelect'
 import store from '@/store.js'
 import TimeInput from '@/components/TimeInput'
 import Timestamp from '@/components/Timestamp'
+import Toggle from '@/components/Toggle'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 import WordsInput from '@/components/WordsInput'
 
@@ -326,6 +319,7 @@ export default {
     StatesSelect,
     TimeInput,
     Timestamp,
+    Toggle,
     TriangleIcon,
     WordsInput,
   },
@@ -612,6 +606,8 @@ export default {
   width: 80em;
   margin-top: 1em;
   margin-bottom: 2em;
+  background: $global-control-background;
+  padding: 12px 18px;
 
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -622,10 +618,6 @@ export default {
   white-space: nowrap;
   line-height: 28px;
   
-  > input {
-    width: 100%;
-  }
-
   > div {
     display: grid;
     height: 30px;
@@ -657,25 +649,7 @@ export default {
   }
 
   .toggle {
-    padding: 0 12px;
-    &:disabled {
-      background: $global-select-background;
-    }
-    &:not(:disabled) {
-      background: white;
-    }
-    &.left {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-    &.right{
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-    &:hover {
-      background: $control-hover-color;
-      border-color: $control-hover-border;
-    }
+    margin: 0 1ch;
   }
 
   button {
@@ -686,6 +660,10 @@ export default {
       height: 100%;
       vertical-align: center;
     }
+  }
+
+  input {
+    background-color: $global-background;
   }
 
   input[type="checkbox"] {
