@@ -2,7 +2,7 @@
   svg(viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" style="width: 1rem;")
     path(
       d="M 200 500 L 1600 500 L 900 1500 L 200 500"
-      :stroke="none"
+      stroke="none"
       :transform="rotation"
       :fill="color"
     )
