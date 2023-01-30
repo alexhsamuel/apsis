@@ -8,7 +8,7 @@ div.component
       JobLabel.label(v-for="label in job.metadata.labels" :key="label" :label="label")
 
   div(v-if="job" style="font-size:120%;")
-    | Parameters ({{ params }})
+    | Parameters: ({{ params }})
 
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
 
