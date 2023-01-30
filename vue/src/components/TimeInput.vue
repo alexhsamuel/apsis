@@ -51,6 +51,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/index.scss';
+
 .top {
   display: flex;
   flex-direction: row;
@@ -59,6 +61,7 @@ export default {
 input {
   height: 100%;
   border-radius: 0;
+  background-color: $global-background;
 }
 
 .button {

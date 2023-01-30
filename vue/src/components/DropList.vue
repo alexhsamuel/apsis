@@ -128,8 +128,10 @@ export default {
 
 <style lang="scss" scoped>
 @import 'src/styles/vars.scss';
+
 .combo {
   border: 1px solid $global-frame-color;
+  background: $global-background;
   display: flex;
   flex-direction: row;
   align-items: center;
