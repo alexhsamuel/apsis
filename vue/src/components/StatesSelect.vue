@@ -127,13 +127,13 @@ export default {
   align-items: center;
   border: 1px solid $global-frame-color;
   padding: 0 8px 0 12px;
+  background-color: $global-background;
 }
 
 .value {
   box-sizing: border-box;
   width: 16em;
   background: white;
-  text-transform: uppercase;
 
   display: inline-flex;
   flex-direction: row;
@@ -173,7 +173,6 @@ export default {
   box-shadow: 4px 4px 4px #eee;
   padding-top: 4px;
   padding-bottom: 4px;
-  text-transform: uppercase;
 
   .separator {
     margin: 6px 0;
