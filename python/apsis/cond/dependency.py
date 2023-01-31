@@ -13,7 +13,7 @@ class Dependency(Condition):
     True if a run exists and is in a given state.
     """
 
-    def __init__(self, job_id, args, states={Run.STATE.success}):
+    def __init__(self, job_id, args={}, states={Run.STATE.success}):
         states = frozenset(iterize(states))
         assert all( isinstance(s, Run.STATE) for s in states )
 
