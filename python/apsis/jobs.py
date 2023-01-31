@@ -13,7 +13,7 @@ from   .actions import Action
 from   .cond import Condition
 from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
-from   .program import Program
+from   .program import Program, NoOpProgram
 from   .schedule import Schedule
 from   apsis.lib.exc import SchemaError
 
@@ -23,8 +23,10 @@ log = logging.getLogger(__name__)
 
 class Job:
 
-    def __init__(self, job_id, params, schedules, program, conds=[],
-                 actions=[], *, meta={}, ad_hoc=False):
+    def __init__(
+            self, job_id, params=[], schedules=[], program=NoOpProgram(),
+            conds=[], actions=[], *, meta={}, ad_hoc=False
+    ):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
@@ -172,9 +174,33 @@ def list_yaml_files(dir_path):
 
 #-------------------------------------------------------------------------------
 
-class JobsDir:
+# FIXME: Use mapping API for jobs.
 
-    # FIXME: Mapping API?
+class InMemoryJobs:
+    """
+    In-memory set of jobs.  Used for testing.
+    """
+
+    def __init__(self, jobs):
+        self.__jobs = { j.job_id: j for j in jobs }
+
+
+    def get_job(self, job_id) -> Job:
+        try:
+            return self.__jobs[job_id]
+        except KeyError:
+            raise LookupError(f"no job {job_id}")
+
+
+    def get_jobs(self, *, ad_hoc=None):
+        jobs = self.__jobs.values()
+        if ad_hoc is not None:
+            jobs = ( j for j in jobs if j.ad_hoc == ad_hoc )
+        return jobs
+
+
+
+class JobsDir:
 
     def __init__(self, path, jobs):
         self.__path = path
