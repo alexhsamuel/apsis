@@ -6,5 +6,5 @@ pyyaml
 requests
 rich
 sanic ==21.6
-sqlalchemy
+sqlalchemy <2
 ujson

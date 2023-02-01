@@ -31,7 +31,7 @@ setuptools.setup(
         "requests",
         "rich",
         "sanic >=21.3",
-        "sqlalchemy",
+        "sqlalchemy <2",
         "ujson",
     ],
 
