@@ -100,10 +100,15 @@ Each run, once created, is in one of these states:
 - **starting**: The run is starting.
 - **running**: The run has started and is currently running.
 - **success**: The run has completed successfully.
-- **failure**: The run has run amd completed unsuccesfully.
+- **failure**: The run has run and completed unsuccesfully.
 - **skipped**: The run was skipped without running.
-- **error**: A problem occurred and the run was not started.  For example, the
-  run is configured incorrectly, or Apsis was unable to start the program.
+- **error**: Some other problem has occured with the run.  This can include a
+  problem with Apsis itself; with the job configuration; or the runtime
+  environment (for instance, a host is unresponsive).  The run may or may not
+  have started or completed, depending on the nature of the error.
+
+Each run includes a log of state transition times with additional details.
+
 
 State Model
 ===========
