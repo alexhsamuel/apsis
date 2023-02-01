@@ -140,9 +140,9 @@ Apsis transitions a run among these state as follows:
 
 You can apply the following operations, to induce transitions explicitly:
 
-- You can *start* a **scheduled**.  Apsis no longer waits for its schedule time,
-  and transitions it immediately to **waiting**.  If it has conditions that are
-  not yet fulfilled, it will not start immediately.
+- You can *start* a **scheduled** run.  Apsis no longer waits for its schedule
+  time, and transitions it immediately to **waiting**.  If it has conditions
+  that are not yet fulfilled, it will not start immediately.
 
 - You can *start* a **waiting** run.  Apsis no longer checks its conditions,
   starts the run's program, and transitions the run to **running**.
