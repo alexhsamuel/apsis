@@ -1,3 +1,9 @@
+# v0.16.0
+
+- `apsisctl check-jobs` now checks conditions (including dependencies) and
+  actions for missing and extraneous args.  #245
+
+
 # v0.15.0
 
 - Add a "Schedule Run" frame to the web UI job view, for manual scheduling.

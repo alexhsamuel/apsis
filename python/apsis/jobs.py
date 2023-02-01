@@ -268,24 +268,41 @@ def check_job(jobs_dir, job):
     :return:
       Generator of errors.
     """
+    def check_associated_run(obj, context):
+        try:
+            associated_job_id = obj.job_id
+        except AttributeError:
+            # No associated job; that's OK.
+            return
+
+        # Find the associated job.
+        try:
+            associated_job = jobs_dir.get_job(associated_job_id)
+        except LookupError:
+            yield f"unknown job ID in {context}: {associated_job_id}"
+            return
+
+        # Look up additional args, if any.
+        try:
+            args = set(obj.args)
+        except AttributeError:
+            args = set()
+
+        params = set(associated_job.params)
+        # Check for missing args.  The params of the associated job can be bound
+        # either to the args of this job or to explicit args.
+        for missing in params - set(job.params) - args:
+            yield f"missing arg in {context}: param {missing} of job {associated_job_id}"
+        # Check for extraneous explicit args.
+        for extra in args - params:
+            yield f"extraneous arg in {context}: param {extra} of job {associated_job_id}"
+
     # Check all job ids in actions and conditions, by checking each action
     # and condition class for a job_id attribute.
     for action in job.actions:
-        try:
-            jobs_dir.get_job(action.job_id)
-        except AttributeError:
-            # That's OK; it doesn't have an associated job id.
-            pass
-        except LookupError:
-            yield(f"{job.job_id}: no job in action: {action.job_id}")
+        yield from check_associated_run(action, "action")
     for cond in job.conds:
-        try:
-            jobs_dir.get_job(cond.job_id)
-        except AttributeError:
-            # That's OK; it doesn't have an associated job id.
-            pass
-        except LookupError:
-            yield(f"{job.job_id}: no job in condition: {cond.job_id}")
+        yield from check_associated_run(cond, "condition")
 
     # Try scheduling a run for each schedule of each job.
     now = ora.now()
@@ -293,7 +310,7 @@ def check_job(jobs_dir, job):
         _, args = next(schedule(now))
         missing_args = set(job.params) - set(args)
         if len(missing_args) > 0:
-            yield(f"{job.job_id}: missing args in schedule: {' '.join(missing_args)}")
+            yield(f"job params missing in schedule args: {' '.join(missing_args)}")
 
 
 def check_job_dir(path):
