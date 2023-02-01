@@ -101,10 +101,13 @@ Each run, once created, is in one of these states:
 - **running**: The run has started and is currently running.
 - **success**: The run has completed successfully.
 - **failure**: The run has completed unsuccesfully.
-- **skipped**: The run was skipped without running.
-- **error**: A problem occurred.  This could indicate a problem with the job
-  configuration, with the environment in which the job's program runs, or with
-  Apsis itself.  The run may or may not have started or completed.
+- **error**: Some other problem has occured with the run.  This can include a
+  problem with Apsis itself; with the job configuration; or the runtime
+  environment (for instance, a host is unresponsive).  The run may or may not
+  have started or completed, depending on the nature of the error.
+
+Each run includes a log of state transition times with additional details.
+
 
 State Model
 ===========
@@ -136,9 +139,9 @@ Apsis transitions a run among these state as follows:
 
 You can apply the following operations, to induce transitions explicitly:
 
-- You can *start* a **scheduled**.  Apsis no longer waits for its schedule time,
-  and transitions it immediately to **waiting**.  If it has conditions that are
-  not yet fulfilled, it will not start immediately.
+- You can *start* a **scheduled** run.  Apsis no longer waits for its schedule
+  time, and transitions it immediately to **waiting**.  If it has conditions
+  that are not yet fulfilled, it will not start immediately.
 
 - You can *start* a **waiting** run.  Apsis no longer checks its conditions,
   starts the run's program, and transitions the run to **running**.

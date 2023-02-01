@@ -13,7 +13,7 @@ from   .actions import Action
 from   .cond import Condition
 from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
-from   .program import Program
+from   .program import Program, NoOpProgram
 from   .schedule import Schedule
 from   apsis.lib.exc import SchemaError
 
@@ -23,8 +23,10 @@ log = logging.getLogger(__name__)
 
 class Job:
 
-    def __init__(self, job_id, params, schedules, program, conds=[],
-                 actions=[], *, meta={}, ad_hoc=False):
+    def __init__(
+            self, job_id, params=[], schedules=[], program=NoOpProgram(),
+            conds=[], actions=[], *, meta={}, ad_hoc=False
+    ):
         """
         :param schedules:
           A sequence of `Schedule, args` pairs, where `args` is an arguments
@@ -172,9 +174,33 @@ def list_yaml_files(dir_path):
 
 #-------------------------------------------------------------------------------
 
-class JobsDir:
+# FIXME: Use mapping API for jobs.
 
-    # FIXME: Mapping API?
+class InMemoryJobs:
+    """
+    In-memory set of jobs.  Used for testing.
+    """
+
+    def __init__(self, jobs):
+        self.__jobs = { j.job_id: j for j in jobs }
+
+
+    def get_job(self, job_id) -> Job:
+        try:
+            return self.__jobs[job_id]
+        except KeyError:
+            raise LookupError(f"no job {job_id}")
+
+
+    def get_jobs(self, *, ad_hoc=None):
+        jobs = self.__jobs.values()
+        if ad_hoc is not None:
+            jobs = ( j for j in jobs if j.ad_hoc == ad_hoc )
+        return jobs
+
+
+
+class JobsDir:
 
     def __init__(self, path, jobs):
         self.__path = path
@@ -242,24 +268,41 @@ def check_job(jobs_dir, job):
     :return:
       Generator of errors.
     """
+    def check_associated_run(obj, context):
+        try:
+            associated_job_id = obj.job_id
+        except AttributeError:
+            # No associated job; that's OK.
+            return
+
+        # Find the associated job.
+        try:
+            associated_job = jobs_dir.get_job(associated_job_id)
+        except LookupError:
+            yield f"unknown job ID in {context}: {associated_job_id}"
+            return
+
+        # Look up additional args, if any.
+        try:
+            args = set(obj.args)
+        except AttributeError:
+            args = set()
+
+        params = set(associated_job.params)
+        # Check for missing args.  The params of the associated job can be bound
+        # either to the args of this job or to explicit args.
+        for missing in params - set(job.params) - args:
+            yield f"missing arg in {context}: param {missing} of job {associated_job_id}"
+        # Check for extraneous explicit args.
+        for extra in args - params:
+            yield f"extraneous arg in {context}: param {extra} of job {associated_job_id}"
+
     # Check all job ids in actions and conditions, by checking each action
     # and condition class for a job_id attribute.
     for action in job.actions:
-        try:
-            jobs_dir.get_job(action.job_id)
-        except AttributeError:
-            # That's OK; it doesn't have an associated job id.
-            pass
-        except LookupError:
-            yield(f"{job.job_id}: no job in action: {action.job_id}")
+        yield from check_associated_run(action, "action")
     for cond in job.conds:
-        try:
-            jobs_dir.get_job(cond.job_id)
-        except AttributeError:
-            # That's OK; it doesn't have an associated job id.
-            pass
-        except LookupError:
-            yield(f"{job.job_id}: no job in condition: {cond.job_id}")
+        yield from check_associated_run(cond, "condition")
 
     # Try scheduling a run for each schedule of each job.
     now = ora.now()
@@ -267,7 +310,7 @@ def check_job(jobs_dir, job):
         _, args = next(schedule(now))
         missing_args = set(job.params) - set(args)
         if len(missing_args) > 0:
-            yield(f"{job.job_id}: missing args in schedule: {' '.join(missing_args)}")
+            yield(f"job params missing in schedule args: {' '.join(missing_args)}")
 
 
 def check_job_dir(path):
