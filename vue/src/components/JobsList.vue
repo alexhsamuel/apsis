@@ -1,4 +1,4 @@
-<template lang="pug">
+ <template lang="pug">
 div
   div.controls
     div
@@ -28,16 +28,16 @@ div
         p Syntax: <b>label label&hellip;</b>
         p Show only jobs with each <b>label</b>.
 
-  div.buttons
-    button(
-      @click="expandAll(true)"
-    ) Expand All
-    button(
-      @click="expandAll(false)"
-    ) Collapse All
-    button(
-      @click="$emit('showRuns')"
-    ) Show Runs
+    div.buttons(style="grid: span 3")
+      button(
+        @click="expandAll(true)"
+      ) Expand All
+      button(
+        @click="expandAll(false)"
+      ) Collapse All
+      button(
+        @click="$emit('showRuns')"
+      ) Show Runs
 
   table.widetable
     colgroup
@@ -294,6 +294,8 @@ export default {
 .controls {
   width: 80em;
   margin-top: 1em;
+  background: $global-control-background;
+  padding: 12px 18px;
 
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -303,7 +305,7 @@ export default {
 
   white-space: nowrap;
   line-height: 28px;
-  
+
   > input {
     width: 100%;
   }
@@ -327,16 +329,16 @@ export default {
     text-align: right;
     white-space: nowrap;
   }
-}
 
-.buttons {
-  height: 30px;
-  margin-top: 1em;
-  margin-bottom: 2em;
+  .buttons {
+    height: 30px;
+    grid-column: span 3;
+    display: block;
 
-  button {
-    height: 100%;
-    margin-right: 8px;
+    button {
+      height: 100%;
+      margin-right: 8px;
+    }
   }
 }
 
