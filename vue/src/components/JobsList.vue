@@ -306,6 +306,10 @@ export default {
   white-space: nowrap;
   line-height: 28px;
 
+  input {
+    background-color: $global-background;
+  }
+
   > input {
     width: 100%;
   }
