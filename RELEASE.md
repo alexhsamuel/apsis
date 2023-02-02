@@ -1,7 +1,13 @@
 # v0.16.0
 
-- `apsisctl check-jobs` now checks conditions (including dependencies) and
-  actions for missing and extraneous args.  #245
+- The web UI has been substantially improved.  The new design permits navigation
+  of a much larger number of runs, without displaying them all at one time.
+- Filters for runs and views are more flexible and explicit.  Click help icons
+  for explanations.
+- The URL scheme for runs and views filters has changed substantially.  Any
+  bookmarked or otherwise saved URLs to these views won't work anymore.
+- `apsisctl check-jobs` checks conditions (including dependencies) and actions
+  for missing and extraneous args.  #245
 
 
 # v0.15.0
