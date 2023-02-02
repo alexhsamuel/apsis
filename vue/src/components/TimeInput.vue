@@ -41,7 +41,6 @@ export default {
     set(input) {
       const time = this.inputToTime(input.trim())
       if (time !== this.value) {
-        console.log('set', input, time)
         this.$emit('input', time)
         this.$emit('change', time)
       }
