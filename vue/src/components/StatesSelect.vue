@@ -4,10 +4,20 @@
     @keyup.space.prevent="setShow()"
     @keyup.escape.prevent="setShow(false)"
   )
-    .value(@mousedown.stop="setShow()" tabindex=0)
-      span(v-if="value.length == 0") All States
+    .value(
+      tabindex=0
+      @mousedown.stop="setShow()"
+    )
+      span(v-if="allChecked") All States
+      span(v-else-if="noneChecked") No States
       span(v-else) States:&nbsp;
       State(v-for="state in value" :key="'value-' + state" :state="state" :name="false")
+
+      span(style="flex-grow: 99999;")
+      TriangleIcon(
+        style="width: 1em;"
+        direction="down"
+      )
 
     //- Full-window underlay to capture clicks outside the droplist.
     #under(
@@ -19,8 +29,15 @@
       #items(v-show="show" tabindex=0)
         div
           label(for="all-states") All States 
-          input#all-states(type="checkbox" :checked="checked.length == 0" @change="checkAll")
+          input#all-states(
+            type="checkbox"
+            :checked="allChecked"
+            @change="onAllStates"
+            ref="all"
+          )
+
         div.separator
+
         div(v-for="state in STATES")
           label(:for="state")
             State(:key="state" :state="state" :name="true")
@@ -29,32 +46,44 @@
 </template>
 
 <script>
-import DropList from '@/components/DropList'
 import { STATES, sortStates } from '@/runs'
-import State from './State'
+import State from '@/components/State'
+import TriangleIcon from '@/components/icons/TriangleIcon'
 
 /**
  * Selected states indicator with droplist to select individual states.
  * 
- * `value` is an array of state names.  An empty array means all states.
+ * `value` is an array of state names; null means all states.
  */
 export default {
   name: 'StatesSelect',
-  props: ['value'],
+  props: {
+    value: {type: Array, default: null},
+  },
 
   components: {
-    DropList,
     State,
+    TriangleIcon,
   },
 
   data() {
     return {
       STATES,
-      // Array of checked values.
-      checked: this.value.slice(),
+      // Array of checked states.
+      checked: this.value === null ? STATES : this.value.slice(),
       // Whether the droplist is displayed.
       show: false,
     }
+  },
+
+  computed: {
+    noneChecked() {
+      return this.checked.length === 0
+    },
+
+    allChecked() {
+      return this.checked.length === this.STATES.length
+    },
   },
 
   methods: {
@@ -67,33 +96,49 @@ export default {
       this.show = show
     },
 
-    checkAll(ev) {
-      this.$set(this, 'checked', [])
+    onAllStates(ev) {
+      this.$set(this, 'checked', ev.target.checked ? this.STATES : [])
     },
   },
 
   watch: {
-    checked(checked, old) {
+    checked(checked) {
       // Send state to the parent.
-      this.$emit('input', sortStates(checked))
+      this.$emit('input', this.allChecked ? null : sortStates(checked))
+
+      // Vue doesn't seem to have a way to set indeterminate on the all states checkbox, so set it here.
+      this.$refs.all.indeterminate = !(this.noneChecked || this.allChecked)
     },
+  },
+
+  mounted() {
+    // Possibly set indeterminate on the all states checkbox.
+    this.$refs.all.indeterminate = !(this.noneChecked || this.allChecked)
   },
 }
 </script>
 
-<style lang="scss" scoped>@import 'src/styles/vars.scss';
+<style lang="scss" scoped>
+@import 'src/styles/vars.scss';
+
+.combo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border: 1px solid $global-frame-color;
+  padding: 0 8px 0 12px;
+  background-color: $global-background;
+}
+
 .value {
   box-sizing: border-box;
   width: 16em;
   background: white;
-  border: 1px solid $global-frame-color;
-  padding: 4px 12px 3px 12px;
-  text-transform: uppercase;
 
   display: inline-flex;
   flex-direction: row;
   justify-content: left;
-  align-items: start;
+  align-items: center;
   gap: 1px;
 
   &:focus {
@@ -114,21 +159,20 @@ export default {
 #drop {
   z-index: 2;
   position: absolute;
-  width: max-content;
   height: 0;
 }
 
 #items {
   position: relative;
-  top: 4px;
+  left: -13px;
+  top: 1.2em;
   box-sizing: border-box;
-  width: 16em;
+  width: calc(100% + 2em);
   background: white;
   border: 1px solid $global-frame-color;
   box-shadow: 4px 4px 4px #eee;
   padding-top: 4px;
   padding-bottom: 4px;
-  text-transform: uppercase;
 
   .separator {
     margin: 6px 0;

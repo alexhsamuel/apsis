@@ -1,15 +1,21 @@
 @import 'src/styles/vars.scss';
 
 html {
-  color: #444;
+  color: $global-color;
 }
 
 body {
   margin: 0;
+  padding: 0;
 }
 
 a {
   text-decoration: none;
+}
+
+h1 {
+  font-size: 200%;
+  font-weight: 400;
 }
 
 h3 {
@@ -83,32 +89,19 @@ tt {
   margin-top: 1x;
 }
 
-// For "buttons" with underline selection.
-.undersel {
-  padding: 0 8px 4px 8px;
-  color: inherit;
+@mixin button {
+  background: $global-button-color;
+  border-radius: 3px;
+  border: 1px solid $global-frame-color;
+  box-sizing: border-box;
+  color: $global-color;
+  font-family: inherit;
+  font-weight: inherit;
   cursor: default;
-  &:hover {
-    text-decoration: none;
-    border-bottom: 3px solid #eee;
-  }
-  &.sel {
-    border-bottom: 3px solid black;
-  }
-}
-
-button {
-  background-color: transparent;
-  border-radius: 0;
-  border: 1px solid #e5e5e5;
-  font-size: 0.875rem;
-  line-height: 38px;
   padding: 0 30px;
-  text-transform: uppercase;
-  vertical-align: middle;
 
-  &:hover {
-    border-color: #b2b2b2;
+  &:hover:not(:disabled) {
+    background: $control-hover-color;
   }
 
   &.button-danger {
@@ -119,23 +112,33 @@ button {
   }
 }
 
+button {
+  @include button
+}
+
+.button {
+  height: 100%;
+  vertical-align: baseline;
+  @include button
+}
+
 input {
   background-color: transparent;
   border-radius: 0;
-  border: 1px solid #e5e5e5;
+  border: 1px solid $global-frame-color;
   box-sizing: border-box;
   color: #444;
   font: inherit;
-  height: 40px;
   max-width: 100%;
   overflow: visible;
   padding: 0 10px;
-  vertical-align: middle;
-  width: 100%;
-  outline: none;
+  // vertical-align: middle;
+  // outline: none;
 
-  &:focus, &:active {
-    border-color: $global-focus-color;
+  &:focus-visible {
+    outline: none;
+    outline: 2px solid $global-focus-color;
+    outline-offset: -2px;
   }
 }
 
@@ -145,3 +148,4 @@ input {
   flex-direction: row;
   align-items: center;
 }
+

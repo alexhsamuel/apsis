@@ -7,10 +7,14 @@
     v-on:keyup.escape.prevent="show = false"
   )
     .value(
-      tabindex=0
-      v-on:mousedown.stop="show = !show"
-      v-on:blur="show = false"
+        tabindex=0
+        @mousedown.stop="show = !show"
+        @blur="show = false"
     )
+      div#selected
+      div(style="flex-grow: 10000;")
+      TriangleIcon(direction="down")
+
     div.drop
       .items(
         v-show="show"
@@ -20,12 +24,18 @@
 </template>
 
 <script>
+import TriangleIcon from '@/components/icons/TriangleIcon'
+
 export default {
   props: {
     value: {
       type: Number,
       default: 0,
     },
+  },
+
+  components: {
+    TriangleIcon,
   },
 
   data() {
@@ -52,7 +62,7 @@ export default {
      * Sets the value in the value box to the selected `this.idx`.
      */
     setValue() {
-      const valueBox  = this.$el.querySelector('.value')
+      const valueBox  = this.$el.querySelector('#selected')
       const item = this.getItemsElement().childNodes[this.idx]
 
       // Remove existing contents.
@@ -119,16 +129,22 @@ export default {
 <style lang="scss" scoped>
 @import 'src/styles/vars.scss';
 
+.combo {
+  border: 1px solid $global-frame-color;
+  background: $global-background;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 8px 0 12px;
+}
+
 .value {
   box-sizing: border-box;
   width: 100%;
-  height: 28px;
   background: white;
-  border: 1px solid $global-frame-color;
-  padding: 0px 12px;
 
   display: inline-flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: center;
 
   &:focus {
@@ -145,7 +161,8 @@ export default {
 
 .items {
   position: relative;
-  top: 4px;
+  left: -13px;
+  top: 1.2em;
   background: white;
   border: 1px solid $global-frame-color;
   box-shadow: 4px 4px 4px #eee;
@@ -153,7 +170,7 @@ export default {
   padding-bottom: 4px;
 
   div {
-    padding: 6px 12px;
+    padding: 3px 12px;
   }
 
   :hover {

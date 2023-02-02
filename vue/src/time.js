@@ -12,18 +12,17 @@ export function formatTime(time, tz, format) {
 export function formatDuration(elapsed) {
   return (
       elapsed < 0 ? '??'
-    : elapsed < 1e-5 ? (elapsed * 1e6).toPrecision(2) + ' µs'
-    : elapsed < 1e-3 ? (elapsed * 1e6).toPrecision(3) + ' µs'
-    : elapsed < 1e-2 ? (elapsed * 1e3).toPrecision(2) + ' ms'
-    : elapsed < 1e+0 ? (elapsed * 1e3).toPrecision(3) + ' ms'
-    : elapsed < 1e+1 ? (elapsed      ).toPrecision(2) + ' s'
-    : elapsed < 60   ? (elapsed      ).toPrecision(3) + ' s'
-    : elapsed < 3600 ? 
-          Math.trunc(elapsed / 60) 
-        + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
-    :     Math.trunc(elapsed / 3600) 
-        + ':' + ('' + Math.trunc(elapsed / 60 % 60)).padStart(2, '0')
-        + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
+    : elapsed === 0   ? '0 s'
+    : elapsed < 1e-5  ? Math.round(elapsed *   1e6) + ' µs'
+    : elapsed < 1e-4  ? Math.round(elapsed *   1e6) + ' µs'
+    : elapsed < 1e-3  ? Math.round(elapsed *   1e6) + ' µs'
+    : elapsed < 1e-2  ? Math.round(elapsed *   1e3) + ' ms'
+    : elapsed < 1e-1  ? Math.round(elapsed *   1e3) + ' ms'
+    : elapsed < 1     ? Math.round(elapsed *   1e3) + ' ms'
+    : elapsed < 60    ? Math.round(elapsed        ) + ' s'
+    : elapsed < 3600  ? Math.round(elapsed /    60) + ' m'
+    : elapsed < 86400 ? Math.round(elapsed /  3600) + ' h'
+    :                   Math.round(elapsed / 86400) + ' d'
   )
 }
 
@@ -31,10 +30,10 @@ export function formatElapsed(elapsed) {
   return (
       elapsed < 3600 ? 
           Math.trunc(elapsed / 60) 
-        + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
+        + ':' + ('' + Math.round(elapsed % 60)).padStart(2, '0')
     :     Math.trunc(elapsed / 3600) 
         + ':' + ('' + Math.trunc(elapsed / 60 % 60)).padStart(2, '0')
-        + ':' + ('' + Math.trunc(elapsed % 60)).padStart(2, '0')
+        + ':' + ('' + Math.round(elapsed % 60)).padStart(2, '0')
   )
 }
 
@@ -84,8 +83,15 @@ export function parseTime(str, end, timeZone) {
     return null
 
   let date = parseDate(parts[0], timeZone)
-  if (date === null) 
-    return null
+  if (date === null) {
+    // Try to parse it as a time in today's date.
+    const daytime = parseDaytime(parts[0])
+    if (daytime === null)
+      return null
+    const now = moment(new Date()).tz(timeZone)
+    const x = [now.year(), now.month(), now.date()].concat(daytime)
+    return moment.tz(x, timeZone)
+  }
 
   if (parts.length === 2) {
     const daytime = parseDaytime(parts[1])
@@ -138,5 +144,17 @@ export function parseTimeOrOffset(str, end, timeZone) {
   if (time === null)
     time = parseTimeOffset(str, end ? 1 : -1)
   return time
+}
+
+// Converts a full ISO time string to a compact UTC with 1 s resolution,
+// e.g. 20230119T123304Z.
+export function formatCompactUTCTime(str) {
+  const time = moment.utc(str).tz('UTC')
+  return time.format('YYYYMMDD[T]HHmmss[Z]')
+}
+
+// Converts compact UTC to full ISO-8859 UTC.
+export function parseCompactUTCTime(str) {
+  return moment.utc(str).format()
 }
 

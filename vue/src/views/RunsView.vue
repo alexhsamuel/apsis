@@ -1,119 +1,105 @@
 <template lang="pug">
 div
-  .flex-margin
-    h3(style="flex: 1;")
-      a.undersel(v-on:click="onShowJobs") Jobs
-      a.undersel.sel(v-on:click="") Runs
-      span(v-if="path" style="font-size: 16px; padding: 0 8px;")  
-        PathNav(:path="path" v-on:path="setPath($event)")
-
-    //- Combo box for selecting the "since" start date of runs to show.
-    SinceSelect(
-      style="flex: 0 0 150px;"
-      :value="since"
-      v-on:input="setSince($event)"
-    )
-
-    //- Combo box for selecting the run states filter.
-    StatesSelect(
-      style="flex: 0 0 180px;"
-      :value="states"
-      v-on:input="setStates($event)"
-    )
-
-    //- Input box for the search string.
-    SearchInput.search-input(
-      v-model="query"
-      style="flex: 0 0 300px;"
-    )
+  h1 Runs
 
   //- The table of runs.
   RunsList(
     :query="query"
-    :path="path"
-    v-on:path="setPath($event)"
-)
+    @query="onQueryChange"
+    :timeControls="true"
+  )
 
 </template>
 
 <script>
-import PathNav from '@/components/PathNav'
+import { isEqual } from 'lodash'
+import { argsToArray, arrayToArgs } from '@/runs'
 import RunsList from '@/components/RunsList'
-import * as runsFilter from '@/runsFilter.js'
-import SearchInput from '@/components/SearchInput'
-import SinceSelect from '@/components/SinceSelect'
-import StatesSelect from '@/components/StatesSelect'
+import { formatCompactUTCTime, parseCompactUTCTime } from '@/time'
+
+/**
+ * Strips off all occurrences of `suffix` at the end of `string`.
+ */
+function rstrip(string, suffix) {
+  const len = suffix.length
+  while (len <= string.length && string.slice(-len) === suffix)
+    string = string.slice(0, -len)
+  return string
+}
 
 export default {
   name: 'RunsView',
   components: {
-    PathNav,
     RunsList,
-    SearchInput,
-    SinceSelect,
-    StatesSelect,
   },
 
   data() {
     return {
-      query: this.$route.query.q || '',
+      query: this.urlToQuery(this.$route.query),
     }
   },
 
-  computed: {
-    path() {
-      return this.$route.query.path
-    },
-
-    since() {
-      // Extract since from the query.
-      return runsFilter.SinceTerm.get(this.query)
-    },
-
-    states() {
-      // Extract states from the query.
-      return runsFilter.StateTerm.get(this.query)
-    },
-  },
-
   watch: {
-    query(query) {
-      // If the query changed, add it to the URL.
-      this.setQueryParam('q', query || undefined)
-    },
-
-    '$route'(to, from) {
-      // Set the query from the URL query.
-      this.query = to.query.q || ''
-    },
+    // When the route changes due to the browser's forward/back buttons,
+    // trigger an update to the query.
+    '$route'(to) {
+      this.$set(this, 'query', this.urlToQuery(to.query))
+    }
   },
 
   methods: {
-    // FIXME: Elsewhere.
     /**
-     * Sets a query param in the route.
-     * @param param - the query param name
-     * @param val - the value to set, or undefined to remove
+     * Converts the query part of a URL to a query object for RunsList.
      */
-    setQueryParam(param, val) {
-      val = val.trim()
-      if (this.$route.query[param] !== val) {
-        // Set only this param, keeping the reqest of the query.
-        const query = Object.assign({}, this.$route.query, { [param]: val })
-        this.$router.push({ query })
+    urlToQuery(url) {
+      const splitWords = (param) => param ? param.split(',') : null
+      return {
+        path: url.path ? rstrip(url.path, '/') : null,
+        keywords: splitWords(url.keywords),
+        labels: splitWords(url.labels),
+        states: splitWords(url.states),
+        args: url.args ? arrayToArgs(splitWords(url.args)) : null,
+        grouping: url.ungroup !== null,
+        show: url.show ? parseInt(url.show) : 50,
+        time: url.time ? parseCompactUTCTime(url.time) : 'now',
+        asc: url.asc !== null,
       }
     },
 
-    setSince(since) {
-      this.query = runsFilter.SinceTerm.set(this.query, since)
+    /**
+     * Renders the query object from RunsList as the query part of a URL.
+     */
+    queryToUrl(query) {
+      const url = {}
+      function set(param, val) {
+        if (val === undefined)
+          ;
+        else if (val === null)
+          url[param] = null
+        else
+          url[param] = val.toString().trim()
+      }
+
+      const joinWords = (words) => words !== null ? words.join(',') : undefined
+      set('path', query.path || undefined)
+      set('keywords', joinWords(query.keywords))
+      set('labels', joinWords(query.labels))
+      set('states', joinWords(query.states))
+      set('args', joinWords(query.args === null ? null : argsToArray(query.args)))
+      set('ungroup', query.grouping ? undefined : null)
+      set('show', query.show === 50 ? undefined : query.show)
+      set('time', query.time === 'now' ? undefined : formatCompactUTCTime(query.time))
+      set('asc', query.asc ? undefined : null)
+      return url
     },
 
-    setStates(states) {
-      this.query = runsFilter.StateTerm.set(this.query, states)
-    },
-
-    setPath(path) {
-      this.setQueryParam('path', path)
+    onQueryChange(query) {
+      // Convert the RunsList query to URL query.  If anything has changed,
+      // push this to the router to update the browser URL and push an element
+      // onto the undo stack.
+      const url = this.queryToUrl(query)
+      if (!isEqual(this.$route.query, url))
+        this.$router.push({ query: url })
     },
 
     onShowJobs() {
@@ -122,9 +108,6 @@ export default {
         params: {
           path: this.path || undefined,
         },
-        query: {
-          q: runsFilter.toJobsQuery(this.query) || undefined,
-        },
       })
     },
   },
@@ -132,6 +115,11 @@ export default {
 </script>
 
 <style lang="scss">
+h3 {
+  margin: 0;
+  margin-bottom: 1ex;
+}
+
 // FIXME: Elsewhere
 .flex-margin {
   display: flex;
@@ -139,8 +127,3 @@ export default {
 }
 </style>
 
-<style lang="scss" scoped>
-.search-input {
-  width: 50%;
-}
-</style>

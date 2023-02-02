@@ -1,10 +1,17 @@
 $global-color: #444;
+$global-background: #ffffff;
+$global-light-color: #888;
 $global-link-color: #DA7D02;
 $global-font-family: Roboto, Helvetica, sans-serif;
 $global-focus-color: #6b9;
 $global-hover-background: #fafafa;
-$global-frame-color: #ddd;
+$global-frame-color: #d8d8d8;
 $global-select-background: #f0faf0;
+$global-control-background: #f4f4f4;
+$global-button-color: #e0e0e0;
+
+$control-hover-color: #b8e0c8;
+$control-hover-border: #b2b2b2;
 
 // Don't be so dramatic with code.
 $base-code-color: $global-color;

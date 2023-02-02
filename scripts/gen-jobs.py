@@ -32,6 +32,11 @@ def random_daytime():
 def gen_job():
     params = []
 
+    labels = list({
+        random.choice(LABELS)
+        for _ in range(int(random.uniform(0, 2) ** 2))
+    })
+
     program = {
         "type": "no-op",
     }

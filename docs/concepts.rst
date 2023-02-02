@@ -100,8 +100,7 @@ Each run, once created, is in one of these states:
 - **starting**: The run is starting.
 - **running**: The run has started and is currently running.
 - **success**: The run has completed successfully.
-- **failure**: The run has run and completed unsuccesfully.
-- **skipped**: The run was skipped without running.
+- **failure**: The run has completed unsuccesfully.
 - **error**: Some other problem has occured with the run.  This can include a
   problem with Apsis itself; with the job configuration; or the runtime
   environment (for instance, a host is unresponsive).  The run may or may not

@@ -29,7 +29,7 @@ export default new Router({
       component: JobsView,
     },
     {
-      path: '/job/:job_id',
+      path: '/job/:job_id*',
       props: true,
       name: 'job',
       component: JobView,

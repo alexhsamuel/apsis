@@ -17,7 +17,6 @@ function titleCapitalize(string) {
 }
 
 export default {
-  name: 'OperationButton',
   props: ['operation', 'run_id', 'button'],
 
   methods: {
@@ -54,7 +53,7 @@ export default {
 }
 
 .button {
-  background: #f0f6f0;
+  background: $global-button-color;
   padding: 6px 8px 6px 8px;
   margin: 0 3px;
   border-radius: 3px;

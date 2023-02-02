@@ -25,6 +25,8 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: default;
+  display: inline-block;
+  width: 9ch;
 
   &:hover {
     color: $apsis-run-color;

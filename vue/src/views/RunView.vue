@@ -1,12 +1,12 @@
 <template lang="pug">
 div
   div.runs(v-if="run")
-    div
-      span.title
-        | {{ run_id }}
-        JobWithArgs(:job-id="run.job_id" :args="run.args").spaced
-
+    div.title
+      | Run {{ run_id }}
     div.subhead
+      JobWithArgs(:job-id="run.job_id" :args="run.args")
+
+    div.buttons.row-centered
       State.state(:state="run.state" name)
       OperationButton(
         v-for="operation in run.operations"
@@ -16,17 +16,21 @@ div
         :button="true"
       )
 
-    Frame(title="Run History" closed)
+    Frame(
+      title="Run History"
+      :closed="isCollapsed.runs"
+    )
       RunsList(
-        :path="run.job_id"
-        :args="run.args || {}"
-        :group-runs="false"
         :show-job="false"
         :max-completed-runs="12"
         :max-scheduled-runs="12"
         arg-column-style="separate"
         :highlight-run-id="run.run_id"
-        style="max-height: 28rem; overflow-y: auto;"
+        :job-controls="false"
+        :run-controls="false"
+        :time-controls="true"
+        :query="{show: 20, grouping: false, path: run.job_id, args: run.args || {}}"
+        style="max-height: 60rem; overflow-y: auto;"
       )
 
     Frame(title="Details")
@@ -125,14 +129,13 @@ export default {
   data() {
     return {
       isCollapsed: {
-        runs: true,
-        metadata: true,
+        runs: this.$route.query.runs !== null,
       },
       output: null,
       outputRequested: false,  // FIXME: Remove?
       outputData: null,
       // Start with the run summary from the run state.
-      run: store.state.runs[this.run_id],
+      run: store.state.runs.get(this.run_id),
       store,
     }
   },
@@ -146,7 +149,7 @@ export default {
      * The state of the run summary in the store, for detecting updates.
      */
     storeState() {
-      const run = store.state.runs[this.run_id]
+      const run = store.state.runs.get(this.run_id)
       return run ? run.state : undefined
     },
   },
@@ -227,7 +230,7 @@ export default {
   watch: {
     // Reset state on nav from one run to another.
     '$route'(to, from) {
-      this.run = store.state.runs[this.run_id]
+      this.run = store.state.runs.get(this.run_id)
       this.output = null
       this.outputData = null
       this.outputRequested = false
@@ -245,13 +248,16 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.subhead {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+.title {
+  margin-bottom: 0.5rem;
 }
 
-.runs > div {
+.subhead {
+  margin-bottom: 1rem;
+  font-size: 130%;
+}
+
+.buttons {
   margin-bottom: 1.5rem;
 }
 

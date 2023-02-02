@@ -8,7 +8,7 @@ div.component
       JobLabel.label(v-for="label in job.metadata.labels" :key="label" :label="label")
 
   div(v-if="job" style="font-size:120%;")
-    | Parameters ({{ params }})
+    | Parameters: ({{ params }})
 
   div.error-message(v-if="job === null") This job does not currently exist.  Past runs may be shown.
 
@@ -17,10 +17,11 @@ div.component
 
   Frame(title="Runs")
     RunsList(
-      :path="job_id" 
-      :showJob="false"
+      :query="{path: job_id, show: 20}" 
+      :show-job="false"
+      :job-controls="false"
       argColumnStyle="separate"
-      style="max-height: 28rem; overflow-y: auto;"
+      style="max-height: 60em; overflow-y: auto;"
     )
 
   Frame(title="Details")
@@ -246,7 +247,7 @@ export default {
 }
 
 .disabled {
-  color: #888;
+  color: $global-light-color;
 }
 
 .schedule {

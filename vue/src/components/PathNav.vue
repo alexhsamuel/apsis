@@ -1,15 +1,17 @@
 <template lang="pug">
 span
-  a.dirnav(v-on:click="$emit('path', '')")
-    HomeIcon(
-  )
-
   span(v-if="this.parts.length > 0")
-    |  / 
+    a.home.dirnav(@click="$emit('path', '')")
+      HomeIcon(
+    )
+
     span(v-for="[subdir, name] in prefixes")
-      a.dirnav(v-on:click="$emit('path', subdir)") {{ name }}
+      a.part.dirnav(@click="$emit('path', subdir)") {{ name }}
       |  / 
-    | {{ last }}
+    span.part {{ last }}
+
+  span(v-else style="color: #888")
+    | all jobs
 
 </template>
 
@@ -47,10 +49,21 @@ export default {
 <style lang="scss" scoped>
 @import '../styles/vars.scss';
 
-.dirnav{
+.home {
+  margin-right: 8px;
+  &.dirnav:hover {
+    border: 1px dotted $global-light-color;
+  }
+}
+
+.part {
+  cursor: default;
+}
+
+.dirnav {
   border: 1px solid transparent;
   &:hover {
-    border: 1px solid $global-frame-color;
+    text-decoration: underline;
   }
 }
 </style>
