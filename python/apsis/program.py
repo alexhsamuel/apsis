@@ -10,6 +10,7 @@ import traceback
 from   .agent.client import Agent, NoSuchProcessError
 from   .host_group import expand_host
 from   .lib.api import decompress
+from   .lib.cmpr import compress_async
 from   .lib.json import TypedJso, check_schema
 from   .lib.py import or_none, nstr
 from   .lib.sys import get_username
@@ -363,9 +364,6 @@ def _get_agent(fqdn, user):
 
 class AgentProgram(Program):
 
-    # Compression for program output.
-    COMPRESSION = "br"
-
     def __init__(self, argv, *, host=None, user=None):
         self.__argv = tuple( str(a) for a in argv )
         self.__host = nstr(host)
@@ -490,8 +488,15 @@ class AgentProgram(Program):
                 break
 
         status = proc["status"]
-        output, length, compression = await agent.get_process_output(
-            proc_id, compression=self.COMPRESSION)
+        output, length, compression = await agent.get_process_output(proc_id)
+
+        if compression is None and len(output) > 16384:
+            # Compress the output.
+            try:
+                output, compression = await compress_async(output, "br"), "br"
+            except RuntimeError as exc:
+                log.error(f"{exc}; not compressing")
+
         outputs = program_outputs(
             output, length=length, compression=compression)
         log.info(f"got output: {length} bytes, {compression or 'uncompressed'}")
