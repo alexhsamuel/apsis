@@ -1,38 +1,26 @@
 import asyncio
+import brotli
+from   concurrent.futures import ThreadPoolExecutor
 import logging
-from   pathlib import Path
-import shlex
 
 log = logging.getLogger(__name__)
-
-BROTLI = Path("/usr/bin/brotli")
 
 #-------------------------------------------------------------------------------
 
 async def compress_async(data, compression) -> bytes:
     """
     Compresses `data` with `compression`.
-
-    :raise RuntimeError:
-      Compression failed.
     """
     if compression is None:
         return data
 
     elif compression == "br":
-        argv = (str(BROTLI), "--stdout", "--quality=3")
-        log.info(f"compressing: {shlex.join(argv)}")
-        proc = await asyncio.create_subprocess_exec(
-            *argv,
-            stdin   =asyncio.subprocess.PIPE,
-            stdout  =asyncio.subprocess.PIPE,
-            stderr  =asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await proc.communicate(input=data)
-        if proc.returncode == 0:
-            return stdout
-        else:
-            raise RuntimeError("compression failed: {proc.returncode}: {stderr}")
+        loop = asyncio.get_running_loop()
+
+        with ThreadPoolExecutor(1) as executor:
+            log.info(f"starting compression: {len(data)} bytes")
+            return await loop.run_in_executor(
+                executor, lambda: brotli.compress(data, quality=3))
 
     else:
         raise NotImplementedError(f"compression: {compression}")
