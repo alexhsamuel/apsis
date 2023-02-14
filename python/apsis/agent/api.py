@@ -193,11 +193,11 @@ async def process_get_output(req, proc_id):
         case None:
             pass
         case "br":
-            data = brotli.compress(data, mode=brotli.MODE_TEXT, quality=5)
+            data = brotli.compress(data, mode=brotli.MODE_TEXT, quality=3)
         case "deflate":
             data = zlib.compress(data)
         case "gzip":
-            data = gzip.compress(data, mtime=0)
+            data = gzip.compress(data, mtime=0, compresslevel=3)
     if compression is not None:
         headers |= {"X-Compression": compression}
 
