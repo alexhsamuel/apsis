@@ -36,7 +36,7 @@ class RunLog:
         """
         Records a run log record and logs at level INFO.
         """
-        log.info(f"run {run.run_id}: {message}")
+        log.debug(f"run {run.run_id}: {message}")
         self.record(run, message, timestamp=timestamp)
 
 

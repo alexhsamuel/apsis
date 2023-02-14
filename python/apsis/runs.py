@@ -321,7 +321,7 @@ class RunStore:
         run.run_id = run_id
         run.timestamp = timestamp
 
-        log.info(f"new run: {run}")
+        log.debug(f"new run: {run}")
         self.__runs[run.run_id] = run
         self.update(run, timestamp)
 
