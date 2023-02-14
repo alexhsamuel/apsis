@@ -146,6 +146,22 @@ class Apsis:
         log.info("starting scheduled loop")
         self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
 
+        async def tracemalloc_loop():
+            import tracemalloc
+            try:
+                tracemalloc.start()
+                while True:
+                    name = f"snapshot-{now():%~C@UTC}"
+                    snapshot = tracemalloc.take_snapshot()
+                    log.info(f"dumping: {name}")
+                    snapshot.dump(name)
+                    await asyncio.sleep(60)
+            except:
+                log.error("tracemalloc snapshot failed", exc_info=True)
+
+        log.info("starting tracemalloc loop")
+        self.__tracemalloc_task = asyncio.ensure_future(tracemalloc_loop())
+
 
     def __wait(self, run):
         """
@@ -597,6 +613,7 @@ class Apsis:
         log.info("shutting down Apsis")
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
+        await cancel_task(self.__tracemalloc_task, "tracemalloc", log)
         for run, task in list(self.__wait_tasks.items()):
             await cancel_task(task, f"waiting for {run}", log)
         for run, task in list(self.__starting_tasks.items()):
