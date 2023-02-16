@@ -151,7 +151,7 @@ class Apsis:
             try:
                 tracemalloc.start()
                 while True:
-                    name = f"snapshot-{now():%~C@UTC}"
+                    name = f"tracemalloc/{now():%~C@UTC}"
                     snapshot = tracemalloc.take_snapshot()
                     log.info(f"dumping: {name}")
                     snapshot.dump(name)
