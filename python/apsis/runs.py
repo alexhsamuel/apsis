@@ -51,6 +51,8 @@ class Instance:
     A job with bound parameters.  Not user-visible.
     """
 
+    __slots__ = ("job_id", "args", )
+
     def __init__(self, job_id, args):
         self.job_id = job_id
         self.args   = dict(sorted( (str(k), str(v)) for k, v in args.items() ))
@@ -160,6 +162,22 @@ class Run:
 
     # FIXME: Make the attributes read-only.
 
+    __slots__ = (
+        "inst",
+        "run_id",
+        "timestamp",
+        "state",
+        "expected",
+        "conds",
+        "program",
+        "times",
+        "meta",
+        "message",
+        "run_state",
+        "_jso_cache",
+        "_rowid",
+    )
+
     def __init__(self, inst, *, expected=False):
         """
         :param expected:
@@ -187,6 +205,9 @@ class Run:
 
         # Cached summary JSO object.
         self._jso_cache = None
+
+        # FIXME
+        self._rowid = None
 
 
     def __hash__(self):

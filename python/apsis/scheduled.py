@@ -19,8 +19,7 @@ async def sleep_until(time):
 
     if delay <= 0:
         # Nothing to do.
-        if delay < 0.1:
-            log.debug(f"sleep to past time: {time}")
+        pass
 
     else:
         await asyncio.sleep(delay)
