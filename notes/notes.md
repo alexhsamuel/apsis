@@ -41,3 +41,24 @@ runs="$(apsis runs --state waiting --format json | jq -r 'keys[] as $k | "\($k)"
 for run in $runs; do apsis cancel $run; done
 ```
 
+
+# Memory use
+
+### Per run
+
+Baseline:
+```
+runs / day: 41516
+mem  / day: 1.39 GB
+mem  / run: 35.1 KB
+```
+
+- Add `Run.__slots__`.
+
+- `Run.times` causes a 296 B alloc on the first insert.  Get rid of it, replace
+  with two fixed attributes, for the displayed schedule and start times.
+  (Though this is fixing display logic into the schema...)
+
+  Alternately, can the run log fill the bill?  Or perhaps this is too expensive
+  to reconstruct from.
+
