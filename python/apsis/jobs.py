@@ -5,7 +5,6 @@ import os
 from   pathlib import Path
 import random
 import string
-import sys
 import yaml
 
 from   . import actions
