@@ -123,8 +123,8 @@ Conditions
 ----------
 
 A condition temporarily prevents a scheduled run from starting.  While waiting
-for a condition, the run is in the _waiting_ state.  Multiple conditions may
-apply to a run; it is _waiting_ until all are satisfied.
+for a condition, the run is in the **waiting** state.  Multiple conditions may
+apply to a run; it is **waiting** until all are satisfied.
 
 Max running jobs
 ''''''''''''''''
@@ -161,7 +161,7 @@ the dependent job, it may be omitted; the same arg is used.
 Skipping Duplicates
 '''''''''''''''''''
 
-The `skip_duplicates` condition causes a run to transition to the _skipped_
+The `skip_duplicates` condition causes a run to transition to the **skipped**
 state if there is another run with the same job ID and arguments that is either
 waiting or running.
 
@@ -170,11 +170,11 @@ waiting or running.
     condition:
         type: skip_duplicates
 
-By default, Apsis looks for other runs in the _waiting_, _starting_, or
-_running_ states to determine whether to skip this run.  You can override this
+By default, Apsis looks for other runs in the **waiting**, **starting**, or
+**running** states to determine whether to skip this run.  You can override this
 with `check_states`.  You can also specify a different (finished) state to
-transition to.  For example, to transition a run to _error_ if there is already
-another run in either of the _failure_ or _error_ states:
+transition to.  For example, to transition a run to **error** if there is already
+another run in either of the **failure** or **error** states:
 
 .. code:: yaml
 
@@ -184,7 +184,7 @@ another run in either of the _failure_ or _error_ states:
       target_state: error
 
 As with other conditions, this condition is applied only when a run is in the
-_waiting_ state.
+**waiting** state.
 
 
 Actions
@@ -198,10 +198,11 @@ FIXME: Write this.
 Binding
 -------
 
-When Apsis creates a specific run for a job, it **binds** the run's arguments in
-the program config.  Each string-valued config field is expanded as a `jinja2
-template <https://jinja.palletsprojects.com/en/2.11.x/templates/>`_.  The run's
-args are available as substitution variables.
+Apsis creates specific runs for a job, according to the job's schedule.  When
+Apsis creates a run, it **binds** the run's arguments in the program and
+conditions.  Each string-valued config field is expanded as a `jinja2 template
+<https://jinja.palletsprojects.com/en/2.11.x/templates/>`_.  The run's args are
+available as substitution variables.
 
 For example, consider this job config:
 
@@ -224,4 +225,33 @@ program to,
         type: shell
         command: "echo The color of apple is red."
 
+The contents of a `{{ ... }}` expansion is evaluated as a `jinja2 expression
+<https://jinja.palletsprojects.com/en/3.1.x/templates/#expressions>`_.  The
+following additional Ora types and functions are available:
+
+- `Date <https://ora.readthedocs.io/en/latest/dates.html#dates>`_
+- `Daytime`
+- `Time <https://ora.readthedocs.io/en/latest/times.html#times>`_
+- `TimeZone <https://ora.readthedocs.io/en/latest/time-zones.html#time-zone-objects>`_
+- `get_calendar <https://ora.readthedocs.io/en/latest/calendars.html#finding-calendars>`_
+
+These functions and types allow you to perform time computations on program and
+condition dates and times.  For example, this job has a dependency on another
+job *load data*.  Each run of this job is labeled with a date, and depends on a
+*load data* run with the previous date, according to the *workdays* calendar.
+
+.. code:: yaml
+
+    params: [region, date]
+
+    ...
+
+    condition:
+        type: dependency
+        job_id: load data
+        args:
+            date: {{ get_calendar('workdays').before(date) }}
+
+Keep in mind that Apsis run arguments are always strings, so Apsis converts the
+result using `str`.
 
