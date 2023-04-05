@@ -44,7 +44,7 @@ METADATA = sa.MetaData()
 #-------------------------------------------------------------------------------
 
 TBL_CLOCK = sa.Table(
-    "clock", METADATA, 
+    "clock", METADATA,
     sa.Column("time", sa.Float(), nullable=False),
 )
 
@@ -216,7 +216,7 @@ class RunDB:
         # FIXME: Precos, same as program.
 
         times = { n: str(t) for n, t in run.times.items() }
-        
+
         # We use SQL instead of SQLAlchemy for performance.
         values = (
             run.run_id,
@@ -241,19 +241,19 @@ class RunDB:
             # FIXME: sqlite doesn't accepted "FALSE" until version 3.23.0.
             self.__connection.connection.execute("""
                 INSERT INTO runs (
-                    run_id, 
-                    timestamp, 
-                    job_id, 
-                    args, 
-                    state, 
-                    program, 
-                    times, 
-                    meta, 
-                    message, 
-                    run_state, 
+                    run_id,
+                    timestamp,
+                    job_id,
+                    args,
+                    state,
+                    program,
+                    times,
+                    meta,
+                    message,
+                    run_state,
                     rowid,
                     expected
-                ) 
+                )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             """, values)
             self.__connection.connection.commit()
@@ -263,15 +263,15 @@ class RunDB:
             # Update the existing row.
             self.__connection.connection.execute("""
                 UPDATE runs SET
-                    run_id      = ?, 
-                    timestamp   = ?, 
-                    job_id      = ?, 
-                    args        = ?, 
-                    state       = ?, 
-                    program     = ?, 
-                    times       = ?, 
-                    meta        = ?, 
-                    message     = ?, 
+                    run_id      = ?,
+                    timestamp   = ?,
+                    job_id      = ?,
+                    args        = ?,
+                    state       = ?,
+                    program     = ?,
+                    times       = ?,
+                    meta        = ?,
+                    message     = ?,
                     run_state   = ?
                 WHERE rowid = ?
             """, values)
@@ -349,7 +349,7 @@ class RunLogDB:
 
     def flush(self, run_id):
         """
-        FLushes cached run log to the database.
+        Flushes cached run log to the database.
         """
         cache = self.__cache.pop(run_id, ())
         if len(cache) > 0:
@@ -503,7 +503,7 @@ class SqliteDB:
             path = Path(path).absolute()
             if path.exists():
                 raise FileExistsError(path)
-        
+
         engine  = cls.__get_engine(path)
         METADATA.create_all(engine)
         return cls(engine)
@@ -648,7 +648,6 @@ def archive_runs(db, archive_db, time, *, delete=False):
             sa.select([sa.func.count()])
             .where(sel)
         ).scalar() == 0
-        
+
         logging.info("vacuuming")
         in_eng.execute("VACUUM")
-

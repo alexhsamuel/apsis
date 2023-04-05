@@ -43,13 +43,7 @@ export function updateRuns(msg, state) {
   let nchg = 0
   let ndel = 0
 
-  // Add sort and group keys to runs in msg.
   let msgRuns = Object.values(msg.runs)
-  msgRuns.forEach(run => {
-    run.group_key = groupKey(run)
-    run.time_key = timeKey(run)
-  })
-
   // Pre-sort by time, to keep future sorts quick.
   msgRuns = sortBy(msgRuns, r => r.time_key)
 
@@ -59,6 +53,9 @@ export function updateRuns(msg, state) {
       ndel++
     }
     else {
+      // Add sort and group keys to runs in msg.
+      run.group_key = groupKey(run)
+      run.time_key = timeKey(run)
       if (runs.has(run.run_id))
         nchg++
       else

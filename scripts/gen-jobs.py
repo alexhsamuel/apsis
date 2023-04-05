@@ -2,12 +2,12 @@ import argparse
 import ora
 from   pathlib import Path
 import random
+import sys
 import yaml
 
 #-------------------------------------------------------------------------------
 
 PROB_DURATION = 0.1
-MAX_DURATION = 60
 
 PROB_INTERVAL = 0.25
 PROB_FREQUENT = 0.05
@@ -29,6 +29,50 @@ def random_daytime():
     return str(ora.Daytime.from_ssm(random.randint(0, 86399)))
 
 
+def gen_duration():
+    r = random.random()
+    return (
+        0 if r < 0.50
+        else random.randint(1, 60) if r < 0.95
+        else random.randint(1, 180) * 60  # up to 3 hours
+    )
+
+
+OUTPUT_SCRIPT = """
+import random, string, sys, time
+lines, length, delay = sys.argv[1 :]
+length = int(length)
+delay = float(delay)
+for _ in range(int(lines)):
+    print("".join( random.choice(string.ascii_letters) for _ in range(length) ))
+    time.sleep(delay)
+"""
+
+def gen_output_program():
+    lines = random.randint(1, 10000)
+    length = random.randint(8, 78)
+    delay = round(random.random() * 0.1, 4)
+    return {
+        "type": "program",
+        "argv": [
+            sys.executable, "-c", OUTPUT_SCRIPT,
+            str(lines), str(length), str(delay),
+        ],
+    }
+
+
+def gen_program():
+    r = random.random()
+    if r < 0.99:
+        return {
+            "type": "no-op",
+            "duration": str(gen_duration()),
+        }
+
+    else:
+        return gen_output_program()
+
+
 def gen_job():
     params = []
 
@@ -37,11 +81,7 @@ def gen_job():
         for _ in range(int(random.uniform(0, 2) ** 2))
     })
 
-    program = {
-        "type": "no-op",
-    }
-    if random.random() < PROB_DURATION:
-        program["duration"] = str(random.randint(0, MAX_DURATION))
+    program = gen_program()
 
     count = (
         random.randint(1, MAX_SCHEDULED_DAILY)
