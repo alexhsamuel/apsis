@@ -173,7 +173,6 @@ class Apsis:
             """
             The wait loop for a single run.
             """
-            log.info(f"wait loop: {run.run_id}")
             try:
                 conds = list(run.conds)
 
