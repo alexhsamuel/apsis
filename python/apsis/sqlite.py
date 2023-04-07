@@ -349,7 +349,7 @@ class RunLogDB:
 
     def flush(self, run_id):
         """
-        FLushes cached run log to the database.
+        Flushes cached run log to the database.
         """
         cache = self.__cache.pop(run_id, ())
         if len(cache) > 0:
