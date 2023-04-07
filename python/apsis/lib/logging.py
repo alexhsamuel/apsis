@@ -125,7 +125,7 @@ class QueueHandler(logging.Handler):
         """
         length = self.__length if length is None else min(self.__length, length)
 
-        queue = asyncio.Queue()
+        queue = asyncio.Queue(length)
         self.__queues.append(queue)
 
         # Send old messages.
