@@ -1,6 +1,7 @@
 import logging
 import ora
 
+from   apsis.lib.calendar import get_calendar
 from   apsis.lib.json import check_schema
 from   .base import Schedule, DaytimeSpec
 
@@ -111,7 +112,7 @@ class DailyIntervalSchedule(Schedule):
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             tz          = pop("tz", ora.TimeZone)
-            calendar    = ora.get_calendar(pop("calendar", default="all"))
+            calendar    = get_calendar(pop("calendar", default="all"))
             start       = DaytimeSpec.from_jso(pop("start"))
             stop        = DaytimeSpec.from_jso(pop("stop"))
             interval    = pop("interval", int)

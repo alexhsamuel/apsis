@@ -8,6 +8,7 @@ import ora
 from   ora import now, Time
 import shlex
 
+from   .lib.calendar import get_calendar
 from   .lib.memo import memoize
 from   .lib.py import format_ctor, iterize
 
@@ -273,9 +274,9 @@ BIND_ARGS = {
                 "Daytime",
                 "Time",
                 "TimeZone",
-                "get_calendar",
         )
     },
+    "get_calendar": get_calendar,
 }
 
 def get_bind_args(run):
