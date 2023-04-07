@@ -653,7 +653,7 @@ class Apsis:
             except Exception:
                 log.error("retire failed", exc_info=True)
                 return
-            await asyncio.sleep(10)  # FIXME: 60
+            await asyncio.sleep(60)
 
 
     async def stats_loop(self):
