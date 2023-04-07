@@ -1,6 +1,7 @@
 import logging
 import ora
 
+from   apsis.lib.calendar import get_calendar
 from   apsis.lib.json import check_schema, to_array
 from   .base import Schedule
 
@@ -117,7 +118,7 @@ class DailySchedule(Schedule):
             enabled     = pop("enabled", bool, default=True)
             args        = pop("args", default={})
             tz          = pop("tz", ora.TimeZone)
-            calendar    = ora.get_calendar(pop("calendar", default="all"))
+            calendar    = get_calendar(pop("calendar", default="all"))
             daytimes    = to_array(pop("daytime"))
             daytimes    = [ ora.Daytime(d) for d in daytimes ]
             date_shift  = pop("date_shift", int, default=0)
