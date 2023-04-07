@@ -80,6 +80,7 @@ class Apsis:
 
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
+        self.__retire_loop = asyncio.ensure_future(self.retire_loop())
         self.__stats_loop = asyncio.ensure_future(self.stats_loop())
 
 
@@ -173,7 +174,6 @@ class Apsis:
             """
             The wait loop for a single run.
             """
-            log.info(f"wait loop: {run.run_id}")
             try:
                 conds = list(run.conds)
 
@@ -636,8 +636,27 @@ class Apsis:
         return stats
 
 
+    async def retire_loop(self):
+        """
+        Periodically retires runs older than `runs_lookback`.
+        """
+        log.info("starting retire loop")
+        runs_lookback = self.cfg.get("runs_lookback", None)
+        if runs_lookback is None:
+            log.info("no runs_lookback; no retire loop")
+            return
+
+        while True:
+            try:
+                min_timestamp = now() - runs_lookback
+                self.run_store.retire(min_timestamp)
+            except Exception:
+                log.error("retire failed", exc_info=True)
+                return
+            await asyncio.sleep(10)  # FIXME: 60
+
+
     async def stats_loop(self):
-        log.warning("starting stats_loop")
         while True:
             try:
                 stats = self.get_stats()

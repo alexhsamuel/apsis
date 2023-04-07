@@ -303,9 +303,6 @@ class RunStore:
     1. Serving live queries of runs.
     """
 
-    # FIXME: For now, we cache all runs in memory.  At some point, we'll need
-    # to start retiring older runs.
-
     def __init__(self, db, *, min_timestamp):
         self.__run_db = db.run_db
 
@@ -342,7 +339,7 @@ class RunStore:
         run.run_id = run_id
         run.timestamp = timestamp
 
-        log.info(f"new run: {run}")
+        log.debug(f"new run: {run}")
         self.__runs[run.run_id] = run
         self.update(run, timestamp)
 
@@ -381,6 +378,24 @@ class RunStore:
         run.state = None
         self.__send(now(), run)
         return run
+
+
+    def retire(self, min_timestamp):
+        """
+        Retires older runs from memory.
+
+        Only runs in a finished state are retired.  Runs are not removed from
+        the database.
+        """
+        old = [
+            r for r in self.__runs.values()
+            if r.timestamp < min_timestamp and r.state in Run.FINISHED
+        ]
+        log.info(f"retiring {len(old)} runs before {min_timestamp}")
+        for run in old:
+            del self.__runs[run.run_id]
+            run.state = None
+            self.__send(now(), run)
 
 
     def get(self, run_id):
