@@ -1,3 +1,9 @@
+# v0.17.0
+
+- When `runs_lookback` is configured, the Apsis server drops finished runs older
+  than this automatically, as if runs were reloaded on start.
+
+
 # v0.16.0
 
 - The web UI has been substantially improved.  The new design permits navigation
