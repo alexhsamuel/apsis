@@ -218,6 +218,7 @@ class RunDB:
         times = { n: str(t) for n, t in run.times.items() }
 
         # We use SQL instead of SQLAlchemy for performance.
+        con = self.__connection.connection
         values = (
             run.run_id,
             dump_time(run.timestamp),
@@ -232,14 +233,13 @@ class RunDB:
             rowid,
         )
 
+        # Get the rowid; if it's missing, this run isn't in the table.
         try:
-            # Get the rowid; if it's missing, this run isn't in the table.
             run._rowid
 
         except AttributeError:
             # This run isn't in the database yet.
-            # FIXME: sqlite doesn't accepted "FALSE" until version 3.23.0.
-            self.__connection.connection.execute("""
+            con.execute("""
                 INSERT INTO runs (
                     run_id,
                     timestamp,
@@ -256,12 +256,14 @@ class RunDB:
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             """, values)
-            self.__connection.connection.commit()
+            con.commit()
             run._rowid = values[-1]
 
         else:
+            assert run._rowid == rowid
             # Update the existing row.
-            self.__connection.connection.execute("""
+            changes = con.total_changes
+            con.execute("""
                 UPDATE runs SET
                     run_id      = ?,
                     timestamp   = ?,
@@ -275,7 +277,9 @@ class RunDB:
                     run_state   = ?
                 WHERE rowid = ?
             """, values)
-            self.__connection.connection.commit()
+            # We should have updated one row.
+            assert con.total_changes == changes + 1
+            con.commit()
 
 
     def get(self, run_id):
