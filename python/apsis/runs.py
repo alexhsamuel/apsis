@@ -207,9 +207,6 @@ class Run:
         # Cached summary JSO object.
         self._jso_cache = None
 
-        # FIXME
-        self._rowid = None
-
 
     def __hash__(self):
         return hash(self.run_id)
