@@ -486,6 +486,7 @@ async def websocket_runs(request, ws):
                     await ws.send(json)
                     await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
             except websockets.ConnectionClosed:
+                log.info("websocket connection closed")
                 break
 
     log.info("live runs disconnect")
