@@ -9,15 +9,10 @@ import yaml
 
 PROB_DURATION = 0.1
 
-PROB_INTERVAL = 0.25
-PROB_FREQUENT = 0.05
-MAX_SCHEDULED_DAILY = 288
-
 MAX_JOB_ID_DEPTH = 3
 
 LABELS = ("foo", "bar", "baz", "bif")
 
-PROB_ARG = 0.05
 ARGS = {
     "fruit": ("apple", "pear", "kiwi", "mango"),
     "hue": ("red", "blue", "green", "yellow"),
@@ -29,11 +24,39 @@ def random_daytime():
     return str(ora.Daytime.from_ssm(random.randint(0, 86399)))
 
 
+def gen_interval_schedule():
+    count = 1 + int((random.random() ** 5) * 100)
+    interval = 86400 // count
+    phase = random.randint(0, interval - 1)
+    return {
+        "type": "interval",
+        "interval": interval,
+        "phase": phase,
+    }
+
+
+def gen_daily_schedule(params):
+    count = 1 + int((random.random() ** 3) * 100)
+    params.append("date")
+    return {
+        "type": "daily",
+        "tz": "UTC",
+        "daytime": sorted( random_daytime() for _ in range(count) )
+    }
+
+
+def gen_schedule(params):
+    if random.random() < 0.25:
+        return gen_interval_schedule()
+    else:
+        return gen_daily_schedule(params)
+
+
 def gen_duration():
     r = random.random()
     return (
         0 if r < 0.50
-        else random.randint(1, 60) if r < 0.95
+        else random.randint(1, 60) if r < 0.99
         else random.randint(1, 180) * 60  # up to 3 hours
     )
 
@@ -48,10 +71,11 @@ for _ in range(int(lines)):
     time.sleep(delay)
 """
 
-def gen_output_program():
+def gen_output_program(labels):
     lines = random.randint(1, 10000)
     length = random.randint(8, 78)
-    delay = round(random.random() * 0.1, 4)
+    delay = round(random.random() * 0.02, 4)
+    labels.append("output")
     return {
         "type": "program",
         "argv": [
@@ -61,7 +85,7 @@ def gen_output_program():
     }
 
 
-def gen_program():
+def gen_program(labels):
     r = random.random()
     if r < 0.99:
         return {
@@ -70,41 +94,21 @@ def gen_program():
         }
 
     else:
-        return gen_output_program()
+        return gen_output_program(labels)
 
 
 def gen_job():
     params = []
-
     labels = list({
         random.choice(LABELS)
         for _ in range(int(random.uniform(0, 2) ** 2))
     })
 
-    program = gen_program()
-
-    count = (
-        random.randint(1, MAX_SCHEDULED_DAILY)
-        if random.random() < PROB_FREQUENT
-        else 1
-    )
-
-    if random.random() < PROB_INTERVAL:
-        # Interval schedule.
-        schedule = {
-            "type": "interval",
-            "interval": 86400 // count,
-        }
-    else:
-        schedule = {
-            "type": "daily",
-            "tz": "UTC",
-            "daytime": sorted( random_daytime() for _ in range(count) )
-        }
-        params.append("date")
+    program = gen_program(labels)
+    schedule = gen_schedule(params)
 
     for param, args in ARGS.items():
-        if random.random() < PROB_ARG:
+        if random.random() < 0.05:
             params.append(param)
             schedule.setdefault("args", {})[param] = random.choice(args)
 
