@@ -196,7 +196,7 @@ class Apsis:
                         return
 
                     elif result is True:
-                        self.run_log.info(run, f"satisfied {cond}")
+                        self.run_log.info(run, f"satisfied condition: {cond}")
                         conds.pop(0)
                         if len(conds) > 0:
                             self.run_log.info(
