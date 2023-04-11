@@ -443,7 +443,7 @@ class RunStore:
     def query_live(self, *, since=None):
         queue = asyncio.Queue()
         self.__queues.add(queue)
-        log.info(f"added client runs queue; current: {len(self.__queues)}")
+        log.info("added live runs query queue")
 
         when, runs = self.query(since=since)
         queue.put_nowait((when, runs))
@@ -452,6 +452,7 @@ class RunStore:
             yield queue
         finally:
             self.__queues.remove(queue)
+            log.info("removed live runs query queue")
 
 
     # FIXME: Remove this.
