@@ -41,6 +41,7 @@ TABLE_KWARGS = {
 STATE_STYLE = {
     "new"       : Style(color="#00005f"),
     "scheduled" : Style(color="#767676"),
+    "starting"  : Style(color="#767676"),
     "waiting"   : Style(color="#626262"),
     "running"   : Style(color="#af8700"),
     "success"   : Style(color="#00875f"),
@@ -52,8 +53,9 @@ STATE_STYLE = {
 _STATE_SYM = {
     "new"       : ".",
     "scheduled" : "O",
+    "starting"  : "›",
     "waiting"   : "|",
-    "running"   : ">",
+    "running"   : "»",
     "success"   : "+",
     "failure"   : "X",
     "error"     : "!",
