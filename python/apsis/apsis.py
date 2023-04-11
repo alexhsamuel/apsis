@@ -152,6 +152,11 @@ class Apsis:
         """
         Starts waiting for `run`.
         """
+        if len(run.conds) == 0:
+            # No conditions to wait for.  Start immediately.
+            self.__start(run)
+            return
+
         # Make sure the run is waiting.
         if run.state != run.STATE.waiting:
             self._transition(run, run.STATE.waiting)
@@ -664,7 +669,7 @@ class Apsis:
                 log.error("stats failed", exc_info=True)
             else:
                 log.info("stats: " + json.dumps(stats))
-            await asyncio.sleep(60)
+            await asyncio.sleep(10)
 
 
 
