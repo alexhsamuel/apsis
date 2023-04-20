@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from   mmap import PAGESIZE
 from   ora import now, Time
 import resource
 import sys
@@ -642,8 +643,8 @@ class Apsis:
             pass
         else:
             stats.update({
-                "statm_size"        : statm[0],
-                "statm_resident"    : statm[1],
+                "statm_size"        : statm[0] * PAGESIZE,
+                "statm_resident"    : statm[1] * PAGESIZE,
             })
 
         return stats
