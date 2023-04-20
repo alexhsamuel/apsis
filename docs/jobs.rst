@@ -234,6 +234,8 @@ following additional Ora types and functions are available:
 - `Time <https://ora.readthedocs.io/en/latest/times.html#times>`_
 - `TimeZone <https://ora.readthedocs.io/en/latest/time-zones.html#time-zone-objects>`_
 - `get_calendar <https://ora.readthedocs.io/en/latest/calendars.html#finding-calendars>`_
+- `from_local <https://ora.readthedocs.io/en/latest/localization.html#local-to-time>`_
+- `to_local <https://ora.readthedocs.io/en/latest/localization.html#time-to-local>`_
 
 These functions and types allow you to perform time computations on program and
 condition dates and times.  For example, this job has a dependency on another

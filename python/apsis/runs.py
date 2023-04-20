@@ -271,6 +271,8 @@ BIND_ARGS = {
                 "Daytime",
                 "Time",
                 "TimeZone",
+                "to_local",
+                "from_local",
         )
     },
     "get_calendar": get_calendar,
