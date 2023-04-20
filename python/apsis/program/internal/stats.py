@@ -52,13 +52,10 @@ class StatsProgram(InternalProgram):
 
     async def wait(self, apsis):
         stats = json.dumps(apsis.get_stats())
-        if self.__path is None:
-            outputs = program_outputs(stats.encode())
-        else:
+        if self.__path is not None:
             with open(self.__path, "a") as file:
                 print(stats, file=file)
-            outputs = {}
-        return ProgramSuccess(outputs=outputs)
+        return ProgramSuccess(outputs=program_outputs(stats.encode()))
 
 
     def reconnect(self, run_id, run_state):
