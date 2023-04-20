@@ -50,6 +50,7 @@ setuptools.setup(
         "apsis.lib",
         "apsis.lib.itr",
         "apsis.program",
+        "apsis.program.internal",
         "apsis.schedule",
         "apsis.service",
     ],
