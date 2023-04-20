@@ -11,3 +11,4 @@ work/
 python/apsis.egg-info
 .cache/
 config.yaml
+stats/

@@ -1,6 +1,6 @@
 import asyncio
-import json
 import logging
+from   mmap import PAGESIZE
 from   ora import now, Time
 import resource
 import sys
@@ -11,7 +11,7 @@ from   .exc import TimeoutWaiting
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
-from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
+from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
 from   . import runs
 from   .run_log import RunLog
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
@@ -81,7 +81,6 @@ class Apsis:
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
         self.__retire_loop = asyncio.ensure_future(self.retire_loop())
-        self.__stats_loop = asyncio.ensure_future(self.stats_loop())
 
 
     async def restore(self):
@@ -247,7 +246,11 @@ class Apsis:
 
         async def start():
             try:
-                running, coro = await run.program.start(run.run_id, self.cfg)
+                if isinstance(run.program, _InternalProgram):
+                    start = run.program.start(run.run_id, self)
+                else:
+                    start = run.program.start(run.run_id, self.cfg)
+                running, coro = await start
 
             except ProgramError as exc:
                 # Program failed to start.
@@ -617,6 +620,7 @@ class Apsis:
         res = resource.getrusage(resource.RUSAGE_SELF)
         livequery_queues = self.run_store._RunStore__queues
         stats = {
+            "time"                  : str(now()),
             "rusage_maxrss"         : res.ru_maxrss * 1024,
             "rusage_utime"          : res.ru_utime,
             "rusage_stime"          : res.ru_stime,
@@ -637,8 +641,8 @@ class Apsis:
             pass
         else:
             stats.update({
-                "statm_size"        : statm[0],
-                "statm_resident"    : statm[1],
+                "statm_size"        : statm[0] * PAGESIZE,
+                "statm_resident"    : statm[1] * PAGESIZE,
             })
 
         return stats
@@ -664,17 +668,6 @@ class Apsis:
                 return
 
             await asyncio.sleep(60)
-
-
-    async def stats_loop(self):
-        while True:
-            try:
-                stats = self.get_stats()
-            except Exception:
-                log.error("stats failed", exc_info=True)
-            else:
-                log.info("stats: " + json.dumps(stats))
-            await asyncio.sleep(10)
 
 
 
