@@ -655,7 +655,7 @@ class Apsis:
         log.info("starting retire loop")
         runs_cfg = self.cfg.get("runs", {})
         retire_lookback = runs_cfg.get("lookback", None)
-        if lookback is None:
+        if retire_lookback is None:
             log.info("no runs.lookback in config; no retire loop")
             return
 
