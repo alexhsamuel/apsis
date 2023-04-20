@@ -7,6 +7,20 @@ from   .base import Schedule
 #-------------------------------------------------------------------------------
 
 class IntervalSchedule(Schedule):
+    """
+    Schedules at a fixed physical time interval.
+
+    Generates time of the form,
+
+        EPOCH + phase + n * interval
+
+    Produces these additional args:
+
+    - `time`: the schedule time
+    - `date`: the UTC date of the schedule time
+    - `daytime`: the UTC daytime of the schedule time
+
+    """
 
     def __init__(self, interval, args, *, enabled=True, phase=0.0):
         super().__init__(enabled=enabled)
@@ -39,7 +53,13 @@ class IntervalSchedule(Schedule):
         ) + self.phase
 
         while True:
-            yield time, {"time": str(time), **self.args}
+            date, daytime = time @ ora.UTC
+            yield time, {
+                "time": str(time),
+                "date": str(date),
+                "daytime": str(daytime),
+                **self.args
+            }
             time += self.interval
 
 
