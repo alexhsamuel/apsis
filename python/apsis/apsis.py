@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 from   mmap import PAGESIZE
 from   ora import now, Time
@@ -82,7 +81,6 @@ class Apsis:
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
         self.__retire_loop = asyncio.ensure_future(self.retire_loop())
-        self.__stats_loop = asyncio.ensure_future(self.stats_loop())
 
 
     async def restore(self):
@@ -670,17 +668,6 @@ class Apsis:
                 return
 
             await asyncio.sleep(60)
-
-
-    async def stats_loop(self):
-        while True:
-            try:
-                stats = self.get_stats()
-            except Exception:
-                log.error("stats failed", exc_info=True)
-            else:
-                log.info("stats: " + json.dumps(stats))
-            await asyncio.sleep(10)
 
 
 
