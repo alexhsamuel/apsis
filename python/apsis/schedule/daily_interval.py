@@ -59,9 +59,10 @@ class DailyIntervalSchedule(Schedule):
                 # Landed on a DST transition.
                 # FIXME: Use the time right before the transition.
                 log.warning(
-                    "skipping nonexistent start time "
-                    f"{date} {self.start} {self.tz}"
+                    f"skipping {date}: nonexistent start time "
+                    f"{self.start} {self.tz}"
                 )
+                date = self.calendar.after(date + 1)
                 continue
 
             # Compute the stop time for this date.
@@ -71,9 +72,10 @@ class DailyIntervalSchedule(Schedule):
                 # Landed on a DST transition.
                 # FIXME: Use the time right after the transition.
                 log.warning(
-                    "skipping nonexistent stop time "
-                    f"{date} {self.stop} {self.tz}"
+                    f"skipping {date}: nonexistent stop time "
+                    f"{self.stop} {self.tz}"
                 )
+                date = self.calendar.after(date + 1)
                 continue
 
             # Generate times between them with the interval.

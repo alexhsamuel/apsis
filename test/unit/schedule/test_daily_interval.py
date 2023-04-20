@@ -158,3 +158,81 @@ def test_from_json_compat():
     assert sched.interval == 300
 
 
+def test_nonexistent():
+    tz = ora.TimeZone("America/New_York")
+    sched = DailyIntervalSchedule(
+        tz,
+        ora.get_calendar("all"),
+        DaytimeSpec(daytime=ora.Daytime("01:15:00")),
+        DaytimeSpec(daytime=ora.Daytime("03:30:00")),
+        1800,
+        {},
+    )
+
+    date = ora.Date("2023-03-11")
+    start = ("2023-03-11", "00:00:00") @ tz
+    print(f"start: {start}")
+    times = sched(start)
+
+    def check(time):
+        time = ora.Time(time)
+        next_time, _ = next(times)
+        assert next_time == time
+
+    # 2023-03-11 is a normal date.
+    check("2023-03-11T01:15:00-05:00")
+    check("2023-03-11T01:45:00-05:00")
+    check("2023-03-11T02:15:00-05:00")
+    check("2023-03-11T02:45:00-05:00")
+    check("2023-03-11T03:15:00-05:00")
+    # DST starts on 2023-03-12 at 02:00:00 → 03:00:00.
+    check("2023-03-12T01:15:00-05:00")
+    check("2023-03-12T01:45:00-05:00")
+    check("2023-03-12T03:15:00-04:00")
+    # 2023-03-11 is a normal date.
+    check("2023-03-13T01:15:00-04:00")
+    check("2023-03-13T01:45:00-04:00")
+    check("2023-03-13T02:15:00-04:00")
+    check("2023-03-13T02:45:00-04:00")
+    check("2023-03-13T03:15:00-04:00")
+
+
+def test_nonexistent_start():
+    tz = ora.TimeZone("America/New_York")
+    sched = DailyIntervalSchedule(
+        tz,
+        ora.get_calendar("all"),
+        DaytimeSpec(daytime=ora.Daytime("02:15:00")),
+        DaytimeSpec(daytime=ora.Daytime("05:00:00")),
+        1800,
+        {},
+    )
+
+    date = ora.Date("2023-03-11")
+    start = ("2023-03-11", "00:00:00") @ tz
+    print(f"start: {start}")
+    times = sched(start)
+
+    def check(time):
+        time = ora.Time(time)
+        next_time, _ = next(times)
+        assert next_time == time
+
+    # 2023-03-11 is a normal date.
+    check("2023-03-11T02:15:00-05:00")
+    check("2023-03-11T02:45:00-05:00")
+    check("2023-03-11T03:15:00-05:00")
+    check("2023-03-11T03:45:00-05:00")
+    check("2023-03-11T04:15:00-05:00")
+    check("2023-03-11T04:45:00-05:00")
+    # DST starts on 2023-03-12 at 02:00:00.
+    # FIXME: We skip this date.  Maybe we can do better, but not clear.
+    # 2023-03-11 is a normal date.
+    check("2023-03-13T02:15:00-04:00")
+    check("2023-03-13T02:45:00-04:00")
+    check("2023-03-13T03:15:00-04:00")
+    check("2023-03-13T03:45:00-04:00")
+    check("2023-03-13T04:15:00-04:00")
+    check("2023-03-13T04:45:00-04:00") 
+
+
