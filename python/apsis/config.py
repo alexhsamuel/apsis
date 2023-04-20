@@ -38,6 +38,15 @@ def check(cfg, base_path: Path):
     if max_time is not None and max_time <= 0:
         log.error("negative waiting.max_time: {max_time}")
 
+    # runs_lookback → runs.lookback
+    try:
+        lookback = cfg["runs_lookback"]
+    except KeyError:
+        pass
+    else:
+        warnings.warn("config runs_lookback → runs.lookback", DeprecationWarning)
+        cfg.setdefault("runs", {}).setdefault("lookback", lookback)
+
     return cfg
 
 

@@ -8,7 +8,8 @@ jobs: /path/to/jobdir
 
 # Lookback in secs for old runs.  At startup, only runs younger than this are
 # loaded from the run database.
-runs_lookback: 2592000  # 30 days
+runs:
+    lookback: 2592000  # 30 days
 
 schedule:
     # If specified, schedule only runs after this time.

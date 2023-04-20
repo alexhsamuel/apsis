@@ -1,7 +1,6 @@
-# v0.17.0
-
-- When `runs_lookback` is configured, the Apsis server drops finished runs older
-  than this automatically, as if runs were reloaded on start.
+- The config `runs_lookback` is now `runs.lookback`.  When configured, Apsis
+  drops runs older than this while running, not just on startup when loading
+  runs.
 
 
 # v0.16.0

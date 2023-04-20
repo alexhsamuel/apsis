@@ -57,11 +57,11 @@ class Apsis:
         self.__actions = [ Action.from_jso(o) for o in cfg["actions"] ]
 
         try:
-            runs_lookback = cfg["runs_lookback"]
+            lookback = cfg["runs"]["lookback"]
         except KeyError:
             min_timestamp = None
         else:
-            min_timestamp = now() - runs_lookback
+            min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
         log.info("scheduling runs")
@@ -646,21 +646,23 @@ class Apsis:
 
     async def retire_loop(self):
         """
-        Periodically retires runs older than `runs_lookback`.
+        Periodically retires runs older than `runs.lookback`.
         """
         log.info("starting retire loop")
-        runs_lookback = self.cfg.get("runs_lookback", None)
-        if runs_lookback is None:
-            log.info("no runs_lookback; no retire loop")
+        runs_cfg = self.cfg.get("runs", {})
+        retire_lookback = runs_cfg.get("lookback", None)
+        if lookback is None:
+            log.info("no runs.lookback in config; no retire loop")
             return
 
         while True:
             try:
-                min_timestamp = now() - runs_lookback
+                min_timestamp = now() - retire_lookback
                 self.run_store.retire(min_timestamp)
             except Exception:
                 log.error("retire failed", exc_info=True)
                 return
+
             await asyncio.sleep(60)
 
 
