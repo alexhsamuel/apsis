@@ -170,3 +170,24 @@ class Program(TypedJso):
 
 
 
+#-------------------------------------------------------------------------------
+
+class InternalProgram(Program):
+
+    def bind(self, args):
+        pass
+
+
+    async def start(self, run_id, apsis):
+        pass
+
+
+    def reconnect(self, run_id, run_state):
+        pass
+
+
+    async def signal(self, run_id, signum: str):
+        pass
+
+
+

@@ -11,7 +11,7 @@ from   .exc import TimeoutWaiting
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
-from   .program import ProgramError, ProgramFailure, Output, OutputMetadata
+from   .program.base import InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
 from   . import runs
 from   .run_log import RunLog
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
@@ -247,7 +247,11 @@ class Apsis:
 
         async def start():
             try:
-                running, coro = await run.program.start(run.run_id, self.cfg)
+                if isinstance(run.program, InternalProgram):
+                    start = run.program.start(run.run_id, self)
+                else:
+                    start = run.program.start(run.run_id, self.cfg)
+                running, coro = await start
 
             except ProgramError as exc:
                 # Program failed to start.
