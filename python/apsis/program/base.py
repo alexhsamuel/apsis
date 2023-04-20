@@ -172,7 +172,12 @@ class Program(TypedJso):
 
 #-------------------------------------------------------------------------------
 
-class InternalProgram(Program):
+class _InternalProgram(Program):
+    """
+    Program type for internal use.
+
+    Not API.  Do not use in extension code.
+    """
 
     def bind(self, args):
         pass

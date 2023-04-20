@@ -4,13 +4,13 @@ import logging
 from   apsis.lib.json import check_schema
 from   apsis.lib.py import or_none, nstr
 from   apsis.runs import template_expand
-from   ..base import InternalProgram, ProgramRunning, ProgramSuccess, program_outputs
+from   ..base import _InternalProgram, ProgramRunning, ProgramSuccess, program_outputs
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class StatsProgram(InternalProgram):
+class StatsProgram(_InternalProgram):
     """
     A program that collects and dumps Apsis internal stats in JSON format.
     """
