@@ -94,3 +94,32 @@ The remote program is launched via SSH and monitored by an agent program.
 FIXME: Document this better.
 
 
+Internal Programs
+-----------------
+
+An *internal program* is a special program that operates on Apsis itself.  These
+internal program types are available:
+
+
+Stats
+^^^^^
+
+A `apsis.program.internal.stats` program generates internal statistics about
+Apsis's state and resource use, in JSON format.  Stats are generated as program
+output.  If you specify the `path` key, the JSON stats are also appended, with a
+newline, to the specified file.
+
+This job produces a run once a minute, which appends the stats to a dated file:
+
+.. code:: yaml
+
+    params: [date]
+
+    schedule:
+        type: interval
+        interval: 60
+
+    program:
+        type: apsis.program.internal.stats.StatsProgram
+        path: "/path/to/apsis/stats/{{ date }}.json"
+

@@ -3,6 +3,8 @@
   runs.
 - The Ora functions `from_local` and `to_local` are available in jinja2
   expressions when binding jobs.
+- Apsis no longer logs stats to its own logs.  Instead, schedule a
+  `StatsProgram` job to collect Apsis usage stats.
 
 
 # v0.16.0
