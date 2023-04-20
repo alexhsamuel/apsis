@@ -154,6 +154,8 @@ def test_interval_schedule_phase_repeat():
         assert next(times) == (time, {
             **args,
             "time": str(time),
+            "date": str(date),
+            "daytime": str(y),
         })
 
 
