@@ -5,7 +5,7 @@ metadata:
 
 schedule:
 - type: daily
-  args: {message: "Hello from purslane.", host: purslane.local}
+  args: {message: "Hello from sage.", host: sage}
   tz: US/Eastern
   daytime:
   - 12:00:00
