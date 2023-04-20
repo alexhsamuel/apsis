@@ -621,6 +621,7 @@ class Apsis:
         res = resource.getrusage(resource.RUSAGE_SELF)
         livequery_queues = self.run_store._RunStore__queues
         stats = {
+            "time"                  : str(now()),
             "rusage_maxrss"         : res.ru_maxrss * 1024,
             "rusage_utime"          : res.ru_utime,
             "rusage_stime"          : res.ru_stime,
