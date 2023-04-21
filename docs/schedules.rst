@@ -205,4 +205,8 @@ You can also specify a date and/or calendar shift (see :ref:`shifts`).
           date_shift: -1
         ...
 
+Note that if the start time does not exist on a given date, due to a DST
+transition, the schedule will include no times on this date at all.  For
+example, a daily schedule with a start time between 2:00:00 and 3:00:00 and a
+U.S. time zone will contain no times on the dates in the spring when DST begins.
 
