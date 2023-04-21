@@ -127,7 +127,10 @@ class Apsis:
             for run in running_runs:
                 assert run.program is not None
                 self.run_log.record(run, "restoring: reconnecting to running run")
-                future = run.program.reconnect(run.run_id, run.run_state)
+                if isinstance(run.program, _InternalProgram):
+                    future = run.program.reconnect(run.run_id, run.run_state, self)
+                else:
+                    future = run.program.reconnect(run.run_id, run.run_state)
                 self.__finish(run, future)
 
             log.info("restoring done")
