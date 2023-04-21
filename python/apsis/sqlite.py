@@ -591,15 +591,15 @@ def check(db):
             error(f"unknown run IDs in {tbl}: {itr.join_truncated(8, run_ids)}")
 
 
+# Tables other than "runs" that need to be archived.
+RUN_TABLES = (RunLogDB.TABLE, OutputDB.TABLE)
+
 def archive_runs(db, archive_db, time, *, delete=False):
     """
     Moves runs from `db` to `archive_db` that are older than `time`.
     """
     in_eng = db._engine
     arc_eng = archive_db._engine
-
-    # Tables other than "runs" that need to be archived.
-    run_tables = (RunLogDB.TABLE, OutputDB.TABLE)
 
     # Selection for runs in the runs table itself.
     sel = TBL_RUNS.c.timestamp < dump_time(time)
@@ -622,7 +622,7 @@ def archive_runs(db, archive_db, time, *, delete=False):
                 tx.execute(sa.insert(tbl), chunk)
 
     # Copy rows corresponding to these runs in other tables.
-    for table in run_tables:
+    for table in RUN_TABLES:
         logging.info(f"copying {table}")
         copy(sa.select(table.c).select_from(joined(table)), table)
     # Copy the runs themselves.
@@ -633,7 +633,7 @@ def archive_runs(db, archive_db, time, *, delete=False):
         with in_eng.begin() as tx:
             # Delete rows corresponding to these runs in other tables.
             run_sel = sa.select([TBL_RUNS.c.run_id]).where(sel)
-            for table in run_tables:
+            for table in RUN_TABLES:
                 logging.info(f"deleting {table}")
                 tx.execute(table.delete().where(table.c.run_id.in_(run_sel)))
             # Delete the runs themselves.
@@ -641,7 +641,7 @@ def archive_runs(db, archive_db, time, *, delete=False):
             tx.execute(TBL_RUNS.delete().where(sel))
 
         # Verify.
-        for table in run_tables:
+        for table in RUN_TABLES:
             logging.info(f"verifying {table}")
             assert in_eng.execute(
                 sa.select([sa.func.count()])
