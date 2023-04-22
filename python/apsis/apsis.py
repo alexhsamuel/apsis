@@ -98,7 +98,7 @@ class Apsis:
                 if not self.__prepare_run(run):
                     continue
                 time = run.times["schedule"]
-                self.run_log.info(run, f"restored: scheduled for {time}")
+                self.run_log.record(run, f"restore: scheduled for {time}")
                 await self.scheduled.schedule(time, run)
 
             # Restore waiting runs from DB.
@@ -108,7 +108,7 @@ class Apsis:
                 assert not run.expected
                 if not self.__prepare_run(run):
                     continue
-                self.run_log.info(run, "restoring: waiting")
+                self.run_log.record(run, "restore: waiting")
                 self.__wait(run)
 
             # If a run is starting in the DB, we can't know if it actually
@@ -118,7 +118,7 @@ class Apsis:
             for run in starting_runs:
                 self._transition(
                     run, run.STATE.error,
-                    message="startup: starting; may or may not have started"
+                    message="restore: starting; may or may not have started"
                 )
 
             # Reconnect to running runs.
@@ -126,7 +126,7 @@ class Apsis:
             log.info("reconnecting running runs")
             for run in running_runs:
                 assert run.program is not None
-                self.run_log.record(run, "restoring: reconnecting to running run")
+                self.run_log.record(run, "restore: reconnecting to running run")
                 if isinstance(run.program, _InternalProgram):
                     future = run.program.reconnect(run.run_id, run.run_state, self)
                 else:
@@ -185,7 +185,7 @@ class Apsis:
                 conds = list(run.conds)
 
                 if len(conds) > 0:
-                    self.run_log.info(run, f"waiting for condition: {conds[0]}")
+                    self.run_log.record(run, f"waiting for condition: {conds[0]}")
                 while len(conds) > 0:
                     cond = conds[0]
 
@@ -203,10 +203,10 @@ class Apsis:
                         return
 
                     elif result is True:
-                        self.run_log.info(run, f"satisfied condition: {cond}")
+                        self.run_log.record(run, f"satisfied condition: {cond}")
                         conds.pop(0)
                         if len(conds) > 0:
-                            self.run_log.info(
+                            self.run_log.record(
                                 run, f"waiting for condition: {conds[0]}")
 
                     elif result is False:
@@ -244,7 +244,7 @@ class Apsis:
 
 
     def __start(self, run):
-        self.run_log.info(run, "program starting")
+        self.run_log.record(run, "program start")
         self._transition(run, run.STATE.starting)
 
         async def start():
@@ -267,7 +267,7 @@ class Apsis:
 
             else:
                 # Program started successfully.
-                self.run_log.info(run, "program started")
+                self.run_log.record(run, "program started")
                 self._transition(run, run.STATE.running, **running.__dict__)
                 future = asyncio.ensure_future(coro)
                 self.__finish(run, future)
@@ -299,7 +299,7 @@ class Apsis:
 
             except ProgramError as exc:
                 # Program failed to start.
-                self.run_log.record(run, f"program error: {exc.message}")
+                self.run_log.info(run, f"program error: {exc.message}")
                 self._transition(
                     run, run.STATE.error,
                     meta    =exc.meta,
@@ -307,12 +307,9 @@ class Apsis:
                     outputs =exc.outputs,
                 )
 
-            except Exception as exc:
+            except Exception:
                 # Program raised some other exception.
-                log.error(
-                    f"exception waiting for run: {run.run_id}", exc_info=True)
-                self.run_log.record(
-                    run, f"internal error in program: {exc}")
+                self.run_log.exc(run, "program internal error")
                 tb = traceback.format_exc().encode()
                 self._transition(
                     run, run.STATE.error,
@@ -385,9 +382,9 @@ class Apsis:
         job_id = run.inst.job_id
         try:
             job = self.jobs.get_job(job_id)
-        except LookupError as exc:
+        except LookupError:
             # Job is gone; can't get the actions.
-            self.run_log.error(run, exc)
+            self.run_log.exc(run, "no job")
         else:
             actions.extend(job.actions)
 
@@ -513,12 +510,12 @@ class Apsis:
             return run
 
         if time is None:
-            self.run_log.info(run, "scheduling for immediate run")
+            self.run_log.record(run, "scheduling for immediate run")
             self._transition(run, run.STATE.scheduled, times={"schedule": now()})
             self.__wait(run)
             return run
         else:
-            self.run_log.info(run, f"scheduling for {time}")
+            self.run_log.record(run, f"scheduling for {time}")
             self._transition(run, run.STATE.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
             return run

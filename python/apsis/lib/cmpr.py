@@ -3,6 +3,8 @@ import brotli
 from   concurrent.futures import ThreadPoolExecutor
 import logging
 
+from   .timing import Timer
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -17,10 +19,17 @@ async def compress_async(data, compression) -> bytes:
     elif compression == "br":
         loop = asyncio.get_running_loop()
 
-        with ThreadPoolExecutor(1) as executor:
-            log.info(f"starting compression: {len(data)} bytes")
-            return await loop.run_in_executor(
+        with (
+                Timer() as timer,
+                ThreadPoolExecutor(1) as executor
+        ):
+            result = await loop.run_in_executor(
                 executor, lambda: brotli.compress(data, quality=3))
+        log.debug(
+            f"compressed: {len(data)} → {len(result)} "
+            f"in {timer.elapsed:.3f} s"
+        )
+        return result
 
     else:
         raise NotImplementedError(f"compression: {compression}")
