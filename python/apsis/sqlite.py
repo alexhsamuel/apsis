@@ -655,3 +655,5 @@ def archive_runs(db, archive_db, time, *, delete=False):
 
         logging.info("vacuuming")
         in_eng.execute("VACUUM")
+
+

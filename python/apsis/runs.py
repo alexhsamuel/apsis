@@ -236,8 +236,6 @@ class Run:
 
         assert all( isinstance(t, Time) and t.valid for t in times.values() )
 
-        log.debug(f"transition {self.run_id}: {self.state.name} → {state.name}")
-
         # Update attributes.
         self.timestamp = timestamp
         self.message = None if message is None else str(message)

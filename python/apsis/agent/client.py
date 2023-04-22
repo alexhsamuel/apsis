@@ -212,10 +212,9 @@ class Agent:
         :return:
           The agent port and token.
         """
-        log.debug(f"{self}: waiting to connect")
         async with self.__lock:
-            log.info(f"{self}: connecting")
             if self.__conn is None:
+                log.debug(f"{self}: connecting")
                 self.__conn = await start_agent(
                     host        =self.__host,
                     user        =self.__user,

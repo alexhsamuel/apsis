@@ -107,18 +107,8 @@ class ScheduledRuns:
         # run is scheduled in the very near future after the start loop has
         # already gone to sleep.
         try:
-            log_next_time = None
-
             while True:
                 time = now()
-
-                if log.isEnabledFor(logging.DEBUG):
-                    count = len(self.__heap)
-                    next_time = None if count == 0 else self.__heap[0].time
-                    if next_time != log_next_time:
-                        next_run = "none" if count == 0 else self.__heap[0].run.run_id
-                        log.debug(f"loop: {count} scheduled runs; next {next_run} at {next_time}")
-                        log_next_time = next_time
 
                 ready = set()
                 while len(self.__heap) > 0 and self.__heap[0].time <= time:
@@ -157,7 +147,6 @@ class ScheduledRuns:
         Schedules `run` to start at `time`.
         """
         # Put it onto the schedule heap.
-        log.debug(f"schedule: {time} {run.run_id}")
         entry = self.Entry(time, run)
         heapq.heappush(self.__heap, entry)
         self.__scheduled[run] = entry

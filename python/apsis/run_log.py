@@ -15,7 +15,7 @@ class RunLog:
         self.__run_log_db = run_log_db
 
 
-    def record(self, run, message, *, timestamp=None):
+    def record(self, run, message, *, timestamp=None, level=logging.DEBUG):
         """
         Records a timestamped run log record for `run`.
 
@@ -25,6 +25,9 @@ class RunLog:
         message = str(message)
         timestamp = now() if timestamp is None else timestamp
 
+        if level is not None:
+            log.log(level, f"{run.run_id}: {message}")
+
         db = self.__run_log_db
         if run.expected:
             db.cache(run.run_id, timestamp, message)
@@ -33,19 +36,16 @@ class RunLog:
 
 
     def info(self, run, message, *, timestamp=None):
-        """
-        Records a run log record and logs at level INFO.
-        """
-        log.debug(f"run {run.run_id}: {message}")
-        self.record(run, message, timestamp=timestamp)
+        return self.record(
+            run, message, timestamp=timestamp, level=logging.INFO)
 
 
     def error(self, run, message, *, timestamp=None):
         """
         Records a run log record and logs at level ERROR.
         """
-        log.error(f"run {run.run_id}: {message}")
-        self.record(run, f"error: {message}", timestamp=timestamp)
+        return self.record(
+            run, message, timestamp=timestamp, level=logging.ERROR)
 
 
     def exc(self, run, message=None, *, timestamp=None):

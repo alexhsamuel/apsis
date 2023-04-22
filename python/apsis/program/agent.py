@@ -77,7 +77,7 @@ class AgentProgram(Program):
 
         loc = "" if host is None else " on " + host
         cmd = join_args(argv)
-        log.info(f"starting program{loc}: {cmd}")
+        log.debug(f"starting program{loc}: {cmd}")
 
         env = {
             "inherit": True,
@@ -106,7 +106,7 @@ class AgentProgram(Program):
 
         state = proc["state"]
         if state == "run":
-            log.info(f"program running: {run_id} as {proc['proc_id']}")
+            log.debug(f"program running: {run_id} as {proc['proc_id']}")
 
             run_state = {
                 "host"          : host,
@@ -162,16 +162,14 @@ class AgentProgram(Program):
 
         outputs = program_outputs(
             output, length=length, compression=compression)
-        log.info(f"got output: {length} bytes, {compression or 'uncompressed'}")
+        log.debug(f"got output: {length} bytes, {compression or 'uncompressed'}")
 
         try:
             if status == 0:
-                log.info(f"program success: {run_id}")
                 return ProgramSuccess(meta=proc, outputs=outputs)
 
             else:
                 message = f"program failed: status {status}"
-                log.info(f"program failed: {run_id}: {message}")
                 raise ProgramFailure(message, meta=proc, outputs=outputs)
 
         finally:
@@ -180,7 +178,7 @@ class AgentProgram(Program):
 
 
     def reconnect(self, run_id, run_state):
-        log.info(f"reconnect: {run_id}")
+        log.debug(f"reconnect: {run_id}")
         return asyncio.ensure_future(self.wait(run_id, run_state))
 
 
