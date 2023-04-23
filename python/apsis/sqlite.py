@@ -582,7 +582,7 @@ def check(db):
             .select_from(tbl.outerjoin(
                 TBL_RUNS,
                 tbl.c.run_id == TBL_RUNS.c.run_id
-            )).where(TBL_RUNS.c.run_id == None)
+            )).where(TBL_RUNS.c.run_id is None)
         )
         log.debug(f"query:\n{sel}")
         res = engine.execute(sel)
