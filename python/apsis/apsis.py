@@ -45,6 +45,8 @@ class Apsis:
 
     def __init__(self, cfg, jobs, db):
         log.debug("creating Apsis instance")
+        self.__start_time = now()
+
         self.cfg = cfg
         # FIXME: This should go in `apsis.config.config_globals` or similar.
         config_host_groups(cfg)
@@ -620,6 +622,7 @@ class Apsis:
         res = resource.getrusage(resource.RUSAGE_SELF)
         livequery_queues = self.run_store._RunStore__queues
         stats = {
+            "start_time"            : str(self.__start_time),
             "time"                  : str(now()),
             "rusage_maxrss"         : res.ru_maxrss * 1024,
             "rusage_utime"          : res.ru_utime,
