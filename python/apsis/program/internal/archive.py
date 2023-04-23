@@ -96,13 +96,14 @@ class ArchiveProgram(_InternalProgram):
         log.debug("starting transaction")
         with (
                 Timer() as timer,
-                src_db._engine.begin() as src_tx,
+                src_db._engine.connect() as src_conn,
+                src_conn.begin() as src_tx,
                 archive_db._engine.begin() as archive_tx
         ):
             # Determine run IDs to archive.
             time = ora.now() - self.__age
             run_ids = [
-                r for r, in src_tx.execute(
+                r for r, in src_conn.execute(
                     sa.select([TBL_RUNS.c.run_id])
                     .where(TBL_RUNS.c.timestamp < dump_time(time))
                     .order_by(TBL_RUNS.c.timestamp)
@@ -127,7 +128,7 @@ class ArchiveProgram(_InternalProgram):
 
                 # Extract the rows to archive.
                 sel = sa.select(table).where(table.c.run_id.in_(run_ids))
-                res = src_tx.execute(sel)
+                res = src_conn.execute(sel)
                 rows = tuple(res.mappings())
 
                 # Write the rows to the archive.
@@ -145,7 +146,7 @@ class ArchiveProgram(_InternalProgram):
                     f"archive {table} contains {count} rows"
 
                 # Remove the rows from the source table.
-                res = src_tx.execute(
+                res = src_conn.execute(
                     sa.delete(table)
                     .where(table.c.run_id.in_(run_ids))
                 )
@@ -153,6 +154,8 @@ class ArchiveProgram(_InternalProgram):
 
                 # Keep count of how many rows we archived from each table.
                 row_counts[table.name] = len(rows)
+
+            src_tx.commit()
 
         log.info(f"transaction took {timer.elapsed:.3f} s")
 
