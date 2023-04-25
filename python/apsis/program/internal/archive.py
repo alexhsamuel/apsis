@@ -94,6 +94,10 @@ class ArchiveProgram(_InternalProgram):
             run_ids, row_counts = db.archive(
                 archive_db, age=self.__age, count=self.__count)
 
+        if len(run_ids) > 0:
+            # Also vacuum to free space.
+            db.vacuum()
+
         return ProgramSuccess(meta={
             "run count": len(run_ids),
             "run_ids": run_ids,
