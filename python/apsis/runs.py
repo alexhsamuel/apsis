@@ -111,6 +111,15 @@ def template_expand(template, args):
     return template.render(args)
 
 
+def arg_to_bool(arg):
+    if arg in ("true", "True"):
+        return True
+    elif arg in ("false", "False"):
+        return False
+    else:
+        return bool(arg)
+
+
 def join_args(argv):
     return " ".join( shlex.quote(a) for a in argv )
 

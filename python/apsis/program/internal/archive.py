@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from  ..base import _InternalProgram, ProgramRunning, ProgramSuccess
 from  apsis.lib.json import check_schema
 from  apsis.lib.timing import Timer
-from  apsis.runs import template_expand
+from  apsis.runs import template_expand, arg_to_bool
 from  apsis.sqlite import SqliteDB, RUN_TABLES, TBL_RUNS, dump_time
 
 log = logging.getLogger(__name__)
@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 # TODO:
+# - if len(run_ids) == 0 ...
 # - check that no archived runs are "live"
 # - validate versus `runs.lookback` in cfg
 # - int test
@@ -29,7 +30,7 @@ class ArchiveProgram(_InternalProgram):
     while it runs.  Avoid archiving too many runs in a single invocation.
     """
 
-    def __init__(self, *, age, path, count):
+    def __init__(self, *, age, path, count, vacuum):
         """
         If this archive file doesn't exist, it is created automatically on
         first use; the contianing directory must exist.
@@ -41,10 +42,13 @@ class ArchiveProgram(_InternalProgram):
           Apsis database file.
         :param count:
           Maximum number of runs to archive per run of this program.
+        :param vacuum:
+          Whether to vacuum the database.
         """
         self.__age = age
         self.__path = path
         self.__count = count
+        self.__vacuum = vacuum
 
 
     def __str__(self):
@@ -52,10 +56,11 @@ class ArchiveProgram(_InternalProgram):
 
 
     def bind(self, args):
-        age = template_expand(self.__age, args)
+        age = float(template_expand(self.__age, args))
         path = template_expand(self.__path, args)
-        count = template_expand(self.__count, args)
-        return type(self)(age=age, path=path, count=count)
+        count = int(template_expand(self.__count, args))
+        vacuum = arg_to_bool(template_expand(self.__vacuum, args))
+        return type(self)(age=age, path=path, count=count, vacuum=vacuum)
 
 
     @classmethod
@@ -64,7 +69,8 @@ class ArchiveProgram(_InternalProgram):
             age = pop("age", float)
             path = pop("path", str)
             count = pop("count", int)
-        return cls(age=age, path=path, count=count)
+            vacuum = pop("vacuum", arg_to_bool)
+        return cls(age=age, path=path, count=count, vacuum=vacuum)
 
 
     def to_jso(self):
@@ -73,6 +79,7 @@ class ArchiveProgram(_InternalProgram):
             "age": self.__age,
             "path": self.__path,
             "count": self.__count,
+            "vacuum": self.__vacuum,
         }
 
 
@@ -122,8 +129,7 @@ class ArchiveProgram(_InternalProgram):
                 )
                 if res.rowcount > 0:
                     log.warning(
-                        f"removed {res.rowcount} rows from {table} "
-                        "matching archived runs"
+                        f"cleaned up {res.rowcount} archived rows from {table}"
                     )
 
                 # Extract the rows to archive.
@@ -159,10 +165,11 @@ class ArchiveProgram(_InternalProgram):
 
         log.info(f"transaction took {timer.elapsed:.3f} s")
 
-        log.info("starting vacuum")
-        with Timer() as timer:
-            src_db._engine.execute("VACUUM")
-        log.info(f"vacuum took {timer.elapsed:.3f} s")
+        if self.__vacuum:
+            log.info("starting vacuum")
+            with Timer() as timer:
+                src_db._engine.execute("VACUUM")
+            log.info(f"vacuum took {timer.elapsed:.3f} s")
 
         return ProgramSuccess(meta={
             "run count": len(run_ids),
