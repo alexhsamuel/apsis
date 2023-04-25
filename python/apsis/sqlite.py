@@ -619,50 +619,53 @@ class SqliteDB:
             ]
             log.info(f"archiving {len(run_ids)} runs")
 
-            # Process all row-related tables.
-            for table in (*RUN_TABLES, TBL_RUNS):
-                # Clean up any records in the archive that match the run IDs we
-                # archive.
-                res = archive_tx.execute(
-                    sa.delete(table)
-                    .where(table.c.run_id.in_(run_ids))
-                )
-                if res.rowcount > 0:
-                    log.warning(
-                        f"cleaned up {res.rowcount} archived rows from {table}"
+            if len(run_ids) > 0:
+                # Process all row-related tables.  First, make sure there are no
+                # records already in the archive that match the run IDs.
+                for table in (*RUN_TABLES, TBL_RUNS):
+                    res = archive_tx.execute(
+                        sa.select([table.c.run_id]).distinct()
+                        .select_from(table)
+                        .where(table.c.run_id.in_(run_ids))
                     )
+                    dup_run_ids = sorted( r for r, in res )
+                    if len(dup_run_ids) > 0:
+                        raise RuntimeError(
+                            f"run IDs already in archive {table}: "
+                            + " ".join(dup_run_ids)
+                        )
 
-                # Extract the rows to archive.
-                sel = sa.select(table).where(table.c.run_id.in_(run_ids))
-                res = src_tx.execute(sel)
-                rows = tuple(res.mappings())
+                for table in (*RUN_TABLES, TBL_RUNS):
+                    # Extract the rows to archive.
+                    sel = sa.select(table).where(table.c.run_id.in_(run_ids))
+                    res = src_tx.execute(sel)
+                    rows = tuple(res.mappings())
 
-                # Write the rows to the archive.
-                if len(rows) > 0:
-                    res = archive_tx.execute(sa.insert(table), rows)
+                    # Write the rows to the archive.
+                    if len(rows) > 0:
+                        res = archive_tx.execute(sa.insert(table), rows)
+                        assert res.rowcount == len(rows)
+
+                    # Confirm the number of rows.
+                    (count, ), = archive_tx.execute(
+                        sa.select(sa.func.count())
+                        .select_from(table)
+                        .where(table.c.run_id.in_(run_ids))
+                    )
+                    assert count == len(rows), \
+                        f"archive {table} contains {count} rows"
+
+                    # Remove the rows from the source table.
+                    res = src_tx.execute(
+                        sa.delete(table)
+                        .where(table.c.run_id.in_(run_ids))
+                    )
                     assert res.rowcount == len(rows)
 
-                # Confirm the number of rows.
-                (count, ), = archive_tx.execute(
-                    sa.select(sa.func.count())
-                    .select_from(table)
-                    .where(table.c.run_id.in_(run_ids))
-                )
-                assert count == len(rows), \
-                    f"archive {table} contains {count} rows"
-
-                # Remove the rows from the source table.
-                res = src_tx.execute(
-                    sa.delete(table)
-                    .where(table.c.run_id.in_(run_ids))
-                )
-                assert res.rowcount == len(rows)
-
-                # Keep count of how many rows we archived from each table.
-                row_counts[table.name] = len(rows)
+                    # Keep count of how many rows we archived from each table.
+                    row_counts[table.name] = len(rows)
 
         log.info(f"archiving took {timer.elapsed:.3f} s")
-
         return run_ids, row_counts
 
 

@@ -13,7 +13,6 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 # TODO:
-# - if len(run_ids) == 0 ...
 # - check that no archived runs are "live"
 # - validate versus `runs.lookback` in cfg
 # - int test
