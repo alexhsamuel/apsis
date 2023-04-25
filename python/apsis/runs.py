@@ -405,6 +405,10 @@ class RunStore:
             self.__send(now(), run)
 
 
+    def __contains__(self, run_id):
+        return run_id in self.__runs
+
+
     def get(self, run_id):
         run = self.__runs[run_id]
         return now(), run

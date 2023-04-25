@@ -597,7 +597,40 @@ class SqliteDB:
                 error(f"unknown run IDs in {tbl}: {itr.join_truncated(8, run_ids)}")
 
 
-    def archive(self, archive_db, *, age, count):
+    def get_archive_run_ids(self, *, before, count):
+        """
+        Determines run IDs eligible for archive.
+
+        :param before:
+          Time before which to archive runs.
+        :param count:
+          Maximum count of runs to archive.
+        :return:
+          A sequence of run IDs.
+        """
+        # Only finished runs are eligible for archiving.
+        FINISHED_STATES = [ s.name for s in Run.FINISHED ]
+
+        with (
+                Timer() as timer,
+                self.__engine.begin() as tx,
+        ):
+            run_ids = [
+                r for r, in tx.execute(
+                    sa.select([TBL_RUNS.c.run_id])
+                    .where(TBL_RUNS.c.timestamp < dump_time(before))
+                    .where(TBL_RUNS.c.state.in_(FINISHED_STATES))
+                    .order_by(TBL_RUNS.c.timestamp)
+                    .limit(count)
+                )
+            ]
+
+        log.info(
+            f"obtained {len(run_ids)} runs to archive in {timer.elapsed:.3f} s")
+        return run_ids
+
+
+    def archive(self, archive_db, run_ids):
         assert isinstance(archive_db, type(self))
 
         row_counts = {}
@@ -607,21 +640,13 @@ class SqliteDB:
                 self.__engine.begin() as src_tx,
                 archive_db.__engine.begin() as archive_tx
         ):
-            # Determine run IDs to archive.
-            time = ora.now() - age
-            run_ids = [
-                r for r, in src_tx.execute(
-                    sa.select([TBL_RUNS.c.run_id])
-                    .where(TBL_RUNS.c.timestamp < dump_time(time))
-                    .order_by(TBL_RUNS.c.timestamp)
-                    .limit(count)
-                )
-            ]
             log.info(f"archiving {len(run_ids)} runs")
 
             if len(run_ids) > 0:
-                # Process all row-related tables.  First, make sure there are no
-                # records already in the archive that match the run IDs.
+                # Process all row-related tables.
+
+                # First, make sure there are no records already in the archive
+                # that match the run IDs.
                 for table in (*RUN_TABLES, TBL_RUNS):
                     res = archive_tx.execute(
                         sa.select([table.c.run_id]).distinct()
@@ -668,7 +693,7 @@ class SqliteDB:
                 log.debug("archived runs: " + " ".join(run_ids))  # FIXME
 
         log.info(f"archived {timer.elapsed:.3f} s")
-        return run_ids, row_counts
+        return row_counts
 
 
     def vacuum(self):
