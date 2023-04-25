@@ -1,4 +1,5 @@
 import asyncio
+from   contextlib import closing
 import logging
 from   pathlib import Path
 
@@ -80,6 +81,9 @@ class ArchiveProgram(_InternalProgram):
 
 
     async def wait(self, apsis):
+        # FIXME: Private attributes.
+        db = apsis._Apsis__db
+
         archive_path = Path(self.__path)
         try:
             archive_db = SqliteDB.open(archive_path)
@@ -87,9 +91,9 @@ class ArchiveProgram(_InternalProgram):
             log.info(f"creating: {archive_path}")
             archive_db = SqliteDB.create(archive_path)
 
-        # FIXME: Private attributes.
-        run_ids, row_counts = apsis._Apsis__db.archive(
-            archive_db, age=self.__age, count=self.__count)
+        with closing(archive_db):
+            run_ids, row_counts = db.archive(
+                archive_db, age=self.__age, count=self.__count)
 
         return ProgramSuccess(meta={
             "run count": len(run_ids),

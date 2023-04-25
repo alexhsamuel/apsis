@@ -491,7 +491,15 @@ class SqliteDB:
     @classmethod
     def __get_engine(cls, path):
         url = "sqlite://" if path is None else f"sqlite:///{path}"
-        return sa.create_engine(url)
+        # Use a static pool-- exactly one persistent connection-- since we are a
+        # single-threaded async application, and sqlite doesn't support
+        # concurrent access.
+        return sa.create_engine(url, poolclass=sa.pool.StaticPool)
+
+
+    def close(self):
+        self.__engine.dispose()
+        del self.__engine
 
 
     @classmethod
