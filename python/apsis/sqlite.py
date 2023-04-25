@@ -10,6 +10,7 @@ import ujson
 
 from   .jobs import jso_to_job, job_to_jso
 from   .lib import itr
+from   .lib.timing import Timer
 from   .runs import Instance, Run
 from   .program import Program, Output, OutputMetadata
 
@@ -479,12 +480,12 @@ class SqliteDB:
         :param path:
           Path to SQLite file.  If `None`, use a memory DB (for testing).
         """
+        self.__engine       = engine
         self.clock_db       = ClockDB(engine)
         self.job_db         = JobDB(engine)
         self.run_db         = RunDB(engine)
         self.run_log_db     = RunLogDB(engine)
         self.output_db      = OutputDB(engine)
-        self._engine        = engine
 
 
     @classmethod
@@ -557,39 +558,115 @@ class SqliteDB:
         )
 
 
+    def check(self):
+        """
+        Checks `db` for consistency.
+        """
+        ok = True
+
+        def error(msg):
+            nonlocal ok
+            logging.error(msg)
+            ok = False
+
+        engine = self.__engine
+        run_tables = (RunLogDB.TABLE, OutputDB.TABLE)
+
+        # Check run tables for valid run ID (referential integrity).
+        for tbl in run_tables:
+            sel = (
+                sa.select([tbl.c.run_id])
+                .distinct(tbl.c.run_id)
+                .select_from(tbl.outerjoin(
+                    TBL_RUNS,
+                    tbl.c.run_id == TBL_RUNS.c.run_id
+                )).where(TBL_RUNS.c.run_id is None)
+            )
+            log.debug(f"query:\n{sel}")
+            res = engine.execute(sel)
+            run_ids = [ r for (r, ) in res ]
+            if len(run_ids) > 0:
+                error(f"unknown run IDs in {tbl}: {itr.join_truncated(8, run_ids)}")
+
+
+    def archive(self, archive_db, *, age, count):
+        assert isinstance(archive_db, type(self))
+
+        row_counts = {}
+
+        with (
+                Timer() as timer,
+                self.__engine.begin() as src_tx,
+                archive_db.__engine.begin() as archive_tx
+        ):
+            # Determine run IDs to archive.
+            time = ora.now() - age
+            run_ids = [
+                r for r, in src_tx.execute(
+                    sa.select([TBL_RUNS.c.run_id])
+                    .where(TBL_RUNS.c.timestamp < dump_time(time))
+                    .order_by(TBL_RUNS.c.timestamp)
+                    .limit(count)
+                )
+            ]
+            log.info(f"archiving {len(run_ids)} runs")
+
+            # Process all row-related tables.
+            for table in (*RUN_TABLES, TBL_RUNS):
+                # Clean up any records in the archive that match the run IDs we
+                # archive.
+                res = archive_tx.execute(
+                    sa.delete(table)
+                    .where(table.c.run_id.in_(run_ids))
+                )
+                if res.rowcount > 0:
+                    log.warning(
+                        f"cleaned up {res.rowcount} archived rows from {table}"
+                    )
+
+                # Extract the rows to archive.
+                sel = sa.select(table).where(table.c.run_id.in_(run_ids))
+                res = src_tx.execute(sel)
+                rows = tuple(res.mappings())
+
+                # Write the rows to the archive.
+                if len(rows) > 0:
+                    res = archive_tx.execute(sa.insert(table), rows)
+                    assert res.rowcount == len(rows)
+
+                # Confirm the number of rows.
+                (count, ), = archive_tx.execute(
+                    sa.select(sa.func.count())
+                    .select_from(table)
+                    .where(table.c.run_id.in_(run_ids))
+                )
+                assert count == len(rows), \
+                    f"archive {table} contains {count} rows"
+
+                # Remove the rows from the source table.
+                res = src_tx.execute(
+                    sa.delete(table)
+                    .where(table.c.run_id.in_(run_ids))
+                )
+                assert res.rowcount == len(rows)
+
+                # Keep count of how many rows we archived from each table.
+                row_counts[table.name] = len(rows)
+
+        log.info(f"archiving took {timer.elapsed:.3f} s")
+
+        return run_ids, row_counts
+
+
+    def vacuum(self):
+        log.info("starting vacuum")
+        with Timer() as timer:
+            self.__engine.execute("VACUUM")
+        log.info(f"vacuum took {timer.elapsed:.3f} s")
+
+
 
 #-------------------------------------------------------------------------------
-
-def check(db):
-    """
-    Checks `db` for consistency.
-    """
-    ok = True
-
-    def error(msg):
-        nonlocal ok
-        logging.error(msg)
-        ok = False
-
-    engine = db._engine
-    run_tables = (RunLogDB.TABLE, OutputDB.TABLE)
-
-    # Check run tables for valid run ID (referential integrity).
-    for tbl in run_tables:
-        sel = (
-            sa.select([tbl.c.run_id])
-            .distinct(tbl.c.run_id)
-            .select_from(tbl.outerjoin(
-                TBL_RUNS,
-                tbl.c.run_id == TBL_RUNS.c.run_id
-            )).where(TBL_RUNS.c.run_id is None)
-        )
-        log.debug(f"query:\n{sel}")
-        res = engine.execute(sel)
-        run_ids = [ r for (r, ) in res ]
-        if len(run_ids) > 0:
-            error(f"unknown run IDs in {tbl}: {itr.join_truncated(8, run_ids)}")
-
 
 # Tables other than "runs" that need to be archived.
 RUN_TABLES = (RunLogDB.TABLE, OutputDB.TABLE)
