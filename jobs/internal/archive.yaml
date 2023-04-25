@@ -1,0 +1,8 @@
+params: []
+
+program:
+  type: apsis.program.internal.archive.ArchiveProgram
+  age: 60
+  path: "/home/alex/dev/apsis/archive.db"
+  count: 4
+
