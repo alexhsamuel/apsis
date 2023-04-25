@@ -665,15 +665,17 @@ class SqliteDB:
                     # Keep count of how many rows we archived from each table.
                     row_counts[table.name] = len(rows)
 
-        log.info(f"archiving took {timer.elapsed:.3f} s")
+                log.debug("archived runs: " + " ".join(run_ids))  # FIXME
+
+        log.info(f"archived {timer.elapsed:.3f} s")
         return run_ids, row_counts
 
 
     def vacuum(self):
-        log.info("starting vacuum")
+        log.info("vacuuming database")
         with Timer() as timer:
             self.__engine.execute("VACUUM")
-        log.info(f"vacuum took {timer.elapsed:.3f} s")
+        log.info(f"vacuumed in {timer.elapsed:.3f} s")
 
 
 
