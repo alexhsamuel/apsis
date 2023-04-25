@@ -69,7 +69,7 @@ class ArchiveProgram(_InternalProgram):
             age = pop("age", float)
             path = pop("path", str)
             count = pop("count", int)
-            vacuum = pop("vacuum", arg_to_bool)
+            vacuum = pop("vacuum", arg_to_bool, False)
         return cls(age=age, path=path, count=count, vacuum=vacuum)
 
 
