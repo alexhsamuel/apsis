@@ -284,56 +284,62 @@ class Apsis:
             try:
                 try:
                     success = future.result()
+
                 except asyncio.CancelledError:
                     log.info(
                         f"cancelled waiting for run to complete: {run.run_id}")
                     return
 
-            except ProgramFailure as exc:
-                # Program ran and failed.
-                self.run_log.record(run, f"program failure: {exc.message}")
-                self._transition(
-                    run, run.STATE.failure,
-                    meta    =exc.meta,
-                    times   =exc.times,
-                    outputs =exc.outputs,
-                )
+                except ProgramFailure as exc:
+                    # Program ran and failed.
+                    self.run_log.record(run, f"program failure: {exc.message}")
+                    self._transition(
+                        run, run.STATE.failure,
+                        meta    =exc.meta,
+                        times   =exc.times,
+                        outputs =exc.outputs,
+                    )
 
-            except ProgramError as exc:
-                # Program failed to start.
-                self.run_log.info(run, f"program error: {exc.message}")
-                self._transition(
-                    run, run.STATE.error,
-                    meta    =exc.meta,
-                    times   =exc.times,
-                    outputs =exc.outputs,
-                )
+                except ProgramError as exc:
+                    # Program failed to start.
+                    self.run_log.info(run, f"program error: {exc.message}")
+                    self._transition(
+                        run, run.STATE.error,
+                        meta    =exc.meta,
+                        times   =exc.times,
+                        outputs =exc.outputs,
+                    )
+
+                except Exception:
+                    # Program raised some other exception.
+                    self.run_log.exc(run, "program internal error")
+                    tb = traceback.format_exc().encode()
+                    self._transition(
+                        run, run.STATE.error,
+                        outputs ={
+                            "output": Output(
+                                OutputMetadata("traceback", length=len(tb)),
+                                tb
+                            ),
+                        }
+                    )
+
+                else:
+                    # Program ran and completed successfully.
+                    self.run_log.record(run, "program success")
+                    self._transition(
+                        run, run.STATE.success,
+                        meta    =success.meta,
+                        times   =success.times,
+                        outputs =success.outputs,
+                    )
 
             except Exception:
-                # Program raised some other exception.
-                self.run_log.exc(run, "program internal error")
-                tb = traceback.format_exc().encode()
-                self._transition(
-                    run, run.STATE.error,
-                    outputs ={
-                        "output": Output(
-                            OutputMetadata("traceback", length=len(tb)),
-                            tb
-                        ),
-                    }
-                )
+                log.fatal(f"internal error in {run}", exc_info=True)
+                raise SystemExit(1)
 
-            else:
-                # Program ran and completed successfully.
-                self.run_log.record(run, "program success")
-                self._transition(
-                    run, run.STATE.success,
-                    meta    =success.meta,
-                    times   =success.times,
-                    outputs =success.outputs,
-                )
-
-            del self.__running_tasks[run.run_id]
+            finally:
+                del self.__running_tasks[run.run_id]
 
         self.__running_tasks[run.run_id] = future
         future.add_done_callback(done)
