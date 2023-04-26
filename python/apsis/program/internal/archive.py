@@ -14,7 +14,6 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 # TODO:
-# - clean up next_run_id to keep explicit count
 # - validate versus `runs.lookback` in cfg
 # - int test
 # - docs

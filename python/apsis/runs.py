@@ -1,7 +1,6 @@
 import asyncio
 from   contextlib import contextmanager
 import enum
-import itertools
 import jinja2
 import logging
 import ora
@@ -301,28 +300,26 @@ def get_bind_args(run):
 
 class RunStore:
     """
-    Stores run state.
+    Stores runs in memory.
 
-    Responsible for:
-    1. Managing run IDs.
-    1. Storing runs, in all states.
-    1. Satisfying run queries.
-    1. Serving live queries of runs.
+    This is a cache, backed by a write-through persistent run database.  New
+    runs are always added to the cache; use `retire()` to retire older runs from
+    memory.
+
+    - Stories runs in all states.
+    - Satisfyies run queries.
+    - Serves live queries of runs.
     """
 
     def __init__(self, db, *, min_timestamp):
         self.__run_db = db.run_db
+        self.__next_run_id_db = db.next_run_id_db
 
         # Populate cache from database.
         self.__runs = {
             r.run_id: r
             for r in self.__run_db.query(min_timestamp=min_timestamp)
         }
-
-        # Figure out where to start run IDs.
-        next_run_id = db.get_max_run_id_num() + 1
-        log.debug(f"next run_id: {next_run_id}")
-        self.__run_ids = ( "r" + str(i) for i in itertools.count(next_run_id) )
 
         # For live notification.
         self.__queues = set()
@@ -340,7 +337,7 @@ class RunStore:
         assert run.state == Run.STATE.new
 
         timestamp = now()
-        run_id = next(self.__run_ids)
+        run_id = self.__next_run_id_db.get_next_run_id()
         assert run.run_id not in self.__runs
 
         run.run_id = run_id

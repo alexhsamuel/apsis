@@ -32,14 +32,6 @@ def load_time(time):
     return ora.UNIX_EPOCH + time
 
 
-def _get_max_run_id_num(engine, table):
-    with engine.begin() as conn:
-        rows = list(conn.execute(
-            f"SELECT MAX(CAST(SUBSTR(run_id, 2) AS DECIMAL)) FROM {table}"))
-    (max_num, ), = rows
-    return 0 if max_num is None else max_num
-
-
 METADATA = sa.MetaData()
 
 #-------------------------------------------------------------------------------
@@ -79,6 +71,56 @@ class ClockDB:
         time -= ora.UNIX_EPOCH
         self.__connection.execute("UPDATE clock SET time = ?", (time, ))
         self.__connection.commit()
+
+
+
+#-------------------------------------------------------------------------------
+
+TBL_NEXT_RUN_ID = sa.Table(
+    "next_run_id", METADATA,
+    sa.Column("number", sa.Integer(), nullable=False),
+)
+
+class RunIDDB:
+    """
+    Stores the next available run ID.
+
+    A run ID is of the form `r#`, where the integer # increments sequentially.
+    """
+
+    INTERVAL = 64
+
+    def __init__(self, engine):
+        self.__engine = engine
+        TBL_NEXT_RUN_ID.create(engine, checkfirst=True)
+
+        rows = tuple(self.__engine.execute("SELECT number FROM next_run_id"))
+        if len(rows) == 0:
+            with self.__engine.connect() as conn:
+                conn.connection.execute("INSERT INTO next_run_id VALUES (1)")
+                conn.connection.commit()
+            self.__db_next = 1
+        else:
+            (self.__db_next, ), = rows
+        log.info(f"next run ID: r{self.__db_next}")
+        self.__next = self.__db_next
+
+
+    def get_next_run_id(self):
+        run_id = f"r{self.__next}"
+        self.__next += 1
+        if self.__db_next < self.__next:
+            # Increment by more than one, to decrease database writes.  If we
+            # restart now, we'll skip over some run IDs, but that's OK; we're
+            # not going to run out of them.
+            self.__db_next += self.INTERVAL
+            with self.__engine.connect() as conn:
+                res = conn.connection.execute(
+                    "UPDATE next_run_id SET number = ?", (self.__db_next, ))
+                assert res.rowcount == 1
+                conn.connection.commit()
+
+        return run_id
 
 
 
@@ -311,10 +353,6 @@ class RunDB:
         return runs
 
 
-    def get_max_run_id_num(self):
-        return _get_max_run_id_num(self.__engine, "runs")
-
-
 
 #-------------------------------------------------------------------------------
 
@@ -381,10 +419,6 @@ class RunLogDB:
                 "timestamp" : load_time(timestamp),
                 "message"   : message,
             }
-
-
-    def get_max_run_id_num(self):
-        return _get_max_run_id_num(self.__engine, "run_history")
 
 
 
@@ -482,6 +516,7 @@ class SqliteDB:
         """
         self.__engine       = engine
         self.clock_db       = ClockDB(engine)
+        self.next_run_id_db = RunIDDB(engine)
         self.job_db         = JobDB(engine)
         self.run_db         = RunDB(engine)
         self.run_log_db     = RunLogDB(engine)
@@ -553,17 +588,6 @@ class SqliteDB:
         engine  = cls.__get_engine(path)
         # FIXME: Check that tables exist.
         return cls(engine)
-
-
-    def get_max_run_id_num(self):
-        """
-        :return:
-          The largest run ID number in use, or 0.
-        """
-        return max(
-            self.run_db.get_max_run_id_num(),
-            self.run_log_db.get_max_run_id_num(),
-        )
 
 
     def check(self):
