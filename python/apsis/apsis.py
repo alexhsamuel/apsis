@@ -78,8 +78,6 @@ class Apsis:
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
-        log.info(f"scheduling runs from {stop_time}")
-
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
         self.__retire_loop = asyncio.ensure_future(self.retire_loop())
