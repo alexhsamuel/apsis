@@ -63,8 +63,10 @@ class Scheduler:
 
         since = cfg.get("since")
         if since is not None:
-            since = Time(since)
+            since = now() if since == "now" else Time(since)
             stop = max(stop, since)
+
+        log.info(f"scheduling runs since {stop}")
 
         self.__jobs = jobs
         self.__stop = stop

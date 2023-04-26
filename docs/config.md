@@ -12,8 +12,11 @@ runs:
     lookback: 2592000  # 30 days
 
 schedule:
-    # If specified, schedule only runs after this time.
+    # If null, schedule runs since the last time Apsis was run, or since the
+    # Apsis database was created.  If specified, schedule only runs after this
+    # time; any intervening runs that would have been scheduled are skipped.
     since: null
+    # since: now
     # since: 2022-11-01T00:00:00Z
 
     # How far into the future to schedule runs, in s.
