@@ -65,7 +65,7 @@ class Instance:
 
     def __str__(self):
         return "{}({})".format(
-            self.job_id, 
+            self.job_id,
             " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
         )
 
@@ -141,10 +141,10 @@ def propagate_args(old_args, job, new_args):
 class Run:
 
     STATE = enum.Enum(
-        "Run.STATE", 
+        "Run.STATE",
         (
-            "new", 
-            "scheduled", 
+            "new",
+            "scheduled",
             "waiting",
             "starting",
             "running",
@@ -233,7 +233,7 @@ class Run:
         return f"{self.run_id} {self.state.name} {self.inst}"
 
 
-    def _transition(self, timestamp, state, *, meta={}, times={}, 
+    def _transition(self, timestamp, state, *, meta={}, times={},
                     message=None, run_state=None, force=False):
         """
         :param force:
@@ -313,8 +313,8 @@ class RunStore:
     def __init__(self, db, *, min_timestamp):
         self.__run_db = db.run_db
 
-        # Populate cache from database.  
-        self.__runs = { 
+        # Populate cache from database.
+        self.__runs = {
             r.run_id: r
             for r in self.__run_db.query(min_timestamp=min_timestamp)
         }
@@ -510,5 +510,3 @@ def to_state(state):
     except KeyError:
         pass
     raise ValueError(f"not a state: {state!r}")
-
-
