@@ -690,9 +690,7 @@ class SqliteDB:
                     # Keep count of how many rows we archived from each table.
                     row_counts[table.name] = len(rows)
 
-                log.debug("archived runs: " + " ".join(run_ids))  # FIXME
-
-        log.info(f"archived {timer.elapsed:.3f} s")
+        log.info(f"archived in {timer.elapsed:.3f} s")
         return row_counts
 
 
