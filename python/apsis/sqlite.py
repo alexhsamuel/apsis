@@ -134,7 +134,7 @@ class RunIDDB:
     def initialize(engine):
         with engine.connect() as conn:
             conn.connection.execute("INSERT INTO next_run_id VALUES (1)")
-            conn.commit()
+            conn.connection.commit()
 
 
     def __init__(self, engine):
