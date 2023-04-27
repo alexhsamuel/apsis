@@ -1,13 +1,10 @@
 import asyncio
-from   contextlib import closing
 import logging
 import ora
-from   pathlib import Path
 
 from  ..base import _InternalProgram, ProgramRunning, ProgramSuccess
 from  apsis.lib.json import check_schema
 from  apsis.runs import template_expand
-from  apsis.sqlite import SqliteDB
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +15,7 @@ log = logging.getLogger(__name__)
 # - int test
 # - docs
 # - clean up old `apsisctl archive`
+# - clean up old `SqliteDB.migration`
 
 class ArchiveProgram(_InternalProgram):
     """
@@ -99,15 +97,8 @@ class ArchiveProgram(_InternalProgram):
             run_ids = [ r for r in run_ids if r not in live_run_ids ]
 
         if len(run_ids) > 0:
-            archive_path = Path(self.__path)
-            try:
-                archive_db = SqliteDB.open(archive_path)
-            except FileNotFoundError:
-                log.info(f"creating: {archive_path}")
-                archive_db = SqliteDB.create(archive_path)
             # Archive these runs.
-            with closing(archive_db):
-                row_counts = db.archive(archive_db, run_ids)
+            row_counts = db.archive(self.__path, run_ids)
             # Also vacuum to free space.
             db.vacuum()
 

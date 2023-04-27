@@ -2,6 +2,7 @@
 Persistent state stored in a sqlite file.
 """
 
+import contextlib
 import logging
 import ora
 from   pathlib import Path
@@ -30,6 +31,17 @@ def dump_time(time):
 
 def load_time(time):
     return ora.UNIX_EPOCH + time
+
+
+@contextlib.contextmanager
+def disposing(engine):
+    """
+    Context manager for `Engine.dispose()`.
+    """
+    try:
+        yield engine
+    finally:
+        engine.dispose()
 
 
 METADATA = sa.MetaData()
@@ -76,10 +88,33 @@ class ClockDB:
 
 #-------------------------------------------------------------------------------
 
-TBL_NEXT_RUN_ID = sa.Table(
-    "next_run_id", METADATA,
-    sa.Column("number", sa.Integer(), nullable=False),
-)
+def _get_max_run_id_number(engine):
+    """
+    Returns the number of the largest run ID in any table that refers to runs,
+    or 0 if there are no rows.
+    """
+    rows = tuple(engine.execute(
+        """
+        SELECT MAX(run_id)
+          FROM (
+                SELECT MAX(CAST(SUBSTRING(run_id, 2) AS INTEGER)) AS run_id
+                  FROM runs
+                 UNION
+                SELECT MAX(CAST(SUBSTRING(run_id, 2) AS INTEGER)) AS run_id
+                  FROM run_history
+                 UNION
+                SELECT MAX(CAST(SUBSTRING(run_id, 2) AS INTEGER)) AS run_id
+                  FROM output
+               )
+        """
+    ))
+    if len(rows) == 0:
+        log.warning
+        return 0
+    else:
+        (run_id_number, ), = rows
+        return run_id_number
+
 
 class RunIDDB:
     """
@@ -88,21 +123,44 @@ class RunIDDB:
     A run ID is of the form `r#`, where the integer # increments sequentially.
     """
 
+    TABLE = sa.Table(
+        "next_run_id", METADATA,
+        sa.Column("number", sa.Integer(), nullable=False),
+    )
+
     INTERVAL = 64
+
+    @staticmethod
+    def initialize(engine):
+        with engine.connect() as conn:
+            conn.connection.execute("INSERT INTO next_run_id VALUES (1)")
+            conn.commit()
+
 
     def __init__(self, engine):
         self.__engine = engine
-        TBL_NEXT_RUN_ID.create(engine, checkfirst=True)
+        self.TABLE.create(engine, checkfirst=True)
 
         rows = tuple(self.__engine.execute("SELECT number FROM next_run_id"))
         if len(rows) == 0:
+            log.warning("no next_run_id; migrating")
+            # For backward compatibility, determine the largest run ID used.
+            # FIXME: Remove this after migration.
+            self.__db_next = _get_max_run_id_number(engine) + 1
+            # Store it.
             with self.__engine.connect() as conn:
-                conn.connection.execute("INSERT INTO next_run_id VALUES (1)")
+                conn.connection.execute(
+                    "INSERT INTO next_run_id VALUES (?)",
+                    (self.__db_next, )
+                )
                 conn.connection.commit()
-            self.__db_next = 1
+            log.info(f"next run ID: r{self.__db_next}")
+
         else:
             (self.__db_next, ), = rows
-        log.info(f"next run ID: r{self.__db_next}")
+            log.info(f"next run ID: r{self.__db_next}")
+
+        # Start generating run IDs from the next available.
         self.__next = self.__db_next
 
 
@@ -544,17 +602,18 @@ class SqliteDB:
 
         :param path:
           The database path, which must not already exist.
-        :return:
-          The new database.
         """
         if path is not None:
             path = Path(path).absolute()
             if path.exists():
                 raise FileExistsError(path)
 
+        log.info(f"creating database: {path}")
         engine  = cls.__get_engine(path)
+        log.info("creating tables")
         METADATA.create_all(engine)
-        return cls(engine)
+        log.info("initializing next run ID")
+        RunIDDB.initialize(engine)
 
 
     @classmethod
@@ -602,10 +661,9 @@ class SqliteDB:
             ok = False
 
         engine = self.__engine
-        run_tables = (RunLogDB.TABLE, OutputDB.TABLE)
 
         # Check run tables for valid run ID (referential integrity).
-        for tbl in run_tables:
+        for tbl in RUN_TABLES:
             sel = (
                 sa.select([tbl.c.run_id])
                 .distinct(tbl.c.run_id)
@@ -654,15 +712,29 @@ class SqliteDB:
         return run_ids
 
 
-    def archive(self, archive_db, run_ids):
-        assert isinstance(archive_db, type(self))
+    def archive(self, path, run_ids):
+        """
+        Archives data for `run_ids` to sqlite archive file `path`.
+
+        :param path:
+          Path to archive file.  If the path doesn't exist, creates the archive.
+          If the archive exists, appends after first checking that no data
+          already is present for any of `run_ids`.
+        :param run_ids:
+          Sequence of run IDs to archive.
+        """
+        # Open the archive file, creating if necessary.
+        archive_engine = self.__get_engine(path)
+        # Create tables if necessary.
+        METADATA.create_all(archive_engine, tables=ARCHIVE_TABLES)
 
         row_counts = {}
 
         with (
+                disposing(archive_engine),
                 Timer() as timer,
                 self.__engine.begin() as src_tx,
-                archive_db.__engine.begin() as archive_tx
+                archive_engine.begin() as archive_tx
         ):
             log.info(f"archiving {len(run_ids)} runs")
 
@@ -671,7 +743,7 @@ class SqliteDB:
 
                 # First, make sure there are no records already in the archive
                 # that match the run IDs.
-                for table in (*RUN_TABLES, TBL_RUNS):
+                for table in ARCHIVE_TABLES:
                     res = archive_tx.execute(
                         sa.select([table.c.run_id]).distinct()
                         .select_from(table)
@@ -730,6 +802,7 @@ class SqliteDB:
 
 # Tables other than "runs" that need to be archived.
 RUN_TABLES = (RunLogDB.TABLE, OutputDB.TABLE)
+ARCHIVE_TABLES = (*RUN_TABLES, TBL_RUNS)
 
 def archive_runs(db, archive_db, time, *, delete=False):
     """
