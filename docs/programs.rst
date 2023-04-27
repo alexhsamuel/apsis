@@ -123,3 +123,41 @@ This job produces a run once a minute, which appends the stats to a dated file:
         type: apsis.program.internal.stats.StatsProgram
         path: "/path/to/apsis/stats/{{ date }}.json"
 
+
+
+Archive
+^^^^^^^
+
+A `apsis.program.interal.archive` program moves data pertaining to older runs
+out of the Apsis database file, into a separate archive file.  Keeping the main
+Apsis database file from growing too large can avoid performance degredation.
+
+This job archives up to 10,000 runs older than 14 days (1,209,600 seconds):
+
+.. code:: yaml
+
+    schedule:
+        type: daily
+        tz: UTC
+        time: 01:30:00
+
+    program:
+        type: apsis.program.internal.archive.ArchiveProgram
+        age: 1209600
+        count: 10000
+        path: '/path/to/apsis/archive.db'
+
+The archiving process only archives runs that are no longer held in memory by
+the Apsis process.  Make sure the `schedule.horizon` config value is smaller
+than the archive `age`, so that runs are retired from the Apsis process before
+they are due to be archived.
+
+The archiving program blocks Apsis from performing other tasks.  Adjust the
+`count` parameter so that the archiving process does not take more than a few
+seconds, to avoid long delays in startng scheduled runs.
+
+The archive file is also an SQLite3 database file, and contains the subset of
+columns from the main database file that contains run data.  The archive file
+cannot be used directly by Apsis, but may be useful for historical analysis and
+forensics.
+

@@ -11,9 +11,8 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 # TODO:
-# - validate versus `runs.lookback` in cfg
 # - int test
-# - docs
+# - release notes
 # - clean up old `apsisctl archive`
 # - clean up old `SqliteDB.migration`
 
