@@ -669,7 +669,7 @@ class Apsis:
         while True:
             try:
                 min_timestamp = now() - retire_lookback
-                self.run_store.retire(min_timestamp)
+                self.run_store.retire_old(min_timestamp)
             except Exception:
                 log.error("retire failed", exc_info=True)
                 return

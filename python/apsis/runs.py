@@ -385,7 +385,27 @@ class RunStore:
         return run
 
 
-    def retire(self, min_timestamp):
+    def retire(self, run_id):
+        """
+        :return:
+          True if `run_id` is not in the store, either because it was
+          successfully retired, or because it wasn't there to begin with.
+        """
+        try:
+            run = self.__runs[run_id]
+        except KeyError:
+            return True
+        else:
+            if run.state in Run.FINISHED:
+                self.__runs.pop(run_id)
+                run.state = None
+                self.__send(now(), run)
+                return True
+            else:
+                return False
+
+
+    def retire_old(self, min_timestamp):
         """
         Retires older runs from memory.
 
@@ -394,13 +414,10 @@ class RunStore:
         """
         old = [
             r for r in self.__runs.values()
-            if r.timestamp < min_timestamp and r.state in Run.FINISHED
+            if r.timestamp < min_timestamp
         ]
-        log.info(f"retiring {len(old)} runs before {min_timestamp}")
-        for run in old:
-            del self.__runs[run.run_id]
-            run.state = None
-            self.__send(now(), run)
+        count = sum( self.retire(r.run_id) for r in old )
+        log.info(f"retired {count} runs before {min_timestamp}")
 
 
     def __contains__(self, run_id):
