@@ -141,7 +141,8 @@ class RunIDDB:
         self.__engine = engine
         self.TABLE.create(engine, checkfirst=True)
 
-        rows = tuple(self.__engine.execute("SELECT number FROM next_run_id"))
+        with self.__engine.connect() as conn:
+            rows = tuple(conn.execute(sa.text("SELECT number FROM next_run_id")))
         if len(rows) == 0:
             log.warning("no next_run_id; migrating")
             # For backward compatibility, determine the largest run ID used.
@@ -528,26 +529,28 @@ class OutputDB:
         """
         cols    = self.TABLE.c
         columns = [cols.output_id, cols.name, cols.content_type, cols.length]
-        query   = sa.select(columns).where(cols.run_id == run_id)
-        return {
-            r[0]: OutputMetadata(name=r[1], length=r[3], content_type=r[2])
-            for r in self.__engine.execute(query)
-        }
+        query   = sa.select(*columns).where(cols.run_id == run_id)
+        with self.__engine.connect() as conn:
+            return {
+                r[0]: OutputMetadata(name=r[1], length=r[3], content_type=r[2])
+                for r in conn.execute(query)
+            }
 
 
     def get_output(self, run_id, output_id) -> Output:
         cols = self.TABLE.c
         query = (
-            sa.select([
+            sa.select(
                 cols.name,
                 cols.length,
                 cols.content_type,
                 cols.data,
                 cols.compression,
-            ])
+            )
             .where((cols.run_id == run_id) & ((cols.output_id == output_id)))
         )
-        rows = list(self.__engine.execute(query))
+        with self.__engine.connect() as conn:
+            rows = list(conn.execute(query))
         if len(rows) == 0:
             raise LookupError(f"no output {output_id} for {run_id}")
         else:
