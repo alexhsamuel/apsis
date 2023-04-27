@@ -281,6 +281,7 @@ BIND_ARGS = {
                 "from_local",
         )
     },
+    "format": format,
     "get_calendar": get_calendar,
 }
 
