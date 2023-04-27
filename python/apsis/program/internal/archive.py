@@ -24,9 +24,8 @@ class ArchiveProgram(_InternalProgram):
     This program runs within the Apsis process, and blocks all other activities
     while it runs.  Avoid archiving too many runs in a single invocation.
 
-    Only runs that have already been retired may be archived.  Make sure the
-    `runs.lookback` configuration is set to a smaller value than the `age`
-    argument used when archiving.
+    A run must be retired before it is archived.  If it cannot be retired, it is
+    skipped for archiving.
     """
 
     def __init__(self, *, age, path, count):
@@ -89,11 +88,8 @@ class ArchiveProgram(_InternalProgram):
             count   =self.__count,
         )
 
-        # If any runs to archive are still in the run store, exclude them.
-        live_run_ids = { r for r in run_ids if r in apsis.run_store }
-        if len(live_run_ids) > 0:
-            log.warning(f"{len(live_run_ids)} of {len(run_ids)} for archive are live")
-            run_ids = [ r for r in run_ids if r not in live_run_ids ]
+        # Make sure all runs are retired; else skip them.
+        run_ids = [ r for r in run_ids if apsis.run_store.retire(r) ]
 
         if len(run_ids) > 0:
             # Archive these runs.
@@ -108,7 +104,6 @@ class ArchiveProgram(_InternalProgram):
             "run count" : len(run_ids),
             "run_ids"   : run_ids,
             "row counts": row_counts,
-            "live_runs" : len(live_run_ids),
         })
 
 

@@ -132,6 +132,10 @@ A `apsis.program.interal.archive` program moves data pertaining to older runs
 out of the Apsis database file, into a separate archive file.  Keeping the main
 Apsis database file from growing too large can avoid performance degredation.
 
+The archive program retires a run from Apsis's memory before archiving it.  The
+run is no longer visible through any UI.  A run that is not completed cannot be
+archived.
+
 This job archives up to 10,000 runs older than 14 days (1,209,600 seconds):
 
 .. code:: yaml
@@ -147,12 +151,7 @@ This job archives up to 10,000 runs older than 14 days (1,209,600 seconds):
         count: 10000
         path: '/path/to/apsis/archive.db'
 
-The archiving process only archives runs that are no longer held in memory by
-the Apsis process.  Make sure the `schedule.horizon` config value is smaller
-than the archive `age`, so that runs are retired from the Apsis process before
-they are due to be archived.
-
-The archiving program blocks Apsis from performing other tasks.  Adjust the
+The archive program blocks Apsis from performing other tasks.  Adjust the
 `count` parameter so that the archiving process does not take more than a few
 seconds, to avoid long delays in startng scheduled runs.
 
