@@ -1,13 +1,10 @@
 import logging
 from   pathlib import Path
+import warnings
 import yaml
 
-from   .actions import Action
-from   .lib.imp import import_fqname
 from   .lib.json import to_array
 from   .lib.py import nfloat
-from   .program import Program
-from   .schedule import Schedule
 
 log = logging.getLogger(__name__)
 
