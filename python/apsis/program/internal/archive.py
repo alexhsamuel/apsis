@@ -12,7 +12,6 @@ log = logging.getLogger(__name__)
 
 # TODO:
 # - clean up old `apsisctl archive`
-# - clean up old `SqliteDB.migration`
 
 class ArchiveProgram(_InternalProgram):
     """
