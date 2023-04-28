@@ -565,6 +565,10 @@ class OutputDB:
 
 #-------------------------------------------------------------------------------
 
+# Tables other than "runs" that need to be archived.
+RUN_TABLES = (RunLogDB.TABLE, OutputDB.TABLE)
+ARCHIVE_TABLES = (*RUN_TABLES, TBL_RUNS)
+
 class SqliteDB:
     """
     A SQLite3 file containing persistent state.
@@ -738,7 +742,7 @@ class SqliteDB:
                             + " ".join(dup_run_ids)
                         )
 
-                for table in (*RUN_TABLES, TBL_RUNS):
+                for table in ARCHIVE_TABLES:
                     # Extract the rows to archive.
                     sel = sa.select(table).where(table.c.run_id.in_(run_ids))
                     res = src_tx.execute(sel)
@@ -778,74 +782,5 @@ class SqliteDB:
             self.__engine.execute("VACUUM")
         log.info(f"vacuumed in {timer.elapsed:.3f} s")
 
-
-
-#-------------------------------------------------------------------------------
-
-# Tables other than "runs" that need to be archived.
-RUN_TABLES = (RunLogDB.TABLE, OutputDB.TABLE)
-ARCHIVE_TABLES = (*RUN_TABLES, TBL_RUNS)
-
-def archive_runs(db, archive_db, time, *, delete=False):
-    """
-    Moves runs from `db` to `archive_db` that are older than `time`.
-    """
-    in_eng = db._engine
-    arc_eng = archive_db._engine
-
-    # Selection for runs in the runs table itself.
-    sel = TBL_RUNS.c.timestamp < dump_time(time)
-
-    def joined(table):
-        """
-        Returns `table` with matching runs selected.
-        """
-        return table.join(
-            TBL_RUNS,
-            sa.and_(table.c.run_id == TBL_RUNS.c.run_id, sel)
-        )
-
-    def copy(sel, tbl, chunk_size=16384):
-        """
-        Copies rows from `sel` to `tbl`.
-        """
-        for chunk in itr.chunks(in_eng.execute(sel), chunk_size):
-            with arc_eng.begin() as tx:
-                tx.execute(sa.insert(tbl), chunk)
-
-    # Copy rows corresponding to these runs in other tables.
-    for table in RUN_TABLES:
-        logging.info(f"copying {table}")
-        copy(sa.select(table.c).select_from(joined(table)), table)
-    # Copy the runs themselves.
-    logging.info("copying runs")
-    copy(sa.select(TBL_RUNS.c).where(sel), TBL_RUNS)
-
-    if delete:
-        with in_eng.begin() as tx:
-            # Delete rows corresponding to these runs in other tables.
-            run_sel = sa.select([TBL_RUNS.c.run_id]).where(sel)
-            for table in RUN_TABLES:
-                logging.info(f"deleting {table}")
-                tx.execute(table.delete().where(table.c.run_id.in_(run_sel)))
-            # Delete the runs themselves.
-            logging.info("deleting runs")
-            tx.execute(TBL_RUNS.delete().where(sel))
-
-        # Verify.
-        for table in RUN_TABLES:
-            logging.info(f"verifying {table}")
-            assert in_eng.execute(
-                sa.select([sa.func.count()])
-                .select_from(joined(table))
-            ).scalar() == 0
-        logging.info("verifying runs")
-        assert in_eng.execute(
-            sa.select([sa.func.count()])
-            .where(sel)
-        ).scalar() == 0
-
-        logging.info("vacuuming")
-        in_eng.execute("VACUUM")
 
 

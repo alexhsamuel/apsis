@@ -10,9 +10,6 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-# TODO:
-# - clean up old `apsisctl archive`
-
 class ArchiveProgram(_InternalProgram):
     """
     A program that archives old runs from the Apsis database to an archive

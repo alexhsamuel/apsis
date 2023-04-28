@@ -36,33 +36,6 @@ def get_client(args):
 
 
 #-------------------------------------------------------------------------------
-# command: archive
-
-def cmd_archive_runs(args):
-    db = SqliteDB.open(args.db)
-    archive_db = SqliteDB.create(args.archive_db)
-    time = ora.Time(args.time)
-
-    apsis.sqlite.archive_runs(db, archive_db, time, delete=args.delete)
-
-
-cmd = parser.add_command(
-    "archive-runs", cmd_archive_runs,
-    description="Moves old runs to an archive DB.")
-cmd.add_argument(
-    "db", metavar="DBPATH",
-    help="path to Apsis database")
-cmd.add_argument(
-    "archive_db", metavar="ARCPATH",
-    help="path to archive database")
-cmd.add_argument(
-    "time", metavar="TIME", type=ora.Time,
-    help="archive runs before TIME")
-cmd.add_argument(
-    "--delete", action="store_true", default=False,
-    help="delete archived runs from DBPATH")
-
-#-------------------------------------------------------------------------------
 # command: check-db
 
 def cmd_check_db(args):
