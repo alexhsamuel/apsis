@@ -9,6 +9,7 @@ Apsis, a scheduler
    jobs
    programs
    schedules
+   config
    extending
 
 
