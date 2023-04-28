@@ -1,10 +1,14 @@
+# v0.17.0
+
 - The config `runs_lookback` is now `runs.lookback`.  When configured, Apsis
-  drops runs older than this while running, not just on startup when loading
-  runs.
-- The Ora functions `from_local` and `to_local` are available in jinja2
-  expressions when binding jobs.
-- Apsis no longer logs stats to its own logs.  Instead, schedule a
-  `StatsProgram` job to collect Apsis usage stats.
+  retires older runs from memory runs while running.
+- The internal program `ArchiveProgram` moves old runs out of the Apsis database
+  into a separate archive database file.  This also retires the old runs from
+  memory.
+- The internal program `StatsProgram` collects and writes Apsis usage stats.
+- Apsis no longer logs stats to its own log.
+- The Python builtin `format` and the Ora functions `from_local` and `to_local`
+  are available in jinja2 expressions when binding jobs.
 
 
 # v0.16.0

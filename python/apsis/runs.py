@@ -1,7 +1,6 @@
 import asyncio
 from   contextlib import contextmanager
 import enum
-import itertools
 import jinja2
 import logging
 import ora
@@ -65,7 +64,7 @@ class Instance:
 
     def __str__(self):
         return "{}({})".format(
-            self.job_id, 
+            self.job_id,
             " ".join( "{}={}".format(k, v) for k, v in self.args.items() )
         )
 
@@ -111,6 +110,15 @@ def template_expand(template, args):
     return template.render(args)
 
 
+def arg_to_bool(arg):
+    if arg in ("true", "True"):
+        return True
+    elif arg in ("false", "False"):
+        return False
+    else:
+        return bool(arg)
+
+
 def join_args(argv):
     return " ".join( shlex.quote(a) for a in argv )
 
@@ -132,10 +140,10 @@ def propagate_args(old_args, job, new_args):
 class Run:
 
     STATE = enum.Enum(
-        "Run.STATE", 
+        "Run.STATE",
         (
-            "new", 
-            "scheduled", 
+            "new",
+            "scheduled",
             "waiting",
             "starting",
             "running",
@@ -224,7 +232,7 @@ class Run:
         return f"{self.run_id} {self.state.name} {self.inst}"
 
 
-    def _transition(self, timestamp, state, *, meta={}, times={}, 
+    def _transition(self, timestamp, state, *, meta={}, times={},
                     message=None, run_state=None, force=False):
         """
         :param force:
@@ -273,6 +281,7 @@ BIND_ARGS = {
                 "from_local",
         )
     },
+    "format": format,
     "get_calendar": get_calendar,
 }
 
@@ -292,28 +301,26 @@ def get_bind_args(run):
 
 class RunStore:
     """
-    Stores run state.
+    Stores runs in memory.
 
-    Responsible for:
-    1. Managing run IDs.
-    1. Storing runs, in all states.
-    1. Satisfying run queries.
-    1. Serving live queries of runs.
+    This is a cache, backed by a write-through persistent run database.  New
+    runs are always added to the cache; use `retire()` to retire older runs from
+    memory.
+
+    - Stories runs in all states.
+    - Satisfyies run queries.
+    - Serves live queries of runs.
     """
 
     def __init__(self, db, *, min_timestamp):
         self.__run_db = db.run_db
+        self.__next_run_id_db = db.next_run_id_db
 
-        # Populate cache from database.  
-        self.__runs = { 
+        # Populate cache from database.
+        self.__runs = {
             r.run_id: r
             for r in self.__run_db.query(min_timestamp=min_timestamp)
         }
-
-        # Figure out where to start run IDs.
-        next_run_id = db.get_max_run_id_num() + 1
-        log.debug(f"next run_id: {next_run_id}")
-        self.__run_ids = ( "r" + str(i) for i in itertools.count(next_run_id) )
 
         # For live notification.
         self.__queues = set()
@@ -331,7 +338,7 @@ class RunStore:
         assert run.state == Run.STATE.new
 
         timestamp = now()
-        run_id = next(self.__run_ids)
+        run_id = self.__next_run_id_db.get_next_run_id()
         assert run.run_id not in self.__runs
 
         run.run_id = run_id
@@ -378,7 +385,27 @@ class RunStore:
         return run
 
 
-    def retire(self, min_timestamp):
+    def retire(self, run_id):
+        """
+        :return:
+          True if `run_id` is not in the store, either because it was
+          successfully retired, or because it wasn't there to begin with.
+        """
+        try:
+            run = self.__runs[run_id]
+        except KeyError:
+            return True
+        else:
+            if run.state in Run.FINISHED:
+                self.__runs.pop(run_id)
+                run.state = None
+                self.__send(now(), run)
+                return True
+            else:
+                return False
+
+
+    def retire_old(self, min_timestamp):
         """
         Retires older runs from memory.
 
@@ -387,13 +414,14 @@ class RunStore:
         """
         old = [
             r for r in self.__runs.values()
-            if r.timestamp < min_timestamp and r.state in Run.FINISHED
+            if r.timestamp < min_timestamp
         ]
-        log.info(f"retiring {len(old)} runs before {min_timestamp}")
-        for run in old:
-            del self.__runs[run.run_id]
-            run.state = None
-            self.__send(now(), run)
+        count = sum( self.retire(r.run_id) for r in old )
+        log.info(f"retired {count} runs before {min_timestamp}")
+
+
+    def __contains__(self, run_id):
+        return run_id in self.__runs
 
 
     def get(self, run_id):
@@ -497,5 +525,3 @@ def to_state(state):
     except KeyError:
         pass
     raise ValueError(f"not a state: {state!r}")
-
-

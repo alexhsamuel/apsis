@@ -2,6 +2,7 @@
 Persistent state stored in a sqlite file.
 """
 
+import contextlib
 import logging
 import ora
 from   pathlib import Path
@@ -10,6 +11,7 @@ import ujson
 
 from   .jobs import jso_to_job, job_to_jso
 from   .lib import itr
+from   .lib.timing import Timer
 from   .runs import Instance, Run
 from   .program import Program, Output, OutputMetadata
 
@@ -31,12 +33,15 @@ def load_time(time):
     return ora.UNIX_EPOCH + time
 
 
-def _get_max_run_id_num(engine, table):
-    with engine.begin() as conn:
-        rows = list(conn.execute(
-            f"SELECT MAX(CAST(SUBSTR(run_id, 2) AS DECIMAL)) FROM {table}"))
-    (max_num, ), = rows
-    return 0 if max_num is None else max_num
+@contextlib.contextmanager
+def disposing(engine):
+    """
+    Context manager for `Engine.dispose()`.
+    """
+    try:
+        yield engine
+    finally:
+        engine.dispose()
 
 
 METADATA = sa.MetaData()
@@ -78,6 +83,103 @@ class ClockDB:
         time -= ora.UNIX_EPOCH
         self.__connection.execute("UPDATE clock SET time = ?", (time, ))
         self.__connection.commit()
+
+
+
+#-------------------------------------------------------------------------------
+
+def _get_max_run_id_number(engine):
+    """
+    Returns the number of the largest run ID in any table that refers to runs,
+    or 0 if there are no rows.
+    """
+    rows = tuple(engine.execute(
+        """
+        SELECT MAX(run_id)
+          FROM (
+                SELECT MAX(CAST(SUBSTRING(run_id, 2) AS INTEGER)) AS run_id
+                  FROM runs
+                 UNION
+                SELECT MAX(CAST(SUBSTRING(run_id, 2) AS INTEGER)) AS run_id
+                  FROM run_history
+                 UNION
+                SELECT MAX(CAST(SUBSTRING(run_id, 2) AS INTEGER)) AS run_id
+                  FROM output
+               )
+        """
+    ))
+    if len(rows) == 0:
+        log.warning
+        return 0
+    else:
+        (run_id_number, ), = rows
+        return run_id_number
+
+
+class RunIDDB:
+    """
+    Stores the next available run ID.
+
+    A run ID is of the form `r#`, where the integer # increments sequentially.
+    """
+
+    TABLE = sa.Table(
+        "next_run_id", METADATA,
+        sa.Column("number", sa.Integer(), nullable=False),
+    )
+
+    INTERVAL = 64
+
+    @staticmethod
+    def initialize(engine):
+        with engine.connect() as conn:
+            conn.connection.execute("INSERT INTO next_run_id VALUES (1)")
+            conn.connection.commit()
+
+
+    def __init__(self, engine):
+        self.__engine = engine
+        self.TABLE.create(engine, checkfirst=True)
+
+        with self.__engine.connect() as conn:
+            rows = tuple(conn.execute(sa.text("SELECT number FROM next_run_id")))
+        if len(rows) == 0:
+            log.warning("no next_run_id; migrating")
+            # For backward compatibility, determine the largest run ID used.
+            # FIXME: Remove this after migration.
+            self.__db_next = _get_max_run_id_number(engine) + 1
+            # Store it.
+            with self.__engine.connect() as conn:
+                conn.connection.execute(
+                    "INSERT INTO next_run_id VALUES (?)",
+                    (self.__db_next, )
+                )
+                conn.connection.commit()
+            log.info(f"next run ID: r{self.__db_next}")
+
+        else:
+            (self.__db_next, ), = rows
+            log.info(f"next run ID: r{self.__db_next}")
+
+        # Start generating run IDs from the next available.
+        self.__next = self.__db_next
+
+
+    def get_next_run_id(self):
+        run_id = f"r{self.__next}"
+        self.__next += 1
+        if self.__db_next < self.__next:
+            # Increment by more than one, to decrease database writes.  If we
+            # restart now, we'll skip over some run IDs, but that's OK; we're
+            # not going to run out of them.
+            self.__db_next += self.INTERVAL
+            with self.__engine.connect() as conn:
+                res = conn.connection.execute(
+                    "UPDATE next_run_id SET number = ?", (self.__db_next, ))
+                assert res.rowcount == 1
+                conn.connection.commit()
+
+        return run_id
 
 
 
@@ -310,10 +412,6 @@ class RunDB:
         return runs
 
 
-    def get_max_run_id_num(self):
-        return _get_max_run_id_num(self.__engine, "runs")
-
-
 
 #-------------------------------------------------------------------------------
 
@@ -382,10 +480,6 @@ class RunLogDB:
             }
 
 
-    def get_max_run_id_num(self):
-        return _get_max_run_id_num(self.__engine, "run_history")
-
-
 
 #-------------------------------------------------------------------------------
 
@@ -435,26 +529,28 @@ class OutputDB:
         """
         cols    = self.TABLE.c
         columns = [cols.output_id, cols.name, cols.content_type, cols.length]
-        query   = sa.select(columns).where(cols.run_id == run_id)
-        return {
-            r[0]: OutputMetadata(name=r[1], length=r[3], content_type=r[2])
-            for r in self.__engine.execute(query)
-        }
+        query   = sa.select(*columns).where(cols.run_id == run_id)
+        with self.__engine.connect() as conn:
+            return {
+                r[0]: OutputMetadata(name=r[1], length=r[3], content_type=r[2])
+                for r in conn.execute(query)
+            }
 
 
     def get_output(self, run_id, output_id) -> Output:
         cols = self.TABLE.c
         query = (
-            sa.select([
+            sa.select(
                 cols.name,
                 cols.length,
                 cols.content_type,
                 cols.data,
                 cols.compression,
-            ])
+            )
             .where((cols.run_id == run_id) & ((cols.output_id == output_id)))
         )
-        rows = list(self.__engine.execute(query))
+        with self.__engine.connect() as conn:
+            rows = list(conn.execute(query))
         if len(rows) == 0:
             raise LookupError(f"no output {output_id} for {run_id}")
         else:
@@ -479,18 +575,27 @@ class SqliteDB:
         :param path:
           Path to SQLite file.  If `None`, use a memory DB (for testing).
         """
+        self.__engine       = engine
         self.clock_db       = ClockDB(engine)
+        self.next_run_id_db = RunIDDB(engine)
         self.job_db         = JobDB(engine)
         self.run_db         = RunDB(engine)
         self.run_log_db     = RunLogDB(engine)
         self.output_db      = OutputDB(engine)
-        self._engine        = engine
 
 
     @classmethod
     def __get_engine(cls, path):
         url = "sqlite://" if path is None else f"sqlite:///{path}"
-        return sa.create_engine(url)
+        # Use a static pool-- exactly one persistent connection-- since we are a
+        # single-threaded async application, and sqlite doesn't support
+        # concurrent access.
+        return sa.create_engine(url, poolclass=sa.pool.StaticPool)
+
+
+    def close(self):
+        self.__engine.dispose()
+        del self.__engine
 
 
     @classmethod
@@ -500,17 +605,18 @@ class SqliteDB:
 
         :param path:
           The database path, which must not already exist.
-        :return:
-          The new database.
         """
         if path is not None:
             path = Path(path).absolute()
             if path.exists():
                 raise FileExistsError(path)
 
+        log.info(f"creating database: {path}")
         engine  = cls.__get_engine(path)
+        log.info("creating tables")
         METADATA.create_all(engine)
-        return cls(engine)
+        log.info("initializing next run ID")
+        RunIDDB.initialize(engine)
 
 
     @classmethod
@@ -546,53 +652,160 @@ class SqliteDB:
         return cls(engine)
 
 
-    def get_max_run_id_num(self):
+    def check(self):
         """
+        Checks `db` for consistency.
+        """
+        ok = True
+
+        def error(msg):
+            nonlocal ok
+            logging.error(msg)
+            ok = False
+
+        engine = self.__engine
+
+        # Check run tables for valid run ID (referential integrity).
+        for tbl in RUN_TABLES:
+            sel = (
+                sa.select([tbl.c.run_id])
+                .distinct(tbl.c.run_id)
+                .select_from(tbl.outerjoin(
+                    TBL_RUNS,
+                    tbl.c.run_id == TBL_RUNS.c.run_id
+                )).where(TBL_RUNS.c.run_id is None)
+            )
+            log.debug(f"query:\n{sel}")
+            res = engine.execute(sel)
+            run_ids = [ r for (r, ) in res ]
+            if len(run_ids) > 0:
+                error(f"unknown run IDs in {tbl}: {itr.join_truncated(8, run_ids)}")
+
+
+    def get_archive_run_ids(self, *, before, count):
+        """
+        Determines run IDs eligible for archive.
+
+        :param before:
+          Time before which to archive runs.
+        :param count:
+          Maximum count of runs to archive.
         :return:
-          The largest run ID number in use, or 0.
+          A sequence of run IDs.
         """
-        return max(
-            self.run_db.get_max_run_id_num(),
-            self.run_log_db.get_max_run_id_num(),
-        )
+        # Only finished runs are eligible for archiving.
+        FINISHED_STATES = [ s.name for s in Run.FINISHED ]
+
+        with (
+                Timer() as timer,
+                self.__engine.begin() as tx,
+        ):
+            run_ids = [
+                r for r, in tx.execute(
+                    sa.select([TBL_RUNS.c.run_id])
+                    .where(TBL_RUNS.c.timestamp < dump_time(before))
+                    .where(TBL_RUNS.c.state.in_(FINISHED_STATES))
+                    .order_by(TBL_RUNS.c.timestamp)
+                    .limit(count)
+                )
+            ]
+
+        log.info(
+            f"obtained {len(run_ids)} runs to archive in {timer.elapsed:.3f} s")
+        return run_ids
+
+
+    def archive(self, path, run_ids):
+        """
+        Archives data for `run_ids` to sqlite archive file `path`.
+
+        :param path:
+          Path to archive file.  If the path doesn't exist, creates the archive.
+          If the archive exists, appends after first checking that no data
+          already is present for any of `run_ids`.
+        :param run_ids:
+          Sequence of run IDs to archive.
+        """
+        # Open the archive file, creating if necessary.
+        archive_engine = self.__get_engine(path)
+        # Create tables if necessary.
+        METADATA.create_all(archive_engine, tables=ARCHIVE_TABLES)
+
+        row_counts = {}
+
+        with (
+                disposing(archive_engine),
+                Timer() as timer,
+                self.__engine.begin() as src_tx,
+                archive_engine.begin() as archive_tx
+        ):
+            log.info(f"archiving {len(run_ids)} runs")
+
+            if len(run_ids) > 0:
+                # Process all row-related tables.
+
+                # First, make sure there are no records already in the archive
+                # that match the run IDs.
+                for table in ARCHIVE_TABLES:
+                    res = archive_tx.execute(
+                        sa.select([table.c.run_id]).distinct()
+                        .select_from(table)
+                        .where(table.c.run_id.in_(run_ids))
+                    )
+                    dup_run_ids = sorted( r for r, in res )
+                    if len(dup_run_ids) > 0:
+                        raise RuntimeError(
+                            f"run IDs already in archive {table}: "
+                            + " ".join(dup_run_ids)
+                        )
+
+                for table in (*RUN_TABLES, TBL_RUNS):
+                    # Extract the rows to archive.
+                    sel = sa.select(table).where(table.c.run_id.in_(run_ids))
+                    res = src_tx.execute(sel)
+                    rows = tuple(res.mappings())
+
+                    # Write the rows to the archive.
+                    if len(rows) > 0:
+                        res = archive_tx.execute(sa.insert(table), rows)
+                        assert res.rowcount == len(rows)
+
+                    # Confirm the number of rows.
+                    (count, ), = archive_tx.execute(
+                        sa.select(sa.func.count())
+                        .select_from(table)
+                        .where(table.c.run_id.in_(run_ids))
+                    )
+                    assert count == len(rows), \
+                        f"archive {table} contains {count} rows"
+
+                    # Remove the rows from the source table.
+                    res = src_tx.execute(
+                        sa.delete(table)
+                        .where(table.c.run_id.in_(run_ids))
+                    )
+                    assert res.rowcount == len(rows)
+
+                    # Keep count of how many rows we archived from each table.
+                    row_counts[table.name] = len(rows)
+
+        log.info(f"archived in {timer.elapsed:.3f} s")
+        return row_counts
+
+
+    def vacuum(self):
+        log.info("vacuuming database")
+        with Timer() as timer:
+            self.__engine.execute("VACUUM")
+        log.info(f"vacuumed in {timer.elapsed:.3f} s")
 
 
 
 #-------------------------------------------------------------------------------
 
-def check(db):
-    """
-    Checks `db` for consistency.
-    """
-    ok = True
-
-    def error(msg):
-        nonlocal ok
-        logging.error(msg)
-        ok = False
-
-    engine = db._engine
-    run_tables = (RunLogDB.TABLE, OutputDB.TABLE)
-
-    # Check run tables for valid run ID (referential integrity).
-    for tbl in run_tables:
-        sel = (
-            sa.select([tbl.c.run_id])
-            .distinct(tbl.c.run_id)
-            .select_from(tbl.outerjoin(
-                TBL_RUNS,
-                tbl.c.run_id == TBL_RUNS.c.run_id
-            )).where(TBL_RUNS.c.run_id == None)
-        )
-        log.debug(f"query:\n{sel}")
-        res = engine.execute(sel)
-        run_ids = [ r for (r, ) in res ]
-        if len(run_ids) > 0:
-            error(f"unknown run IDs in {tbl}: {itr.join_truncated(8, run_ids)}")
-
-
 # Tables other than "runs" that need to be archived.
 RUN_TABLES = (RunLogDB.TABLE, OutputDB.TABLE)
+ARCHIVE_TABLES = (*RUN_TABLES, TBL_RUNS)
 
 def archive_runs(db, archive_db, time, *, delete=False):
     """

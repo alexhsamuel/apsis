@@ -41,6 +41,30 @@ def check_schema(jso):
         raise SchemaError(f"unexpected keys: {' '.join(copy)}")
 
 
+def set_dotted(mapping, key, value):
+    """
+    Sets dotted `key` to `value` into a hierarchical `mapping`, creating
+    nested mappings as needed.
+
+    For example, after
+
+        set_dotted(m, "foo.bar.baz", 42)
+
+    it is the case that
+
+        m["foo"]["bar"]["baz"] = 42
+
+    """
+    m = mapping
+    parts = key.split(".")
+    for part in parts[: -1]:
+        try:
+            m = m[part]
+        except KeyError:
+            m = m[part] = type(mapping)()
+    m[parts[-1]] = value
+
+
 #-------------------------------------------------------------------------------
 
 class TypedJso:

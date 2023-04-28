@@ -45,6 +45,8 @@ class Apsis:
 
     def __init__(self, cfg, jobs, db):
         log.debug("creating Apsis instance")
+        self.__start_time = now()
+
         self.cfg = cfg
         # FIXME: This should go in `apsis.config.config_globals` or similar.
         config_host_groups(cfg)
@@ -76,8 +78,6 @@ class Apsis:
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
-        log.info(f"scheduling runs from {stop_time}")
-
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
         self.__retire_loop = asyncio.ensure_future(self.retire_loop())
@@ -127,7 +127,10 @@ class Apsis:
             for run in running_runs:
                 assert run.program is not None
                 self.run_log.record(run, "restore: reconnecting to running run")
-                future = run.program.reconnect(run.run_id, run.run_state)
+                if isinstance(run.program, _InternalProgram):
+                    future = run.program.reconnect(run.run_id, run.run_state, self)
+                else:
+                    future = run.program.reconnect(run.run_id, run.run_state)
                 self.__finish(run, future)
 
             log.info("restoring done")
@@ -279,56 +282,62 @@ class Apsis:
             try:
                 try:
                     success = future.result()
+
                 except asyncio.CancelledError:
                     log.info(
                         f"cancelled waiting for run to complete: {run.run_id}")
                     return
 
-            except ProgramFailure as exc:
-                # Program ran and failed.
-                self.run_log.record(run, f"program failure: {exc.message}")
-                self._transition(
-                    run, run.STATE.failure,
-                    meta    =exc.meta,
-                    times   =exc.times,
-                    outputs =exc.outputs,
-                )
+                except ProgramFailure as exc:
+                    # Program ran and failed.
+                    self.run_log.record(run, f"program failure: {exc.message}")
+                    self._transition(
+                        run, run.STATE.failure,
+                        meta    =exc.meta,
+                        times   =exc.times,
+                        outputs =exc.outputs,
+                    )
 
-            except ProgramError as exc:
-                # Program failed to start.
-                self.run_log.info(run, f"program error: {exc.message}")
-                self._transition(
-                    run, run.STATE.error,
-                    meta    =exc.meta,
-                    times   =exc.times,
-                    outputs =exc.outputs,
-                )
+                except ProgramError as exc:
+                    # Program failed to start.
+                    self.run_log.info(run, f"program error: {exc.message}")
+                    self._transition(
+                        run, run.STATE.error,
+                        meta    =exc.meta,
+                        times   =exc.times,
+                        outputs =exc.outputs,
+                    )
+
+                except Exception:
+                    # Program raised some other exception.
+                    self.run_log.exc(run, "program internal error")
+                    tb = traceback.format_exc().encode()
+                    self._transition(
+                        run, run.STATE.error,
+                        outputs ={
+                            "output": Output(
+                                OutputMetadata("traceback", length=len(tb)),
+                                tb
+                            ),
+                        }
+                    )
+
+                else:
+                    # Program ran and completed successfully.
+                    self.run_log.record(run, "program success")
+                    self._transition(
+                        run, run.STATE.success,
+                        meta    =success.meta,
+                        times   =success.times,
+                        outputs =success.outputs,
+                    )
 
             except Exception:
-                # Program raised some other exception.
-                self.run_log.exc(run, "program internal error")
-                tb = traceback.format_exc().encode()
-                self._transition(
-                    run, run.STATE.error,
-                    outputs ={
-                        "output": Output(
-                            OutputMetadata("traceback", length=len(tb)),
-                            tb
-                        ),
-                    }
-                )
+                log.fatal(f"internal error in {run}", exc_info=True)
+                raise SystemExit(1)
 
-            else:
-                # Program ran and completed successfully.
-                self.run_log.record(run, "program success")
-                self._transition(
-                    run, run.STATE.success,
-                    meta    =success.meta,
-                    times   =success.times,
-                    outputs =success.outputs,
-                )
-
-            del self.__running_tasks[run.run_id]
+            finally:
+                del self.__running_tasks[run.run_id]
 
         self.__running_tasks[run.run_id] = future
         future.add_done_callback(done)
@@ -617,6 +626,7 @@ class Apsis:
         res = resource.getrusage(resource.RUSAGE_SELF)
         livequery_queues = self.run_store._RunStore__queues
         stats = {
+            "start_time"            : str(self.__start_time),
             "time"                  : str(now()),
             "rusage_maxrss"         : res.ru_maxrss * 1024,
             "rusage_utime"          : res.ru_utime,
@@ -659,7 +669,7 @@ class Apsis:
         while True:
             try:
                 min_timestamp = now() - retire_lookback
-                self.run_store.retire(min_timestamp)
+                self.run_store.retire_old(min_timestamp)
             except Exception:
                 log.error("retire failed", exc_info=True)
                 return

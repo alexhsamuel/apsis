@@ -9,6 +9,7 @@ import sys
 import apsis.cmdline
 import apsis.config
 import apsis.lib.argparse
+import apsis.lib.json
 import apsis.lib.logging
 from   apsis.service import DEFAULT_PORT
 import apsis.service.client
@@ -179,7 +180,7 @@ def cmd_serve(args):
     cfg = apsis.config.load(args.config)
     for ovr in args.override:
         name, val = ovr.split("=", 1)
-        cfg[name] = val
+        apsis.lib.json.set_dotted(cfg, name, val)
 
     restart = apsis.service.main.serve(
         cfg, host=args.host, port=args.port, debug=args.debug)
@@ -214,7 +215,7 @@ cmd.add_argument(
     help="read config from CFGFILE")
 cmd.add_argument(
     "--override", "-o", metavar="NAME=VAL", action="append", default=[],
-    help="override config NAME as VAL")
+    help="override dotted NAME as VAL in config")
 
 
 #-------------------------------------------------------------------------------
