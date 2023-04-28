@@ -11,7 +11,6 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 # TODO:
-# - release notes
 # - clean up old `apsisctl archive`
 # - clean up old `SqliteDB.migration`
 
