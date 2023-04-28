@@ -4,7 +4,7 @@
   retires older runs from memory runs while running.
 - The internal program `ArchiveProgram` moves old runs out of the Apsis database
   into a separate archive database file.  This also retires the old runs from
-  memory.
+  memory.  This program replaces the old `apsisctl migrate` manual process.
 - The internal program `StatsProgram` collects and writes Apsis usage stats.
 - Apsis no longer logs stats to its own log.
 - The Python builtin `format` and the Ora functions `from_local` and `to_local`
@@ -40,7 +40,11 @@
 - Add support for inducing a transition from `Condition.check_runs()` by
   returning a `Condition.Transition` value.
 - Add the `skip_dependency` condition type.
-- Group scheduler config under `schedule` key.  Add `schedule.horizion` config.
+- Group scheduler config under `schedule` key.  Add `schedule.hori
+
+
+
+zion` config.
   Rename `schedule_max_age` to `schedule.max_age`.
 
 
