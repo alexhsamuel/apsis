@@ -620,27 +620,6 @@ class SqliteDB:
 
 
     @classmethod
-    def migrate(cls, path):
-        """
-        (Attempts to) migrate the database at `path`.
-        """
-        assert path is not None
-        path = Path(path).absolute()
-        if not path.exists():
-            raise FileNotFoundError(path)
-
-        engine = cls.__get_engine(path)
-        METADATA.create_all(engine)
-
-        # Clean up expected runs; these used to be persisted.
-        try:
-            engine.execute("DELETE FROM runs WHERE expected")
-        except sa.exc.OperationalError:
-            # Column may not exist.
-            pass
-
-
-    @classmethod
     def open(cls, path):
         if path is not None:
             path = Path(path).absolute()

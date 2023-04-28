@@ -117,20 +117,6 @@ cmd.add_argument(
     help="state file")
 
 #-------------------------------------------------------------------------------
-# command: migrate
-
-def cmd_migrate(args):
-    SqliteDB.migrate(args.state_path)
-
-
-cmd = parser.add_command(
-    "migrate", cmd_migrate,
-    description="Migrates an Apsis state file.")
-cmd.add_argument(
-    "state_path", metavar="PATH",
-    help="state file")
-
-#-------------------------------------------------------------------------------
 # command: reload_jobs
 
 def cmd_reload_jobs(args):
