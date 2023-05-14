@@ -4,6 +4,9 @@ schedule:
   type: interval
   interval: 60
 
+condition:
+  type: skip_duplicate
+
 program:
   type: apsis.program.internal.stats.StatsProgram
   path: "/home/alex/dev/apsis/stats/{{ date }}.json"
