@@ -17,6 +17,9 @@ A job config contains these top-level keys:
 - `conditions` (optional) that must be met for a run
 - `actions` (optional) to take when a run changes state
 
+For durations in seconds, you may also use durations like `30s`, `10 min` (600
+seconds), `1.5h` (5400 seconds), and `1 day` (86400 seconds).
+
 
 Job ID
 ------

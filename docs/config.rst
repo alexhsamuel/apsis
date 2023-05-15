@@ -41,6 +41,9 @@ config file.
       # ...
 
 
+For durations in seconds, you may also use durations like `30s`, `10 min` (600
+seconds), `1.5h` (5400 seconds), and `1 day` (86400 seconds).
+
 
 Files
 -----
