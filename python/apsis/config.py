@@ -4,7 +4,7 @@ import warnings
 import yaml
 
 from   .lib.json import to_array
-from   .lib.py import nfloat
+from   .lib.parse import nparse_duration
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def check(cfg, base_path: Path):
     cfg["actions"] = to_array(cfg.get("action", []))
 
     waiting = cfg["waiting"] = cfg.setdefault("waiting", {})
-    max_time = waiting["max_time"] = nfloat(waiting.get("max_time", None))
+    max_time = waiting["max_time"] = nparse_duration(waiting.get("max_time", None))
     if max_time is not None and max_time <= 0:
         log.error("negative waiting.max_time: {max_time}")
 

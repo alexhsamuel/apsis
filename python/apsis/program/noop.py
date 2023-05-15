@@ -3,6 +3,7 @@ import logging
 
 from   .base import (Program, ProgramRunning, ProgramSuccess)
 from   apsis.lib.json import check_schema
+from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none, nstr
 from   apsis.runs import template_expand
 
@@ -51,7 +52,7 @@ class NoOpProgram(Program):
 
     async def wait(self, run_id, run_state):
         if self.__duration is not None:
-            duration = float(self.__duration)
+            duration = parse_duration(self.__duration)
             await asyncio.sleep(duration)
         return ProgramSuccess()
 

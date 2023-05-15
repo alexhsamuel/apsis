@@ -3,6 +3,7 @@ import ora
 
 from   apsis.lib.calendar import get_calendar
 from   apsis.lib.json import check_schema
+from   apsis.lib.parse import parse_duration
 from   .base import Schedule, DaytimeSpec
 
 log = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class DailyIntervalSchedule(Schedule):
         self.calendar   = calendar
         self.start      = DaytimeSpec.ensure(start)
         self.stop       = DaytimeSpec.ensure(stop)
-        self.interval   = float(interval)
+        self.interval   = parse_duration(interval)
         if not (0 < self.interval < 86400):
             raise ValueError(f"invalid interval: {self.interval}")
         self.args       = { str(k): str(v) for k, v in args.items() }
