@@ -25,7 +25,7 @@ def random_daytime():
 
 
 def gen_interval_schedule():
-    count = 1 + int((random.random() ** 5) * 100)
+    count = 1 + int((random.random() ** 5) * 1000)
     interval = 86400 // count
     phase = random.randint(0, interval - 1)
     return {
@@ -36,7 +36,7 @@ def gen_interval_schedule():
 
 
 def gen_daily_schedule(params):
-    count = 1 + int((random.random() ** 3) * 100)
+    count = 1 + int((random.random() ** 3) * 1000)
     params.append("date")
     return {
         "type": "daily",

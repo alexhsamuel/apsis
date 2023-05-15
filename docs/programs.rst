@@ -9,6 +9,15 @@ A job's program is configured with the top-level `program` key.  The subkey
 `type` indicates the program type; remaining keys are specific to the
 configuration of each program type.
 
+Apsis provides these program types, and you can extend Apsis with your own.
+
+- `no-op`: Does nothing.
+- `shell`: Executes a shell command, possibly on another host.
+- `program`: Invokes an executable directly, with command line arguments.
+
+Additionally, Apsis includes several internal program types, which deal with its
+own internal housekeeping.
+
 
 No-op programs
 --------------
@@ -21,8 +30,8 @@ A `no-op` program runs instantly and always succeeds.
         type: no-op
 
 
-Executing programs
-------------------
+Running other programs
+----------------------
 
 Shell commands
 ^^^^^^^^^^^^^^
@@ -54,12 +63,12 @@ Note the following:
   but before the shell interprets the command (when a run starts).
 
 
-Argv programs
-^^^^^^^^^^^^^
+Argv invocations
+^^^^^^^^^^^^^^^^
 
-The `program` program runs a process from an argument vector, skipping
-execution through a shell.  Instead of a shell command, give `argv`, a list of
-strings containing the arguments.  The first argument is the executable.
+The `program` program invokes an executable directly, without starting a shell.
+Instead of a shell command, give `argv`, a list of strings containing the
+arguments.  The first argument is the executable.
 
 .. code:: yaml
 
@@ -70,7 +79,7 @@ strings containing the arguments.  The first argument is the executable.
         - Hello, world!
 
 Since no shell evaluation takes place, there is no quoting, escaping, argument
-splitting, or substitution.  Note Apsis still performs `Binding`_ on the `argv`
+splitting, or substitution.  Note Apsis still performs :doc:`binding <./jobs>` on the `argv`
 strings, as described above.
 
 
