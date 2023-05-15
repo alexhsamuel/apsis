@@ -616,7 +616,7 @@ class Apsis:
             await cancel_task(task, f"waiting for {run}", log)
         for run, task in list(self.__starting_tasks.items()):
             await cancel_task(task, f"starting {run}", log)
-        for run_id, task in self.__running_tasks.items():
+        for run_id, task in list(self.__running_tasks.items()):
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
         log.info("Apsis shut down")
