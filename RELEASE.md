@@ -10,6 +10,8 @@
 - The Python builtin `format` and the Ora functions `from_local` and `to_local`
   are available in jinja2 expressions when binding jobs.
 - The `shell` and `program` program types now accept a `timeout`.
+- Durations in the Apsis config file and in job definitions now support values
+  with units such as `10 min`, `8h`, and `1 day`.
 
 
 # v0.16.0
