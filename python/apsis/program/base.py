@@ -151,6 +151,8 @@ class Program(TypedJso):
         """
         Sends a signal to the running program.
 
+        :param run_id:
+          The run ID; used for logging only.
         :param signum:
           Signal name or number.
         """
