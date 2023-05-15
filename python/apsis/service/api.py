@@ -365,7 +365,7 @@ async def run_signal(request, run_id, signal):
     apsis.run_log.info(run, f"sending signal {signal}")
     try:
         # FIXME: This should be via the apsis API.
-        await run.program.signal(run.run_state, signal)
+        await run.program.signal(run_id, run.run_state, signal)
     except RuntimeError as exc:
         return error(str(exc), 400)  # FIXME: code?
     return response_json({})

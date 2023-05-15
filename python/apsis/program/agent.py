@@ -1,6 +1,8 @@
 import asyncio
+from   dataclasses import dataclass
 import functools
 import logging
+import ora
 import socket
 import traceback
 
@@ -13,7 +15,7 @@ from   apsis.host_group import expand_host
 from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
 from   apsis.lib.py import or_none, nstr
-from   apsis.lib.sys import get_username
+from   apsis.lib.sys import get_username, to_signal
 from   apsis.runs import template_expand, join_args
 
 log = logging.getLogger(__name__)
@@ -27,10 +29,39 @@ def _get_agent(fqdn, user):
 
 class AgentProgram(Program):
 
-    def __init__(self, argv, *, host=None, user=None):
+    @dataclass
+    class Timeout:
+
+        duration: float
+        signal: str
+
+        @classmethod
+        def from_jso(cls, jso):
+            with check_schema(jso) as pop:
+                duration = pop("duration")
+                signal = pop("signal", str, default="SIGTERM")
+            return cls(duration=duration, signal=signal)
+
+
+        def to_jso(self):
+            return {
+                "duration": self.duration,
+                "signal": self.signal,
+            }
+
+
+        def bind(self, args):
+            duration = float(template_expand(self.duration, args))
+            signal = to_signal(template_expand(self.signal, args)).name
+            return type(self)(duration=duration, signal=signal)
+
+
+
+    def __init__(self, argv, *, host=None, user=None, timeout=None):
         self.__argv = tuple( str(a) for a in argv )
         self.__host = nstr(host)
         self.__user = nstr(user)
+        self.__timeout = timeout
 
 
     def __str__(self):
@@ -43,19 +74,23 @@ class AgentProgram(Program):
 
 
     def bind(self, args):
-        argv = tuple( template_expand(a, args) for a in self.__argv )
-        host = or_none(template_expand)(self.__host, args)
-        user = or_none(template_expand)(self.__user, args)
-        return type(self)(argv, host=host, user=user)
+        argv    = tuple( template_expand(a, args) for a in self.__argv )
+        host    = or_none(template_expand)(self.__host, args)
+        user    = or_none(template_expand)(self.__user, args)
+        timeout = None if self.__timeout is None else self.__timeout.bind(args)
+        return type(self)(argv, host=host, user=user, timeout=timeout)
 
 
     def to_jso(self):
-        return {
+        jso = {
             **super().to_jso(),
-            "argv"      : list(self.__argv),
-            "host"      : self.__host,
-            "user"      : self.__user,
+            "argv"  : list(self.__argv),
+            "host"  : self.__host,
+            "user"  : self.__user,
         }
+        if self.__timeout is not None:
+            jso["timeout"] = self.__timeout.to_jso()
+        return jso
 
 
     @classmethod
@@ -64,7 +99,8 @@ class AgentProgram(Program):
             argv    = pop("argv")
             host    = pop("host", nstr, None)
             user    = pop("user", nstr, None)
-        return cls(argv, host=host, user=user)
+            timeout = pop("timeout", cls.Timeout.from_jso, None)
+        return cls(argv, host=host, user=user, timeout=timeout)
 
 
     def get_host(self, cfg):
@@ -117,6 +153,7 @@ class AgentProgram(Program):
             # FIXME: Propagate times from agent.
             # FIXME: Do this asynchronously from the agent instead.
             done = self.wait(run_id, run_state)
+            run_state["start"] = str(ora.now())
             return ProgramRunning(run_state, meta=meta), done
 
         elif state == "err":
@@ -135,10 +172,25 @@ class AgentProgram(Program):
         host = run_state["host"]
         proc_id = run_state["proc_id"]
         agent = self.__get_agent(host)
+        if self.__timeout is not None:
+            try:
+                start = ora.Time(run_state["start"])
+            except KeyError:
+                # Backward compatibility: no start in run state.
+                # FIXME: Clean this up after transition.
+                start = ora.now()
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
         while True:
+            if self.__timeout is not None:
+                elapsed = ora.now() - start
+                if self.__timeout.duration < elapsed:
+                    log.info(f"{run_id}: program timed out after {elapsed} s")
+                    # FIXME: Note timeout in run log.
+                    await self.signal(run_id, run_state, self.__timeout.signal)
+                    await asyncio.sleep(POLL_INTERVAL)
+
             log.debug(f"polling proc: {run_id}: {proc_id} @ {host}")
             try:
                 proc = await agent.get_process(proc_id, restart=True)
@@ -182,10 +234,15 @@ class AgentProgram(Program):
         return asyncio.ensure_future(self.wait(run_id, run_state))
 
 
-    async def signal(self, run_state, signum):
+    async def signal(self, run_id, run_state, signal):
+        """
+        :type signal:
+          Signal name or number.
+        """
+        log.info(f"sending signal: {run_id}: {self.__timeout.signal}")
         proc_id = run_state["proc_id"]
         agent = self.__get_agent(run_state["host"])
-        await agent.signal(proc_id, signum)
+        await agent.signal(proc_id, signal)
 
 
 
@@ -200,9 +257,11 @@ class AgentShellProgram(AgentProgram):
 
     def bind(self, args):
         command = template_expand(self.__command, args)
-        host = or_none(template_expand)(self._AgentProgram__host, args)
-        user = or_none(template_expand)(self._AgentProgram__user, args)
-        return type(self)(command, host=host, user=user)
+        host    = or_none(template_expand)(self._AgentProgram__host, args)
+        user    = or_none(template_expand)(self._AgentProgram__user, args)
+        timeout = self._AgentProgram__timeout
+        timeout = None if timeout is None else timeout.bind(args)
+        return type(self)(command, host=host, user=user, timeout=timeout)
 
 
     def __str__(self):
@@ -210,6 +269,7 @@ class AgentShellProgram(AgentProgram):
 
 
     def to_jso(self):
+        # A bit hacky.  Take the base-class JSO and replace argv with command.
         jso = super().to_jso()
         del jso["argv"]
         jso["command"] = self.__command
@@ -222,7 +282,8 @@ class AgentShellProgram(AgentProgram):
             command = pop("command", str)
             host    = pop("host", nstr, None)
             user    = pop("user", nstr, None)
-        return cls(command, host=host, user=user)
+            timeout = pop("timeout", cls.Timeout.from_jso, None)
+        return cls(command, host=host, user=user, timeout=timeout)
 
 
 
