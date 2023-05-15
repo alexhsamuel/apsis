@@ -113,6 +113,7 @@ class ApsisInstance:
             self.stop_serve()
             with open(self.log_path) as file:
                 sys.stdout.write(file.read())
+            sys.stdout.flush()
 
 
     def run_apsis_cmd(self, *argv):

@@ -1,0 +1,8 @@
+params: [timeout]
+
+program:
+  type: shell
+  command: /usr/bin/sleep 15
+  timeout:
+    duration: "{{ timeout }}"
+
