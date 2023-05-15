@@ -6,7 +6,7 @@
   into a separate archive database file.  This also retires the old runs from
   memory.  This program replaces the old `apsisctl migrate` manual process.
 - The internal program `StatsProgram` collects and writes Apsis usage stats.
-- Apsis no longer logs stats to its own log.
+  Apsis no longer logs stats to its own log.
 - The Python builtin `format` and the Ora functions `from_local` and `to_local`
   are available in jinja2 expressions when binding jobs.
 - The `shell` and `program` program types now accept a `timeout`.
