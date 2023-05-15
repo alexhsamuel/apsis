@@ -10,7 +10,7 @@ A job's program is configured with the top-level `program` key.  The subkey
 configuration of each program type.
 
 
-No-op commands
+No-op programs
 --------------
 
 A `no-op` program runs instantly and always succeeds.
@@ -21,8 +21,11 @@ A `no-op` program runs instantly and always succeeds.
         type: no-op
 
 
+Executing programs
+------------------
+
 Shell commands
---------------
+^^^^^^^^^^^^^^
 
 The `shell` program executes shell command, given in the `command` key. 
 
@@ -51,8 +54,8 @@ Note the following:
   but before the shell interprets the command (when a run starts).
 
 
-Programs
---------
+Argv programs
+^^^^^^^^^^^^^
 
 The `program` program runs a process from an argument vector, skipping
 execution through a shell.  Instead of a shell command, give `argv`, a list of
@@ -72,7 +75,7 @@ strings, as described above.
 
 
 Users and hosts
----------------
+^^^^^^^^^^^^^^^
 
 Apsis can run shell commands and programs as another user, or on another host.
 Specify the `user` and `host` keys.
@@ -92,6 +95,25 @@ name.  Host groups are configured in the Apsis config file.
 The remote program is launched via SSH and monitored by an agent program.
 
 FIXME: Document this better.
+
+
+Timeouts
+^^^^^^^^
+
+You can specify a timeout duration for shell command or program.  If the timeout
+elapses before the program completes, Apsis sends the program a signal.
+
+.. code:: yaml
+
+    program:
+        type: shell
+        command: /usr/bin/takes-too-long
+        timeout:
+            duration: 300
+            signal: SIGTERM
+
+In this example, Apsis sends SIGTERM to the program after five minutes, if it
+hasn't completed yet.  The `signal` key is optional and defaults to SIGTERM.
 
 
 Internal Programs
