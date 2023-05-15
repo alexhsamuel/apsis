@@ -9,6 +9,7 @@
 - Apsis no longer logs stats to its own log.
 - The Python builtin `format` and the Ora functions `from_local` and `to_local`
   are available in jinja2 expressions when binding jobs.
+- The `shell` and `program` program types now accept a `timeout`.
 
 
 # v0.16.0
