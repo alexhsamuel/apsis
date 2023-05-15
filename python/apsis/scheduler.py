@@ -4,6 +4,7 @@ import logging
 from   ora import Time, now
 
 from   .runs import Instance, Run
+from   apsis.lib.parse import parse_duration
 
 log = logging.getLogger(__name__)
 
@@ -53,12 +54,12 @@ class Scheduler:
         """
         cfg = cfg.get("schedule", {})
 
-        horizon = float(cfg.get("horizon", 86400))
+        horizon = parse_duration(cfg.get("horizon", 86400))
         assert horizon > 0
 
         max_age = cfg.get("max_age")
         if max_age is not None:
-            max_age = float(max_age)
+            max_age = parse_duration(max_age)
             assert max_age > 0
 
         since = cfg.get("since")

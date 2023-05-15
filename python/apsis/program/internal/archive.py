@@ -2,9 +2,10 @@ import asyncio
 import logging
 import ora
 
-from  ..base import _InternalProgram, ProgramRunning, ProgramSuccess
-from  apsis.lib.json import check_schema
-from  apsis.runs import template_expand
+from   ..base import _InternalProgram, ProgramRunning, ProgramSuccess
+from   apsis.lib.json import check_schema
+from   apsis.lib.parse import parse_duration
+from   apsis.runs import template_expand
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class ArchiveProgram(_InternalProgram):
 
 
     def bind(self, args):
-        age = float(template_expand(self.__age, args))
+        age = parse_duration(template_expand(self.__age, args))
         path = template_expand(self.__path, args)
         count = int(template_expand(self.__count, args))
         return type(self)(age=age, path=path, count=count)

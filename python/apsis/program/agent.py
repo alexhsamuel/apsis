@@ -14,6 +14,7 @@ from   apsis.agent.client import Agent, NoSuchProcessError
 from   apsis.host_group import expand_host
 from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
+from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none, nstr
 from   apsis.lib.sys import get_username, to_signal
 from   apsis.runs import template_expand, join_args
@@ -51,7 +52,7 @@ class AgentProgram(Program):
 
 
         def bind(self, args):
-            duration = float(template_expand(self.duration, args))
+            duration = parse_duration(template_expand(self.duration, args))
             signal = to_signal(template_expand(self.signal, args)).name
             return type(self)(duration=duration, signal=signal)
 
