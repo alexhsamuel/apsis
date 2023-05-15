@@ -59,7 +59,7 @@ def test_signal(inst):
     client = inst.client
     r0 = client.schedule("signal", {"signal": "TERM"})["run_id"]
     r1 = client.schedule("signal", {"signal": "SIGKILL"})["run_id"]
-    r2 = client.schedule("signal", {"signal": 2})["run_id"]  # SIGINT
+    r2 = client.schedule("signal", {"signal": 12})["run_id"]  # SIGUSR2
 
     assert client.get_run(r0)["state"] == "running"
     assert client.get_run(r1)["state"] == "running"
@@ -74,6 +74,6 @@ def test_signal(inst):
     assert res["meta"]["signal"] == "SIGKILL"
     res = client.get_run(r2)
     assert res["state"] == "failure"
-    assert res["meta"]["signal"] == "SIGINT"
+    assert res["meta"]["signal"] == "SIGUSR2"
 
 
