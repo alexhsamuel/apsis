@@ -181,13 +181,17 @@ class AgentProgram(Program):
                 # FIXME: Clean this up after transition.
                 start = ora.now()
 
+        explanation = ""
+
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
         while True:
             if self.__timeout is not None:
                 elapsed = ora.now() - start
                 if self.__timeout.duration < elapsed:
-                    log.info(f"{run_id}: program timed out after {elapsed} s")
+                    msg = f"program timed out after {elapsed:.1f} s"
+                    log.info(f"{run_id}: {msg}")
+                    explanation = f" ({msg})"
                     # FIXME: Note timeout in run log.
                     await self.signal(run_id, run_state, self.__timeout.signal)
                     await asyncio.sleep(POLL_INTERVAL)
@@ -222,7 +226,7 @@ class AgentProgram(Program):
                 return ProgramSuccess(meta=proc, outputs=outputs)
 
             else:
-                message = f"program failed: status {status}"
+                message = f"program failed: status {status}{explanation}"
                 raise ProgramFailure(message, meta=proc, outputs=outputs)
 
         finally:
