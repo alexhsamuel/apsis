@@ -189,7 +189,7 @@ class AgentProgram(Program):
             if self.__timeout is not None:
                 elapsed = ora.now() - start
                 if self.__timeout.duration < elapsed:
-                    msg = f"program timed out after {elapsed:.1f} s"
+                    msg = f"timeout after {elapsed:.0f} s"
                     log.info(f"{run_id}: {msg}")
                     explanation = f" ({msg})"
                     # FIXME: Note timeout in run log.

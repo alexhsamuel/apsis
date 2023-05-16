@@ -98,7 +98,7 @@ class Apsis:
                 if not self.__prepare_run(run):
                     continue
                 time = run.times["schedule"]
-                self.run_log.record(run, f"restore: scheduled for {time}")
+                self.run_log.record(run, "restored")
                 await self.scheduled.schedule(time, run)
 
             # Restore waiting runs from DB.
@@ -108,7 +108,7 @@ class Apsis:
                 assert not run.expected
                 if not self.__prepare_run(run):
                     continue
-                self.run_log.record(run, "restore: waiting")
+                self.run_log.record(run, "restored")
                 self.__wait(run)
 
             # If a run is starting in the DB, we can't know if it actually
@@ -116,9 +116,10 @@ class Apsis:
             log.info("processing starting runs")
             _, starting_runs = self.run_store.query(state=Run.STATE.starting)
             for run in starting_runs:
+                self.run_log.record(run, "restored starting: might have started")
                 self._transition(
                     run, run.STATE.error,
-                    message="restore: starting; may or may not have started"
+                    message="restored starting: might have started"
                 )
 
             # Reconnect to running runs.
@@ -161,6 +162,7 @@ class Apsis:
 
         # Make sure the run is waiting.
         if run.state != run.STATE.waiting:
+            self.run_log.record(run, "waiting")
             self._transition(run, run.STATE.waiting)
 
         # If a max waiting time is configured, compute the timeout for this run.
@@ -185,7 +187,7 @@ class Apsis:
                 conds = list(run.conds)
 
                 if len(conds) > 0:
-                    self.run_log.record(run, f"waiting for condition: {conds[0]}")
+                    self.run_log.record(run, f"condition: {conds[0]}")
                 while len(conds) > 0:
                     cond = conds[0]
 
@@ -198,16 +200,15 @@ class Apsis:
                     if isinstance(result, cond.Transition):
                         # Force a transition.
                         self.run_log.info(
-                            run, result.reason or f"{cond} → {result.state}")
+                            run, result.reason or f"{result.state}: {cond}")
                         self._transition(run, result.state)
                         return
 
                     elif result is True:
-                        self.run_log.record(run, f"satisfied condition: {cond}")
+                        # This condition is satisfied.
                         conds.pop(0)
                         if len(conds) > 0:
-                            self.run_log.record(
-                                run, f"waiting for condition: {conds[0]}")
+                            self.run_log.record(run, f"condition: {conds[0]}")
 
                     elif result is False:
                         # First cond is still blocking.
@@ -244,7 +245,7 @@ class Apsis:
 
 
     def __start(self, run):
-        self.run_log.record(run, "program start")
+        self.run_log.record(run, "starting")
         self._transition(run, run.STATE.starting)
 
         async def start():
@@ -257,7 +258,7 @@ class Apsis:
 
             except ProgramError as exc:
                 # Program failed to start.
-                self.run_log.exc(run, "program start")
+                self.run_log.exc(run, "error: starting program")
                 self._transition(
                     run, run.STATE.error,
                     meta    =exc.meta,
@@ -267,7 +268,7 @@ class Apsis:
 
             else:
                 # Program started successfully.
-                self.run_log.record(run, "program started")
+                self.run_log.record(run, "running")
                 self._transition(run, run.STATE.running, **running.__dict__)
                 future = asyncio.ensure_future(coro)
                 self.__finish(run, future)
@@ -290,7 +291,7 @@ class Apsis:
 
                 except ProgramFailure as exc:
                     # Program ran and failed.
-                    self.run_log.record(run, f"program failure: {exc.message}")
+                    self.run_log.record(run, f"failure: {exc.message}")
                     self._transition(
                         run, run.STATE.failure,
                         meta    =exc.meta,
@@ -300,7 +301,7 @@ class Apsis:
 
                 except ProgramError as exc:
                     # Program failed to start.
-                    self.run_log.info(run, f"program error: {exc.message}")
+                    self.run_log.info(run, f"error: {exc.message}")
                     self._transition(
                         run, run.STATE.error,
                         meta    =exc.meta,
@@ -310,7 +311,7 @@ class Apsis:
 
                 except Exception:
                     # Program raised some other exception.
-                    self.run_log.exc(run, "program internal error")
+                    self.run_log.exc(run, "error: internal")
                     tb = traceback.format_exc().encode()
                     self._transition(
                         run, run.STATE.error,
@@ -324,7 +325,7 @@ class Apsis:
 
                 else:
                     # Program ran and completed successfully.
-                    self.run_log.record(run, "program success")
+                    self.run_log.record(run, "success")
                     self._transition(
                         run, run.STATE.success,
                         meta    =success.meta,
@@ -516,12 +517,12 @@ class Apsis:
             return run
 
         if time is None:
-            self.run_log.record(run, "scheduling for immediate run")
+            self.run_log.record(run, "scheduled: now")
             self._transition(run, run.STATE.scheduled, times={"schedule": now()})
             self.__wait(run)
             return run
         else:
-            self.run_log.record(run, f"scheduling for {time}")
+            self.run_log.record(run, f"scheduled: {time}")
             self._transition(run, run.STATE.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
             return run
