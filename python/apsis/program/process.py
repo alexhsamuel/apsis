@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 from   pathlib import Path
 import pwd
@@ -11,10 +10,6 @@ from   .base import (
 )
 from   apsis.lib.sys import get_username
 from   apsis.runs import template_expand, join_args
-
-log = logging.getLogger(__name__)
-
-TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%kZ"
 
 #-------------------------------------------------------------------------------
 
@@ -45,9 +40,8 @@ class ProcessProgram(Program):
         return cls(jso["argv"])
 
 
-    async def start(self, run_id, cfg):
+    async def start(self, ctx, cfg):
         argv = self.__argv
-        log.info(f"starting program: {join_args(argv)}")
 
         meta = {
             "hostname"  : socket.gethostname(),
@@ -72,14 +66,13 @@ class ProcessProgram(Program):
 
         else:
             # Started successfully.
-            done = self.wait(run_id, proc)
+            done = self.wait(ctx, proc)
             return ProgramRunning({"pid": proc.pid}, meta=meta), done
 
 
-    async def wait(self, run_id, proc):
+    async def wait(self, ctx, proc):
         stdout, stderr  = await proc.communicate()
         return_code     = proc.returncode
-        log.info(f"complete with return code {return_code}")
         assert stderr is None
         assert return_code is not None
 
@@ -96,7 +89,7 @@ class ProcessProgram(Program):
             raise ProgramFailure(message, meta=meta, outputs=outputs)
 
 
-    async def signal(self, run_id, signum: str):
+    async def signal(self, ctx, signum: str):
         # FIXME
         raise NotImplementedError()
 

@@ -5,7 +5,7 @@ from   apsis.lib.json import TypedJso
 
 class OutputMetadata:
 
-    def __init__(self, name: str, length: int, *, 
+    def __init__(self, name: str, length: int, *,
                  content_type="application/octet-stream"):
         """
         :param name:
@@ -113,16 +113,14 @@ class Program(TypedJso):
         """
 
 
-    # FIXME: Find a better way to get run_id into logging without passing it in.
-
-    async def start(self, run_id, cfg):
+    async def start(self, ctx, cfg):
         """
         Starts the run.
 
         Updates `run` in place.
 
-        :param run_id:
-          The run ID; used for logging only.
+        :param ctx:
+          Run-specific context.
         :param cfg:
           The global config.
         :raise ProgramError:
@@ -134,12 +132,12 @@ class Program(TypedJso):
         """
 
 
-    def reconnect(self, run_id, run_state):
+    def reconnect(self, ctx, run_state):
         """
         Reconnects to an already running run.
 
-        :param run_id:
-          The run ID; used for logging only.
+        :param log:
+          Run-specific context.
         :param run_state:
           State information for the running program.
         :return:
@@ -147,12 +145,12 @@ class Program(TypedJso):
         """
 
 
-    async def signal(self, run_id, signum: str):
+    async def signal(self, ctx, signum: str):
         """
         Sends a signal to the running program.
 
-        :param run_id:
-          The run ID; used for logging only.
+        :param log:
+          Run-specific context.
         :param signum:
           Signal name or number.
         """
@@ -185,15 +183,15 @@ class _InternalProgram(Program):
         pass
 
 
-    async def start(self, run_id, apsis):
+    async def start(self, ctx, apsis):
         pass
 
 
-    def reconnect(self, run_id, run_state):
+    def reconnect(self, ctx, run_state):
         pass
 
 
-    async def signal(self, run_id, signum: str):
+    async def signal(self, ctx, signum: str):
         pass
 
 

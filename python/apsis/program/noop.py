@@ -1,13 +1,10 @@
 import asyncio
-import logging
 
 from   .base import (Program, ProgramRunning, ProgramSuccess)
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none, nstr
 from   apsis.runs import template_expand
-
-log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -45,24 +42,24 @@ class NoOpProgram(Program):
         }
 
 
-    async def start(self, run_id, cfg):
+    async def start(self, ctx, cfg):
         run_state = {}
-        return ProgramRunning(run_state), self.wait(run_id, run_state)
+        return ProgramRunning(run_state), self.wait(ctx, run_state)
 
 
-    async def wait(self, run_id, run_state):
+    async def wait(self, ctx, run_state):
         if self.__duration is not None:
             duration = parse_duration(self.__duration)
             await asyncio.sleep(duration)
         return ProgramSuccess()
 
 
-    def reconnect(self, run_id, run_state):
-        return asyncio.ensure_future(self.wait(run_id, run_state))
+    def reconnect(self, ctx, run_state):
+        return asyncio.ensure_future(self.wait(ctx, run_state))
 
 
-    async def signal(self, run_state, signum):
-        log.info("ignoring signal to no-op program")
+    async def signal(self, ctx, signum):
+        ctx.info("signal {signum} received; ignored")
 
 
 

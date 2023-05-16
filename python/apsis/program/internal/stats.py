@@ -1,13 +1,10 @@
 import asyncio
 import json
-import logging
 
 from   ..base import _InternalProgram, ProgramRunning, ProgramSuccess, program_outputs
 from   apsis.lib.json import check_schema
 from   apsis.lib.py import or_none, nstr
 from   apsis.runs import template_expand
-
-log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -46,7 +43,7 @@ class StatsProgram(_InternalProgram):
         }
 
 
-    async def start(self, run_id, apsis):
+    async def start(self, ctx, apsis):
         run_state = {}
         return ProgramRunning(run_state), self.wait(apsis)
 
@@ -59,7 +56,7 @@ class StatsProgram(_InternalProgram):
         return ProgramSuccess(outputs=program_outputs(stats.encode()))
 
 
-    def reconnect(self, run_id, run_state, apsis):
+    def reconnect(self, ctx, run_state, apsis):
         return asyncio.ensure_future(self.wait(apsis))
 
 

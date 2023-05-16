@@ -63,3 +63,4 @@ class RunLog:
         self.record(run, f"error: {exc_msg}", timestamp=timestamp)
 
 
+

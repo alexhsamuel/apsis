@@ -108,22 +108,16 @@ class AgentProgram(Program):
         return expand_host(self.__host, cfg)
 
 
-    async def start(self, run_id, cfg):
+    async def start(self, ctx, cfg):
         host = self.get_host(cfg)
         argv = self.__argv
-
-        loc = "" if host is None else " on " + host
-        cmd = join_args(argv)
-        log.debug(f"starting program{loc}: {cmd}")
-
         env = {
             "inherit": True,
             "vars": {
-                "APSIS_RUN_ID": run_id,
+                "APSIS_RUN_ID": ctx.run_id,
                 # FIXME: Other things?
             },
         }
-
         meta = {
             "apsis_hostname"  : socket.gethostname(),
             "apsis_username"  : get_username(),
@@ -134,17 +128,15 @@ class AgentProgram(Program):
             proc = await agent.start_process(argv, env=env, restart=True)
 
         except Exception as exc:
-            log.error("failed to start process", exc_info=True)
-            output = traceback.format_exc().encode()
-            # FIXME: Use a different "traceback" output, once the UI can
-            # understand it.
             raise ProgramError(
-                message=str(exc), outputs=program_outputs(output))
+                message=str(exc),
+                # FIXME: Use a different "traceback" output, once the UI can
+                # understand it.
+                outputs=program_outputs(traceback.format_exc().encode()),
+            )
 
         state = proc["state"]
         if state == "run":
-            log.debug(f"program running: {run_id} as {proc['proc_id']}")
-
             run_state = {
                 "host"          : host,
                 "proc_id"       : proc["proc_id"],
@@ -152,24 +144,23 @@ class AgentProgram(Program):
             }
             meta.update(run_state)
             # FIXME: Propagate times from agent.
-            # FIXME: Do this asynchronously from the agent instead.
-            done = self.wait(run_id, run_state)
+            done = self.wait(ctx, run_state)
+            # Store start time for implementing timeout.
             run_state["start"] = str(ora.now())
+
             return ProgramRunning(run_state, meta=meta), done
 
         elif state == "err":
-            message = proc.get("exception", "program error")
-            log.info(f"program error: {run_id}: {message}")
             # Clean up the process from the agent.
             await agent.del_process(proc["proc_id"])
 
-            raise ProgramError(message)
+            raise ProgramError(proc.get("exception", "program error"))
 
         else:
             assert False, f"unknown state: {state}"
 
 
-    async def wait(self, run_id, run_state):
+    async def wait(self, ctx, run_state):
         host = run_state["host"]
         proc_id = run_state["proc_id"]
         agent = self.__get_agent(host)
@@ -187,17 +178,17 @@ class AgentProgram(Program):
             if self.__timeout is not None:
                 elapsed = ora.now() - start
                 if self.__timeout.duration < elapsed:
-                    log.info(f"{run_id}: program timed out after {elapsed} s")
+                    ctx.info(f"program timed out after {elapsed} s")
                     # FIXME: Note timeout in run log.
-                    await self.signal(run_id, run_state, self.__timeout.signal)
+                    await self.signal(ctx, run_state, self.__timeout.signal)
                     await asyncio.sleep(POLL_INTERVAL)
 
-            log.debug(f"polling proc: {run_id}: {proc_id} @ {host}")
             try:
                 proc = await agent.get_process(proc_id, restart=True)
             except NoSuchProcessError:
                 # Agent doesn't know about this process anymore.
-                raise ProgramError(f"program lost: {run_id}")
+                raise ProgramError("program lost")
+
             if proc["state"] == "run":
                 await asyncio.sleep(POLL_INTERVAL)
             else:
@@ -215,7 +206,6 @@ class AgentProgram(Program):
 
         outputs = program_outputs(
             output, length=length, compression=compression)
-        log.debug(f"got output: {length} bytes, {compression or 'uncompressed'}")
 
         try:
             if status == 0:
@@ -230,17 +220,16 @@ class AgentProgram(Program):
             await agent.del_process(proc_id)
 
 
-    def reconnect(self, run_id, run_state):
-        log.debug(f"reconnect: {run_id}")
-        return asyncio.ensure_future(self.wait(run_id, run_state))
+    def reconnect(self, ctx, run_state):
+        return asyncio.ensure_future(self.wait(ctx, run_state))
 
 
-    async def signal(self, run_id, run_state, signal):
+    async def signal(self, ctx, run_state, signal):
         """
         :type signal:
           Signal name or number.
         """
-        log.info(f"sending signal: {run_id}: {self.__timeout.signal}")
+        ctx.info(f"sending signal {signal}")
         proc_id = run_state["proc_id"]
         agent = self.__get_agent(run_state["host"])
         await agent.signal(proc_id, signal)

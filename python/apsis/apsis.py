@@ -23,6 +23,40 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+class _RunContext:
+
+    def __init__(self, run, run_log):
+        self.__run = run
+        self.__run_log = run_log
+
+
+    @property
+    def run_id(self):
+        return self.__run.run_id
+
+
+    def __record(self, level, message, *, timestamp=None):
+        return self.__run_log.record(
+            self.__run, message, timestamp=timestamp, level=level)
+
+
+    def debug(self, message, **kw_args):
+        return self.__record(logging.DEBUG, message, **kw_args)
+
+    def info(self, message, **kw_args):
+        return self.__record(logging.INFO, message, **kw_args)
+
+    def warning(self, message, **kw_args):
+        return self.__record(logging.WARNING, message, **kw_args)
+
+    def error(self, message, **kw_args):
+        return self.__record(logging.ERROR, message, **kw_args)
+
+    def exc(self, message=None, **kw_args):
+        return self.__run_log.exc(self.__run, message, **kw_args)
+
+
+
 class Apsis:
     """
     The gestalt scheduling application.
@@ -126,11 +160,12 @@ class Apsis:
             log.info("reconnecting running runs")
             for run in running_runs:
                 assert run.program is not None
-                self.run_log.record(run, "restore: reconnecting to running run")
+                ctx = _RunContext(run, self.run_log)
+                ctx.info("reconnecting")
                 if isinstance(run.program, _InternalProgram):
-                    future = run.program.reconnect(run.run_id, run.run_state, self)
+                    future = run.program.reconnect(ctx, run.run_state, self)
                 else:
-                    future = run.program.reconnect(run.run_id, run.run_state)
+                    future = run.program.reconnect(ctx, run.run_state)
                 self.__finish(run, future)
 
             log.info("restoring done")
@@ -244,20 +279,21 @@ class Apsis:
 
 
     def __start(self, run):
-        self.run_log.record(run, "program start")
         self._transition(run, run.STATE.starting)
 
         async def start():
             try:
+                ctx = _RunContext(run, self.run_log)
+                ctx.info("starting")
                 if isinstance(run.program, _InternalProgram):
-                    start = run.program.start(run.run_id, self)
+                    start = run.program.start(ctx, self)
                 else:
-                    start = run.program.start(run.run_id, self.cfg)
+                    start = run.program.start(ctx, self.cfg)
                 running, coro = await start
 
             except ProgramError as exc:
                 # Program failed to start.
-                self.run_log.exc(run, "program start")
+                ctx.exc("error starting: {exc.message}")
                 self._transition(
                     run, run.STATE.error,
                     meta    =exc.meta,
@@ -267,7 +303,7 @@ class Apsis:
 
             else:
                 # Program started successfully.
-                self.run_log.record(run, "program started")
+                ctx.info("running")
                 self._transition(run, run.STATE.running, **running.__dict__)
                 future = asyncio.ensure_future(coro)
                 self.__finish(run, future)
@@ -284,13 +320,11 @@ class Apsis:
                     success = future.result()
 
                 except asyncio.CancelledError:
-                    log.info(
-                        f"cancelled waiting for run to complete: {run.run_id}")
                     return
 
                 except ProgramFailure as exc:
                     # Program ran and failed.
-                    self.run_log.record(run, f"program failure: {exc.message}")
+                    self.run_log.record(run, f"failure: {exc.message}")
                     self._transition(
                         run, run.STATE.failure,
                         meta    =exc.meta,
@@ -300,7 +334,7 @@ class Apsis:
 
                 except ProgramError as exc:
                     # Program failed to start.
-                    self.run_log.info(run, f"program error: {exc.message}")
+                    self.run_log.info(run, f"error: {exc.message}")
                     self._transition(
                         run, run.STATE.error,
                         meta    =exc.meta,
@@ -308,9 +342,9 @@ class Apsis:
                         outputs =exc.outputs,
                     )
 
-                except Exception:
+                except Exception as exc:
                     # Program raised some other exception.
-                    self.run_log.exc(run, "program internal error")
+                    self.run_log.exc(run, f"error: internal: {exc}")
                     tb = traceback.format_exc().encode()
                     self._transition(
                         run, run.STATE.error,
@@ -324,7 +358,7 @@ class Apsis:
 
                 else:
                     # Program ran and completed successfully.
-                    self.run_log.record(run, "program success")
+                    self.run_log.info(run, "success")
                     self._transition(
                         run, run.STATE.success,
                         meta    =success.meta,
@@ -516,12 +550,12 @@ class Apsis:
             return run
 
         if time is None:
-            self.run_log.record(run, "scheduling for immediate run")
+            self.run_log.record(run, "scheduled: now")
             self._transition(run, run.STATE.scheduled, times={"schedule": now()})
             self.__wait(run)
             return run
         else:
-            self.run_log.record(run, f"scheduling for {time}")
+            self.run_log.record(run, f"scheduled: {time}")
             self._transition(run, run.STATE.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
             return run
@@ -539,7 +573,6 @@ class Apsis:
             await cancel_task(self.__wait_tasks.pop(run), f"waiting for {run}", log)
         else:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
-        self.run_log.info(run, "skipped")
         self._transition(run, run.STATE.skipped, message="skipped")
 
 
@@ -549,15 +582,20 @@ class Apsis:
         """
         # FIXME: Race conditions?
         if run.state == run.STATE.scheduled:
-            self.scheduled.unschedule(run)
             self.run_log.info(run, "scheduled run started by override")
+            self.scheduled.unschedule(run)
             self.__wait(run)
         elif run.state == run.STATE.waiting:
-            self.__wait_tasks.pop(run).cancel()
             self.run_log.info(run, "waiting run started by override")
+            self.__wait_tasks.pop(run).cancel()
             self.__start(run)
         else:
             raise RunError(f"can't start {run.run_id} in state {run.state.name}")
+
+
+    async def signal(self, run, signal):
+        ctx = _RunContext(run, self.run_log)
+        await run.program.signal(ctx, run.run_state, signal)
 
 
     async def mark(self, run, state):
