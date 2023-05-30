@@ -88,7 +88,7 @@ def test_archive(tmp_path):
 
             rows = list(db.execute(
                 "SELECT message FROM run_history WHERE run_id = ?", (run_id0, )))
-            assert "scheduling" in rows[0][0]
+            assert "scheduled: now" in rows[0][0]
             assert "success" in rows[-1][0]
 
             rows = list(db.execute("SELECT run_id, name, length FROM output"))
