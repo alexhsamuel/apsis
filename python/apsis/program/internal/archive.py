@@ -55,7 +55,7 @@ class ArchiveProgram(_InternalProgram):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            age = pop("age", float)
+            age = pop("age")
             path = pop("path", str)
             count = pop("count", int)
         return cls(age=age, path=path, count=count)
