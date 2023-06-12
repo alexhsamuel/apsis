@@ -11,17 +11,12 @@ import subprocess
 import sys
 import tempfile
 from   urllib.parse import quote_plus
+from   urllib3.exceptions import InsecureRequestWarning
 import warnings
 
 from   apsis.lib.asyn import communicate
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
-try:
-    # Older requests vendor urllib3.
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-except ImportError:
-    # Newer requests uses the proper package.
-    from urllib3.exceptions import InsecureRequestWarning
 
 log = logging.getLogger("agent.client")
 
