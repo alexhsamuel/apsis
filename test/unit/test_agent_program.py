@@ -5,9 +5,6 @@ import apsis.program
 
 #-------------------------------------------------------------------------------
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
-
 async def _run():
     prog = apsis.program.AgentProgram(["/bin/sleep", "0.1"])
 
