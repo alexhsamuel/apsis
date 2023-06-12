@@ -168,7 +168,8 @@ def main():
     print(f"using dir: {state_dir}", file=sys.stderr)
 
     # Check the pid file.  Is there already an instance running?
-    pid_file = PidFile(state_dir / "pid")
+    pid_file_path = state_dir / "pid"
+    pid_file = PidFile(pid_file_path)
     pid = pid_file.lock()
 
     if pid is None:
@@ -209,6 +210,12 @@ def main():
 
         app.ctx.processes = Processes(state_dir)
         signal.signal(signal.SIGCHLD, app.ctx.processes.sigchld)
+
+        def remove_pid_file():
+            pid_file.unlock()
+            os.unlink(pid_file_path)
+
+        app.ctx.remove_pid_file = remove_pid_file
 
         # SSL certificates are stored in this directory.
         ssl_context = ssl.create_default_context(

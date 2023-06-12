@@ -238,6 +238,10 @@ async def process_stop(req):
 #-------------------------------------------------------------------------------
 
 def _stop(app):
+    # Remove the pid file first, so new clients won't try to connect while
+    # we're stopping-- which takes a moment.
+    app.ctx.remove_pid_file()
+    # Now stop the service.
     res = app.stop()
     assert res is None, "old sanic used to return a coro here"
 
@@ -265,7 +269,7 @@ def _schedule_auto_stop(app, delay):
 
         if len(app.ctx.processes) == 0:
             log.info("no processes left; stopping")
-            app.stop()
+            _stop(app)
 
     _auto_stop_task = asyncio.ensure_future(_stop())
 
