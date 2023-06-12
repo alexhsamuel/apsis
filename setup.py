@@ -24,6 +24,7 @@ setuptools.setup(
     ],
 
     install_requires=[
+        "aiohttp >=3",
         "brotli",
         "jinja2",
         "ora",
