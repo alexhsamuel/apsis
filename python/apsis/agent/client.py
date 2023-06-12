@@ -190,6 +190,7 @@ class Agent:
         self.__connect      = connect
         self.__state_dir    = self.STATE_DIR
 
+        self.__session      = requests.Session()
         self.__lock         = asyncio.Lock()
         self.__conn         = None
 
@@ -247,8 +248,6 @@ class Agent:
         :return:
           The response.
         """
-        # FIXME: Use async requests.
-
         # Delays in sec before each attempt to connect.
         delays = self.START_DELAYS if restart else [0]
 
@@ -275,7 +274,7 @@ class Agent:
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore", category=InsecureRequestWarning)
-                    rsp = requests.request(
+                    rsp = self.__session.request(
                         method, url,
                         json=data,
                         verify=False,
