@@ -13,7 +13,6 @@ import tempfile
 from   urllib.parse import quote_plus
 import warnings
 
-from   .base import get_default_state_dir
 from   apsis.lib.asyn import communicate
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
