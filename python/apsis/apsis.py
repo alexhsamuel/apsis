@@ -11,6 +11,7 @@ from   .exc import TimeoutWaiting
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
+from   .lib.timing import LogSlow
 from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
 from   . import runs
 from   .run_log import RunLog
@@ -188,14 +189,16 @@ class Apsis:
 
                 if len(conds) > 0:
                     self.run_log.record(run, f"condition: {conds[0]}")
+
                 while len(conds) > 0:
                     cond = conds[0]
 
                     # FIXME: In the future, we won't poll run conditions, but
                     # rather check only on run transitions.
-                    result = cond.check_runs(run, self.run_store)
-                    if result is True:
-                        result = await cond.check()
+                    with LogSlow(f"checking cond: {run.run_id}: {cond}", 0.005):
+                        result = cond.check_runs(run, self.run_store)
+                        if result is True:
+                            result = await cond.check()
 
                     if isinstance(result, cond.Transition):
                         # Force a transition.
