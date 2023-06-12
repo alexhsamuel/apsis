@@ -1,3 +1,4 @@
+import logging
 import time
 
 #-------------------------------------------------------------------------------
@@ -19,7 +20,7 @@ class Timer:
     def __exit__(self, exc_type, exc, exc_tb):
         self.__elapsed = time.perf_counter() - self.__start
         if self.__print is not None:
-            self.__print(f"{self.__name} elapsed: {self.__elapsed:.3f} s")
+            self.__print(f"{self.__name} elapsed: {self.__elapsed:.6f} s")
 
 
     @property
@@ -28,6 +29,24 @@ class Timer:
             time.perf_counter() - self.__start if self.__elapsed is None
             else self.__elapsed
         )
+
+
+
+class LogSlow(Timer):
+    """
+    Context manager that logs if the context is slow to run.
+    """
+
+    def __init__(self, name, min_elapsed, *, level=logging.WARN):
+        """
+        :param min_elapsed:
+          Log if context takes longer than this.
+        """
+        def print(msg):
+            if self.elapsed > min_elapsed:
+                logging.log(level, msg)
+
+        super().__init__(name, print)
 
 
 
