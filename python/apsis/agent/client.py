@@ -301,7 +301,7 @@ class Agent:
                 is_ecr = getattr(exc, "errno", None) == errno.ECONNREFUSED
                 err = "refused" if is_ecr else "error"
 
-                log.error(
+                log.info(
                     f"{self}: {method} {url} → connection {err}",
                     exc_info=not is_ecr,
                 )
