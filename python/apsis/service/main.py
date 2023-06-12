@@ -128,6 +128,9 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     app.restart = False
     app.running = True  # FIXME: ??  Remove?
 
+    loop = asyncio.get_event_loop()
+    loop.set_debug(True)
+
     # Set up the HTTP server.
     log.info("creating HTTP service")
     server = app.create_server(
@@ -181,7 +184,6 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     signal.signal(signal.SIGTERM, on_shutdown)
 
     log.info("service ready to run")
-    loop = asyncio.get_event_loop()
     try:
         loop.run_forever()
     finally:
