@@ -11,17 +11,12 @@ import subprocess
 import sys
 import tempfile
 from   urllib.parse import quote_plus
+from   urllib3.exceptions import InsecureRequestWarning
 import warnings
 
 from   apsis.lib.asyn import communicate
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
-try:
-    # Older requests vendor urllib3.
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-except ImportError:
-    # Newer requests uses the proper package.
-    from urllib3.exceptions import InsecureRequestWarning
 
 log = logging.getLogger("agent.client")
 
@@ -195,6 +190,7 @@ class Agent:
         self.__connect      = connect
         self.__state_dir    = self.STATE_DIR
 
+        self.__session      = requests.Session()
         self.__lock         = asyncio.Lock()
         self.__conn         = None
 
@@ -252,8 +248,6 @@ class Agent:
         :return:
           The response.
         """
-        # FIXME: Use async requests.
-
         # Delays in sec before each attempt to connect.
         delays = self.START_DELAYS if restart else [0]
 
@@ -280,7 +274,7 @@ class Agent:
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore", category=InsecureRequestWarning)
-                    rsp = requests.request(
+                    rsp = self.__session.request(
                         method, url,
                         json=data,
                         verify=False,
