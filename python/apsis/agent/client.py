@@ -4,7 +4,7 @@ import errno
 import itertools
 import logging
 import os
-import requests
+import requests.adapters
 import shlex
 import shutil
 import subprocess
@@ -190,7 +190,6 @@ class Agent:
         self.__connect      = connect
         self.__state_dir    = self.STATE_DIR
 
-        self.__session      = requests.Session()
         self.__lock         = asyncio.Lock()
         self.__conn         = None
 
@@ -209,14 +208,27 @@ class Agent:
         """
         async with self.__lock:
             if self.__conn is None:
-                log.debug(f"{self}: connecting")
-                self.__conn = await start_agent(
+                log.debug(f"{self}: starting")
+                port, token = await start_agent(
                     host        =self.__host,
                     user        =self.__user,
                     connect     =self.__connect,
                     state_dir   =self.__state_dir,
                 )
-                log.debug(f"{self}: connected")
+                log.debug(f"{self}: started")
+
+                session = requests.Session()
+                # Set the header to auth all requesets.
+                session.headers.update({"X-Auth-Token": token})
+                # We handle retries ourselves.
+                session.mount(
+                    "https://",
+                    requests.adapters.HTTPAdapter(
+                        max_retries=requests.adapters.Retry(total=0)
+                    )
+                )
+
+                self.__conn = port, token, session
 
             return self.__conn
 
@@ -224,7 +236,7 @@ class Agent:
     async def disconnect(self, port, token):
         log.debug(f"{self}: waiting to disconnect")
         async with self.__lock:
-            if self.__conn == (port, token):
+            if self.__conn[: 2] == (port, token):
                 log.debug(f"{self}: disconnecting")
                 self.__conn = None
             else:
@@ -255,7 +267,7 @@ class Agent:
             if delay > 0:
                 await asyncio.sleep(delay)
 
-            port, token = await self.connect()
+            port, token, session = await self.connect()
             url_host = if_none(self.__host, "localhost")
             # FIXME: Use library.
             url = f"https://{url_host}:{port}/api/v1" + endpoint
@@ -274,13 +286,10 @@ class Agent:
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore", category=InsecureRequestWarning)
-                    rsp = self.__session.request(
+                    rsp = session.request(
                         method, url,
                         json=data,
                         verify=False,
-                        headers={
-                            "X-Auth-Token": token,
-                        },
                         timeout=2,
                     )
 
@@ -292,7 +301,7 @@ class Agent:
                 is_ecr = getattr(exc, "errno", None) == errno.ECONNREFUSED
                 err = "refused" if is_ecr else "error"
 
-                log.debug(
+                log.info(
                     f"{self}: {method} {url} → connection {err}",
                     exc_info=not is_ecr,
                 )
