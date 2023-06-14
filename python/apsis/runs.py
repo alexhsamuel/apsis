@@ -321,6 +321,11 @@ class RunStore:
             r.run_id: r
             for r in self.__run_db.query(min_timestamp=min_timestamp)
         }
+        # Also keep a lookup of runs by job ID.
+        self.__runs_by_job = {
+            r.inst.job_id: {r}
+            for r in self.__runs.values()
+        }
 
         # For live notification.
         self.__queues = set()
@@ -346,6 +351,7 @@ class RunStore:
 
         log.debug(f"new run: {run}")
         self.__runs[run.run_id] = run
+        self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
         self.update(run, timestamp)
 
 
@@ -378,6 +384,7 @@ class RunStore:
         assert run.expected, f"can't remove run {run_id}; not expected"
 
         del self.__runs[run_id]
+        self.__runs_by_job[run.inst.job_id].remove(run)
         # Indicate deletion with none state.
         # FIXME: What a horrible hack.
         run.state = None
@@ -398,6 +405,7 @@ class RunStore:
         else:
             if run.state in Run.FINISHED:
                 self.__runs.pop(run_id)
+                self.__runs_by_job[run.inst.job_id].remove(run)
                 run.state = None
                 self.__send(now(), run)
                 return True
@@ -440,12 +448,16 @@ class RunStore:
           Limits results to runs with the specified args.  Runs may include
           other args not explicitly given.
         """
-        if run_ids is None:
-            runs = self.__runs.values()
-        else:
+        assert run_ids is None or job_id is None
+        if run_ids is not None:
             run_ids = sorted(set(run_ids))
             runs = ( self.__runs.get(i, None) for i in run_ids )
             runs = ( r for r in runs if r is not None )
+        elif job_id is not None:
+            runs = iter(self.__runs_by_job.get(job_id, ()))
+        else:
+            runs = self.__runs.values()
+
         if job_id is not None:
             runs = ( r for r in runs if r.inst.job_id == job_id )
         if state is not None:
