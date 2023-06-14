@@ -97,7 +97,19 @@ def gen_program(labels):
         return gen_output_program(labels)
 
 
-def gen_job():
+def gen_deps(jobs, params):
+    conds = []
+    if random.random() < 0.1:
+        job_id, job = random.choice(list(jobs.items()))
+        if job["params"] == params:
+            conds.append({
+                "type": "dependency",
+                "job_id": job_id,
+            })
+    return conds
+
+
+def gen_job(jobs):
     params = []
     labels = list({
         random.choice(LABELS)
@@ -106,6 +118,7 @@ def gen_job():
 
     program = gen_program(labels)
     schedule = gen_schedule(params)
+    conds = gen_deps(jobs, params)
 
     for param, args in ARGS.items():
         if random.random() < 0.05:
@@ -119,6 +132,7 @@ def gen_job():
         "params": params,
         "program": program,
         "schedule": schedule,
+        "condition": conds,
     }
 
 
@@ -132,6 +146,15 @@ def gen_job_id():
     ))
 
 
+def gen_jobs(num):
+    jobs = {}
+    for _ in range(args.num):
+        job = gen_job(jobs)
+        job_id = gen_job_id()
+        jobs[job_id] = job
+    return jobs
+
+
 #--------------------------------------------------------------------------------
 
 parser = argparse.ArgumentParser()
@@ -143,9 +166,9 @@ parser.add_argument(
     help="generate to DIR [def: ./jobs]")
 args = parser.parse_args()
 
-for _ in range(args.num):
-    job = gen_job()
-    job_id = gen_job_id()
+jobs = gen_jobs(args.num)
+
+for job_id, job in jobs.items():
     path = (args.output / job_id).with_suffix(".yaml")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as file:
