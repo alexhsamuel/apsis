@@ -23,9 +23,9 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-@functools.lru_cache(maxsize=None)
-def _get_agent(fqdn, user):
-    return Agent(host=fqdn, user=user)
+@functools.cache
+def _get_agent(host, user):
+    return Agent(host=host, user=user)
 
 
 class AgentProgram(Program):
