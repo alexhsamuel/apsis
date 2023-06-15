@@ -221,7 +221,7 @@ class Run:
 
 
     def __eq__(self, other):
-        assert other.run_id == self.run_id
+        return other.run_id == self.run_id
 
 
     def __repr__(self):
