@@ -23,9 +23,6 @@ def test_timeout(inst):
     """
     Tests agent program timeout.
     """
-    import logging
-    logging.warning("this is logging")
-
     client = inst.client
     # The program runs for 3 s, so these three runs will time out.
     r0 = client.schedule("timeout", {"timeout": 0})["run_id"]
