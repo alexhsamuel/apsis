@@ -300,6 +300,9 @@ def get_bind_args(run):
 #-------------------------------------------------------------------------------
 
 class _RunsFilter:
+    """
+    Filter predicate for an iterable of runs.
+    """
 
     def __init__(
             self, *,
@@ -310,6 +313,15 @@ class _RunsFilter:
             args=None,
             with_args=None,
     ):
+        """
+        :param state:
+          Limits results to runs in the specified state(s).
+        :param args:
+          Limits results to runs with exactly the specified args.
+        :param with_args:
+          Limits results to runs with the specified args.  Runs may include
+          other args not explicitly given.
+        """
         to_map = lambda x: { str(k): str(v) for k, v in x.items() }
         self.run_ids    = None if run_ids   is None else set(iterize(run_ids))
         self.job_id     = None if job_id    is None else job_id
@@ -494,14 +506,21 @@ class RunStore:
         return now(), run
 
 
-    def query_filter(self, filter):
+    def _query_filter(self, filter):
+        """
+        Queries using a `_RunsFilter`.
+        """
         assert filter.run_ids is None or filter.job_id is None
+
         if filter.run_ids is not None:
+            # Fast path if the query is by run IDs.
             runs = ( self.__runs.get(i, None) for i in filter.run_ids )
             runs = ( r for r in runs if r is not None )
         elif filter.job_id is not None:
+            # Fast path if the query is by job ID.
             runs = iter(self.__runs_by_job.get(filter.job_id, ()))
         else:
+            # Slow path: scan.
             runs = self.__runs.values()
 
         return now(), list(filter(runs))
@@ -509,29 +528,24 @@ class RunStore:
 
     def query(self, **filter_args):
         """
-        :param state:
-          Limits results to runs in the specified state(s).
-        :param args:
-          Limits results to runs with exactly the specified args.
-        :param with_args:
-          Limits results to runs with the specified args.  Runs may include
-          other args not explicitly given.
+        :keywords:
+          See `_RunsFilter.__init__.
         """
-        try:
-            return self.query_filter(_RunsFilter(**filter_args))
-        except Exception:
-            log.error("error", exc_info=True)
-            raise
+        return self._query_filter(_RunsFilter(**filter_args))
 
 
     @contextmanager
     def query_live(self, **filter_args):
+        """
+        :keywords:
+          See `_RunsFilter.__init__.
+        """
         queue = asyncio.Queue()
         self.__queues.add(queue)
         log.info("added live runs query queue")
 
         filter = _RunsFilter(**filter_args)
-        when, runs = self.query_filter(filter)
+        when, runs = self._query_filter(filter)
         queue.put_nowait((when, runs))
 
         # FIXME: Apply filter to queue.
