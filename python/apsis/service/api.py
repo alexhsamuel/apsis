@@ -417,7 +417,7 @@ async def runs(request):
     args        = request.args
     summary,    = args.pop("summary", ("False", ))
     summary     = to_bool(summary)
-    run_ids     = args.pop("run_id", None)
+    run_id      = args.pop("run_id", None)
     job_id,     = args.pop("job_id", (None, ))
     if job_id is not None:
         job_id  = match_job_id(apsis.jobs, job_id)
@@ -429,7 +429,7 @@ async def runs(request):
     args = { n[1 :] if n.startswith("_") else n: a[-1] for n, a in args.items() }
 
     when, runs = apsis.run_store.query(
-        run_ids     =run_ids, 
+        run_ids     =run_id, 
         job_id      =job_id,
         state       =to_state(state),
         since       =since, 
