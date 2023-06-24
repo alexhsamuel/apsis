@@ -628,7 +628,6 @@ class Apsis:
 
     def get_stats(self):
         res = resource.getrusage(resource.RUSAGE_SELF)
-        livequery_queues = self.run_store._RunStore__queues
         stats = {
             "start_time"            : str(self.__start_time),
             "time"                  : str(now()),
@@ -642,8 +641,7 @@ class Apsis:
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
             "len_scheduled_heap"    : len(self.scheduled._ScheduledRuns__heap),
             "num_scheduled_entries" : len(self.scheduled._ScheduledRuns__scheduled),
-            "num_livequery_queues"  : len(livequery_queues),
-            "len_livequery_queues"  : sum( q.qsize() for q in livequery_queues ),
+            "run_store"             : self.run_store.get_stats(),
         }
 
         try:

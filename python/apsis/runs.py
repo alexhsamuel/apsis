@@ -404,8 +404,10 @@ class RunStore:
         """
         Sends live notification of changes to `run`.
         """
-        for queue in self.__queues:
-            queue.put_nowait((when, [run]))
+        for filter, queue in self.__queues:
+            filtered_run = list(filter([run]))
+            if len(filtered_run) > 0:
+                queue.put_nowait((when, filtered_run))
 
 
     def add(self, run):
@@ -540,20 +542,19 @@ class RunStore:
         :keywords:
           See `_RunsFilter.__init__.
         """
+        filter = _RunsFilter(**filter_args)
+
         queue = asyncio.Queue()
-        self.__queues.add(queue)
+        self.__queues.add((filter, queue))
         log.info("added live runs query queue")
 
-        filter = _RunsFilter(**filter_args)
         when, runs = self._query_filter(filter)
         queue.put_nowait((when, runs))
-
-        # FIXME: Apply filter to queue.
 
         try:
             yield queue
         finally:
-            self.__queues.remove(queue)
+            self.__queues.remove((filter, queue))
             log.info("removed live runs query queue")
 
 
@@ -563,7 +564,7 @@ class RunStore:
         """
         while True:
             try:
-                queue = next(iter(self.__queues))
+                _, queue = next(iter(self.__queues))
             except StopIteration:
                 break
 
@@ -574,6 +575,13 @@ class RunStore:
             # await queue.join()
             await asyncio.sleep(0.5)
             log.info("live query queue shut down")
+
+
+    def get_stats(self):
+        return {
+            "num_queues"  : len(self.__queues),
+            "len_queues"  : sum( q.qsize() for _, q in self.__queues ),
+        }
 
 
 
