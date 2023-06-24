@@ -50,7 +50,6 @@ def test_timeout(inst):
     res = client.get_run(r2)
     assert res["state"] == "running"
 
-    time.sleep(2)
     res = wait_run(client, r1)
     assert res["state"] == "failure"
     res = wait_run(client, r2)
