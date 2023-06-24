@@ -93,6 +93,13 @@ class ScheduledRuns:
         return len(self.__heap)
 
 
+    def get_stats(self):
+        return {
+            "num_heap"    : len(self.__heap),
+            "num_entries" : len(self.__scheduled),
+        }
+
+
     def get_scheduled_time(self):
         """
         Returns the time through which scheduled runs have been started.
