@@ -299,6 +299,75 @@ def get_bind_args(run):
 
 #-------------------------------------------------------------------------------
 
+class _RunsFilter:
+    """
+    Filter predicate for an iterable of runs.
+    """
+
+    def __init__(
+            self, *,
+            run_ids=None,
+            job_id=None,
+            state=None,
+            since=None,
+            args=None,
+            with_args=None,
+    ):
+        """
+        :param state:
+          Limits results to runs in the specified state(s).
+        :param args:
+          Limits results to runs with exactly the specified args.
+        :param with_args:
+          Limits results to runs with the specified args.  Runs may include
+          other args not explicitly given.
+        """
+        to_map = lambda x: { str(k): str(v) for k, v in x.items() }
+        self.run_ids    = None if run_ids   is None else set(iterize(run_ids))
+        self.job_id     = None if job_id    is None else job_id
+        self.state      = None if state     is None else set(iterize(state))
+        self.since      = None if state     is None else ora.Time(since)
+        self.args       = None if args      is None else to_map(args)
+        self.with_args  = None if with_args is None else to_map(with_args)
+
+
+    def __call__(self, runs):
+        if self.run_ids is not None:
+            run_ids = self.run_ids
+            runs = ( r for r in runs if r.run_id in run_ids )
+
+        if self.job_id is not None:
+            job_id = self.job_id
+            runs = ( r for r in runs if r.inst.job_id == job_id )
+
+        if self.state is not None:
+            state = self.state
+            runs = ( r for r in runs if r.state in state )
+
+        if self.since is not None:
+            since = self.since
+            runs = ( r for r in runs if r.timestamp >= since )
+
+        if self.args is not None:
+            args = self.args
+            runs = ( r for r in runs if r.inst.args == args )
+
+        if self.with_args is not None:
+            with_args = self.with_args
+            runs = (
+                r for r in runs
+                if all(
+                        r.inst.args.get(k, None) == v
+                        for k, v in with_args.items()
+                )
+            )
+
+        return runs
+
+
+
+#-------------------------------------------------------------------------------
+
 class RunStore:
     """
     Stores runs in memory.
@@ -437,56 +506,49 @@ class RunStore:
         return now(), run
 
 
-    def query(self, *, run_ids=None, job_id=None, state=None,
-              since=None, args=None, with_args=None):
+    def _query_filter(self, filter):
         """
-        :param state:
-          Limits results to runs in the specified state(s).
-        :param args:
-          Limits results to runs with exactly the specified args.
-        :param with_args:
-          Limits results to runs with the specified args.  Runs may include
-          other args not explicitly given.
+        Queries using a `_RunsFilter`.
         """
-        assert run_ids is None or job_id is None
-        if run_ids is not None:
-            run_ids = sorted(set(run_ids))
-            runs = ( self.__runs.get(i, None) for i in run_ids )
+        assert filter.run_ids is None or filter.job_id is None
+
+        if filter.run_ids is not None:
+            # Fast path if the query is by run IDs.
+            runs = ( self.__runs.get(i, None) for i in filter.run_ids )
             runs = ( r for r in runs if r is not None )
-        elif job_id is not None:
-            runs = iter(self.__runs_by_job.get(job_id, ()))
+        elif filter.job_id is not None:
+            # Fast path if the query is by job ID.
+            runs = iter(self.__runs_by_job.get(filter.job_id, ()))
         else:
+            # Slow path: scan.
             runs = self.__runs.values()
 
-        if job_id is not None:
-            runs = ( r for r in runs if r.inst.job_id == job_id )
-        if state is not None:
-            states = set(iterize(state))
-            runs = ( r for r in runs if r.state in states )
-        if since is not None:
-            runs = ( r for r in runs if r.timestamp >= since )
-        if args is not None:
-            runs = ( r for r in runs if r.inst.args == args )
-        if with_args is not None:
-            runs = (
-                r for r in runs
-                if all(
-                        r.inst.args.get(k, None) == v
-                        for k, v in with_args.items()
-                )
-            )
+        return now(), list(filter(runs))
 
-        return now(), list(runs)
+
+    def query(self, **filter_args):
+        """
+        :keywords:
+          See `_RunsFilter.__init__.
+        """
+        return self._query_filter(_RunsFilter(**filter_args))
 
 
     @contextmanager
-    def query_live(self, *, since=None):
+    def query_live(self, **filter_args):
+        """
+        :keywords:
+          See `_RunsFilter.__init__.
+        """
         queue = asyncio.Queue()
         self.__queues.add(queue)
         log.info("added live runs query queue")
 
-        when, runs = self.query(since=since)
+        filter = _RunsFilter(**filter_args)
+        when, runs = self._query_filter(filter)
         queue.put_nowait((when, runs))
+
+        # FIXME: Apply filter to queue.
 
         try:
             yield queue
