@@ -216,7 +216,6 @@ async def process_signal(req, proc_id, signal):
         signum = int(to_signal(signal))
     except ValueError:
         return error(f"invalid signal: {signal}", 400)
-    1 / 0
     req.app.ctx.processes.kill(proc_id, signum)
     return response({})
 
