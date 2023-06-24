@@ -58,6 +58,11 @@ cmd.set_defaults(cmd="start")
 cmd = commands.add_parser("list")
 cmd.set_defaults(cmd="list")
 
+cmd = commands.add_parser("signal")
+cmd.add_argument("proc_id")
+cmd.add_argument("signal")
+cmd.set_defaults(cmd="signal")
+
 cmd = commands.add_parser("get")
 cmd.add_argument("proc_id")
 cmd.set_defaults(cmd="get")
@@ -85,6 +90,8 @@ elif args.cmd == "start":
     result = agent.is_running()
 elif args.cmd == "list":
     result = agent.get_processes()
+elif args.cmd == "signal":
+    result = agent.signal(args.proc_id, args.signal)
 elif args.cmd == "get":
     result = agent.get_process(args.proc_id)
 elif args.cmd == "del":
@@ -96,8 +103,8 @@ elif args.cmd == "clean":
 
 try:
     result = asyncio.run(result)
-except RuntimeError:
-    logging.error(f"{args.cmd} failed", exc_info=True)
+except RuntimeError as err:
+    logging.error(f"{args.cmd} failed: {err}")
 else:
     try:
         json.dump(result, sys.stdout, indent=2)
