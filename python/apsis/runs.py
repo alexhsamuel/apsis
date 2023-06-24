@@ -579,8 +579,9 @@ class RunStore:
 
     def get_stats(self):
         return {
-            "num_queues"  : len(self.__queues),
-            "len_queues"  : sum( q.qsize() for _, q in self.__queues ),
+            "num_runs"      : len(self.__runs),
+            "num_queues"    : len(self.__queues),
+            "len_queues"    : sum( q.qsize() for _, q in self.__queues ),
         }
 
 

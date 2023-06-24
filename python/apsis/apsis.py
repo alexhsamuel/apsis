@@ -637,10 +637,8 @@ class Apsis:
             "num_waiting_tasks"     : len(self.__wait_tasks),
             "num_starting_tasks"    : len(self.__starting_tasks),
             "num_running_tasks"     : len(self.__running_tasks),
-            "num_runstore_runs"     : len(self.run_store._RunStore__runs),
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
-            "len_scheduled_heap"    : len(self.scheduled._ScheduledRuns__heap),
-            "num_scheduled_entries" : len(self.scheduled._ScheduledRuns__scheduled),
+            "scheduled"             : self.scheduled.get_stats(),
             "run_store"             : self.run_store.get_stats(),
         }
 
