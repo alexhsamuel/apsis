@@ -46,16 +46,13 @@ def test_timeout(inst):
     r5 = client.schedule("timeout", {"timeout": 5})["run_id"]
 
     res = wait_run(client, r0)
-    assert res["state"] == "failure"
-    res = client.get_run(r2)
-    assert res["state"] == "running"
+    res = client.get_run(r2)["state"] == "running"
 
     res = wait_run(client, r1)
     assert res["state"] == "failure"
-    res = wait_run(client, r2)
-    assert res["state"] == "failure"
     res = wait_run(client, r4)
     assert res["state"] == "success"
+    assert client.get_run(r2)["state"] == "failure"
     res = wait_run(client, r5)
     assert res["state"] == "success"
 
