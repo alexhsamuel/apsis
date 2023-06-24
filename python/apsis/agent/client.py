@@ -53,6 +53,28 @@ class AgentStartError(RuntimeError):
 
 
 
+class InternalServiceError(RuntimeError):
+    """
+    The service returned 5xx.
+    """
+
+    def __init__(self, path, error, exc_fmt):
+        msg = f"internal service error: {path}: {error}"
+        if exc_fmt is not None:
+            msg += "\n" + exc_fmt
+        super().__init__(msg)
+
+
+
+def raise_for_status(rsp):
+    if 500 <= rsp.status_code < 600:
+        jso = rsp.json()
+        raise InternalServiceError(
+            rsp.request.url, jso["error"], jso.get("exception"))
+    else:
+        rsp.raise_for_status()
+
+
 #-------------------------------------------------------------------------------
 
 # FIXME-CONFIG: Configure how we become other users and log in to other hosts.
@@ -334,13 +356,13 @@ class Agent:
         except NoAgentError:
             return False
         else:
-            rsp.raise_for_status()
+            raise_for_status(rsp)
             return True
 
 
     async def get_processes(self):
         rsp = await self.request("GET", "/processes")
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["processes"]
 
 
@@ -365,7 +387,7 @@ class Agent:
             },
             restart=restart
         )
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["process"]
 
 
@@ -377,7 +399,7 @@ class Agent:
             "GET", f"/processes/{proc_id}", restart=restart)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["process"]
 
 
@@ -394,7 +416,7 @@ class Agent:
             "GET", f"/processes/{proc_id}/output", args=args)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         try:
             length = int(rsp.headers["X-Raw-Length"])
             cmpr = rsp.headers["X-Compression"]
@@ -418,7 +440,7 @@ class Agent:
         rsp = await self.request("DELETE", f"/processes/{proc_id}")
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["stop"]
 
 
@@ -426,12 +448,13 @@ class Agent:
         """
         Sends a signal to a process.
         """
-        rsp = await self.request("PUT", f"/processes/{proc_id}/signal/{signal}")
+        path = f"/processes/{proc_id}/signal/{signal}"
+        rsp = await self.request("PUT", path)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
         elif 400 <= rsp.status_code < 500:
             raise RuntimeError(rsp.json()["error"])
-        rsp.raise_for_status()
+        raise_for_status(rsp)
 
 
     async def stop(self):
@@ -439,7 +462,7 @@ class Agent:
         Shuts down an agent, if there are no remaining processes.
         """
         rsp = await self.request("POST", "/stop")
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["stop"]
 
 
