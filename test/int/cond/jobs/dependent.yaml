@@ -2,7 +2,7 @@ params: [date, color]
 
 program:
   type: no-op
-  duration: 1
+  duration: 0
 
 condition:
   - type: dependency
