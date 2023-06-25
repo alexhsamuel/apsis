@@ -1,7 +1,6 @@
 from   contextlib import closing
 from   pathlib import Path
 import pytest
-import time
 
 from   instance import ApsisInstance
 
@@ -19,19 +18,6 @@ def inst():
         yield inst
 
 
-def wait_run(client, run_id):
-    """
-    Polls for a run to no longer be running.
-    """
-    while True:
-        res = client.get_run(run_id)
-        if res["state"] in ("starting", "running"):
-            time.sleep(0.1)
-            continue
-        else:
-            return res
-
-
 def test_timeout(inst):
     """
     Tests agent program timeout.
@@ -45,15 +31,15 @@ def test_timeout(inst):
     r4 = client.schedule("timeout", {"timeout": 4})["run_id"]
     r5 = client.schedule("timeout", {"timeout": 5})["run_id"]
 
-    res = wait_run(client, r0)
+    res = inst.wait_run(r0)
     res = client.get_run(r2)["state"] == "running"
 
-    res = wait_run(client, r1)
+    res = inst.wait_run(r1)
     assert res["state"] == "failure"
-    res = wait_run(client, r4)
+    res = inst.wait_run(r4)
     assert res["state"] == "success"
     assert client.get_run(r2)["state"] == "failure"
-    res = wait_run(client, r5)
+    res = inst.wait_run(r5)
     assert res["state"] == "success"
 
 
@@ -70,13 +56,13 @@ def test_signal(inst):
     assert client.get_run(r1)["state"] == "running"
     assert client.get_run(r2)["state"] == "running"
 
-    res = wait_run(client, r0)
+    res = inst.wait_run(r0)
     assert res["state"] == "failure"
     assert res["meta"]["signal"] == "SIGTERM"
-    res = wait_run(client, r1)
+    res = inst.wait_run(r1)
     assert res["state"] == "failure"
     assert res["meta"]["signal"] == "SIGKILL"
-    res = wait_run(client, r2)
+    res = inst.wait_run(r2)
     assert res["state"] == "failure"
     assert res["meta"]["signal"] == "SIGUSR2"
 
