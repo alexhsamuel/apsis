@@ -2,13 +2,13 @@ import logging
 
 from   apsis.lib.py import format_ctor, iterize
 from   apsis.runs import Run, Instance, get_bind_args
-from   .base import Condition, _bind
+from   .base import RunStoreCondition, _bind
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class Dependency(Condition):
+class Dependency(RunStoreCondition):
     """
     True if a run exists and is in a given state.
     """
@@ -58,21 +58,19 @@ class Dependency(Condition):
         return type(self)(self.job_id, args, self.states)
 
 
-    # FIXME: Handle exceptions when checking.
+    async def wait(self, run_store):
+        with run_store.query_live(
+            job_id=self.job_id,
+            args=self.args,
+            state=self.states,
+        ) as queue:
+            _, (run, *_) = await queue.get()
+        assert run.inst.job_id == self.job_id
+        assert all( run.inst.args[k] == v for k, v in self.args.items() )
+        assert run.state in self.states
 
-    def check_runs(self, run, run_store):
-        _, deps = run_store.query(
-            job_id=self.job_id, args=self.args, state=self.states)
-        deps = iter(deps)
-        try:
-            dep = next(deps)
-        except StopIteration:
-            inst = Instance(self.job_id, self.args)
-            log.debug(f"dep not satisified: {inst}")
-            return False
-        else:
-            log.debug(f"dep satisfied: {dep}")
-            return True
+        log.debug(f"dependency satisfied: {run}")
+        return True
 
 
 

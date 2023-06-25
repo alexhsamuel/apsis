@@ -2,13 +2,13 @@ import logging
 
 from   apsis.lib.py import format_ctor
 from   apsis.runs import Run, get_bind_args, template_expand
-from   .base import Condition
+from   .base import RunStoreCondition
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class MaxRunning(Condition):
+class MaxRunning(RunStoreCondition):
 
     def __init__(self, count, job_id=None, args=None):
         """
@@ -67,19 +67,30 @@ class MaxRunning(Condition):
         return type(self)(count, job_id, run.inst.args)
 
 
-    def check_runs(self, run, run_store):
+    async def wait(self, run_store):
         max_count = int(self.__count)
 
-        # FIXME: Support query by args.
-        _, running = run_store.query(
-            job_id=self.__job_id, 
-            state=(Run.STATE.starting, Run.STATE.running),
-        )
-        for name, val in self.__args.items():
-            running = ( r for r in running if r.inst.args.get(name) == val )
-        count = len(list(running))
-        log.debug(f"count matching {self.__job_id} {self.__args}: {count}")
-        return count < max_count
+        # Set up a live query for any changes to a run with the relevant job ID
+        # and args.
+        with run_store.query_live(
+                job_id  =self.__job_id,
+                args    =self.__args,
+        ) as queue:
+
+            while True:
+                # Count running jobs.
+                _, running = run_store.query(
+                    job_id  =self.__job_id,
+                    args    =self.__args,
+                    state   =(Run.STATE.starting, Run.STATE.running),
+                )
+                count = len(list(running))
+                log.debug(f"found {count} running")
+                if count < max_count:
+                    return True
+
+                # Wait until a relevant run transitions, then check again.
+                _ = await queue.get()
 
 
 

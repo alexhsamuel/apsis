@@ -1,7 +1,6 @@
 from   contextlib import closing
 from   pathlib import Path
 import pytest
-import time
 
 from   instance import ApsisInstance
 
@@ -9,7 +8,7 @@ from   instance import ApsisInstance
 
 job_dir = Path(__file__).absolute().parent / "jobs"
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def inst():
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
@@ -32,20 +31,15 @@ def test_timeout(inst):
     r4 = client.schedule("timeout", {"timeout": 4})["run_id"]
     r5 = client.schedule("timeout", {"timeout": 5})["run_id"]
 
-    time.sleep(2)
-    res = client.get_run(r0)
-    assert res["state"] == "failure"
-    res = client.get_run(r2)
-    assert res["state"] == "running"
+    res = inst.wait_run(r0)
+    res = client.get_run(r2)["state"] == "running"
 
-    time.sleep(2)
-    res = client.get_run(r1)
+    res = inst.wait_run(r1)
     assert res["state"] == "failure"
-    res = client.get_run(r2)
-    assert res["state"] == "failure"
-    res = client.get_run(r4)
+    res = inst.wait_run(r4)
     assert res["state"] == "success"
-    res = client.get_run(r5)
+    assert client.get_run(r2)["state"] == "failure"
+    res = inst.wait_run(r5)
     assert res["state"] == "success"
 
 
@@ -58,18 +52,17 @@ def test_signal(inst):
     r1 = client.schedule("signal", {"signal": "SIGKILL"})["run_id"]
     r2 = client.schedule("signal", {"signal": 12})["run_id"]  # SIGUSR2
 
-    assert client.get_run(r0)["state"] == "running"
-    assert client.get_run(r1)["state"] == "running"
-    assert client.get_run(r2)["state"] == "running"
+    assert client.get_run(r0)["state"] in ("starting", "running")
+    assert client.get_run(r1)["state"] in ("starting", "running")
+    assert client.get_run(r2)["state"] in ("starting", "running")
 
-    time.sleep(2)
-    res = client.get_run(r0)
+    res = inst.wait_run(r0)
     assert res["state"] == "failure"
     assert res["meta"]["signal"] == "SIGTERM"
-    res = client.get_run(r1)
+    res = inst.wait_run(r1)
     assert res["state"] == "failure"
     assert res["meta"]["signal"] == "SIGKILL"
-    res = client.get_run(r2)
+    res = inst.wait_run(r2)
     assert res["state"] == "failure"
     assert res["meta"]["signal"] == "SIGUSR2"
 

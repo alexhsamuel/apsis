@@ -4,9 +4,3 @@ class ConditionError(RuntimeError):
     """
 
 
-class TimeoutWaiting(RuntimeError):
-    """
-    A run timed out while waiting on conditions.
-    """
-
-

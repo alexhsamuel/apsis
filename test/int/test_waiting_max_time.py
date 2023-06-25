@@ -8,7 +8,7 @@ from   instance import ApsisInstance
 def test_waiting_max_time():
     CFG = {
         "waiting": {
-            "max_time": 1.5,
+            "max_time": 0.5,
         }
     }
     with closing(ApsisInstance(cfg=CFG)) as inst:
@@ -31,11 +31,11 @@ def test_waiting_max_time():
         run = client.get_run(run_id)
         assert run["state"] == "waiting"
 
-        time.sleep(1.5)
+        time.sleep(0.6)
 
         run = client.get_run(run_id)
         assert run["state"] == "error"
         run_log = client.get_run_log(run_id)
-        assert "time out" in run_log[-1]["message"]
+        assert "timeout" in run_log[-1]["message"]
 
 

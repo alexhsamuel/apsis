@@ -427,7 +427,9 @@ class Processes:
         Sends signal `signum` to the process.
 
         :raise RuntimeError:
-          The process is not running.
+          The process was never started.
+        :raise ProcessLookupError:
+          The process was started but has already completed.
         """
         proc = self[proc_id]
         if proc.pid is None:

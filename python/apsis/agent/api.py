@@ -216,8 +216,16 @@ async def process_signal(req, proc_id, signal):
         signum = int(to_signal(signal))
     except ValueError:
         return error(f"invalid signal: {signal}", 400)
-    req.app.ctx.processes.kill(proc_id, signum)
-    return response({})
+    try:
+        req.app.ctx.processes.kill(proc_id, signum)
+    except RuntimeError:
+        return error("process was not started", 400)
+    except ProcessLookupError:
+        # The process already completed.  Don't send an error response; this is
+        # a race condition.
+        return response({"delivered": False})
+    else:
+        return response({"delivered": True})
 
 
 @API.route("/processes/<proc_id>", methods={"DELETE"})
