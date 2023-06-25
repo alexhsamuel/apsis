@@ -8,7 +8,7 @@ from   instance import ApsisInstance
 
 job_dir = Path(__file__).absolute().parent / "jobs"
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def inst():
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
