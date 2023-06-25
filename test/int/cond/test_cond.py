@@ -65,6 +65,7 @@ def test_args_match(inst):
 
     # Now run the second dependency.
     res = client.schedule("dependency", {"date": "2022-11-01", "flavor": "chocolate"})
+    inst.wait_run(res["run_id"])
 
     # Both are satisfied.
     res = inst.wait_run(run_id)

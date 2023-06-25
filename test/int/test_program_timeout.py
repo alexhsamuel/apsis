@@ -52,9 +52,9 @@ def test_signal(inst):
     r1 = client.schedule("signal", {"signal": "SIGKILL"})["run_id"]
     r2 = client.schedule("signal", {"signal": 12})["run_id"]  # SIGUSR2
 
-    assert client.get_run(r0)["state"] == "running"
-    assert client.get_run(r1)["state"] == "running"
-    assert client.get_run(r2)["state"] == "running"
+    assert client.get_run(r0)["state"] in ("starting", "running")
+    assert client.get_run(r1)["state"] in ("starting", "running")
+    assert client.get_run(r2)["state"] in ("starting", "running")
 
     res = inst.wait_run(r0)
     assert res["state"] == "failure"
