@@ -11,6 +11,7 @@ import ujson
 import yaml
 
 import apsis.service.client
+from   apsis.sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
 
@@ -39,7 +40,7 @@ class ApsisInstance:
 
 
     def create_db(self):
-        run_apsisctl("create", self.db_path)
+        SqliteDB.create(self.db_path)
 
 
     # FIXME: Remove cfg param.
