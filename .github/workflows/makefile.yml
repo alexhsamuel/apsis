@@ -14,14 +14,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install Python dependencies
-      run: pip3 install -r requirements.txt
-
-    - name: Print setuptools version
-      run: python3 -c 'import setuptools; print(setuptools.__version__)'
-
     - name: Upgrade pip
       run: pip3 install --upgrade pip
+
+    - name: Install Python dependencies
+      run: pip3 install -r requirements.txt
 
     - name: Install package
       run: pip3 install -e .[dev]
