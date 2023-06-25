@@ -208,8 +208,6 @@ def match_job_id(jobs, job_id):
     """
     Matches `job_id` as an exact or fuzzy match.
     """
-    logging.info(f"match_job_id {job_id}")
-
     # Try for an exact match first.a
     try:
         jobs.get_job(job_id)
