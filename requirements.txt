@@ -7,6 +7,7 @@ requests
 rich
 sanic ==21.6
 sanic-routing ==0.7.0
+setuptools >=61
 sqlalchemy <2
 ujson
 websockets ==10.*
