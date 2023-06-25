@@ -1,12 +1,2 @@
-import pytest
-
-import apsis.agent.client
-
-#-------------------------------------------------------------------------------
-
-@pytest.fixture(scope="session", autouse=True)
-def agent_state_dir():
-    with apsis.agent.client.test_state_dir():
-        yield
-
+# Required for pytest to set CWD properly for imports from test scripts.
 
