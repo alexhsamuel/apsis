@@ -1,12 +1,11 @@
 import asyncio
-import contextlib
 import errno
+import functools
 import itertools
 import logging
 import os
 import requests.adapters
 import shlex
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -17,8 +16,11 @@ import warnings
 from   apsis.lib.asyn import communicate
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
+from   apsis.lib.test import in_test
 
 log = logging.getLogger("agent.client")
+
+DEFAULT = object()
 
 #-------------------------------------------------------------------------------
 
@@ -188,16 +190,11 @@ async def start_agent(
 
 class Agent:
 
-    # Path to the agent's state dir.  Note that the agent may run on a different
-    # host and as a different user.  If none, the agent chooses a tmp dir; this
-    # is the usual behavior.
-    STATE_DIR = None
-
     # Delays between attempts to start the agent-- back off.  The number of
     # attempts is the number of delays.
     START_DELAYS = [ 0.5 * i**2 for i in range(6) ]
 
-    def __init__(self, host=None, user=None, *, connect=None):
+    def __init__(self, host=None, user=None, *, connect=None, state_dir=DEFAULT):
         """
         :param host:
           Host to run on, or none for local.
@@ -207,10 +204,13 @@ class Agent:
           If true, connect to a running instance only.  If false, fail if an
           instance is already running.
         """
+        if state_dir is DEFAULT:
+            state_dir = get_test_state_dir() if in_test() else None
+
         self.__host         = host
         self.__user         = user
         self.__connect      = connect
-        self.__state_dir    = self.STATE_DIR
+        self.__state_dir    = state_dir
 
         self.__lock         = asyncio.Lock()
         self.__conn         = None
@@ -467,23 +467,13 @@ class Agent:
 
 
 
-@contextlib.contextmanager
-def test_state_dir():
+@functools.cache
+def get_test_state_dir():
     """
-    For automated tests, set the agent state dir to a unique private path.
+    Use a unique private agent state dir for automated tests.
     """
     state_dir = tempfile.mkdtemp(prefix="apsis-agent-test-")
     log.info(f"test agent state dir: {state_dir}")
-    old_state_dir = Agent.STATE_DIR
-    Agent.STATE_DIR = state_dir
-
-    try:
-        yield
-
-    finally:
-        Agent.STATE_DIR = old_state_dir
-        # Clean up the state dir.
-        log.debug(f"cleaning up test agent state dir: {state_dir}")
-        shutil.rmtree(state_dir)
+    return state_dir
 
 
