@@ -376,7 +376,7 @@ class RunStore:
     runs are always added to the cache; use `retire()` to retire older runs from
     memory.
 
-    - Stories runs in all states.
+    - Stores runs in all states.
     - Satisfyies run queries.
     - Serves live queries of runs.
     """
@@ -546,7 +546,6 @@ class RunStore:
 
         queue = asyncio.Queue()
         self.__queues.add((filter, queue))
-        log.info("added live runs query queue")
 
         when, runs = self._query_filter(filter)
         if len(runs) > 0:
@@ -556,7 +555,6 @@ class RunStore:
             yield queue
         finally:
             self.__queues.remove((filter, queue))
-            log.info("removed live runs query queue")
 
 
     async def shut_down(self):
@@ -569,7 +567,6 @@ class RunStore:
             except StopIteration:
                 break
 
-            log.info("shutting down live query queue")
             # Indicate that this queue is shutting down.
             queue.put_nowait(None)
             # FIXME: Join doesn't seem to work.
