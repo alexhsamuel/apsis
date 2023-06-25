@@ -549,7 +549,8 @@ class RunStore:
         log.info("added live runs query queue")
 
         when, runs = self._query_filter(filter)
-        queue.put_nowait((when, runs))
+        if len(runs) > 0:
+            queue.put_nowait((when, runs))
 
         try:
             yield queue
