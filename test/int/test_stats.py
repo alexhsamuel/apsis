@@ -41,8 +41,8 @@ def test_stats(tmp_path):
             stats1 = json.loads(next(file))
         assert round(ora.Time(stats1["time"]) - ora.Time(stats0["time"]), 1) == 0.2
         assert int(stats0["num_running_tasks"]) == 1
-        assert int(stats0["num_scheduled_entries"]) == 0
+        assert int(stats0["scheduled"]["num_entries"]) == 0
         assert int(stats1["num_running_tasks"]) == 1
-        assert int(stats1["num_scheduled_entries"]) == 0
+        assert int(stats1["scheduled"]["num_entries"]) == 0
 
 
