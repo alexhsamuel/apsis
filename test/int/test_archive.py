@@ -60,7 +60,7 @@ def test_archive(tmp_path):
         assert client.get_run(run_id2)["state"] == "success"
 
         # Archive, with a max age of 2 s.
-        time.sleep(0.1)
+        time.sleep(0.5)
         res = client.schedule_adhoc("now", {
             "program": {
                 "type": "apsis.program.internal.archive.ArchiveProgram",
