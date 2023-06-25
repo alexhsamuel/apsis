@@ -149,4 +149,17 @@ class ApsisInstance:
         return ujson.loads(stdout)
 
 
+    def wait_run(self, run_id):
+        """
+        Polls for a run to no longer be running.
+        """
+        while True:
+            res = self.client.get_run(run_id)
+            if res["state"] in ("starting", "running"):
+                time.sleep(0.1)
+                continue
+            else:
+                return res
+
+
 
