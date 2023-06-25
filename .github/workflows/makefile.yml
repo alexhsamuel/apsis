@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Upgrade pip
-      run: pip3 install --upgrade pip setuptools>=61
+      run: pip3 install --upgrade pip 'setuptools>=61'
 
     - name: Install Python dependencies
       run: pip3 install -r requirements.txt
