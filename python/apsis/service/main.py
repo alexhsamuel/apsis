@@ -9,6 +9,7 @@ import ujson as json
 import websockets
 
 from   apsis import __version__
+import apsis.agent.client
 import apsis.lib.logging
 from   . import api, control
 from   . import DEFAULT_PORT
@@ -121,7 +122,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
         raise
 
     log.info("creating scheduler instance")
-    apsis   = Apsis(cfg, jobs, db)
+    apsis = Apsis(cfg, jobs, db)
 
     app.apsis = apsis
     # Flag to indicate whether to restart after shutting down.
@@ -187,9 +188,13 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     try:
         loop.run_forever()
     finally:
+        # Close the aiohttp session used for agent clients.
+        loop.run_until_complete(apsis.agent.client.get_session().close())
         # Explicitly close the loop, so we find out about any pending tasks
         # we have incorrectly left behind.
         loop.close()
     log.info("service done")
 
     return app.restart
+
+
