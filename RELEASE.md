@@ -1,3 +1,8 @@
+# v0.18
+
+- Update build config to `pyproject.toml`.
+
+
 # v0.17.0
 
 - The config `runs_lookback` is now `runs.lookback`.  When configured, Apsis
