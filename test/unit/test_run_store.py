@@ -142,7 +142,7 @@ def test_run_store_populate():
 
     # Now remove some runs.
     for run in rnd.sample(runs, len(runs) // 4):
-        run_store.remove(run)
+        run_store.remove(run.run_id)
         runs.remove(run)
 
     # Query each job by run ID.
@@ -156,13 +156,13 @@ def test_run_store_populate():
 
     # Now remove the rest of the runs.
     for run in runs:
-        run_store.remove(run)
+        run_store.remove(run.run_id)
 
     # All queries should be empty.
-    assert len(list(run_store.query())) == 0
+    assert len(list(run_store.query()[1])) == 0
     for run_id in run_ids:
-        assert len(list(run_store.query(run_ids=run_id))) == 0
+        assert len(run_store.query(run_ids=run_id)[1]) == 0
     for job_id in job_ids:
-        assert len(list(run_store.query(job_id=job_id))) == 0
+        assert len(run_store.query(job_id=job_id)[1]) == 0
 
 
