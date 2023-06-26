@@ -8,7 +8,7 @@ Documentation = "https://apsis-scheduler.readthedocs.io/en/latest/"
 
 [project]
 name = "apsis"
-version = "0.17.3"
+version = "0.17.4"
 description = "Easy-to-use task scheduler"
 readme = "README.md"
 license = {text = "MIT License"}
