@@ -1,3 +1,15 @@
+"""
+Client wrapper for the Apsis Agent.
+
+Uses async aiohttp for communication, including connection reuse.  Therefore,
+
+- You can only use it in a single asyncio event loop.
+
+- Before shutting down the event loop, you must call `get_session().close()`, to
+  shut down all open connections cleanly.
+
+"""
+
 import aiohttp
 import asyncio
 import contextlib
