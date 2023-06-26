@@ -1,5 +1,7 @@
 # v0.18
 
+- Add support for async conditions.  Custom conditions need to be updated
+  accordingly; see [#278](https://github.com/alexhsamuel/apsis/pull/278).
 - Update build config to `pyproject.toml`.
 
 
