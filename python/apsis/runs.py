@@ -447,7 +447,7 @@ class RunStore:
         """
         assert run_ids is None or job_id is None
         if run_ids is not None:
-            run_ids = sorted(set(run_ids))
+            run_ids = sorted(set(iterize(run_ids)))
             runs = ( self.__runs.get(i, None) for i in run_ids )
             runs = ( r for r in runs if r is not None )
         elif job_id is not None:
