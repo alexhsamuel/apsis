@@ -1,7 +1,9 @@
+import asyncio
 from   dataclasses import dataclass
 
 from   apsis.lib import py
 from   apsis.lib.json import TypedJso, check_schema
+from   apsis.lib.timing import LogSlow
 from   apsis.runs import Run, template_expand
 
 #-------------------------------------------------------------------------------
@@ -13,9 +15,6 @@ class Condition(TypedJso):
     """
 
     TYPE_NAMES = TypedJso.TypeNames()
-
-    # Poll inteval in sec.
-    poll_interval = 1
 
     def bind(self, run, jobs):
         """
@@ -40,7 +39,14 @@ class Condition(TypedJso):
 
 
 
-    async def check(self) -> bool | Transition:
+#-------------------------------------------------------------------------------
+
+class PolledCondition(Condition):
+
+    # Poll inteval in sec.
+    poll_interval = 1
+
+    async def check(self):
         """
         Checks if conditions have been met and the run is ready to start.
 
@@ -51,7 +57,31 @@ class Condition(TypedJso):
         return True
 
 
-    def check_runs(self, run, run_store) -> bool | Transition:
+    async def wait(self):
+        """
+        Waits for the condition to complete.
+
+        :param timeout:
+           Max time to wait, or none for no timeout.
+        :return:
+          `True` if the run is ready or `Transition` to cause the run to
+          transition to a new state.
+        """
+        while True:
+            with LogSlow(f"checking cond: {self}", 0.005):
+                result = await self.check()
+            if result is False:
+                await asyncio.sleep(self.poll_interval)
+            else:
+                return result
+
+
+
+#-------------------------------------------------------------------------------
+
+class RunStoreCondition(Condition):
+
+    async def wait(self, run_store):
         """
         Checks if run-based conditions have been met and the run is ready to
         start.
@@ -90,7 +120,7 @@ def _bind(job, obj_args, inst_args, bind_args):
 
 #-------------------------------------------------------------------------------
 
-class ConstantCondition(Condition):
+class ConstantCondition(PolledCondition):
     """
     Condition with a constant value, either true or false.
     """

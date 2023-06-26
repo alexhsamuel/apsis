@@ -3,7 +3,7 @@
 Makefile.local
 apsis.db
 apsis.log
-archive-*.db
+archive*.db
 *-journal
 doc
 env

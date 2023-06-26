@@ -1,12 +1,11 @@
 import asyncio
-import contextlib
 import errno
+import functools
 import itertools
 import logging
 import os
 import requests.adapters
 import shlex
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -17,8 +16,11 @@ import warnings
 from   apsis.lib.asyn import communicate
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
+from   apsis.lib.test import in_test
 
 log = logging.getLogger("agent.client")
+
+DEFAULT = object()
 
 #-------------------------------------------------------------------------------
 
@@ -51,6 +53,28 @@ class AgentStartError(RuntimeError):
         super().__init__(
             f"agent start failed with returncode={returncode}: {err}")
 
+
+
+class InternalServiceError(RuntimeError):
+    """
+    The service returned 5xx.
+    """
+
+    def __init__(self, path, error, exc_fmt):
+        msg = f"internal service error: {path}: {error}"
+        if exc_fmt is not None:
+            msg += "\n" + exc_fmt
+        super().__init__(msg)
+
+
+
+def raise_for_status(rsp):
+    if 500 <= rsp.status_code < 600:
+        jso = rsp.json()
+        raise InternalServiceError(
+            rsp.request.url, jso["error"], jso.get("exception"))
+    else:
+        rsp.raise_for_status()
 
 
 #-------------------------------------------------------------------------------
@@ -166,16 +190,11 @@ async def start_agent(
 
 class Agent:
 
-    # Path to the agent's state dir.  Note that the agent may run on a different
-    # host and as a different user.  If none, the agent chooses a tmp dir; this
-    # is the usual behavior.
-    STATE_DIR = None
-
     # Delays between attempts to start the agent-- back off.  The number of
     # attempts is the number of delays.
     START_DELAYS = [ 0.5 * i**2 for i in range(6) ]
 
-    def __init__(self, host=None, user=None, *, connect=None):
+    def __init__(self, host=None, user=None, *, connect=None, state_dir=DEFAULT):
         """
         :param host:
           Host to run on, or none for local.
@@ -185,10 +204,13 @@ class Agent:
           If true, connect to a running instance only.  If false, fail if an
           instance is already running.
         """
+        if state_dir is DEFAULT:
+            state_dir = get_test_state_dir() if in_test() else None
+
         self.__host         = host
         self.__user         = user
         self.__connect      = connect
-        self.__state_dir    = self.STATE_DIR
+        self.__state_dir    = state_dir
 
         self.__lock         = asyncio.Lock()
         self.__conn         = None
@@ -334,13 +356,13 @@ class Agent:
         except NoAgentError:
             return False
         else:
-            rsp.raise_for_status()
+            raise_for_status(rsp)
             return True
 
 
     async def get_processes(self):
         rsp = await self.request("GET", "/processes")
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["processes"]
 
 
@@ -365,7 +387,7 @@ class Agent:
             },
             restart=restart
         )
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["process"]
 
 
@@ -377,7 +399,7 @@ class Agent:
             "GET", f"/processes/{proc_id}", restart=restart)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["process"]
 
 
@@ -394,7 +416,7 @@ class Agent:
             "GET", f"/processes/{proc_id}/output", args=args)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         try:
             length = int(rsp.headers["X-Raw-Length"])
             cmpr = rsp.headers["X-Compression"]
@@ -418,7 +440,7 @@ class Agent:
         rsp = await self.request("DELETE", f"/processes/{proc_id}")
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["stop"]
 
 
@@ -426,12 +448,13 @@ class Agent:
         """
         Sends a signal to a process.
         """
-        rsp = await self.request("PUT", f"/processes/{proc_id}/signal/{signal}")
+        path = f"/processes/{proc_id}/signal/{signal}"
+        rsp = await self.request("PUT", path)
         if rsp.status_code == 404:
             raise NoSuchProcessError(proc_id)
         elif 400 <= rsp.status_code < 500:
             raise RuntimeError(rsp.json()["error"])
-        rsp.raise_for_status()
+        raise_for_status(rsp)
 
 
     async def stop(self):
@@ -439,28 +462,18 @@ class Agent:
         Shuts down an agent, if there are no remaining processes.
         """
         rsp = await self.request("POST", "/stop")
-        rsp.raise_for_status()
+        raise_for_status(rsp)
         return rsp.json()["stop"]
 
 
 
-@contextlib.contextmanager
-def test_state_dir():
+@functools.cache
+def get_test_state_dir():
     """
-    For automated tests, set the agent state dir to a unique private path.
+    Use a unique private agent state dir for automated tests.
     """
     state_dir = tempfile.mkdtemp(prefix="apsis-agent-test-")
     log.info(f"test agent state dir: {state_dir}")
-    old_state_dir = Agent.STATE_DIR
-    Agent.STATE_DIR = state_dir
-
-    try:
-        yield
-
-    finally:
-        Agent.STATE_DIR = old_state_dir
-        # Clean up the state dir.
-        log.debug(f"cleaning up test agent state dir: {state_dir}")
-        shutil.rmtree(state_dir)
+    return state_dir
 
 

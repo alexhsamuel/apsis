@@ -1,1 +1,4 @@
-__version__ = "0.17.2"
+import importlib.metadata
+
+__version__ = importlib.metadata.version("apsis")
+

@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Repository = "https://github.com/alexhsamuel/apsis"
+Documentation = "https://apsis-scheduler.readthedocs.io/en/latest/"
+
+[project]
+name = "apsis"
+version = "0.17.4"
+description = "Easy-to-use task scheduler"
+readme = "README.md"
+license = {text = "MIT License"}
+authors = [
+    {name = "Alex Samuel", email = "alex@alexsamuel.net"},
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "brotli",
+    "jinja2",
+    "ora",
+    "pyyaml",
+    "requests",
+    "rich",
+    "sanic ==21.6",
+    "sanic-routing ==0.7.0",
+    "sqlalchemy <2",
+    "ujson",
+    "websockets ==10.*",
+]
+
+optional-dependencies = {dev = ["pytest", "pytest-asyncio", "bump2version"]}
+
+[tool.setuptools.dynamic]
+version = {attr = "apsis.__version__"}
+
+[tool.setuptools]
+packages = [
+    "apsis",
+    "apsis.agent",
+    "apsis.cond",
+    "apsis.lib",
+    "apsis.lib.itr",
+    "apsis.program",
+    "apsis.program.internal",
+    "apsis.schedule",
+    "apsis.service",
+]
+
+package-dir = {"" = "python"}
+
+[tool.setuptools.package-data]
+"apsis.agent" = [
+    "agent.cert",
+    "agent.key",
+]
+"apsis.service" = [
+    "vue/*",
+    "vue/static/css/*",
+    "vue/static/js/*",
+    "vue/static/fonts/*",
+]
+
+[project.scripts]
+apsis = "apsis.cli:main"
+apsisctl = "apsis.ctl:main"
+apsis-agent = "apsis.agent.cli:main"
+
+[tool.pytest.ini_options]
+log_level = "DEBUG"
+testpaths = "test"
+markers = ["local_ssh"]
+
+[tool.ruff]
+select = ["F", "E999"]
+

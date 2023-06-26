@@ -11,8 +11,8 @@ from   instance import ApsisInstance
 
 job_dir = Path(__file__).absolute().parent / "jobs"
 
-@pytest.fixture(scope="module")
-def inst(agent_state_dir):
+@pytest.fixture(scope="function")
+def inst():
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
@@ -22,7 +22,7 @@ def inst(agent_state_dir):
 
 
 @pytest.fixture
-def client(inst, scope="module"):
+def client(inst, scope="function"):
     return inst.client
 
 

@@ -221,7 +221,7 @@ class Run:
 
 
     def __eq__(self, other):
-        assert other.run_id == self.run_id
+        return other.run_id == self.run_id
 
 
     def __repr__(self):
@@ -299,6 +299,75 @@ def get_bind_args(run):
 
 #-------------------------------------------------------------------------------
 
+class _RunsFilter:
+    """
+    Filter predicate for an iterable of runs.
+    """
+
+    def __init__(
+            self, *,
+            run_ids=None,
+            job_id=None,
+            state=None,
+            since=None,
+            args=None,
+            with_args=None,
+    ):
+        """
+        :param state:
+          Limits results to runs in the specified state(s).
+        :param args:
+          Limits results to runs with exactly the specified args.
+        :param with_args:
+          Limits results to runs with the specified args.  Runs may include
+          other args not explicitly given.
+        """
+        to_map = lambda x: { str(k): str(v) for k, v in x.items() }
+        self.run_ids    = None if run_ids   is None else set(iterize(run_ids))
+        self.job_id     = None if job_id    is None else job_id
+        self.state      = None if state     is None else set(iterize(state))
+        self.since      = None if state     is None else ora.Time(since)
+        self.args       = None if args      is None else to_map(args)
+        self.with_args  = None if with_args is None else to_map(with_args)
+
+
+    def __call__(self, runs):
+        if self.run_ids is not None:
+            run_ids = self.run_ids
+            runs = ( r for r in runs if r.run_id in run_ids )
+
+        if self.job_id is not None:
+            job_id = self.job_id
+            runs = ( r for r in runs if r.inst.job_id == job_id )
+
+        if self.state is not None:
+            state = self.state
+            runs = ( r for r in runs if r.state in state )
+
+        if self.since is not None:
+            since = self.since
+            runs = ( r for r in runs if r.timestamp >= since )
+
+        if self.args is not None:
+            args = self.args
+            runs = ( r for r in runs if r.inst.args == args )
+
+        if self.with_args is not None:
+            with_args = self.with_args
+            runs = (
+                r for r in runs
+                if all(
+                        r.inst.args.get(k, None) == v
+                        for k, v in with_args.items()
+                )
+            )
+
+        return runs
+
+
+
+#-------------------------------------------------------------------------------
+
 class RunStore:
     """
     Stores runs in memory.
@@ -307,7 +376,7 @@ class RunStore:
     runs are always added to the cache; use `retire()` to retire older runs from
     memory.
 
-    - Stories runs in all states.
+    - Stores runs in all states.
     - Satisfyies run queries.
     - Serves live queries of runs.
     """
@@ -321,6 +390,10 @@ class RunStore:
             r.run_id: r
             for r in self.__run_db.query(min_timestamp=min_timestamp)
         }
+        # Also keep a lookup of runs by job ID.
+        self.__runs_by_job = {}
+        for run in self.__runs.values():
+            self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
         # For live notification.
         self.__queues = set()
@@ -330,8 +403,10 @@ class RunStore:
         """
         Sends live notification of changes to `run`.
         """
-        for queue in self.__queues:
-            queue.put_nowait((when, [run]))
+        for filter, queue in self.__queues:
+            filtered_run = list(filter([run]))
+            if len(filtered_run) > 0:
+                queue.put_nowait((when, filtered_run))
 
 
     def add(self, run):
@@ -346,6 +421,7 @@ class RunStore:
 
         log.debug(f"new run: {run}")
         self.__runs[run.run_id] = run
+        self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
         self.update(run, timestamp)
 
 
@@ -368,16 +444,18 @@ class RunStore:
         self.__send(timestamp, run)
 
 
-    def remove(self, run_id):
+    def remove(self, run_id, *, expected=True):
         """
         Removes run with `run_id`.
 
-        Only an expected run may be removed.
+        :param expected:
+          If true, only an expected run may be removed.
         """
         run = self.__runs[run_id]
-        assert run.expected, f"can't remove run {run_id}; not expected"
+        assert not expected or run.expected, f"can't remove run {run_id}; not expected"
 
         del self.__runs[run_id]
+        self.__runs_by_job[run.inst.job_id].remove(run)
         # Indicate deletion with none state.
         # FIXME: What a horrible hack.
         run.state = None
@@ -397,9 +475,7 @@ class RunStore:
             return True
         else:
             if run.state in Run.FINISHED:
-                self.__runs.pop(run_id)
-                run.state = None
-                self.__send(now(), run)
+                self.remove(run_id, expected=False)
                 return True
             else:
                 return False
@@ -429,70 +505,51 @@ class RunStore:
         return now(), run
 
 
-    def query(self, *, run_ids=None, job_id=None, state=None,
-              since=None, args=None, with_args=None):
+    def _query_filter(self, filter):
         """
-        :param state:
-          Limits results to runs in the specified state(s).
-        :param args:
-          Limits results to runs with exactly the specified args.
-        :param with_args:
-          Limits results to runs with the specified args.  Runs may include
-          other args not explicitly given.
+        Queries using a `_RunsFilter`.
         """
-        if run_ids is None:
-            runs = self.__runs.values()
-        else:
-            run_ids = sorted(set(run_ids))
-            runs = ( self.__runs.get(i, None) for i in run_ids )
+        if filter.run_ids is not None:
+            # Fast path if the query is by run IDs.
+            runs = ( self.__runs.get(i, None) for i in filter.run_ids )
             runs = ( r for r in runs if r is not None )
-        if job_id is not None:
-            runs = ( r for r in runs if r.inst.job_id == job_id )
-        if state is not None:
-            states = set(iterize(state))
-            runs = ( r for r in runs if r.state in states )
-        if since is not None:
-            runs = ( r for r in runs if r.timestamp >= since )
-        if args is not None:
-            runs = ( r for r in runs if r.inst.args == args )
-        if with_args is not None:
-            runs = (
-                r for r in runs
-                if all(
-                        r.inst.args.get(k, None) == v
-                        for k, v in with_args.items()
-                )
-            )
+        elif filter.job_id is not None:
+            # Fast path if the query is by job ID.
+            runs = iter(self.__runs_by_job.get(filter.job_id, ()))
+        else:
+            # Slow path: scan.
+            runs = self.__runs.values()
 
-        return now(), list(runs)
+        return now(), list(filter(runs))
+
+
+    def query(self, **filter_args):
+        """
+        :keywords:
+          See `_RunsFilter.__init__.
+        """
+        return self._query_filter(_RunsFilter(**filter_args))
 
 
     @contextmanager
-    def query_live(self, *, since=None):
-        queue = asyncio.Queue()
-        self.__queues.add(queue)
-        log.info("added live runs query queue")
+    def query_live(self, **filter_args):
+        """
+        :keywords:
+          See `_RunsFilter.__init__.
+        """
+        filter = _RunsFilter(**filter_args)
 
-        when, runs = self.query(since=since)
-        queue.put_nowait((when, runs))
+        queue = asyncio.Queue()
+        self.__queues.add((filter, queue))
+
+        when, runs = self._query_filter(filter)
+        if len(runs) > 0:
+            queue.put_nowait((when, runs))
 
         try:
             yield queue
         finally:
-            self.__queues.remove(queue)
-            log.info("removed live runs query queue")
-
-
-    # FIXME: Remove this.
-    def remove_expected(self):
-        """
-        Discards all expected runs.
-        """
-        self.__runs = {
-            run_id: r
-            for run_id, r in self.__runs.items()
-            if not r.expected
-        }
+            self.__queues.remove((filter, queue))
 
 
     async def shut_down(self):
@@ -501,17 +558,24 @@ class RunStore:
         """
         while True:
             try:
-                queue = next(iter(self.__queues))
+                _, queue = next(iter(self.__queues))
             except StopIteration:
                 break
 
-            log.info("shutting down live query queue")
             # Indicate that this queue is shutting down.
             queue.put_nowait(None)
             # FIXME: Join doesn't seem to work.
             # await queue.join()
             await asyncio.sleep(0.5)
             log.info("live query queue shut down")
+
+
+    def get_stats(self):
+        return {
+            "num_runs"      : len(self.__runs),
+            "num_queues"    : len(self.__queues),
+            "len_queues"    : sum( q.qsize() for _, q in self.__queues ),
+        }
 
 
 

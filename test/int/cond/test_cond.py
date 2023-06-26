@@ -24,14 +24,16 @@ def inst():
 
 
 @pytest.fixture
-def client(inst, scope="module"):
+def client(inst, scope="function"):
     return inst.client
 
 
-def test_args(client):
+def test_args_match(inst):
     """
     Tests that args in dependencies are processed correctly.
     """
+    client = inst.client
+
     res = client.schedule("dependent", {"date": "2022-11-01", "color": "red"})
     run_id = res["run_id"]
 
@@ -42,7 +44,6 @@ def test_args(client):
 
     # Run the first of the dependencies.
     res = client.schedule("dependency", {"date": "2022-11-01", "flavor": "vanilla"})
-    time.sleep(1)
 
     # One dependency satisfied, but not the other one.
     res = client.get_run(run_id)
@@ -50,7 +51,6 @@ def test_args(client):
 
     # This is not a dependency, as the date is wrong.
     res = client.schedule("dependency", {"date": "2022-12-25", "flavor": "chocolate"})
-    time.sleep(1)
 
     # One dependency satisfied, but not the other one.
     res = client.get_run(run_id)
@@ -58,7 +58,6 @@ def test_args(client):
 
     # This is just the first dependency, run again.
     res = client.schedule("dependency", {"date": "2022-11-01", "flavor": "vanilla"})
-    time.sleep(1)
 
     # One dependency satisfied, but not the other one.
     res = client.get_run(run_id)
@@ -66,11 +65,11 @@ def test_args(client):
 
     # Now run the second dependency.
     res = client.schedule("dependency", {"date": "2022-11-01", "flavor": "chocolate"})
-    time.sleep(1)
+    inst.wait_run(res["run_id"])
 
-    # One dependency satisfied, but not the other one.
-    res = client.get_run(run_id)
-    assert res["state"] == "running"
+    # Both are satisfied.
+    res = inst.wait_run(run_id)
+    assert res["state"] == "success"
 
 
 def test_args_max_waiting():
@@ -95,7 +94,7 @@ def test_args_max_waiting():
 
         # Run the first of the dependencies.
         res = client.schedule("dependency", {"date": "2022-11-01", "flavor": "vanilla"})
-        time.sleep(1)
+        time.sleep(1.1)
 
         # After a second, its second dependency is not yet satisified, so it is
         # transitioned to error.
