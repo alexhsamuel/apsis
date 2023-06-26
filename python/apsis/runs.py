@@ -404,10 +404,7 @@ class RunStore:
             return True
         else:
             if run.state in Run.FINISHED:
-                self.__runs.pop(run_id)
-                self.__runs_by_job[run.inst.job_id].remove(run)
-                run.state = None
-                self.__send(now(), run)
+                self.remote(run_id)
                 return True
             else:
                 return False
