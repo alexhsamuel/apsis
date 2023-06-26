@@ -444,14 +444,15 @@ class RunStore:
         self.__send(timestamp, run)
 
 
-    def remove(self, run_id):
+    def remove(self, run_id, *, expected=True):
         """
         Removes run with `run_id`.
 
-        Only an expected run may be removed.
+        :param expected:
+          If true, only an expected run may be removed.
         """
         run = self.__runs[run_id]
-        assert run.expected, f"can't remove run {run_id}; not expected"
+        assert not expected or run.expected, f"can't remove run {run_id}; not expected"
 
         del self.__runs[run_id]
         self.__runs_by_job[run.inst.job_id].remove(run)
@@ -474,7 +475,7 @@ class RunStore:
             return True
         else:
             if run.state in Run.FINISHED:
-                self.remote(run_id)
+                self.remove(run_id, expected=False)
                 return True
             else:
                 return False
