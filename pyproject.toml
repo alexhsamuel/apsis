@@ -34,14 +34,14 @@ dependencies = [
 
 optional-dependencies = {dev = ["pytest", "pytest-asyncio", "bump2version"]}
 
-    [urls]
-    Repository = "https://github.com/alexhsamuel/apsis"
-    Documentation = "https://apsis-scheduler.readthedocs.io/en/latest/"
+[project.urls]
+Repository = "https://github.com/alexhsamuel/apsis"
+Documentation = "https://apsis-scheduler.readthedocs.io/en/latest/"
 
-    [scripts]
-    apsis = "apsis.cli:main"
-    apsisctl = "apsis.ctl:main"
-    apsis-agent = "apsis.agent.cli:main"
+[project.scripts]
+apsis = "apsis.cli:main"
+apsisctl = "apsis.ctl:main"
+apsis-agent = "apsis.agent.cli:main"
 
 [tool.setuptools]
 packages = [
