@@ -2,10 +2,6 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[project.urls]
-Repository = "https://github.com/alexhsamuel/apsis"
-Documentation = "https://apsis-scheduler.readthedocs.io/en/latest/"
-
 [project]
 name = "apsis"
 version = "0.17.4"
@@ -20,8 +16,13 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 
+    [urls]
+    Repository = "https://github.com/alexhsamuel/apsis"
+    Documentation = "https://apsis-scheduler.readthedocs.io/en/latest/"
+
 requires-python = ">=3.10"
 dependencies = [
+    "aiohttp >=3",
     "brotli",
     "jinja2",
     "ora",
@@ -37,8 +38,10 @@ dependencies = [
 
 optional-dependencies = {dev = ["pytest", "pytest-asyncio", "bump2version"]}
 
-[tool.setuptools.dynamic]
-version = {attr = "apsis.__version__"}
+    [scripts]
+    apsis = "apsis.cli:main"
+    apsisctl = "apsis.ctl:main"
+    apsis-agent = "apsis.agent.cli:main"
 
 [tool.setuptools]
 packages = [
@@ -55,27 +58,26 @@ packages = [
 
 package-dir = {"" = "python"}
 
-[tool.setuptools.package-data]
-"apsis.agent" = [
-    "agent.cert",
-    "agent.key",
-]
-"apsis.service" = [
-    "vue/*",
-    "vue/static/css/*",
-    "vue/static/js/*",
-    "vue/static/fonts/*",
-]
+    [dynamic]
+    version = {attr = "apsis.__version__"}
 
-[project.scripts]
-apsis = "apsis.cli:main"
-apsisctl = "apsis.ctl:main"
-apsis-agent = "apsis.agent.cli:main"
+    [package-data]
+    "apsis.agent" = [
+        "agent.cert",
+        "agent.key",
+    ]
+    "apsis.service" = [
+        "vue/*",
+        "vue/static/css/*",
+        "vue/static/js/*",
+        "vue/static/fonts/*",
+    ]
 
-[tool.pytest.ini_options]
-log_level = "DEBUG"
-testpaths = "test"
-markers = ["local_ssh"]
+[tool.pytest]
+    [ini_options]
+    log_level = "DEBUG"
+    testpaths = "test"
+    markers = ["local_ssh"]
 
 [tool.ruff]
 select = ["F", "E999"]
