@@ -322,10 +322,9 @@ class RunStore:
             for r in self.__run_db.query(min_timestamp=min_timestamp)
         }
         # Also keep a lookup of runs by job ID.
-        self.__runs_by_job = {
-            r.inst.job_id: {r}
-            for r in self.__runs.values()
-        }
+        self.__runs_by_job = {}
+        for run in self.__runs.values():
+            self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
         # For live notification.
         self.__queues = set()
@@ -374,14 +373,15 @@ class RunStore:
         self.__send(timestamp, run)
 
 
-    def remove(self, run_id):
+    def remove(self, run_id, *, expected=True):
         """
         Removes run with `run_id`.
 
-        Only an expected run may be removed.
+        :param expected:
+          If true, only an expected run may be removed.
         """
         run = self.__runs[run_id]
-        assert run.expected, f"can't remove run {run_id}; not expected"
+        assert not expected or run.expected, f"can't remove run {run_id}; not expected"
 
         del self.__runs[run_id]
         self.__runs_by_job[run.inst.job_id].remove(run)
@@ -404,10 +404,7 @@ class RunStore:
             return True
         else:
             if run.state in Run.FINISHED:
-                self.__runs.pop(run_id)
-                self.__runs_by_job[run.inst.job_id].remove(run)
-                run.state = None
-                self.__send(now(), run)
+                self.remove(run_id, expected=False)
                 return True
             else:
                 return False
@@ -450,7 +447,7 @@ class RunStore:
         """
         assert run_ids is None or job_id is None
         if run_ids is not None:
-            run_ids = sorted(set(run_ids))
+            run_ids = sorted(set(iterize(run_ids)))
             runs = ( self.__runs.get(i, None) for i in run_ids )
             runs = ( r for r in runs if r is not None )
         elif job_id is not None:
