@@ -33,7 +33,9 @@ def test_archive(tmp_path):
             }
         )
         run_id1 = res["run_id"]
+
         time.sleep(2)
+
         res = client.schedule_adhoc("now", {"program": {"type": "no-op"}})
         run_id2 = res["run_id"]
 
@@ -46,9 +48,8 @@ def test_archive(tmp_path):
                 "path": str(path),
             },
         })
-        time.sleep(1)
-        # The first run have been archived.
-        res = client.get_run(res["run_id"])
+        res = inst.wait_run(res["run_id"])
+        # The first run has been archived.
         assert res["meta"]["run count"] == 1
         assert res["meta"]["run_ids"] == [run_id0]
 
@@ -59,6 +60,7 @@ def test_archive(tmp_path):
         assert client.get_run(run_id2)["state"] == "success"
 
         # Archive, with a max age of 2 s.
+        time.sleep(0.5)
         res = client.schedule_adhoc("now", {
             "program": {
                 "type": "apsis.program.internal.archive.ArchiveProgram",
@@ -67,9 +69,8 @@ def test_archive(tmp_path):
                 "path": str(path),
             },
         })
-        time.sleep(0.1)
         # The second run was archived, but the third isn't old enough yet.
-        res = client.get_run(res["run_id"])
+        res = inst.wait_run(res["run_id"])
         assert res["meta"]["run count"] == 1
         assert res["meta"]["run_ids"] == [run_id1]
 

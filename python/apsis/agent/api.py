@@ -27,14 +27,19 @@ def response(jso, status=200):
     )
 
 
-def error(msg, status):
-    return response({"error": str(msg)}, status=status)
+def error(msg, status, *, exc_fmt=None):
+    jso = {"error": str(msg)}
+    if exc_fmt is not None:
+        jso["exception"] = exc_fmt
+    log.error(ujson.dumps(jso, indent=2))
+    return response(jso, status=status)
 
 
 def exc_error(exc, status, log=None):
+    exc_fmt = traceback.format_exc().rstrip()
     if log is not None:
-        log(traceback.format_exc().rstrip())
-    return error(str(exc), status)
+        log(exc_fmt)
+    return error(str(exc), status, exc_fmt=exc_fmt)
 
 
 def rusage_to_jso(rusage):
@@ -211,8 +216,16 @@ async def process_signal(req, proc_id, signal):
         signum = int(to_signal(signal))
     except ValueError:
         return error(f"invalid signal: {signal}", 400)
-    req.app.ctx.processes.kill(proc_id, signum)
-    return response({})
+    try:
+        req.app.ctx.processes.kill(proc_id, signum)
+    except RuntimeError:
+        return error("process was not started", 400)
+    except ProcessLookupError:
+        # The process already completed.  Don't send an error response; this is
+        # a race condition.
+        return response({"delivered": False})
+    else:
+        return response({"delivered": True})
 
 
 @API.route("/processes/<proc_id>", methods={"DELETE"})

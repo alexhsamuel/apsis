@@ -7,11 +7,10 @@ import sys
 import traceback
 
 from   .actions import Action
-from   .exc import TimeoutWaiting
+from   .cond.base import PolledCondition, RunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
-from   .lib.timing import LogSlow
 from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
 from   . import runs
 from   .run_log import RunLog
@@ -168,79 +167,65 @@ class Apsis:
 
         # If a max waiting time is configured, compute the timeout for this run.
         cfg = self.cfg.get("waiting", {})
-        max_time = cfg.get("max_time", None)
-        if max_time is None:
-            timeout = None
-        else:
-            try:
-                start = Time(run.times["waiting"])
-            except KeyError:
-                log.error(f"waiting run missing waiting time: {run.run_id}")
-                # Fall back to current time.
-                start = now()
-            timeout = start + max_time
+        timeout = cfg.get("max_time", None)
 
         async def loop():
             """
             The wait loop for a single run.
             """
-            try:
-                conds = list(run.conds)
+            conds = list(run.conds)
 
-                if len(conds) > 0:
-                    self.run_log.record(run, f"condition: {conds[0]}")
+            if len(conds) > 0:
+                self.run_log.record(run, f"condition: {conds[0]}")
 
-                while len(conds) > 0:
-                    cond = conds[0]
+            while len(conds) > 0:
+                cond = conds[0]
 
-                    # FIXME: In the future, we won't poll run conditions, but
-                    # rather check only on run transitions.
-                    with LogSlow(f"checking cond: {run.run_id}: {cond}", 0.005):
-                        result = cond.check_runs(run, self.run_store)
-                        if result is True:
-                            result = await cond.check()
+                async def wait():
+                    match cond:
+                        case PolledCondition():
+                            return await cond.wait()
+                        case RunStoreCondition():
+                            return await cond.wait(self.run_store)
+                        case _:
+                            assert False, f"not implemented: {cond!r}"
 
-                    if isinstance(result, cond.Transition):
-                        # Force a transition.
-                        self.run_log.info(
-                            run, result.reason or f"{result.state}: {cond}")
-                        self._transition(run, result.state)
-                        return
+                try:
+                    result = await asyncio.wait_for(wait(), timeout)
+                except asyncio.CancelledError:
+                    raise
+                except asyncio.TimeoutError:
+                    msg = f"waiting for {cond}: timeout after {timeout} s"
+                    self.run_log.info(run, msg)
+                    self._transition(run, Run.STATE.error)
+                    return
+                except Exception:
+                    msg = f"waiting for {cond}: failed"
+                    log.error(msg, exc_info=True)
+                    self._run_exc(run, message=msg)
+                    return
 
-                    elif result is True:
-                        # This condition is satisfied.
+                match result:
+                    case True:
+                        # The condition is satisfied.  Proceed to the next.
                         conds.pop(0)
                         if len(conds) > 0:
                             self.run_log.record(run, f"condition: {conds[0]}")
 
-                    elif result is False:
-                        # First cond is still blocking.
-                        if timeout is not None:
-                            # Check for timeout while waiting.
-                            remaining = timeout - now()
-                            if 0 < remaining:
-                                sleep_time = min(cond.poll_interval, remaining)
-                            else:
-                                raise TimeoutWaiting(
-                                    f"time out waiting after {max_time} sec")
-                        else:
-                            sleep_time = cond.poll_interval
+                    case cond.Transition(state):
+                        # Force a transition.
+                        self.run_log.info(
+                            run, result.reason or f"{state}: {cond}")
+                        self._transition(run, state)
+                        # Don't wait for further conds.
+                        return
 
-                        await asyncio.sleep(sleep_time)
+                    case _:
+                        assert False, f"invalid condition wait result: {result!r}"
 
-                    else:
-                        assert False, f"invalid condition result: {result!r}"
-
-                else:
-                    # Start the run.
-                    self.__start(run)
-
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                msg = f"waiting for {run.conds[0]} failed"
-                log.error(msg, exc_info=True)
-                self._run_exc(run, message=msg)
+            else:
+                # Start the run.
+                self.__start(run)
 
         task = asyncio.ensure_future(loop())
         self.__wait_tasks[run] = task
@@ -628,7 +613,6 @@ class Apsis:
 
     def get_stats(self):
         res = resource.getrusage(resource.RUSAGE_SELF)
-        livequery_queues = self.run_store._RunStore__queues
         stats = {
             "start_time"            : str(self.__start_time),
             "time"                  : str(now()),
@@ -638,12 +622,9 @@ class Apsis:
             "num_waiting_tasks"     : len(self.__wait_tasks),
             "num_starting_tasks"    : len(self.__starting_tasks),
             "num_running_tasks"     : len(self.__running_tasks),
-            "num_runstore_runs"     : len(self.run_store._RunStore__runs),
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
-            "len_scheduled_heap"    : len(self.scheduled._ScheduledRuns__heap),
-            "num_scheduled_entries" : len(self.scheduled._ScheduledRuns__scheduled),
-            "num_livequery_queues"  : len(livequery_queues),
-            "len_livequery_queues"  : sum( q.qsize() for q in livequery_queues ),
+            "scheduled"             : self.scheduled.get_stats(),
+            "run_store"             : self.run_store.get_stats(),
         }
 
         try:

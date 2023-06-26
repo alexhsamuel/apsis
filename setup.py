@@ -30,9 +30,11 @@ setuptools.setup(
         "pyyaml",
         "requests",
         "rich",
-        "sanic >=21.3",
+        "sanic ==21.6",
+        "sanic-routing ==0.7.0",
         "sqlalchemy <2",
         "ujson",
+        "websockets ==10.4",
     ],
 
     extras_require={
