@@ -122,12 +122,7 @@ async def _main():
 
 
 def main():
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(_main())
-    finally:
-        loop.run_until_complete(apsis.agent.client.get_session().close())
-        loop.close()
+    asyncio.run(_main())
 
 
 #-------------------------------------------------------------------------------
