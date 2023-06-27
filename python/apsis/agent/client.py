@@ -1,7 +1,7 @@
 """
 Client wrapper for the Apsis Agent.
 
-Uses async aiohttp for communication, including connection reuse.  Therefore,
+Uses async HTTPX for communication, including connection reuse.  Therefore,
 
 - You can only use it in a single asyncio event loop.
 
@@ -10,11 +10,11 @@ Uses async aiohttp for communication, including connection reuse.  Therefore,
 
 """
 
-import aiohttp
 import asyncio
 import contextlib
 import errno
 import functools
+import httpx
 import itertools
 import logging
 import os
@@ -31,18 +31,24 @@ from   apsis.lib.sys import get_username
 from   apsis.lib.test import in_test
 
 log = logging.getLogger("agent.client")
+# Turn down logging for httpx and its dependency httpcore.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 DEFAULT = object()
 
 #-------------------------------------------------------------------------------
 
 @functools.cache
-def get_session():
-    return aiohttp.ClientSession(
-        timeout=aiohttp.ClientTimeout(
-            total=2.0,
-        ),
-        json_serialize=ujson.dumps,
+def get_http_client():
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(2.0),
+        # FIXME: For now, we use no server verification when establishing the
+        # TLS connection to the agent.  The agent uses a generic SSL cert with
+        # no real host name, so host verification cannot work; we'd have to
+        # generate a certificate for each agent host.  For now at least we have
+        # connection encryption.
+        verify=False,
     )
 
 
@@ -128,14 +134,12 @@ class RequestJsonError(RuntimeError):
 
 
 async def _get_jso(rsp):
+    data = await rsp.aread()
     try:
-        return await rsp.json(loads=ujson.loads)
-    except (
-            aiohttp.ClientResponseError,
-            ujson.JSONDecodeError,
-    ) as exc:
-        log.error(f"can't get JSON from {rsp}: {exc}")
-        raise RequestJsonError(rsp.url, rsp.status, exc)
+        return ujson.loads(data)
+    except ujson.JSONDecodeError as exc:
+        log.error(f"JSON error in {rsp}: {exc}")
+        raise RequestJsonError(rsp.url, rsp.status_code, exc)
 
 
 #-------------------------------------------------------------------------------
@@ -300,7 +304,7 @@ class Agent:
                 )
                 log.debug(f"{self}: started")
 
-                self.__conn = port, token, get_session()
+                self.__conn = port, token, get_http_client()
 
             return self.__conn
 
@@ -348,7 +352,7 @@ class Agent:
             if delay > 0:
                 await asyncio.sleep(delay)
 
-            port, token, session = await self.connect()
+            port, token, http_client = await self.connect()
             url_host = if_none(self.__host, "localhost")
             # FIXME: Use library.
             url = f"https://{url_host}:{port}/api/v1" + endpoint
@@ -358,23 +362,18 @@ class Agent:
                 )
 
             try:
-                # FIXME: For now, we use no server verification when
-                # establishing the TLS connection to the agent.  The agent uses
-                # a generic SSL cert with no real host name, so host
-                # verification cannot work; we'd have to generate a certificate
-                # for each agent host.  For now at least we have connection
-                # encryption.
-                async with session.request(
+                rsp = await http_client.request(
                     method, url,
-                    ssl=False,
                     # Set the auth header, so the agent accepts us.
                     headers={
-                        "X-Auth-Token": token
+                        "X-Auth-Token": token,
+                        "Content-Type": "application/json",
                     },
-                    json=data,
-                ) as rsp:
-                    log.debug(f"{self}: {method} {url} → {rsp.status}")
-                    status = rsp.status
+                    data=ujson.dumps(data),
+                )
+                try:
+                    log.debug(f"{self}: {method} {url} → {rsp.status_code}")
+                    status = rsp.status_code
 
                     if status == 403:
                         # Forbidden.  A different agent is running on that port.  We
@@ -403,7 +402,10 @@ class Agent:
                     else:
                         raise RuntimeError(f"unexpected status code: {status}")
 
-            except aiohttp.ClientError as exc:
+                finally:
+                    await rsp.aclose()
+
+            except httpx.RequestError as exc:
                 # We want to show the entire exception stack, unless the
                 # underlying exception is garden-variety 'Connection refused'.
                 while exc.__context__ is not None:
@@ -491,7 +493,7 @@ class Agent:
                 length = int(rsp.headers["X-Raw-Length"])
                 cmpr = rsp.headers.get("X-Compression", None)
                 assert cmpr == compression
-                return await rsp.read(), length, compression
+                return await rsp.aread(), length, compression
 
         except NotFoundError:
             raise NoSuchProcessError(proc_id)

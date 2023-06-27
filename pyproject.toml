@@ -18,8 +18,8 @@ classifiers = [
 
 requires-python = ">=3.10"
 dependencies = [
-    "aiohttp >=3",
     "brotli",
+    "httpx",
     "jinja2",
     "ora",
     "pyyaml",
