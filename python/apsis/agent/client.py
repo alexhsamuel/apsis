@@ -1,7 +1,13 @@
 """
 Client wrapper for the Apsis Agent.
 
-Uses async HTTPX for communication, including connection reuse.
+Uses async HTTPX for communication, including connection reuse.  Therefore,
+
+- You can only use it in a single asyncio event loop.
+
+- Before shutting down the event loop, you must call `get_session().close()`, to
+  shut down all open connections cleanly.
+
 """
 
 import asyncio
@@ -298,7 +304,7 @@ class Agent:
                 )
                 log.debug(f"{self}: started")
 
-                self.__conn = port, token
+                self.__conn = port, token, get_http_client()
 
             return self.__conn
 
@@ -306,7 +312,7 @@ class Agent:
     async def disconnect(self, port, token):
         log.debug(f"{self}: waiting to disconnect")
         async with self.__lock:
-            if self.__conn == (port, token):
+            if self.__conn[: 2] == (port, token):
                 log.debug(f"{self}: disconnecting")
                 self.__conn = None
             else:
@@ -346,7 +352,7 @@ class Agent:
             if delay > 0:
                 await asyncio.sleep(delay)
 
-            port, token = await self.connect()
+            port, token, http_client = await self.connect()
             url_host = if_none(self.__host, "localhost")
             # FIXME: Use library.
             url = f"https://{url_host}:{port}/api/v1" + endpoint
@@ -356,7 +362,7 @@ class Agent:
                 )
 
             try:
-                rsp = await get_http_client().request(
+                rsp = await http_client.request(
                     method, url,
                     # Set the auth header, so the agent accepts us.
                     headers={
