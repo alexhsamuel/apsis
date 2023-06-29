@@ -82,8 +82,7 @@ async def test_concurrent_start():
     assert len(res) == len(agents)
 
     # All connections should be to the same port.
-    port, _, _ = res[0]
-    assert all( p == port for p, _, _ in res )
+    assert len(set( r[0] for r in res )) == 1
 
     await agents[0].stop()
 

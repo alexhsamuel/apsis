@@ -1,7 +1,13 @@
 """
 Client wrapper for the Apsis Agent.
 
-Uses async HTTPX for communication, including connection reuse.
+Uses async HTTPX for communication, including connection reuse.  Therefore,
+
+- You can only use it in a single asyncio event loop.
+
+- Before shutting down the event loop, you must call `get_session().close()`, to
+  shut down all open connections cleanly.
+
 """
 
 import asyncio
@@ -32,19 +38,6 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 DEFAULT = object()
 
 #-------------------------------------------------------------------------------
-
-@functools.cache
-def get_http_client():
-    return httpx.AsyncClient(
-        timeout=httpx.Timeout(2.0),
-        # FIXME: For now, we use no server verification when establishing the
-        # TLS connection to the agent.  The agent uses a generic SSL cert with
-        # no real host name, so host verification cannot work; we'd have to
-        # generate a certificate for each agent host.  For now at least we have
-        # connection encryption.
-        verify=False,
-    )
-
 
 class NoAgentError(RuntimeError):
     """
@@ -134,6 +127,35 @@ async def _get_jso(rsp):
     except ujson.JSONDecodeError as exc:
         log.error(f"JSON error in {rsp}: {exc}")
         raise RequestJsonError(rsp.url, rsp.status_code, exc)
+
+
+#-------------------------------------------------------------------------------
+
+@functools.lru_cache(1)
+def _get_http_client(loop):
+    """
+    Returns an HTTP client for use with `loop`.
+    """
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(2.0),
+        # FIXME: For now, we use no server verification when establishing the
+        # TLS connection to the agent.  The agent uses a generic SSL cert with
+        # no real host name, so host verification cannot work; we'd have to
+        # generate a certificate for each agent host.  For now at least we have
+        # connection encryption.
+        verify=False,
+    )
+    # When the loop closes, close the client first.  Otherwise, we leak tasks
+    # and fds, and asyncio complains about them at shutdown.
+    loop.on_close(client.aclose())
+    return client
+
+
+def get_http_client() -> httpx.AsyncClient:
+    """
+    Returns an HTTP client for use with the current event loop.
+    """
+    return _get_http_client(asyncio.get_event_loop())
 
 
 #-------------------------------------------------------------------------------
@@ -358,12 +380,12 @@ class Agent:
             try:
                 rsp = await get_http_client().request(
                     method, url,
-                    # Set the auth header, so the agent accepts us.
                     headers={
+                        # The auth header, so the agent accepts us.
                         "X-Auth-Token": token,
                         "Content-Type": "application/json",
                     },
-                    data=ujson.dumps(data),
+                    content=ujson.dumps(data),
                 )
                 try:
                     log.debug(f"{self}: {method} {url} → {rsp.status_code}")
@@ -422,7 +444,7 @@ class Agent:
 
     async def is_running(self):
         try:
-            async with await self.__request("GET", "/running"):
+            async with self.__request("GET", "/running"):
                 pass
         except NoAgentError:
             return False

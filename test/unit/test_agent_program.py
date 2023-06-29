@@ -2,18 +2,16 @@ import asyncio
 import pytest
 
 import apsis.program
+import apsis.agent.client
 
 #-------------------------------------------------------------------------------
 
 async def _run():
     prog = apsis.program.AgentProgram(["/bin/sleep", "0.1"])
-
     # Start the program.
     running, coro = await prog.start("testrun", cfg={})
-
     # Wait for it to finish.
-    result = await coro
-    return result
+    return await coro
 
 
 @pytest.mark.asyncio
