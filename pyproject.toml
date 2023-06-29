@@ -73,11 +73,10 @@ package-dir = {"" = "python"}
         "vue/static/fonts/*",
     ]
 
-[tool.pytest]
-    [ini_options]
-    log_level = "DEBUG"
-    testpaths = "test"
-    markers = ["local_ssh"]
+[tool.pytest.ini_options]
+log_level = "DEBUG"
+testpaths = "test"
+markers = ["local_ssh"]
 
 [tool.ruff]
 select = ["F", "E999"]
