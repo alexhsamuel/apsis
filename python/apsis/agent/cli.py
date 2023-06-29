@@ -11,17 +11,12 @@ import json
 import logging
 import sys
 
+import apsis.lib.asyn
 from   apsis.agent.client import Agent
 
 #-------------------------------------------------------------------------------
 
-def main():
-    async def clean(agent):
-        processes = await agent.get_processes()
-        return await asyncio.gather(*(
-            agent.del_process(p["proc_id"]) for p in processes ))
-
-
+async def _main():
     logging.basicConfig(
         level="INFO",
         format="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
@@ -84,34 +79,50 @@ def main():
 
     agent = Agent(host=args.host, user=args.user, connect=args.connect)
 
-    if args.cmd is None:
-        # Nothing to do.
-        raise SystemExit(0)
-    elif args.cmd == "start":
-        result = agent.is_running()
-    elif args.cmd == "list":
-        result = agent.get_processes()
-    elif args.cmd == "signal":
-        result = agent.signal(args.proc_id, args.signal)
-    elif args.cmd == "get":
-        result = agent.get_process(args.proc_id)
-    elif args.cmd == "del":
-        result = agent.del_process(args.proc_id)
-    elif args.cmd == "stop":
-        result = agent.stop()
-    elif args.cmd == "clean":
-        result = clean(agent)
-
     try:
-        result = asyncio.run(result)
+        if args.cmd is None:
+            # Nothing to do.
+            raise SystemExit(0)
+
+        elif args.cmd == "start":
+            result = await agent.is_running()
+
+        elif args.cmd == "list":
+            result = await agent.get_processes()
+
+        elif args.cmd == "signal":
+            result = await agent.signal(args.proc_id, args.signal)
+
+        elif args.cmd == "get":
+            result = await agent.get_process(args.proc_id)
+
+        elif args.cmd == "del":
+            result = await agent.del_process(args.proc_id)
+
+        elif args.cmd == "stop":
+            result = await agent.stop()
+
+        elif args.cmd == "clean":
+            async def clean(agent):
+                processes = await agent.get_processes()
+                return await asyncio.gather(*(
+                    agent.del_process(p["proc_id"]) for p in processes ))
+
+            result = await clean(agent)
+
     except RuntimeError as err:
         logging.error(f"{args.cmd} failed: {err}")
+
     else:
         try:
             json.dump(result, sys.stdout, indent=2)
             print()
         except TypeError:
             print(result)
+
+
+def main():
+    asyncio.run(_main())
 
 
 #-------------------------------------------------------------------------------

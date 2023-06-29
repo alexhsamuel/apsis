@@ -1,24 +1,39 @@
+"""
+Client wrapper for the Apsis Agent.
+
+Uses async HTTPX for communication, including connection reuse.  Therefore,
+
+- You can only use it in a single asyncio event loop.
+
+- Before shutting down the event loop, you must call `get_session().close()`, to
+  shut down all open connections cleanly.
+
+"""
+
 import asyncio
+import contextlib
 import errno
 import functools
+import httpx
 import itertools
 import logging
 import os
-import requests.adapters
 import shlex
 import subprocess
 import sys
 import tempfile
+import ujson
 from   urllib.parse import quote_plus
-from   urllib3.exceptions import InsecureRequestWarning
-import warnings
 
-from   apsis.lib.asyn import communicate
+import apsis.lib.asyn
 from   apsis.lib.py import if_none
 from   apsis.lib.sys import get_username
 from   apsis.lib.test import in_test
 
 log = logging.getLogger("agent.client")
+# Turn down logging for httpx and its dependency httpcore.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 DEFAULT = object()
 
@@ -55,26 +70,92 @@ class AgentStartError(RuntimeError):
 
 
 
+class RequestError(RuntimeError):
+    """
+    The service returned 4xx.
+    """
+
+    def __init__(self, url, status, error, exception):
+        msg = f"request error {status}: {url}: {error}"
+        if exception is not None:
+            msg += "\n" + exception
+        super().__init__(msg)
+        self.status = status
+
+
+
+class NotFoundError(RuntimeError):
+    """
+    The service returned 404.
+    """
+
+    def __init__(self, url, status, error, exception):
+        assert status == 404
+        super().__init__(url, status, error, exception)
+
+
+
 class InternalServiceError(RuntimeError):
     """
     The service returned 5xx.
     """
 
-    def __init__(self, path, error, exc_fmt):
-        msg = f"internal service error: {path}: {error}"
-        if exc_fmt is not None:
-            msg += "\n" + exc_fmt
+    def __init__(self, url, status, error, exception):
+        msg = f"internal service error {status}: {url}: {error}"
+        if exception is not None:
+            msg += "\n" + exception
         super().__init__(msg)
+        self.status = status
 
 
 
-def raise_for_status(rsp):
-    if 500 <= rsp.status_code < 600:
-        jso = rsp.json()
-        raise InternalServiceError(
-            rsp.request.url, jso["error"], jso.get("exception"))
-    else:
-        rsp.raise_for_status()
+class RequestJsonError(RuntimeError):
+    """
+    The response did not contain expected well-formed JSON.
+    """
+
+    def __init__(self, url, status, error):
+        super().__init__(f"request JSON error {status}: {url}: {error}")
+        self.status = status
+
+
+
+async def _get_jso(rsp):
+    data = await rsp.aread()
+    try:
+        return ujson.loads(data)
+    except ujson.JSONDecodeError as exc:
+        log.error(f"JSON error in {rsp}: {exc}")
+        raise RequestJsonError(rsp.url, rsp.status_code, exc)
+
+
+#-------------------------------------------------------------------------------
+
+@functools.lru_cache(1)
+def _get_http_client(loop):
+    """
+    Returns an HTTP client for use with `loop`.
+    """
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(2.0),
+        # FIXME: For now, we use no server verification when establishing the
+        # TLS connection to the agent.  The agent uses a generic SSL cert with
+        # no real host name, so host verification cannot work; we'd have to
+        # generate a certificate for each agent host.  For now at least we have
+        # connection encryption.
+        verify=False,
+    )
+    # When the loop closes, close the client first.  Otherwise, we leak tasks
+    # and fds, and asyncio complains about them at shutdown.
+    loop.on_close(client.aclose())
+    return client
+
+
+def get_http_client() -> httpx.AsyncClient:
+    """
+    Returns an HTTP client for use with the current event loop.
+    """
+    return _get_http_client(asyncio.get_event_loop())
 
 
 #-------------------------------------------------------------------------------
@@ -160,7 +241,7 @@ async def start_agent(
     proc = await asyncio.create_subprocess_exec(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        out, err = await communicate(proc, timeout)
+        out, err = await apsis.lib.asyn.communicate(proc, timeout)
     except asyncio.TimeoutError as exc:
         raise AgentStartError(
             -1,
@@ -239,18 +320,7 @@ class Agent:
                 )
                 log.debug(f"{self}: started")
 
-                session = requests.Session()
-                # Set the header to auth all requesets.
-                session.headers.update({"X-Auth-Token": token})
-                # We handle retries ourselves.
-                session.mount(
-                    "https://",
-                    requests.adapters.HTTPAdapter(
-                        max_retries=requests.adapters.Retry(total=0)
-                    )
-                )
-
-                self.__conn = port, token, session
+                self.__conn = port, token
 
             return self.__conn
 
@@ -258,17 +328,24 @@ class Agent:
     async def disconnect(self, port, token):
         log.debug(f"{self}: waiting to disconnect")
         async with self.__lock:
-            if self.__conn[: 2] == (port, token):
+            if self.__conn == (port, token):
                 log.debug(f"{self}: disconnecting")
                 self.__conn = None
             else:
                 log.debug(f"{self}: conn changed; not disconnecting")
 
 
-    async def request(
-            self, method, endpoint, data=None, *, args={}, restart=False):
+    @contextlib.asynccontextmanager
+    async def __request(
+            self, method, endpoint,
+            data=None,
+            *,
+            args={},
+            restart=False,
+    ):
         """
-        Performs an HTTP request to the agent.
+        Context manager for an HTTP request to the agent.  The value is the
+        response object.
 
         :param method:
           HTTP method.
@@ -279,8 +356,10 @@ class Agent:
         :param restart:
           If true, the client will attempt to start an agent automatically
           if the agent conenction fails.
-        :return:
-          The response.
+        :raise RequestError:
+          The request returned 4xx.
+        :raise InternalServiceError:
+          The request returned 5xx.
         """
         # Delays in sec before each attempt to connect.
         delays = self.START_DELAYS if restart else [0]
@@ -289,7 +368,7 @@ class Agent:
             if delay > 0:
                 await asyncio.sleep(delay)
 
-            port, token, session = await self.connect()
+            port, token = await self.connect()
             url_host = if_none(self.__host, "localhost")
             # FIXME: Use library.
             url = f"https://{url_host}:{port}/api/v1" + endpoint
@@ -299,23 +378,50 @@ class Agent:
                 )
 
             try:
-                # FIXME: For now, we use no server verification when
-                # establishing the TLS connection to the agent.  The agent uses
-                # a generic SSL cert with no real host name, so host
-                # verification cannot work; we'd have to generate a certificate
-                # for each agent host.  For now at least we have connection
-                # encryption.
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore", category=InsecureRequestWarning)
-                    rsp = session.request(
-                        method, url,
-                        json=data,
-                        verify=False,
-                        timeout=2,
-                    )
+                rsp = await get_http_client().request(
+                    method, url,
+                    headers={
+                        # The auth header, so the agent accepts us.
+                        "X-Auth-Token": token,
+                        "Content-Type": "application/json",
+                    },
+                    content=ujson.dumps(data),
+                )
+                try:
+                    log.debug(f"{self}: {method} {url} → {rsp.status_code}")
+                    status = rsp.status_code
 
-            except (requests.ConnectionError, requests.ReadTimeout) as exc:
+                    if status == 403:
+                        # Forbidden.  A different agent is running on that port.  We
+                        # should start our own.
+                        log.debug(f"{self}: wrong agent")
+                        await self.disconnect(port, token)
+                        continue
+
+                    elif 200 <= status < 300:
+                        # Request submitted successfully.
+                        yield rsp
+                        return
+
+                    elif 400 <= status < 600:
+                        jso = await _get_jso(rsp)
+                        raise (
+                            NotFoundError if status == 400
+                            else RequestError if status < 500
+                            else InternalServiceError
+                        )(
+                            url, status,
+                            (jso or {}).get("error", None),
+                            (jso or {}).get("exception", None),
+                        )
+
+                    else:
+                        raise RuntimeError(f"unexpected status code: {status}")
+
+                finally:
+                    await rsp.aclose()
+
+            except httpx.RequestError as exc:
                 # We want to show the entire exception stack, unless the
                 # underlying exception is garden-variety 'Connection refused'.
                 while exc.__context__ is not None:
@@ -331,20 +437,6 @@ class Agent:
                 await self.disconnect(port, token)
                 continue
 
-            else:
-                log.debug(f"{self}: {method} {url} → {rsp.status_code}")
-
-                if rsp.status_code == 403:
-                    # Forbidden.  A different agent is running on that port.  We
-                    # should start our own.
-                    log.debug(f"{self}: wrong agent")
-                    await self.disconnect(port, token)
-                    continue
-
-                else:
-                    # Request submitted successfully.
-                    return rsp
-
         else:
             # Ran out of connection attempts.
             raise NoAgentError(self.__host, self.__user)
@@ -352,18 +444,17 @@ class Agent:
 
     async def is_running(self):
         try:
-            rsp = await self.request("GET", "/running")
+            async with self.__request("GET", "/running"):
+                pass
         except NoAgentError:
             return False
         else:
-            raise_for_status(rsp)
             return True
 
 
     async def get_processes(self):
-        rsp = await self.request("GET", "/processes")
-        raise_for_status(rsp)
-        return rsp.json()["processes"]
+        async with self.__request("GET", "/processes") as rsp:
+            return (await _get_jso(rsp))["processes"]
 
 
     async def start_process(
@@ -375,32 +466,32 @@ class Agent:
           The new process, which will either be in state "run" or "err".
         """
         username = get_username() if self.__user is None else self.__user
-        rsp = await self.request(
-            "POST", "/processes", data={
-                "program": {
-                    "username"  : username,
-                    "argv"      : [ str(a) for a in argv ],
-                    "cwd"       : str(cwd),
-                    "env"       : env,
-                    "stdin"     : stdin,
-                },
+        data = {
+            "program": {
+                "username"  : username,
+                "argv"      : [ str(a) for a in argv ],
+                "cwd"       : str(cwd),
+                "env"       : env,
+                "stdin"     : stdin,
             },
-            restart=restart
-        )
-        raise_for_status(rsp)
-        return rsp.json()["process"]
+        } 
+        async with self.__request(
+                "POST", "/processes", data=data, restart=restart
+        ) as rsp:
+            return (await _get_jso(rsp))["process"]
 
 
     async def get_process(self, proc_id, *, restart=False):
         """
         Returns information about a process.
         """
-        rsp = await self.request(
-            "GET", f"/processes/{proc_id}", restart=restart)
-        if rsp.status_code == 404:
+        path = f"/processes/{proc_id}"
+        try:
+            async with self.__request("GET", path, restart=restart) as rsp:
+                return (await _get_jso(rsp))["process"]
+
+        except NotFoundError:
             raise NoSuchProcessError(proc_id)
-        raise_for_status(rsp)
-        return rsp.json()["process"]
 
 
     async def get_process_output(self, proc_id, *, compression=None):
@@ -411,37 +502,30 @@ class Agent:
           The output, its uncompressed length, and the actual compression
           format.
         """
+        path = f"/processes/{proc_id}/output"
         args = {} if compression is None else {"compression": compression}
-        rsp = await self.request(
-            "GET", f"/processes/{proc_id}/output", args=args)
-        if rsp.status_code == 404:
-            raise NoSuchProcessError(proc_id)
-        raise_for_status(rsp)
         try:
-            length = int(rsp.headers["X-Raw-Length"])
-            cmpr = rsp.headers["X-Compression"]
-        except KeyError:
-            # Probably an old agent that doesn't send this header.
-            # FIXME: Clean this up.
-            if compression is not None:
-                # Asked for compression but didn't get this.
-                log.error(
-                    f"missing X-Raw-Length or X-Compression from agent {self}")
-            return rsp.content, len(rsp.content), None
-        else:
-            assert cmpr == compression
-            return rsp.content, length, compression
+            async with self.__request("GET", path, args=args) as rsp:
+                length = int(rsp.headers["X-Raw-Length"])
+                cmpr = rsp.headers.get("X-Compression", None)
+                assert cmpr == compression
+                return await rsp.aread(), length, compression
+
+        except NotFoundError:
+            raise NoSuchProcessError(proc_id)
 
 
     async def del_process(self, proc_id):
         """
         Deltes a process.  The process may not be running.
         """
-        rsp = await self.request("DELETE", f"/processes/{proc_id}")
-        if rsp.status_code == 404:
+        path = f"/processes/{proc_id}"
+        try:
+            async with self.__request("DELETE", path) as rsp:
+                return (await _get_jso(rsp))["stop"]
+
+        except NotFoundError:
             raise NoSuchProcessError(proc_id)
-        raise_for_status(rsp)
-        return rsp.json()["stop"]
 
 
     async def signal(self, proc_id, signal):
@@ -449,21 +533,20 @@ class Agent:
         Sends a signal to a process.
         """
         path = f"/processes/{proc_id}/signal/{signal}"
-        rsp = await self.request("PUT", path)
-        if rsp.status_code == 404:
+        try:
+            async with self.__request("PUT", path) as rsp:
+                return (await _get_jso(rsp))["delivered"]
+
+        except NotFoundError:
             raise NoSuchProcessError(proc_id)
-        elif 400 <= rsp.status_code < 500:
-            raise RuntimeError(rsp.json()["error"])
-        raise_for_status(rsp)
 
 
     async def stop(self):
         """
         Shuts down an agent, if there are no remaining processes.
         """
-        rsp = await self.request("POST", "/stop")
-        raise_for_status(rsp)
-        return rsp.json()["stop"]
+        async with self.__request("POST", "/stop") as rsp:
+            return (await _get_jso(rsp))["stop"]
 
 
 
