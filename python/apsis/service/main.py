@@ -188,10 +188,8 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     try:
         loop.run_forever()
     finally:
-        # Close the aiohttp session used for agent clients.
-        loop.run_until_complete(apsis.agent.client.get_session().close())
-        # Explicitly close the loop, so we find out about any pending tasks
-        # we have incorrectly left behind.
+        # Explicitly close the loop, so we find out about any pending tasks we
+        # have incorrectly left behind.
         loop.close()
     log.info("service done")
 

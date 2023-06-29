@@ -39,19 +39,6 @@ DEFAULT = object()
 
 #-------------------------------------------------------------------------------
 
-@functools.cache
-def get_http_client():
-    return httpx.AsyncClient(
-        timeout=httpx.Timeout(2.0),
-        # FIXME: For now, we use no server verification when establishing the
-        # TLS connection to the agent.  The agent uses a generic SSL cert with
-        # no real host name, so host verification cannot work; we'd have to
-        # generate a certificate for each agent host.  For now at least we have
-        # connection encryption.
-        verify=False,
-    )
-
-
 class NoAgentError(RuntimeError):
     """
     The agent is not running.
@@ -140,6 +127,35 @@ async def _get_jso(rsp):
     except ujson.JSONDecodeError as exc:
         log.error(f"JSON error in {rsp}: {exc}")
         raise RequestJsonError(rsp.url, rsp.status_code, exc)
+
+
+#-------------------------------------------------------------------------------
+
+@functools.lru_cache(1)
+def _get_http_client(loop):
+    """
+    Returns an HTTP client for use with `loop`.
+    """
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(2.0),
+        # FIXME: For now, we use no server verification when establishing the
+        # TLS connection to the agent.  The agent uses a generic SSL cert with
+        # no real host name, so host verification cannot work; we'd have to
+        # generate a certificate for each agent host.  For now at least we have
+        # connection encryption.
+        verify=False,
+    )
+    # When the loop closes, close the client first.  Otherwise, we leak tasks
+    # and fds, and asyncio complains about them at shutdown.
+    loop.on_close(client.aclose())
+    return client
+
+
+def get_http_client() -> httpx.AsyncClient:
+    """
+    Returns an HTTP client for use with the current event loop.
+    """
+    return _get_http_client(asyncio.get_event_loop())
 
 
 #-------------------------------------------------------------------------------
@@ -304,7 +320,7 @@ class Agent:
                 )
                 log.debug(f"{self}: started")
 
-                self.__conn = port, token, get_http_client()
+                self.__conn = port, token
 
             return self.__conn
 
@@ -312,7 +328,7 @@ class Agent:
     async def disconnect(self, port, token):
         log.debug(f"{self}: waiting to disconnect")
         async with self.__lock:
-            if self.__conn[: 2] == (port, token):
+            if self.__conn == (port, token):
                 log.debug(f"{self}: disconnecting")
                 self.__conn = None
             else:
@@ -352,7 +368,7 @@ class Agent:
             if delay > 0:
                 await asyncio.sleep(delay)
 
-            port, token, http_client = await self.connect()
+            port, token = await self.connect()
             url_host = if_none(self.__host, "localhost")
             # FIXME: Use library.
             url = f"https://{url_host}:{port}/api/v1" + endpoint
@@ -362,14 +378,14 @@ class Agent:
                 )
 
             try:
-                rsp = await http_client.request(
+                rsp = await get_http_client().request(
                     method, url,
-                    # Set the auth header, so the agent accepts us.
                     headers={
+                        # The auth header, so the agent accepts us.
                         "X-Auth-Token": token,
                         "Content-Type": "application/json",
                     },
-                    data=ujson.dumps(data),
+                    content=ujson.dumps(data),
                 )
                 try:
                     log.debug(f"{self}: {method} {url} → {rsp.status_code}")
@@ -428,7 +444,7 @@ class Agent:
 
     async def is_running(self):
         try:
-            async with await self.__request("GET", "/running"):
+            async with self.__request("GET", "/running"):
                 pass
         except NoAgentError:
             return False
