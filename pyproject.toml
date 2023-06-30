@@ -58,9 +58,6 @@ packages = [
 
 package-dir = {"" = "python"}
 
-    [dynamic]
-    version = {attr = "apsis.__version__"}
-
     [package-data]
     "apsis.agent" = [
         "agent.cert",
