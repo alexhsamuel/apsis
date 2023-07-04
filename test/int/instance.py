@@ -35,7 +35,7 @@ class ApsisInstance:
         self.cfg_path   = self.tmp_dir / "config.yaml"
         self.log_path   = self.tmp_dir / "apsis.log"
 
-        self.cfg        = cfg
+        self.cfg        = dict(cfg)
         self.srv_proc   = None
 
 
