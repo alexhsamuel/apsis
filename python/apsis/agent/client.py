@@ -31,9 +31,10 @@ from   apsis.lib.sys import get_username
 from   apsis.lib.test import in_test
 
 log = logging.getLogger("agent.client")
-# Turn down logging for httpx and its dependency httpcore.
+# Turn down logging for httpx and its dependencies.
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
 DEFAULT = object()
 
