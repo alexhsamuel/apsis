@@ -47,14 +47,11 @@ class SkipDuplicate(Condition):
 
 
     def to_jso(self):
-        jso = {
+        return {
             **super().to_jso(),
             "check_states"  : [ s.name for s in self.__check_states ],
             "target_state"  : self.__target_state.name,
         }
-        if self.__run is not None:
-            jso["run"] = self.__run
-        return jso
 
 
     @classmethod
