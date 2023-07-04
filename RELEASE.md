@@ -2,6 +2,8 @@
 
 - Add support for async conditions.  Custom conditions need to be updated
   accordingly; see [#278](https://github.com/alexhsamuel/apsis/pull/278).
+- Polling of agent programs is now async.  This allows more concurrently running
+  programs without degraded performance.
 - Update build config to `pyproject.toml`.
 
 
