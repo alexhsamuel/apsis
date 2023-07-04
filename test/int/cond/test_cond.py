@@ -5,6 +5,7 @@ Tests conditions.
 from   contextlib import closing
 from   pathlib import Path
 import pytest
+import random
 import time
 
 from   instance import ApsisInstance
@@ -13,7 +14,7 @@ from   instance import ApsisInstance
 
 job_dir = Path(__file__).absolute().parent / "jobs"
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def inst():
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
@@ -187,12 +188,67 @@ def test_to_error(client):
     # Mark both failure/error runs as success.
     res = client.mark(red1, "success")
     res = client.mark(red2, "success")
-
+ 
     # A red run should go again.
     res = client.schedule("to error", {"color": "red"})
     red3 = res["run_id"]
     res = client.get_run(red3)
     assert res["state"] == "running"
 
+
+@pytest.mark.parametrize("direction", ["forward", "backward", "shuffle"])
+def test_many_deps(inst, direction):
+    """
+    Tests a job with a large number of conditions.
+
+    :param direction:
+      Order in which the dependencies are run, relative to specified.
+    """
+    client = inst.client
+
+    # Create a job with many dependencies.
+    vals = [ format(i, "03d") for i in range(200) ]
+    job = {
+        "program": {"type": "no-op"},
+        "condition": [
+            {
+                "type": "dependency",
+                "job_id": "many dep",
+                "args": {"val": v},
+            }
+            for v in vals
+        ]
+    }
+
+    res = client.schedule_adhoc("now", job)
+    run_id = res["run_id"]
+    assert res["state"] == "waiting"
+
+    # Run the dependencies, in order depending on `direction`.
+    match direction:
+        case "forward":
+            pass
+        case "backward":
+            vals = vals[:: -1]
+        case "shuffle":
+            random.shuffle(vals)
+        case _:
+            assert False
+
+    # All dependencies but one.
+    for v in vals[: -1]:
+        client.schedule("many dep", {"val": v})
+
+    time.sleep(1)
+    # The run is still waiting.
+    res = client.get_run(run_id)
+    assert res["state"] == "waiting"
+
+    # Schedule the last dependency.
+    client.schedule("many dep", {"val": vals[-1]})
+
+    # Now the run can continue.s
+    res = inst.wait_run(run_id)
+    assert res["state"] == "success"
 
 
