@@ -7,7 +7,7 @@ import apsis.agent.client
 #-------------------------------------------------------------------------------
 
 async def _run():
-    prog = apsis.program.AgentProgram(["/bin/sleep", "0.1"])
+    prog = apsis.program.AgentProgram(["/bin/sleep", "1"])
     # Start the program.
     running, coro = await prog.start("testrun", cfg={})
     # Wait for it to finish.
@@ -22,7 +22,7 @@ async def test_agent_program_basic():
 
 @pytest.mark.asyncio
 async def test_agent_program_concurrent():
-    results = await asyncio.gather(*( _run() for _ in range(16) ))
+    results = await asyncio.gather(*( _run() for _ in range(100) ))
     assert all( r.meta["status"] == 0 for r in results )
 
 
