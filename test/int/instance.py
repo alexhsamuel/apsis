@@ -156,7 +156,7 @@ class ApsisInstance:
         """
         while True:
             res = self.client.get_run(run_id)
-            if res["state"] in ("starting", "running"):
+            if res["state"] in ("waiting", "starting", "running"):
                 time.sleep(0.1)
                 continue
             else:
