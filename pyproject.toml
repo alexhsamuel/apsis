@@ -58,17 +58,17 @@ packages = [
 
 package-dir = {"" = "python"}
 
-    [package-data]
-    "apsis.agent" = [
-        "agent.cert",
-        "agent.key",
-    ]
-    "apsis.service" = [
-        "vue/*",
-        "vue/static/css/*",
-        "vue/static/js/*",
-        "vue/static/fonts/*",
-    ]
+[tool.setuptools.package-data]
+"apsis.agent" = [
+    "agent.cert",
+    "agent.key",
+]
+"apsis.service" = [
+    "vue/*",
+    "vue/static/css/*",
+    "vue/static/js/*",
+    "vue/static/fonts/*",
+]
 
 [tool.pytest.ini_options]
 log_level = "DEBUG"
