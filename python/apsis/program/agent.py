@@ -1,5 +1,4 @@
 import asyncio
-from   dataclasses import dataclass
 import functools
 import logging
 import ora
@@ -8,15 +7,14 @@ import traceback
 
 from   .base import (
     Program, ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError,
-    program_outputs
+    program_outputs, Timeout,
 )
 from   apsis.agent.client import Agent, NoSuchProcessError
 from   apsis.host_group import expand_host
 from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
-from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none, nstr
-from   apsis.lib.sys import get_username, to_signal
+from   apsis.lib.sys import get_username
 from   apsis.runs import template_expand, join_args
 
 log = logging.getLogger(__name__)
@@ -29,34 +27,6 @@ def _get_agent(host, user):
 
 
 class AgentProgram(Program):
-
-    @dataclass
-    class Timeout:
-
-        duration: float
-        signal: str
-
-        @classmethod
-        def from_jso(cls, jso):
-            with check_schema(jso) as pop:
-                duration = pop("duration")
-                signal = pop("signal", str, default="SIGTERM")
-            return cls(duration=duration, signal=signal)
-
-
-        def to_jso(self):
-            return {
-                "duration": self.duration,
-                "signal": self.signal,
-            }
-
-
-        def bind(self, args):
-            duration = parse_duration(template_expand(self.duration, args))
-            signal = to_signal(template_expand(self.signal, args)).name
-            return type(self)(duration=duration, signal=signal)
-
-
 
     def __init__(self, argv, *, host=None, user=None, timeout=None):
         self.__argv = tuple( str(a) for a in argv )
@@ -100,7 +70,7 @@ class AgentProgram(Program):
             argv    = pop("argv")
             host    = pop("host", nstr, None)
             user    = pop("user", nstr, None)
-            timeout = pop("timeout", cls.Timeout.from_jso, None)
+            timeout = pop("timeout", Timeout.from_jso, None)
         return cls(argv, host=host, user=user, timeout=timeout)
 
 
@@ -287,7 +257,7 @@ class AgentShellProgram(AgentProgram):
             command = pop("command", str)
             host    = pop("host", nstr, None)
             user    = pop("user", nstr, None)
-            timeout = pop("timeout", cls.Timeout.from_jso, None)
+            timeout = pop("timeout", Timeout.from_jso, None)
         return cls(command, host=host, user=user, timeout=timeout)
 
 

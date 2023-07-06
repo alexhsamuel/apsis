@@ -1,5 +1,10 @@
+from   dataclasses import dataclass
+
 from   apsis.lib.api import decompress
-from   apsis.lib.json import TypedJso
+from   apsis.lib.json import TypedJso, check_schema
+from   apsis.lib.parse import parse_duration
+from   apsis.lib.sys import to_signal
+from   apsis.runs import template_expand
 
 #-------------------------------------------------------------------------------
 
@@ -95,6 +100,36 @@ class ProgramFailure(RuntimeError):
         self.meta       = meta
         self.times      = times
         self.outputs    = outputs
+
+
+
+#-------------------------------------------------------------------------------
+
+@dataclass
+class Timeout:
+
+    duration: float
+    signal: str
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            duration = pop("duration")
+            signal = pop("signal", str, default="SIGTERM")
+        return cls(duration=duration, signal=signal)
+
+
+    def to_jso(self):
+        return {
+            "duration": self.duration,
+            "signal": self.signal,
+        }
+
+
+    def bind(self, args):
+        duration = parse_duration(template_expand(self.duration, args))
+        signal = to_signal(template_expand(self.signal, args)).name
+        return type(self)(duration=duration, signal=signal)
 
 
 
