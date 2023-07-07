@@ -227,7 +227,9 @@ class Apsis:
                 # Start the run.
                 self.__start(run)
 
+        # Start the waiting task.
         task = asyncio.ensure_future(loop())
+        # Register it, but drop it when it's done.
         self.__wait_tasks[run] = task
         task.add_done_callback(lambda _: self.__wait_tasks.pop(run))
 
@@ -525,7 +527,8 @@ class Apsis:
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
         elif run.state == run.STATE.waiting:
-            await cancel_task(self.__wait_tasks.pop(run), f"waiting for {run}", log)
+            # Cancel the waiting task.  It will remove itself when done.
+            await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
         else:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
         self.run_log.info(run, "skipped")
