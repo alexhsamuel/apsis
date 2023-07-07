@@ -1,6 +1,8 @@
 import asyncio
+import functools
 import logging
 import ora
+import procstar
 import socket
 import traceback
 
@@ -138,6 +140,12 @@ class BoundProgram(Program):
         return cls(addr, argv, timeout=timeout)
 
 
+    @functools.cached_property
+    def __client(self):
+        return procstar.client.AsyncClient(
+            self.__addr.host, self.__addr.port, get_http_client())
+
+
     async def start(self, run_id, cfg):
         # FIXME: expand_host() should probably act on addres, not hosts.
         addr = NetAddress(expand_host(self.__addr.host, cfg), self.__addr.port)
@@ -153,62 +161,46 @@ class BoundProgram(Program):
                 # FIXME: Other things?
             },
         }
+        spec = procstar.client.Spec(argv)
+
         meta = {
             "apsis_hostname"  : socket.gethostname(),
             "apsis_username"  : get_username(),
         }
 
         try:
-            agent = self.__get_agent(host)
-            proc = await agent.start_process(argv, env=env, restart=True)
-
+            proc_id = self.__client.post_proc(spec)
         except Exception as exc:
-            log.error("failed to start process", exc_info=True)
-            output = traceback.format_exc().encode()
+            log.error("failed to start program", exc_info=True)
+            output = traceback.format_exc().encoded()
             # FIXME: Use a different "traceback" output, once the UI can
             # understand it.
             raise ProgramError(
                 message=str(exc), outputs=program_outputs(output))
+            log.info(f"started proc: {proc_id}")
 
-        state = proc["state"]
-        if state == "run":
-            log.debug(f"program running: {run_id} as {proc['proc_id']}")
+        # FIXME: Make sure we distinguish an err where the proc isn't created,
+        # from an err where the proc is created (but e.g. fails to start).
 
-            run_state = {
-                "host"          : host,
-                "proc_id"       : proc["proc_id"],
-                "pid"           : proc["pid"],
-            }
-            meta.update(run_state)
-            # FIXME: Propagate times from agent.
-            # FIXME: Do this asynchronously from the agent instead.
-            done = self.wait(run_id, run_state)
-            run_state["start"] = str(ora.now())
-            return ProgramRunning(run_state, meta=meta), done
-
-        elif state == "err":
-            message = proc.get("exception", "program error")
-            log.info(f"program error: {run_id}: {message}")
-            # Clean up the process from the agent.
-            await agent.del_process(proc["proc_id"])
-
-            raise ProgramError(message)
-
-        else:
-            assert False, f"unknown state: {state}"
+        run_state = {
+            "addr": addr.to_jso(),
+            "proc_id": proc_id,
+            # FIXME: pid,
+        }
+        meta.update(run_state)
+        # FIXME: Propagate times from agent.
+        # FIXME: Do this asynchronously from the agent instead.
+        done = self.wait(run_id, run_state)
+        run_state["start"] = str(ora.now())
+        return ProgramRunning(run_state, meta=meta), done
 
 
     async def wait(self, run_id, run_state):
-        host = run_state["host"]
+        addr = NetAddress.from_jso(run_state["addr"])
         proc_id = run_state["proc_id"]
-        agent = self.__get_agent(host)
+
         if self.__timeout is not None:
-            try:
-                start = ora.Time(run_state["start"])
-            except KeyError:
-                # Backward compatibility: no start in run state.
-                # FIXME: Clean this up after transition.
-                start = ora.now()
+            start = ora.Time(run_state["start"])
 
         explanation = ""
 
@@ -225,9 +217,9 @@ class BoundProgram(Program):
                     await self.signal(run_id, run_state, self.__timeout.signal)
                     await asyncio.sleep(POLL_INTERVAL)
 
-            log.debug(f"polling proc: {run_id}: {proc_id} @ {host}")
+            log.debug(f"polling proc: {run_id}: {proc_id} @ {addr}")
             try:
-                proc = await agent.get_process(proc_id, restart=True)
+                proc = await self.__client.get_process(proc_id, restart=True)
             except NoSuchProcessError:
                 # Agent doesn't know about this process anymore.
                 raise ProgramError(f"program lost: {run_id}")
