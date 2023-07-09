@@ -3,6 +3,7 @@ import functools
 import logging
 import ora
 import procstar
+from   procstar.spec import Proc
 import socket
 import traceback
 
@@ -153,15 +154,19 @@ class BoundProgram(Program):
 
         log.debug(f"starting program at {addr}: {join_args(argv)}")
 
-        # FIXME: env.
-        _env = {
-            "inherit": True,
-            "vars": {
-                "APSIS_RUN_ID": run_id,
-                # FIXME: Other things?
-            },
+        env = {
+            "APSIS_RUN_ID": run_id,
+            # FIXME: Other things?
         }
-        spec = procstar.client.Spec(argv)
+        spec = Proc(
+            argv,
+            env=Proc.Env(inherit=True, vars=env),
+            fds={
+                "stdin" : Proc.Fd.Null(),
+                "stdout": Proc.Fd.Capture("memory"),
+                "stderr": Proc.Fd.Dup("stdout"),
+            },
+        )
 
         meta = {
             "apsis_hostname"  : socket.gethostname(),
@@ -218,18 +223,22 @@ class BoundProgram(Program):
                     await asyncio.sleep(POLL_INTERVAL)
 
             log.debug(f"polling proc: {run_id}: {proc_id} @ {addr}")
-            try:
-                proc = await self.__client.get_process(proc_id, restart=True)
-            except NoSuchProcessError:
-                # Agent doesn't know about this process anymore.
-                raise ProgramError(f"program lost: {run_id}")
-            if proc["state"] == "run":
+            proc = await self.__client.get_proc(proc_id)
+            # except NoSuchProcessError:
+            #     # Agent doesn't know about this process anymore.
+            #     raise ProgramError(f"program lost: {run_id}")
+            if proc["status"] is None:
                 await asyncio.sleep(POLL_INTERVAL)
             else:
                 break
 
         status = proc["status"]
-        output, length, compression = await agent.get_process_output(proc_id)
+
+        # FIXME: Get output separately.
+        output = proc["fds"]["stdout"]["text"]
+        length = len(output)
+        # FIXME: Handle compression in procstar.
+        compression = None
 
         if compression is None and len(output) > 16384:
             # Compress the output.
@@ -243,16 +252,19 @@ class BoundProgram(Program):
         log.debug(f"got output: {length} bytes, {compression or 'uncompressed'}")
 
         try:
-            if status == 0:
+            if status["status"] == 0:
                 return ProgramSuccess(meta=proc, outputs=outputs)
 
             else:
-                message = f"program failed: status {status}{explanation}"
+                # FIXME: We have more details now.
+                message = f"program failed: status {status['status']}{explanation}"
                 raise ProgramFailure(message, meta=proc, outputs=outputs)
 
         finally:
             # Clean up the process from the agent.
-            await agent.del_process(proc_id)
+            # FIXME
+            # await self.__client.del_process(proc_id)
+            pass
 
 
     def reconnect(self, run_id, run_state):
