@@ -138,7 +138,7 @@ def _get_http_client(loop):
     Returns an HTTP client for use with `loop`.
     """
     client = httpx.AsyncClient(
-        timeout=httpx.Timeout(2.0),
+        timeout=httpx.Timeout(5.0),
         # FIXME: For now, we use no server verification when establishing the
         # TLS connection to the agent.  The agent uses a generic SSL cert with
         # no real host name, so host verification cannot work; we'd have to
