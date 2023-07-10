@@ -28,6 +28,9 @@ log = logging.getLogger(__name__)
 def _get_http_client(loop):
     """
     Returns an HTTP client for use with `loop`.
+
+    This requires `asd.lib.asyn` to have been early enough to provide the event
+    loop.
     """
     client = httpx.AsyncClient(
         timeout=httpx.Timeout(5.0),
@@ -52,6 +55,8 @@ def get_http_client() -> httpx.AsyncClient:
 
 
 #-------------------------------------------------------------------------------
+
+SHELL_ARGV = ("/usr/bin/bash", "-c")
 
 # FIXME: Elsewhere.
 nto_jso = lambda obj: None if obj is None else obj.to_jso()
@@ -137,8 +142,7 @@ class CommandProgram(Program):
 
     def bind(self, args):
         addr    = _bind_addr(self.__addr, args)
-        command = template_expand(self.__command, args)
-        argv    = ["/bin/bash", "-c", command]
+        argv    = (*SHELL_ARGV, template_expand(self.__command, args))
         timeout = None if self.__timeout is None else self.__timeout.bind(args)
         return BoundProgram(addr, argv, timeout=timeout)
 
@@ -147,11 +151,23 @@ class CommandProgram(Program):
 #-------------------------------------------------------------------------------
 
 class BoundProgram(Program):
+    """
+    Either `ExecProgram` or `CommandProgram`, once bound to run args.
+    """
 
     def __init__(self, addr, argv, *, timeout=None):
         self.__addr = NetAddress.convert(addr)
         self.__argv = [ str(a) for a in argv ]
         self.__timeout = timeout
+
+
+    def __str__(self):
+        # Display only the shell command, if this is a simple shell invocation.
+        # A bit hacky.
+        return (
+            self.__argv[-1] if tuple(self.__argv[: -1]) == SHELL_ARGV
+            else join_args(self.__argv)
+        )
 
 
     def to_jso(self):
@@ -198,7 +214,7 @@ class BoundProgram(Program):
             fds={
                 "stdin" : Proc.Fd.Null(),
                 # FIXME: Use base64.
-                "stdout": Proc.Fd.Capture("memory", "text"),
+                "stdout": Proc.Fd.Capture("tempfile", "text"),
                 "stderr": Proc.Fd.Dup(1),  # FIXME: 1 → "stdout"
             },
         )
