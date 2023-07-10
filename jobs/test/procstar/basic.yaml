@@ -1,0 +1,5 @@
+program:
+  type: apsis.program.procstar.CommandProgram
+  addr: localhost:3000
+  command: /usr/bin/echo 'Hello, world!'
+

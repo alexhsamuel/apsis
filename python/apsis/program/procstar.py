@@ -1,9 +1,8 @@
 import asyncio
 import functools
+import httpx
 import logging
 import ora
-import procstar
-from   procstar.spec import Proc
 import socket
 import traceback
 
@@ -12,6 +11,7 @@ from   .base import (
     program_outputs, Timeout,
 )
 from   apsis.host_group import expand_host
+import apsis.lib.asyn
 from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
 from   apsis.lib.net import NetAddress
@@ -22,6 +22,36 @@ from   apsis.runs import template_expand, join_args
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
+# FIXME: Elsewhere.
+
+@functools.lru_cache(1)
+def _get_http_client(loop):
+    """
+    Returns an HTTP client for use with `loop`.
+    """
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(5.0),
+        # FIXME: For now, we use no server verification when establishing the
+        # TLS connection to the agent.  The agent uses a generic SSL cert with
+        # no real host name, so host verification cannot work; we'd have to
+        # generate a certificate for each agent host.  For now at least we have
+        # connection encryption.
+        verify=False,
+    )
+    # When the loop closes, close the client first.  Otherwise, we leak tasks
+    # and fds, and asyncio complains about them at shutdown.
+    loop.on_close(client.aclose())
+    return client
+
+
+def get_http_client() -> httpx.AsyncClient:
+    """
+    Returns an HTTP client for use with the current event loop.
+    """
+    return _get_http_client(asyncio.get_event_loop())
+
+
+#-------------------------------------------------------------------------------
 
 # FIXME: Elsewhere.
 nto_jso = lambda obj: None if obj is None else obj.to_jso()
@@ -29,7 +59,7 @@ nfrom_jso = lambda cls: or_none(cls.from_jso)
 
 
 def _bind_addr(addr, args):
-    host, port = addr
+    host, port = NetAddress.split(addr)
     host = template_expand(host, args)
     port = int(template_expand(port, args))
     return NetAddress(host, port)
@@ -45,7 +75,7 @@ class ExecProgram(Program):
 
 
     def __str__(self):
-        return join_args(self.__addr, self.__argv, timeout=self.__timeout)
+        return join_args(self.__argv)
 
 
     def to_jso(self):
@@ -84,7 +114,7 @@ class CommandProgram(Program):
 
 
     def __str__(self):
-        return join_args(self.__addr, self.__command, timeout=self.__timeout)
+        return self.__command
 
 
     def to_jso(self):
@@ -126,6 +156,7 @@ class BoundProgram(Program):
 
     def to_jso(self):
         return {
+            **super().to_jso(),
             "addr"      : self.__addr.to_jso(),
             "argv"      : self.__argv,
             "timeout"   : nto_jso(self.__timeout),
@@ -143,11 +174,14 @@ class BoundProgram(Program):
 
     @functools.cached_property
     def __client(self):
-        return procstar.client.AsyncClient(
-            self.__addr.host, self.__addr.port, get_http_client())
+        from procstar.client import AsyncClient
+
+        return AsyncClient(self.__addr, get_http_client())
 
 
     async def start(self, run_id, cfg):
+        from procstar.spec import Proc
+
         # FIXME: expand_host() should probably act on addres, not hosts.
         addr = NetAddress(expand_host(self.__addr.host, cfg), self.__addr.port)
         argv = self.__argv
@@ -163,8 +197,9 @@ class BoundProgram(Program):
             env=Proc.Env(inherit=True, vars=env),
             fds={
                 "stdin" : Proc.Fd.Null(),
-                "stdout": Proc.Fd.Capture("memory"),
-                "stderr": Proc.Fd.Dup("stdout"),
+                # FIXME: Use base64.
+                "stdout": Proc.Fd.Capture("memory", "text"),
+                "stderr": Proc.Fd.Dup(1),  # FIXME: 1 → "stdout"
             },
         )
 
@@ -174,14 +209,15 @@ class BoundProgram(Program):
         }
 
         try:
-            proc_id = self.__client.post_proc(spec)
+            proc_id = await self.__client.post_proc(spec)
         except Exception as exc:
             log.error("failed to start program", exc_info=True)
-            output = traceback.format_exc().encoded()
+            output = traceback.format_exc().encode()
             # FIXME: Use a different "traceback" output, once the UI can
             # understand it.
             raise ProgramError(
                 message=str(exc), outputs=program_outputs(output))
+        else:
             log.info(f"started proc: {proc_id}")
 
         # FIXME: Make sure we distinguish an err where the proc isn't created,
@@ -235,7 +271,7 @@ class BoundProgram(Program):
         status = proc["status"]
 
         # FIXME: Get output separately.
-        output = proc["fds"]["stdout"]["text"]
+        output = proc["fds"]["stdout"]["text"].encode()
         length = len(output)
         # FIXME: Handle compression in procstar.
         compression = None
@@ -277,7 +313,7 @@ class BoundProgram(Program):
         :type signal:
           Signal name or number.
         """
-        log.info(f"sending signal: {run_id}: {self.__timeout.signal}")
+        log.info(f"sending signal: {run_id}: {signal}")
         proc_id = run_state["proc_id"]
         agent = self.__get_agent(run_state["host"])
         await agent.signal(proc_id, signal)
