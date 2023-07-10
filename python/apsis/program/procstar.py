@@ -298,9 +298,7 @@ class BoundProgram(Program):
 
         finally:
             # Clean up the process from the agent.
-            # FIXME
-            # await self.__client.del_process(proc_id)
-            pass
+            await self.__client.delete_proc(proc_id)
 
 
     def reconnect(self, run_id, run_state):
