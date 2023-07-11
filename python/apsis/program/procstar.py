@@ -322,15 +322,13 @@ class BoundProgram(Program):
         return asyncio.ensure_future(self.wait(run_id, run_state))
 
 
-    async def signal(self, run_id, run_state, signal):
+    async def signal(self, run_id, run_state, signum):
         """
         :type signal:
           Signal name or number.
         """
-        log.info(f"sending signal: {run_id}: {signal}")
-        proc_id = run_state["proc_id"]
-        agent = self.__get_agent(run_state["host"])
-        await agent.signal(proc_id, signal)
+        log.info(f"sending signal: {run_id}: {signum}")
+        await self.__client.post_signal(run_state["proc_id"], signum)
 
 
 
