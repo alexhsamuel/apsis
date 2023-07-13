@@ -204,6 +204,8 @@ def main():
                 section["level"] = args.log_level
         app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
         app.config.LOGO = None
+        assert app.config.KEEP_ALIVE_TIMEOUT > 0
+        app.config.KEEP_ALIVE_TIMEOUT = 60
         app.config.auto_stop = None if args.no_stop else args.stop_time
         app.blueprint(API, url_prefix="/api/v1")
         app.ctx.token = token
