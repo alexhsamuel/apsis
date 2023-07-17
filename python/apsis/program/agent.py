@@ -244,7 +244,7 @@ class AgentProgram(Program):
         :type signal:
           Signal name or number.
         """
-        log.info(f"sending signal: {run_id}: {self.__timeout.signal}")
+        log.info(f"sending signal: {run_id}: {signal}")
         proc_id = run_state["proc_id"]
         agent = self.__get_agent(run_state["host"])
         await agent.signal(proc_id, signal)
