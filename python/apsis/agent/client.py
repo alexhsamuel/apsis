@@ -32,9 +32,9 @@ from   apsis.lib.test import in_test
 
 log = logging.getLogger("agent.client")
 # Turn down logging for httpx and its dependencies.
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
+# logging.getLogger("httpx").setLevel(logging.WARNING)
+# logging.getLogger("httpcore").setLevel(logging.WARNING)
+# logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
 DEFAULT = object()
 
@@ -138,18 +138,13 @@ def _get_http_client(loop):
     Returns an HTTP client for use with `loop`.
     """
     client = httpx.AsyncClient(
-        timeout=httpx.Timeout(5.0),
+        timeout=httpx.Timeout(60),
         # FIXME: For now, we use no server verification when establishing the
         # TLS connection to the agent.  The agent uses a generic SSL cert with
         # no real host name, so host verification cannot work; we'd have to
         # generate a certificate for each agent host.  For now at least we have
         # connection encryption.
         verify=False,
-        # FIXME: Don't use keepalive in general, until we understand the
-        # disconnect issues.
-        limits=httpx.Limits(
-            max_keepalive_connections=0,
-        ),
     )
     # When the loop closes, close the client first.  Otherwise, we leak tasks
     # and fds, and asyncio complains about them at shutdown.
@@ -456,6 +451,20 @@ class Agent:
         try:
             async with self.__request("GET", "/running"):
                 pass
+        except NoAgentError:
+            return False
+        else:
+            return True
+
+
+    __ping_seq = 0
+
+    async def ping(self):
+        seq = self.__ping_seq
+        self.__ping_seq += 1
+        try:
+            async with self.__request("GET", f"/ping/{seq}") as rsp:
+                assert (await _get_jso(rsp))["pong"] == seq
         except NoAgentError:
             return False
         else:

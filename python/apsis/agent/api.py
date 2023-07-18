@@ -139,6 +139,15 @@ async def process_running(req):
     return response({"running": True})
 
 
+@API.route("/ping/<seq:int>", methods={"GET"})
+@auth
+async def process_ping(req, seq):
+    import time, random
+    time.sleep(random.random())
+    # await asyncio.sleep(random.random())
+    return response({"pong": seq})
+
+
 @API.route("/processes", methods={"GET"})
 @auth
 async def processes_get(req):
