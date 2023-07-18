@@ -145,6 +145,11 @@ def _get_http_client(loop):
         # generate a certificate for each agent host.  For now at least we have
         # connection encryption.
         verify=False,
+        # FIXME: Don't use keepalive in general, until we understand the
+        # disconnect issues.
+        limits=httpx.Limits(
+            max_keepalive_connections=0,
+        ),
     )
     # When the loop closes, close the client first.  Otherwise, we leak tasks
     # and fds, and asyncio complains about them at shutdown.
@@ -343,6 +348,7 @@ class Agent:
             *,
             args={},
             restart=False,
+            client=None,
     ):
         """
         Context manager for an HTTP request to the agent.  The value is the
@@ -365,6 +371,9 @@ class Agent:
         # Delays in sec before each attempt to connect.
         delays = self.START_DELAYS if restart else [0]
 
+        if client is None:
+            client = get_http_client()
+
         for delay in delays:
             if delay > 0:
                 await asyncio.sleep(delay)
@@ -379,7 +388,7 @@ class Agent:
                 )
 
             try:
-                rsp = await get_http_client().request(
+                rsp = await client.request(
                     method, url,
                     headers={
                         # The auth header, so the agent accepts us.
@@ -482,20 +491,20 @@ class Agent:
             return (await _get_jso(rsp))["process"]
 
 
-    async def get_process(self, proc_id, *, restart=False):
+    async def get_process(self, proc_id, *, restart=False, client=None):
         """
         Returns information about a process.
         """
         path = f"/processes/{proc_id}"
         try:
-            async with self.__request("GET", path, restart=restart) as rsp:
+            async with self.__request("GET", path, restart=restart, client=client) as rsp:
                 return (await _get_jso(rsp))["process"]
 
         except NotFoundError:
             raise NoSuchProcessError(proc_id)
 
 
-    async def get_process_output(self, proc_id, *, compression=None):
+    async def get_process_output(self, proc_id, *, compression=None, client=None):
         """
         Returns process output.
 
@@ -506,7 +515,7 @@ class Agent:
         path = f"/processes/{proc_id}/output"
         args = {} if compression is None else {"compression": compression}
         try:
-            async with self.__request("GET", path, args=args) as rsp:
+            async with self.__request("GET", path, args=args, client=client) as rsp:
                 length = int(rsp.headers["X-Raw-Length"])
                 cmpr = rsp.headers.get("X-Compression", None)
                 assert cmpr == compression
@@ -516,13 +525,13 @@ class Agent:
             raise NoSuchProcessError(proc_id)
 
 
-    async def del_process(self, proc_id):
+    async def del_process(self, proc_id, *, client=None):
         """
         Deltes a process.  The process may not be running.
         """
         path = f"/processes/{proc_id}"
         try:
-            async with self.__request("DELETE", path) as rsp:
+            async with self.__request("DELETE", path, client=client) as rsp:
                 return (await _get_jso(rsp))["stop"]
 
         except NotFoundError:

@@ -1,17 +1,26 @@
-params: [message, host]
+params: [message, host, user]
 
 metadata:
-  description: Test job that runs a shell command on a remote host.
+  description: Test job that runs a program on a remote host.
 
 schedule:
 - type: daily
-  args: {message: "Hello from sage.", host: sage}
+  args: {message: "Hello from sage.", host: sage, user: alex}
   tz: US/Eastern
   daytime:
   - 12:00:00
 
-program:
-  type: shell
-  command: $HOME/dev/apsis/jobs/test/test0 "{{ message }}"
+- type: daily
+  args: {message: "Hello from fennel.", host: soho.indetermi.net, user: alex}
+  tz: US/Eastern
+  daytime:
+  - 12:00:00
+
+program: 
+  type: program
+  argv: 
+  - /home/alex/dev/apsis/jobs/test/test0 
+  - "{{ message }}"
   host: "{{ host }}"
+  user: "{{ user }}"
 
