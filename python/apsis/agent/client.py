@@ -525,13 +525,13 @@ class Agent:
             raise NoSuchProcessError(proc_id)
 
 
-    async def del_process(self, proc_id):
+    async def del_process(self, proc_id, *, client=None):
         """
         Deltes a process.  The process may not be running.
         """
         path = f"/processes/{proc_id}"
         try:
-            async with self.__request("DELETE", path) as rsp:
+            async with self.__request("DELETE", path, client=client) as rsp:
                 return (await _get_jso(rsp))["stop"]
 
         except NotFoundError:
