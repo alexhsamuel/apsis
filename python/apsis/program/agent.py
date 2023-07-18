@@ -1,6 +1,7 @@
 import asyncio
 from   dataclasses import dataclass
 import functools
+import httpx
 import logging
 import ora
 import socket
@@ -185,53 +186,61 @@ class AgentProgram(Program):
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
-        while True:
-            if self.__timeout is not None:
-                elapsed = ora.now() - start
-                if self.__timeout.duration < elapsed:
-                    msg = f"timeout after {elapsed:.0f} s"
-                    log.info(f"{run_id}: {msg}")
-                    explanation = f" ({msg})"
-                    # FIXME: Note timeout in run log.
-                    await self.signal(run_id, run_state, self.__timeout.signal)
+        async with httpx.AsyncClient(
+                verify=False,
+                timeout=httpx.Timeout(5),
+                limits=httpx.Limits(
+                    max_keepalive_connections=1,
+                    keepalive_expiry=5,
+                ),
+        ) as client:
+            while True:
+                if self.__timeout is not None:
+                    elapsed = ora.now() - start
+                    if self.__timeout.duration < elapsed:
+                        msg = f"timeout after {elapsed:.0f} s"
+                        log.info(f"{run_id}: {msg}")
+                        explanation = f" ({msg})"
+                        # FIXME: Note timeout in run log.
+                        await self.signal(run_id, run_state, self.__timeout.signal)
+                        await asyncio.sleep(POLL_INTERVAL)
+
+                log.debug(f"polling proc: {run_id}: {proc_id} @ {host}")
+                try:
+                    proc = await agent.get_process(proc_id, restart=True, client=client)
+                except NoSuchProcessError:
+                    # Agent doesn't know about this process anymore.
+                    raise ProgramError(f"program lost: {run_id}")
+                if proc["state"] == "run":
                     await asyncio.sleep(POLL_INTERVAL)
+                else:
+                    break
 
-            log.debug(f"polling proc: {run_id}: {proc_id} @ {host}")
+            status = proc["status"]
+            output, length, compression = await agent.get_process_output(proc_id, client=client)
+
+            if compression is None and len(output) > 16384:
+                # Compress the output.
+                try:
+                    output, compression = await compress_async(output, "br"), "br"
+                except RuntimeError as exc:
+                    log.error(f"{exc}; not compressing")
+
+            outputs = program_outputs(
+                output, length=length, compression=compression)
+            log.debug(f"got output: {length} bytes, {compression or 'uncompressed'}")
+
             try:
-                proc = await agent.get_process(proc_id, restart=True)
-            except NoSuchProcessError:
-                # Agent doesn't know about this process anymore.
-                raise ProgramError(f"program lost: {run_id}")
-            if proc["state"] == "run":
-                await asyncio.sleep(POLL_INTERVAL)
-            else:
-                break
+                if status == 0:
+                    return ProgramSuccess(meta=proc, outputs=outputs)
 
-        status = proc["status"]
-        output, length, compression = await agent.get_process_output(proc_id)
+                else:
+                    message = f"program failed: status {status}{explanation}"
+                    raise ProgramFailure(message, meta=proc, outputs=outputs)
 
-        if compression is None and len(output) > 16384:
-            # Compress the output.
-            try:
-                output, compression = await compress_async(output, "br"), "br"
-            except RuntimeError as exc:
-                log.error(f"{exc}; not compressing")
-
-        outputs = program_outputs(
-            output, length=length, compression=compression)
-        log.debug(f"got output: {length} bytes, {compression or 'uncompressed'}")
-
-        try:
-            if status == 0:
-                return ProgramSuccess(meta=proc, outputs=outputs)
-
-            else:
-                message = f"program failed: status {status}{explanation}"
-                raise ProgramFailure(message, meta=proc, outputs=outputs)
-
-        finally:
-            # Clean up the process from the agent.
-            await agent.del_process(proc_id)
+            finally:
+                # Clean up the process from the agent.
+                await agent.del_process(proc_id, client=client)
 
 
     def reconnect(self, run_id, run_state):
