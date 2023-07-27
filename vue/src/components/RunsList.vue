@@ -339,7 +339,8 @@ export default {
       grouping: true,    // hide repeated runs
       keywords: null,    // no keyword filters
       labels: null,      // no label filters
-      path: null,
+      path: null,        // job ID prefix
+      job_id: null,      // exact job ID
       show: 50,
       states: null,      // all states
       time: 'now',
@@ -361,6 +362,8 @@ export default {
         const prefix = path + '/'
         runs = filter(runs, run => run.job_id === path || run.job_id.startsWith(prefix))
       }
+      if (this.job_id)
+        runs = filter(runs, run => run.job_id === this.job_id)
       if (this.states)
         runs = filter(runs, run => includes(this.states, run.state))
       if (this.labels)
