@@ -1,0 +1,6 @@
+params: [date]
+
+program:
+  type: shell
+  command: /usr/bin/sleep 5
+
