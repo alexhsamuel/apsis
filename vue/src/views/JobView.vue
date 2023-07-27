@@ -17,7 +17,7 @@ div.component
 
   Frame(title="Runs")
     RunsList(
-      :query="{path: job_id, show: 20}" 
+      :query="{job_id: job_id, show: 20}" 
       :show-job="false"
       :job-controls="false"
       argColumnStyle="separate"
