@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import functools
 import httpx
 import logging
@@ -10,7 +11,7 @@ from   .base import (
     Program, ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError,
     program_outputs, Timeout,
 )
-from   apsis.agent.client import Agent, NoSuchProcessError
+from   apsis.agent.client import Agent, NoSuchProcessError, HTTP_IMPL
 from   apsis.host_group import expand_host
 from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
@@ -156,14 +157,24 @@ class AgentProgram(Program):
 
         # FIXME: This is so embarrassing.
         POLL_INTERVAL = 1
-        async with httpx.AsyncClient(
+
+        if HTTP_IMPL == "httpx":
+            client_ctx = httpx.AsyncClient(
                 verify=False,
                 timeout=httpx.Timeout(5),
                 limits=httpx.Limits(
                     max_keepalive_connections=1,
                     keepalive_expiry=5,
                 ),
-        ) as client:
+            )
+        else:
+            @contextlib.asynccontextmanager
+            async def null_ctx():
+                yield None
+
+            client_ctx = null_ctx()
+
+        async with client_ctx as client:
             while True:
                 if self.__timeout is not None:
                     elapsed = ora.now() - start
