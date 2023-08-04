@@ -526,28 +526,34 @@ class Apsis:
         """
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
+
         elif run.state == run.STATE.waiting:
             # Cancel the waiting task.  It will remove itself when done.
             await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
+
         else:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
+
         self.run_log.info(run, "skipped")
         self._transition(run, run.STATE.skipped, message="skipped")
 
 
     async def start(self, run):
         """
-        Starts immediately a scheduled or waiting run.
+        Immediately starts a scheduled or waiting run.
         """
-        # FIXME: Race conditions?
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
             self.run_log.info(run, "scheduled run started by override")
             self.__wait(run)
+
         elif run.state == run.STATE.waiting:
-            self.__wait_tasks.pop(run).cancel()
+            # Cancel the waiting task.  It will remove itself when done.
+            await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
             self.run_log.info(run, "waiting run started by override")
+            # Start the run.
             self.__start(run)
+
         else:
             raise RunError(f"can't start {run.run_id} in state {run.state.name}")
 
