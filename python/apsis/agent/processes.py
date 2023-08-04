@@ -13,7 +13,6 @@ import signal
 from   subprocess import SubprocessError
 import tempfile
 import uuid
-import sys
 
 log = logging.getLogger("processes")
 
