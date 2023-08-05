@@ -5,8 +5,8 @@ program:
   command: /usr/bin/sleep {{ sleep }}
 
 action:
-  type: apsis.actions.DemoThreadAction
+  type: apsis.actions.SleepThreadAction
   condition:
     states: [success, failure, skipped]
-  count: 8
+  duration: 5
 
