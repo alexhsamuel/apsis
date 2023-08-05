@@ -97,6 +97,13 @@ class ThreadAction(Action):
         return self.__condition
 
 
+    def to_jso(self):
+        jso = super().to_jso()
+        if self.__condition is not None:
+            jso["condition"] = self.__condition.to_jso()
+        return jso
+
+
     def run(self, run):
         raise NotImplementedError("ThreadAction.run")
 
@@ -114,40 +121,41 @@ class ThreadAction(Action):
 
 
 
-class DemoThreadAction(ThreadAction):
+class SleepThreadAction(ThreadAction):
+    """
+    Action that (blocking) sleeps; for testing.
+    """
 
-    def __init__(self, count, *, condition=None):
+    def __init__(self, duration, *, condition=None):
         super().__init__(condition=condition)
-        self.__count = count
+        self.__duration = duration
 
 
     def __repr__(self):
-        return format_ctor(self, self.__count, condition=self.condition)
+        return format_ctor(self, self.__duration, condition=self.condition)
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            condition = pop("condition", Condition.from_jso, None)
-            count = pop("count", int)
-        return cls(count, condition=condition)
+            condition   = pop("condition", Condition.from_jso, None)
+            duration    = pop("duration", float)
+        return cls(duration, condition=condition)
 
 
     def to_jso(self):
         return {
             **super().to_jso(),
-            "count": self.__count,
-            "condition": None if self.condition is None else self.condition.to_jso(),
+            "duration"  : self.__duration,
         }
 
 
     def run(self, run):
-        import requests
-        for _ in range(self.__count):
-            log.info("request")
-            with requests.get("https://slowfil.es/file?type=png&delay=1000&max_age=0") as rsp:
-                data = rsp.content
-            log.info(f"request received {len(data)} bytes")
+        import time
+
+        log.info(f"sleeping action for {self.__duration} s")
+        time.sleep(self.__duration)
+        log.info("sleeping action done")
 
 
 
