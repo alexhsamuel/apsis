@@ -1,8 +1,10 @@
+import asyncio
+import concurrent.futures
 import logging
 
 from   . import runs
 from   .lib.json import TypedJso, check_schema
-from   .lib.py import tupleize
+from   .lib.py import tupleize, format_ctor
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +31,10 @@ class Condition:
         self.states = frozenset(states)
 
 
+    def __repr__(self):
+        return format_ctor(self, states=self.states)
+
+
     def __call__(self, run):
         return run.state in self.states
 
@@ -52,14 +58,127 @@ class Condition:
 #-------------------------------------------------------------------------------
 
 class Action(TypedJso):
+    """
+    Abstract base action to perform when a run has transitioned to a new state.
+    """
 
     TYPE_NAMES = TypedJso.TypeNames()
 
     async def __call__(self, apsis, run):
         """
         Performs the action on `run`.
+
+        An implementation must be properly async, i.e. should not block the
+        event loop for substantial periods of time.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Action.__call__")
+
+
+
+#-------------------------------------------------------------------------------
+
+class ThreadAction(Action):
+    """
+    Abstract base action that is invoked in a thread.
+
+    An implementation should provide `run()`, which may perform blocking
+    activities.  The implementation must take care not to access any global
+    resources that aren't properly threadsafe, including all resources uses by
+    Apsis.  Logging is threadsafe, however.  The Apsis instance is not available
+    to `run()`.
+    """
+
+    def __init__(self, *, condition=None):
+        self.__condition = condition
+
+
+    def __repr__(self):
+        return format_ctor(self, condition=self.__condition)
+
+
+    @property
+    def condition(self):
+        return self.__condition
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition = pop("condition", Condition.from_jso, None)
+        return cls(condition=condition)
+
+
+    def to_jso(self):
+        jso = super().to_jso()
+        if self.__condition is not None:
+            jso["condition"] = self.__condition.to_jso()
+        return jso
+
+
+    def run(self, run):
+        raise NotImplementedError("ThreadAction.run")
+
+
+    async def __call__(self, apsis, run):
+        if self.__condition and not self.__condition(run):
+            return
+
+        if self.__condition is None or self.__condition(run):
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+                log.debug(f"thread action start: {self}")
+                await loop.run_in_executor(exe, self.run, run)
+                log.debug(f"thread action done: {self}")
+
+
+
+class SleepThreadAction(ThreadAction):
+    """
+    Action that (blocking) sleeps; for testing.
+    """
+
+    def __init__(self, duration, *, condition=None):
+        super().__init__(condition=condition)
+        self.__duration = duration
+
+
+    def __repr__(self):
+        return format_ctor(self, self.__duration, condition=self.condition)
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition   = pop("condition", Condition.from_jso, None)
+            duration    = pop("duration", float)
+        return cls(duration, condition=condition)
+
+
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "duration"  : self.__duration,
+        }
+
+
+    def run(self, run):
+        import time
+
+        # Blocking actions are OK here.
+        log.info(f"sleeping action for {self.__duration} s")
+        time.sleep(self.__duration)
+        log.info("sleeping action done")
+
+
+
+class ErrorThreadAction(ThreadAction):
+    """
+    Thread action that raises an exception; for testing.
+    """
+
+    def run(self, run):
+        log.info("error action")
+        raise RuntimeError("something went wrong")
 
 
 

@@ -1,0 +1,9 @@
+program:
+  type: no-op
+
+action:
+  type: apsis.actions.SleepThreadAction
+  duration: 2
+  condition:
+    states: success
+

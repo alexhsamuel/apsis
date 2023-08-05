@@ -1,3 +1,9 @@
+# v0.19
+
+- Add `apsis.action.ThreadAction`, a base class for an action that runs
+  synchronously in a separate thread.
+
+
 # v0.18
 
 - Add support for async conditions.  Custom conditions need to be updated

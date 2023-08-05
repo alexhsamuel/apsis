@@ -27,3 +27,21 @@ used like this in a job config:
 
 
 
+Actions
+```````
+
+To add an additional action to Apsis, extend the `apsis.action.Action` class and
+implement `__call__()`.  Note that each action is run in a separate async tasks,
+which means,
+
+1. It must not block the async event loop.
+
+2. Multiple actions may run (async) concurrently.
+
+3. The run may transition while the action is running.  The `Run` object passed
+   to the action is a copy, however, and will not reflect further transitions.
+
+Alternately, extend the `apsis.action.ThreadAction` class and implement `run()`.
+The implementation should be synchronous and may block.
+
+

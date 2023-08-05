@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import logging
 from   mmap import PAGESIZE
 from   ora import now, Time
@@ -74,6 +75,8 @@ class Apsis:
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
         self.__running_tasks = {}
+        # Tasks for running actions.
+        self.__action_tasks = set()
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -369,33 +372,52 @@ class Apsis:
         return True
 
 
-    def __do_actions(self, run):
+    def __start_actions(self, run):
         """
-        Performs configured actions on `run`.
+        Starts configured actions on `run` as tasks.
         """
-        actions = []
+        def get_actions():
+            # Find actions attached to the job.
+            # FIXME: Would be better to bind actions to the run and serialize them
+            # along with the run, as we do with programs.
+            job_id = run.inst.job_id
+            try:
+                job = self.jobs.get_job(job_id)
+            except LookupError:
+                # Job is gone; can't get the actions.
+                self.run_log.exc(run, "no job")
+            else:
+                yield from job.actions
 
-        # Find actions attached to the job.
-        job_id = run.inst.job_id
-        try:
-            job = self.jobs.get_job(job_id)
-        except LookupError:
-            # Job is gone; can't get the actions.
-            self.run_log.exc(run, "no job")
-        else:
-            actions.extend(job.actions)
+            # Include actions configured globally for all runs.
+            yield from self.__actions
 
-        loop = asyncio.get_event_loop()
+        actions = list(get_actions())
+        if len(actions) == 0:
+            # Nothing to do.
+            return
 
         async def wrap(run, action):
+            """
+            Wrapper to handle exceptions from an action.
+
+            Since these are run as background tasks, we don't transition the
+            run to error if an action fails.
+            """
             try:
                 await action(self, run)
             except Exception:
                 self.run_log.exc(run, "action")
 
-        for action in actions + self.__actions:
-            # FIXME: Hold the future?  Or make sure it doesn't run for long?
-            loop.create_task(wrap(run, action))
+        # The actions run in tasks and the run may transition again soon, so
+        # hand the actions a copy.
+        run = copy.copy(run)
+
+        loop = asyncio.get_event_loop()
+        for action in actions:
+            task = loop.create_task(wrap(run, action))
+            self.__action_tasks.add(task)
+            task.add_done_callback(lambda _: self.__action_tasks.remove(task))
 
 
     # --- Internal API ---------------------------------------------------------
@@ -456,7 +478,7 @@ class Apsis:
         # Persist the new state.
         self.run_store.update(run, time)
 
-        self.__do_actions(run)
+        self.__start_actions(run)
 
 
     def _validate_run(self, run):
@@ -608,6 +630,8 @@ class Apsis:
 
     async def shut_down(self):
         log.info("shutting down Apsis")
+        for task in list(self.__action_tasks):
+            await cancel_task(task, "action", log)
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
         for run, task in list(self.__wait_tasks.items()):
@@ -628,9 +652,12 @@ class Apsis:
             "rusage_maxrss"         : res.ru_maxrss * 1024,
             "rusage_utime"          : res.ru_utime,
             "rusage_stime"          : res.ru_stime,
-            "num_waiting_tasks"     : len(self.__wait_tasks),
-            "num_starting_tasks"    : len(self.__starting_tasks),
-            "num_running_tasks"     : len(self.__running_tasks),
+            "tasks": {
+                "num_waiting"       : len(self.__wait_tasks),
+                "num_starting"      : len(self.__starting_tasks),
+                "num_running"       : len(self.__running_tasks),
+                "num_action"        : len(self.__action_tasks),
+            },
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
             "scheduled"             : self.scheduled.get_stats(),
             "run_store"             : self.run_store.get_stats(),
