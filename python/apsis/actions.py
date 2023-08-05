@@ -1,8 +1,10 @@
+import asyncio
+import concurrent.futures
 import logging
 
 from   . import runs
 from   .lib.json import TypedJso, check_schema
-from   .lib.py import tupleize
+from   .lib.py import tupleize, format_ctor
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +31,10 @@ class Condition:
         self.states = frozenset(states)
 
 
+    def __repr__(self):
+        return format_ctor(self, states=self.states)
+
+
     def __call__(self, run):
         return run.state in self.states
 
@@ -52,14 +58,96 @@ class Condition:
 #-------------------------------------------------------------------------------
 
 class Action(TypedJso):
+    """
+    Abstract base action to perform when a run has transitioned to a new state.
+    """
 
     TYPE_NAMES = TypedJso.TypeNames()
 
     async def __call__(self, apsis, run):
         """
         Performs the action on `run`.
+
+        An implementation must be properly async, i.e. should not block the
+        event loop for substantial periods of time.
         """
-        raise NotImplementedError
+        raise NotImplementedError("Action.__call__")
+
+
+
+#-------------------------------------------------------------------------------
+
+class ThreadAction(Action):
+    """
+    Abstract base action that is invoked in a thread.
+
+    An implementation should provide `run()`, which may perform blocking
+    activities.  The implementation must take care not to access any global
+    resources that aren't properly threadsafe, including all resources uses by
+    Apsis.  Logging is threadsafe, however.  The Apsis instance is not available
+    to `run()`.
+    """
+
+    def __init__(self, *, condition=None):
+        self.__condition = condition
+
+
+    @property
+    def condition(self):
+        return self.__condition
+
+
+    def run(self, run):
+        raise NotImplementedError("ThreadAction.run")
+
+
+    async def __call__(self, apsis, run):
+        if self.__condition and not self.__condition(run):
+            return
+
+        if self.__condition is None or self.__condition(run):
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+                log.debug(f"thread action start: {self}")
+                await loop.run_in_executor(exe, self.run, run)
+                log.debug(f"thread action done: {self}")
+
+
+
+class DemoThreadAction(ThreadAction):
+
+    def __init__(self, count, *, condition=None):
+        super().__init__(condition=condition)
+        self.__count = count
+
+
+    def __repr__(self):
+        return format_ctor(self, self.__count, condition=self.condition)
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition = pop("condition", Condition.from_jso, None)
+            count = pop("count", int)
+        return cls(count, condition=condition)
+
+
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "count": self.__count,
+            "condition": None if self.condition is None else self.condition.to_jso(),
+        }
+
+
+    def run(self, run):
+        import requests
+        for _ in range(self.__count):
+            log.info("request")
+            with requests.get("https://slowfil.es/file?type=png&delay=1000&max_age=0") as rsp:
+                data = rsp.content
+            log.info(f"request received {len(data)} bytes")
 
 
 
