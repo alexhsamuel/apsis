@@ -1,6 +1,5 @@
 from   contextlib import closing
 import json
-import ora
 import time
 
 from   instance import ApsisInstance
