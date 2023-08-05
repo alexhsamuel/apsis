@@ -1,0 +1,6 @@
+params: [duration]
+
+program:
+  type: no-op
+  duration: "{{ duration }}"
+

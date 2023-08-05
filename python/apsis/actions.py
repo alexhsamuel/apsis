@@ -153,6 +153,7 @@ class SleepThreadAction(ThreadAction):
     def run(self, run):
         import time
 
+        # Blocking actions are OK here.
         log.info(f"sleeping action for {self.__duration} s")
         time.sleep(self.__duration)
         log.info("sleeping action done")
