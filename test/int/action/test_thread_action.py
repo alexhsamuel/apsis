@@ -79,3 +79,28 @@ def test_slow_thread_action(inst):
     assert any( "sleeping action done" in l for l in log )
 
 
+def test_error_thread_action(inst):
+    """
+    Tests a thread action that raises an exception.
+    """
+    client = inst.client
+
+    # Run sleeps for 0.5 s.
+    r1 = client.schedule("error", {})["run_id"]
+    inst.wait_run(r1)
+    time.sleep(0.2)
+
+    r2 = client.schedule("stats", {})["run_id"]
+    inst.wait_run(r2)
+
+    # There should be no action running.
+    stats = json.loads(client.get_output(r2, "output"))
+    assert stats["tasks"]["num_action"] == 0
+
+    # Logs should show that the action started and raised.
+    with inst.get_log() as log:
+        log = list(log)
+    assert any( "error action" in l for l in log )
+    assert any( "RuntimeError: something went wrong" in l for l in log )
+
+

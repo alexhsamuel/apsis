@@ -92,9 +92,20 @@ class ThreadAction(Action):
         self.__condition = condition
 
 
+    def __repr__(self):
+        return format_ctor(self, condition=self.__condition)
+
+
     @property
     def condition(self):
         return self.__condition
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition = pop("condition", Condition.from_jso, None)
+        return cls(condition=condition)
 
 
     def to_jso(self):
@@ -157,6 +168,17 @@ class SleepThreadAction(ThreadAction):
         log.info(f"sleeping action for {self.__duration} s")
         time.sleep(self.__duration)
         log.info("sleeping action done")
+
+
+
+class ErrorThreadAction(ThreadAction):
+    """
+    Thread action that raises an exception; for testing.
+    """
+
+    def run(self, run):
+        log.info("error action")
+        raise RuntimeError("something went wrong")
 
 
 
