@@ -2,6 +2,9 @@
 
 - Add `apsis.action.ThreadAction`, a base class for an action that runs
   synchronously in a separate thread.
+- Add `/api/v1/live` and `/api/v1/stats` endpoints, to monitor basic liveness
+  and stats, respectively.
+- Add estimate of async event loop latency to stats.
 
 
 # v0.18
