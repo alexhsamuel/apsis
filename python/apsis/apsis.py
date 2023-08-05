@@ -630,6 +630,8 @@ class Apsis:
 
     async def shut_down(self):
         log.info("shutting down Apsis")
+        for task in list(self.__action_tasks):
+            await cancel_task(task, "action", log)
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
         for run, task in list(self.__wait_tasks.items()):
