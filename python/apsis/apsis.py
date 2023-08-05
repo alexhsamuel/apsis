@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import logging
+import math
 from   mmap import PAGESIZE
 from   ora import now, Time
 import resource
@@ -47,6 +48,10 @@ class Apsis:
     def __init__(self, cfg, jobs, db):
         log.debug("creating Apsis instance")
         self.__start_time = now()
+
+        # Start a loop to monitor the async event loop.
+        self.__check_async_task = asyncio.ensure_future(self.__check_async())
+        self.__check_async_stats = {}
 
         self.cfg = cfg
         # FIXME: This should go in `apsis.config.config_globals` or similar.
@@ -641,7 +646,26 @@ class Apsis:
         for run_id, task in list(self.__running_tasks.items()):
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
+        await cancel_task(self.__check_async_task, "check async", log)
         log.info("Apsis shut down")
+
+
+    async def __check_async(self):
+        """
+        Monitors the async event loop.
+        """
+        while True:
+            # Wake up on the next round 10 seconds.
+            t = now()
+            next_second = t.EPOCH + math.ceil((t - t.EPOCH + 0.01) / 10) * 10
+            await asyncio.sleep(next_second - t)
+
+            # See how late we are.
+            latency = now() - next_second
+            log.info(f"latency: {latency:.6f}")
+            self.__check_async_stats = {
+                "latency": latency,
+            }
 
 
     def get_stats(self):
@@ -649,6 +673,7 @@ class Apsis:
         stats = {
             "start_time"            : str(self.__start_time),
             "time"                  : str(now()),
+            "async"                 : self.__check_async_stats,
             "rusage_maxrss"         : res.ru_maxrss * 1024,
             "rusage_utime"          : res.ru_utime,
             "rusage_stime"          : res.ru_stime,
