@@ -543,7 +543,7 @@ class Agent:
                 "env"       : env,
                 "stdin"     : stdin,
             },
-        } 
+        }
         async with self.__request(
                 "POST", "/processes", data=data, restart=restart
         ) as rsp:

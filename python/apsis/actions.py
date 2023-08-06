@@ -83,7 +83,7 @@ class ThreadAction(Action):
 
     An implementation should provide `run()`, which may perform blocking
     activities.  The implementation must take care not to access any global
-    resources that aren't properly threadsafe, including all resources uses by
+    resources that aren't properly threadsafe, including all resources used by
     Apsis.  Logging is threadsafe, however.  The Apsis instance is not available
     to `run()`.
     """
