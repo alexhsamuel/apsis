@@ -1,10 +1,14 @@
 import asyncio
+import concurrent.futures
 from   dataclasses import dataclass
+import logging
 
 from   apsis.lib import py
 from   apsis.lib.json import TypedJso, check_schema
 from   apsis.lib.timing import LogSlow
-from   apsis.runs import Run, template_expand
+from   apsis.runs import Run, template_expand, get_bind_args
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -74,6 +78,93 @@ class PolledCondition(Condition):
                 await asyncio.sleep(self.poll_interval)
             else:
                 return result
+
+
+
+class ThreadPolledCondition(PolledCondition):
+    """
+    Abstract base condition that polls a check function in a thread.
+
+    An implementation should provide `check()`, which may perform blocking
+    activities.  The implementation must take care not to access any global
+    resources that aren't properly threadsafe, including all resources used by
+    Apsis.  Logging is threadsafe, however.
+
+    Each invocation of `check()` may block for a period of time, but the maximum
+    duration should be bounded and as short as possible.  A condition cannot be
+    cancelled while `check()` is running, so a run cannot be skipped or started
+    until the current check completes.
+    """
+
+    def check(self):
+        return True
+
+
+    async def wait(self):
+        loop = asyncio.get_event_loop()
+        # Use a single executor for all check invocations.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+            # The poll loop needs to be outside the thread and async, so that it
+            # can be canelled via async cancellation.  This will occur only
+            # between checks; a single check runs in a thread executor and
+            # cannot be cancelled.
+            while True:
+                with LogSlow(f"thread cond check: {self}", 0, level=logging.DEBUG):
+                    result = await loop.run_in_executor(exe, self.check)
+                if result is False:
+                    await asyncio.sleep(self.poll_interval)
+                else:
+                    return result
+
+
+
+class TestThreadPolledCondition(ThreadPolledCondition):
+
+    def __init__(self, url, count):
+        self.__url = url
+        self.__count = count
+
+
+    def __repr__(self):
+        return py.format_ctor(self, self.__url, self.__count)
+
+
+    def bind(self, run, jobs):
+        bind_args = get_bind_args(run)
+        url = template_expand(self.__url, bind_args)
+        count = int(template_expand(self.__count, bind_args))
+        return type(self)(url, count)
+
+
+    def to_jso(self):
+        return super().to_jso() | {
+            "url": self.__url,
+            "count": self.__count,
+        }
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            return cls(
+                url=pop("url"),
+                count=pop("count"),
+            )
+
+
+    def check(self):
+        log.info(f"checking: {self.__url}")
+        import requests
+        import time
+        time.sleep(0.1)
+        with requests.get(self.__url) as rsp:
+            time.sleep(0.1)
+            data = rsp.content
+            time.sleep(0.1)
+        log.info(f"got {len(data)} bytes")
+        time.sleep(0.1)
+        self.__count -= 1
+        return False if self.__count > 0 else True
 
 
 

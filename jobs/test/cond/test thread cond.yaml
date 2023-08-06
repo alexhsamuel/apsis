@@ -1,0 +1,8 @@
+program:
+  type: no-op
+
+condition:
+  type: apsis.cond.base.TestThreadPolledCondition
+  url: https://slowfil.es/file?type=png&delay=100
+  count: 10
+
