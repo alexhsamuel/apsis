@@ -1,4 +1,4 @@
-# v0.19
+# v0.20
 
 - Add `apsis.action.ThreadAction`, a base class for an action that runs
   synchronously in a separate thread.
