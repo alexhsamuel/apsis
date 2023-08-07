@@ -239,7 +239,7 @@ class Apsis:
         task = asyncio.ensure_future(loop())
         # Register it, but drop it when it's done.
         self.__wait_tasks[run] = task
-        task.add_done_callback(lambda _: self.__wait_tasks.pop(run))
+        task.add_done_callback(lambda _, run=run: self.__wait_tasks.pop(run))
 
 
     def __start(self, run):
@@ -273,7 +273,8 @@ class Apsis:
 
         task = asyncio.ensure_future(start())
         self.__starting_tasks[run] = task
-        task.add_done_callback(lambda _: self.__starting_tasks.pop(run))
+        task.add_done_callback(
+            lambda _, run=run: self.__starting_tasks.pop(run))
 
 
     def __finish(self, run, future):
@@ -422,7 +423,8 @@ class Apsis:
         for action in actions:
             task = loop.create_task(wrap(run, action))
             self.__action_tasks.add(task)
-            task.add_done_callback(lambda _: self.__action_tasks.remove(task))
+            task.add_done_callback(
+                lambda _, task=task: self.__action_tasks.remove(task))
 
 
     # --- Internal API ---------------------------------------------------------
