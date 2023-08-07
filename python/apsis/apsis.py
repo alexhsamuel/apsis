@@ -662,7 +662,6 @@ class Apsis:
 
             # See how late we are.
             latency = now() - next_second
-            log.info(f"latency: {latency:.6f}")
             self.__check_async_stats = {
                 "latency": latency,
             }
