@@ -154,13 +154,15 @@ class ApsisInstance:
         """
         Polls for a run to no longer be running.
         """
-        while True:
+        for _ in range(600):
             res = self.client.get_run(run_id)
             if res["state"] in ("waiting", "starting", "running"):
                 time.sleep(0.1)
                 continue
             else:
                 return res
+        else:
+            raise RuntimeError("timeout waiting for run")
 
 
 
