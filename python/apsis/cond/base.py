@@ -1,10 +1,14 @@
 import asyncio
+import concurrent.futures
 from   dataclasses import dataclass
+import logging
 
 from   apsis.lib import py
 from   apsis.lib.json import TypedJso, check_schema
 from   apsis.lib.timing import LogSlow
 from   apsis.runs import Run, template_expand
+
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -68,12 +72,49 @@ class PolledCondition(Condition):
           transition to a new state.
         """
         while True:
-            with LogSlow(f"checking cond: {self}", 0.005):
+            with LogSlow(f"checking cond: {self}", 0):
                 result = await self.check()
             if result is False:
                 await asyncio.sleep(self.poll_interval)
             else:
                 return result
+
+
+
+class ThreadPolledCondition(PolledCondition):
+    """
+    Abstract base condition that polls a check function in a thread.
+
+    An implementation should provide `check()`, which may perform blocking
+    activities.  The implementation must take care not to access any global
+    resources that aren't properly threadsafe, including all resources used by
+    Apsis.  Logging is threadsafe, however.
+
+    Each invocation of `check()` may block for a period of time, but the maximum
+    duration should be bounded and as short as possible.  A condition cannot be
+    cancelled while `check()` is running, so a run cannot be skipped or started
+    until the current check completes.
+    """
+
+    def check(self):
+        return True
+
+
+    async def wait(self):
+        loop = asyncio.get_event_loop()
+        # Use a single executor for all check invocations.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+            # The poll loop needs to be outside the thread and async, so that it
+            # can be canelled via async cancellation.  This will occur only
+            # between checks; a single check runs in a thread executor and
+            # cannot be cancelled.
+            while True:
+                with LogSlow(f"thread cond check: {self}", 0, level=logging.DEBUG):
+                    result = await loop.run_in_executor(exe, self.check)
+                if result is False:
+                    await asyncio.sleep(self.poll_interval)
+                else:
+                    return result
 
 
 

@@ -1,7 +1,9 @@
-# v0.19
+# v0.20
 
 - Add `apsis.action.ThreadAction`, a base class for an action that runs
   synchronously in a separate thread.
+- Add `apsis.cond.ThreadPolledCondition`, a base class for a condition whose
+  check runs synchronously in a separate thread.
 - Add `/api/v1/live` and `/api/v1/stats` endpoints, to monitor basic liveness
   and stats, respectively.
 - Add estimate of async event loop latency to stats.
