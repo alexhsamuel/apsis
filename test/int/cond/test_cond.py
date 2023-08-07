@@ -252,3 +252,17 @@ def test_many_deps(inst, direction):
     assert res["state"] == "success"
 
 
+def test_thread_cond(inst):
+    client = inst.client
+
+    # Each run has a single condition, which is checked twice, each with a 0.5 s
+    # sleep.  The poll interval is short.  If the condition checks were serial,
+    # these runs' conditions will take 20 s to complete.
+    run_ids = [ client.schedule("thread poll", {})["run_id"] for _ in range(20) ]
+    for run_id in run_ids:
+        assert client.get_run(run_id)["state"] == "waiting"
+    time.sleep(1.5)
+    for run_id in run_ids:
+        assert client.get_run(run_id)["state"] == "success"
+
+

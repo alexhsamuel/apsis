@@ -3,6 +3,6 @@ program:
 
 condition:
   type: apsis.cond.test.TestThreadPolledCondition
-  delay: 1
-  count: 10
+  delay: 0.5
+  count: 2
 
