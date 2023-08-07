@@ -266,3 +266,27 @@ def test_thread_cond(inst):
         assert client.get_run(run_id)["state"] == "success"
 
 
+def test_thread_cond_skip(inst):
+    client = inst.client
+
+    run_ids = [ client.schedule("thread poll", {})["run_id"] for _ in range(20) ]
+    for run_id in run_ids:
+        assert client.get_run(run_id)["state"] == "waiting"
+    for run_id in run_ids:
+        client.skip(run_id)
+    for run_id in run_ids:
+        assert client.get_run(run_id)["state"] == "skipped"
+
+
+def test_thread_cond_start(inst):
+    client = inst.client
+
+    run_ids = [ client.schedule("thread poll", {})["run_id"] for _ in range(20) ]
+    for run_id in run_ids:
+        assert client.get_run(run_id)["state"] == "waiting"
+    for run_id in run_ids:
+        client.start(run_id)
+    for run_id in run_ids:
+        assert client.get_run(run_id)["state"] == "success"
+
+
