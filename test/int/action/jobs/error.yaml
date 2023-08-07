@@ -2,5 +2,5 @@ program:
   type: no-op
 
 action:
-  type: apsis.actions.ErrorThreadAction
+  type: apsis.actions.test.ErrorThreadAction
 

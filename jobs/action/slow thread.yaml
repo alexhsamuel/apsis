@@ -5,7 +5,7 @@ program:
   command: /usr/bin/sleep {{ sleep }}
 
 action:
-  type: apsis.actions.SleepThreadAction
+  type: apsis.actions.test.SleepThreadAction
   condition:
     states: [success, failure, skipped]
   duration: 5

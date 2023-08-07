@@ -1,12 +1,12 @@
 import asyncio
 from   contextlib import contextmanager
-import enum
 import jinja2
 import logging
 import ora
 from   ora import now, Time
 import shlex
 
+from   . import states
 from   .lib.calendar import get_calendar
 from   .lib.memo import memoize
 from   .lib.py import format_ctor, iterize
@@ -139,38 +139,12 @@ def propagate_args(old_args, job, new_args):
 
 class Run:
 
-    STATE = enum.Enum(
-        "Run.STATE",
-        (
-            "new",
-            "scheduled",
-            "waiting",
-            "starting",
-            "running",
-            "success",
-            "failure",
-            "error",
-            "skipped",
-        )
-    )
-
-    FINISHED = {STATE.success, STATE.failure, STATE.error, STATE.skipped}
-
-    # State model.  Allowed transitions _to_ each state.
-    TRANSITIONS = {
-        STATE.new       : set(),
-        STATE.scheduled : {STATE.new},
-        STATE.waiting   : {STATE.new, STATE.scheduled},
-        STATE.starting  : {STATE.scheduled, STATE.waiting},
-        STATE.running   : {STATE.starting},
-        STATE.error     : {STATE.new, STATE.scheduled, STATE.waiting, STATE.starting, STATE.running, STATE.skipped},
-        STATE.success   : {STATE.running},
-        STATE.failure   : {STATE.running},
-        STATE.skipped   : {STATE.new, STATE.scheduled, STATE.waiting},
-    }
+    # For backward compatibility.
+    STATE = states.State
+    FINISHED = states.FINISHED
+    TRANSITIONS = states.TRANSITIONS
 
     # FIXME: Make the attributes read-only.
-
     __slots__ = (
         "inst",
         "run_id",

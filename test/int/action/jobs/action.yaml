@@ -2,7 +2,7 @@ program:
   type: no-op
 
 action:
-  type: apsis.actions.SleepThreadAction
+  type: apsis.actions.test.SleepThreadAction
   duration: 2
   condition:
     states: success
