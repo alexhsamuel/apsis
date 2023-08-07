@@ -1,5 +1,7 @@
 # v0.20
 
+- Actions are now passed a run snapshot, rather than the `Run` object which may
+  subsequently change.
 - Add `apsis.action.ThreadAction`, a base class for an action that runs
   synchronously in a separate thread.
 - Add `apsis.cond.ThreadPolledCondition`, a base class for a condition whose
