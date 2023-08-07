@@ -519,7 +519,7 @@ class OutputDB:
             conn.execute(self.TABLE.insert().values(**values))
 
 
-    def get_metadata(self, run_id) -> OutputMetadata:
+    def get_metadata(self, run_id):
         """
         Returns all output metadata for run `run_id`.
 
