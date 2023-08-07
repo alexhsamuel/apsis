@@ -1,5 +1,4 @@
 import asyncio
-import copy
 import logging
 import math
 from   mmap import PAGESIZE
@@ -16,6 +15,7 @@ from   .lib.asyn import cancel_task
 from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
 from   . import runs
 from   .run_log import RunLog
+from   .run_snapshot import snapshot_run
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
@@ -381,23 +381,29 @@ class Apsis:
         """
         Starts configured actions on `run` as tasks.
         """
-        def get_actions():
-            # Find actions attached to the job.
-            # FIXME: Would be better to bind actions to the run and serialize them
-            # along with the run, as we do with programs.
-            job_id = run.inst.job_id
-            try:
-                job = self.jobs.get_job(job_id)
-            except LookupError:
-                # Job is gone; can't get the actions.
-                self.run_log.exc(run, "no job")
-            else:
-                yield from job.actions
+        # Find actions attached to the job.
+        # FIXME: Would be better to bind actions to the run and serialize them
+        # along with the run, as we do with programs.
+        job_id = run.inst.job_id
+        try:
+            job = self.jobs.get_job(job_id)
+        except LookupError:
+            # Job is gone; can't get the actions.
+            self.run_log.exc(run, "no job")
+            job = None
+            actions = []
+        else:
+            actions = list(job.actions)
 
-            # Include actions configured globally for all runs.
-            yield from self.__actions
+        # Include actions configured globally for all runs.
+        actions += self.__actions
 
-        actions = list(get_actions())
+        # Check conditions on actions.
+        actions = [
+            a for a in actions
+            if a.condition is None or a.condition(run)
+        ]
+
         if len(actions) == 0:
             # Nothing to do.
             return
@@ -415,8 +421,8 @@ class Apsis:
                 self.run_log.exc(run, "action")
 
         # The actions run in tasks and the run may transition again soon, so
-        # hand the actions a copy.
-        run = copy.copy(run)
+        # hand the actions a snapshot instead.
+        run = snapshot_run(self, run)
 
         loop = asyncio.get_event_loop()
         for action in actions:
