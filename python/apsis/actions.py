@@ -64,6 +64,26 @@ class Action(TypedJso):
 
     TYPE_NAMES = TypedJso.TypeNames()
 
+    def __init__(self, *, condition=None):
+        self.__condition = condition
+
+
+    def __repr__(self):
+        return format_ctor(self, condition=self.__condition)
+
+
+    @property
+    def condition(self):
+        return self.__condition
+
+
+    def to_jso(self):
+        jso = super().to_jso()
+        if self.__condition is not None:
+            jso["condition"] = self.__condition.to_jso()
+        return jso
+
+
     async def __call__(self, apsis, run):
         """
         Performs the action on `run`.
@@ -88,49 +108,20 @@ class ThreadAction(Action):
     to `run()`.
     """
 
-    def __init__(self, *, condition=None):
-        self.__condition = condition
-
-
-    def __repr__(self):
-        return format_ctor(self, condition=self.__condition)
-
-
-    @property
-    def condition(self):
-        return self.__condition
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso) as pop:
-            condition = pop("condition", Condition.from_jso, None)
-        return cls(condition=condition)
-
-
-    def to_jso(self):
-        jso = super().to_jso()
-        if self.__condition is not None:
-            jso["condition"] = self.__condition.to_jso()
-        return jso
-
-
     def run(self, run):
         raise NotImplementedError("ThreadAction.run")
 
 
     async def __call__(self, apsis, run):
-        if self.__condition and not self.__condition(run):
-            return
-
-        if self.__condition is None or self.__condition(run):
-            loop = asyncio.get_event_loop()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
-                log.debug(f"thread action start: {self}")
-                await loop.run_in_executor(exe, self.run, run)
-                log.debug(f"thread action done: {self}")
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+            log.debug(f"thread action start: {self}")
+            await loop.run_in_executor(exe, self.run, run)
+            log.debug(f"thread action done: {self}")
 
 
+
+#-------------------------------------------------------------------------------
 
 class SleepThreadAction(ThreadAction):
     """
@@ -181,6 +172,13 @@ class ErrorThreadAction(ThreadAction):
         raise RuntimeError("something went wrong")
 
 
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition   = pop("condition", Condition.from_jso, None)
+        return cls(condition=condition)
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -190,15 +188,12 @@ class ScheduleAction(Action):
     """
 
     def __init__(self, instance, *, condition=None):
+        super().__init__(condition=condition)
         self.job_id     = instance.job_id
         self.args       = instance.args
-        self.condition  = condition
 
 
     async def __call__(self, apsis, run):
-        if self.condition is not None and not self.condition(run):
-            return
-
         # Expand args templates.
         args = { 
             n: runs.template_expand(v, run.inst.args)
@@ -223,7 +218,6 @@ class ScheduleAction(Action):
             **super().to_jso(),
             "job_id"    : self.job_id,
             "args"      : self.args,
-            "condition" : self.condition.to_jso()
         }
 
 
