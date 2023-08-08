@@ -47,6 +47,7 @@ apsis-agent = "apsis.agent.cli:main"
 [tool.setuptools]
 packages = [
     "apsis",
+    "apsis.actions",
     "apsis.agent",
     "apsis.cond",
     "apsis.lib",
