@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class Action(TypedJso):
     """
-    Abstract base action to perform when a run has transitioned to a new state.
+    An action to perform when a run has transitioned to a new state.
     """
 
     TYPE_NAMES = TypedJso.TypeNames()
@@ -27,18 +27,17 @@ class Action(TypedJso):
         raise NotImplementedError("Action.__call__")
 
 
+    @property
+    def condition(self):
+        raise NotImplementedError("Action.condition")
+
+
 
 #-------------------------------------------------------------------------------
 
-class ThreadAction(Action):
+class BaseAction(Action):
     """
-    Abstract base action that is invoked in a thread.
-
-    An implementation should provide `run()`, which may perform blocking
-    activities.  The implementation must take care not to access any global
-    resources that aren't properly threadsafe, including all resources used by
-    Apsis.  Logging is threadsafe, however.  The Apsis instance is not available
-    to `run()`.
+    Base class for action types.
     """
 
     def __init__(self, *, condition=None):
@@ -68,20 +67,30 @@ class ThreadAction(Action):
         return jso
 
 
+
+#-------------------------------------------------------------------------------
+
+class ThreadAction(BaseAction):
+    """
+    Abstract base action that is invoked in a thread.
+
+    An implementation should provide `run()`, which may perform blocking
+    activities.  The implementation must take care not to access any global
+    resources that aren't properly threadsafe, including all resources used by
+    Apsis.  Logging is threadsafe, however.  The Apsis instance is not available
+    to `run()`.
+    """
+
     def run(self, run):
         raise NotImplementedError("ThreadAction.run")
 
 
     async def __call__(self, apsis, run):
-        if self.__condition and not self.__condition(run):
-            return
-
-        if self.__condition is None or self.__condition(run):
-            loop = asyncio.get_event_loop()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
-                log.debug(f"thread action start: {self}")
-                await loop.run_in_executor(exe, self.run, run)
-                log.debug(f"thread action done: {self}")
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exe:
+            log.debug(f"thread action start: {self}")
+            await loop.run_in_executor(exe, self.run, run)
+            log.debug(f"thread action done: {self}")
 
 
 
