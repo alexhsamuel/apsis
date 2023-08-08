@@ -1,0 +1,9 @@
+program:
+  type: shell
+  command: "echo 'Hello, world!'"
+
+action:
+  type: apsis.actions.test.LogAction
+  condition:
+    states: success
+
