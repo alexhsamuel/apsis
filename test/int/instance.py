@@ -103,6 +103,11 @@ class ApsisInstance:
             yield iter(file)
 
 
+    def get_log_lines(self):
+        with self.get_log() as lines:
+            return tuple(lines)
+
+
     def stop_serve(self):
         assert self.srv_proc is not None
         self.srv_proc.send_signal(signal.SIGTERM)
