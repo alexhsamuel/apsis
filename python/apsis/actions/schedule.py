@@ -1,6 +1,6 @@
 import logging
 
-from   .base import Action
+from   .base import BaseAction
 from   .condition import Condition
 from   apsis.lib.json import check_schema
 from   apsis.runs import template_expand, Instance, Run
@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class ScheduleAction(Action):
+class ScheduleAction(BaseAction):
     """
     Schedules a new run.
     """

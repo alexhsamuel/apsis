@@ -4,7 +4,7 @@ Action types for testing.
 
 import logging
 
-from   .base import ThreadAction
+from   .base import BaseAction, ThreadAction
 from   .condition import Condition
 from   apsis.lib import py
 from   apsis.lib.json import check_schema
@@ -60,6 +60,33 @@ class ErrorThreadAction(ThreadAction):
     def run(self, run):
         log.info("error action")
         raise RuntimeError("something went wrong")
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition   = pop("condition", Condition.from_jso, None)
+        return cls(condition=condition)
+
+
+
+class LogAction(BaseAction):
+    """
+    Action that dumps out contents of the run snapshot.
+    """
+
+    async def __call__(self, apsis, run):
+        log.info(f"run ID: {run.run_id}")
+        log.info(f"run: {run}")
+        log.info(f"job: {run.job}")
+        log.info(f"output: {run.outputs['output'].get_uncompressed_data().decode()}")
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition   = pop("condition", Condition.from_jso, None)
+        return cls(condition=condition)
 
 
 

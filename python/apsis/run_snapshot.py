@@ -22,7 +22,7 @@ class RunSnapshot:
     conds: Sequence[Condition]
     program: Program
     meta: Mapping[str, object]
-    output: Mapping[str, Output]
+    outputs: Mapping[str, Output]
 
     def __repr__(self):
         return py.format_ctor(self, self.run_id, self.inst, state=self.state)
@@ -37,8 +37,8 @@ def snapshot_run(apsis, run):
         job = None
 
     # Load all outputs.
-    output = {
-        apsis.output.get_output(run.run_id, oi)
+    outputs = {
+        oi: apsis.outputs.get_output(run.run_id, oi)
         for oi in apsis.outputs.get_metadata(run.run_id)
     }
 
@@ -50,7 +50,7 @@ def snapshot_run(apsis, run):
         conds       =run.conds,
         program     =run.program,
         meta        =run.meta.copy(),
-        output      =output,
+        outputs     =outputs,
     )
 
 

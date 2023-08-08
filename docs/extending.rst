@@ -30,9 +30,9 @@ used like this in a job config:
 Actions
 ```````
 
-To add an additional action to Apsis, extend the `apsis.action.Action` class and
-implement `__call__()`.  Note that each action is run in a separate async tasks,
-which means,
+To add an additional action to Apsis, extend the `apsis.action.BaseAction` class
+and implement the async `__call__()` method.  Note that each action is run in a
+separate async tasks, which means,
 
 1. It must not block the async event loop.
 
@@ -41,7 +41,6 @@ which means,
 3. The run may transition while the action is running.  The `Run` object passed
    to the action is a copy, however, and will not reflect further transitions.
 
-Alternately, extend the `apsis.action.ThreadAction` class and implement `run()`.
-The implementation should be synchronous and may block.
-
+Alternately, extend the `apsis.action.ThreadAction` class and implement `run()`,
+which is not async.  The implementation may block, but must be threadsafe.
 
