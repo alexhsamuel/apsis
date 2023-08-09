@@ -49,17 +49,16 @@ class ScheduleAction(BaseAction):
             **super().to_jso(),
             "job_id"    : self.job_id,
             "args"      : self.args,
-            "condition" : self.condition.to_jso()
+            "if"        : self.condition.to_jso()
         }
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            condition   = pop("condition", Condition.from_jso, Condition.DEFAULT)
+            condition   = pop("if", Condition.from_jso, None)
             job_id      = pop("job_id")
             args        = pop("args", default={})
-            condition   = Condition.from_jso(pop("if", default=None))
         return cls(Instance(job_id, args), condition=condition)
 
 

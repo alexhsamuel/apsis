@@ -56,14 +56,14 @@ class BaseAction(Action):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            condition = pop("condition", Condition.from_jso, None)
+            condition = pop("if", Condition.from_jso, None)
         return cls(condition=condition)
 
 
     def to_jso(self):
         jso = super().to_jso()
         if self.__condition is not None:
-            jso["condition"] = self.__condition.to_jso()
+            jso["if"] = self.__condition.to_jso()
         return jso
 
 
