@@ -4,6 +4,6 @@ program:
 action:
   type: apsis.actions.test.SleepThreadAction
   duration: 2
-  condition:
+  if:
     states: success
 
