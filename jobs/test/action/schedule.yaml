@@ -6,12 +6,12 @@ program:
 action:
   type: schedule
   job_id: test/action/after
-  condition:
+  if:
     states: success
 
 action:
   type: schedule
   job_id: test/action/fail
-  condition:
+  if:
     states: [failure, error]
 

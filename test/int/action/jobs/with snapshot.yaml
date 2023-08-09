@@ -4,6 +4,6 @@ program:
 
 action:
   type: apsis.actions.test.LogAction
-  condition:
+  if:
     states: success
 

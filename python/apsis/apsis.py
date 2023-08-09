@@ -409,7 +409,7 @@ class Apsis:
             # Nothing to do.
             return
 
-        async def wrap(run, action):
+        async def wrap(run, snapshot, action):
             """
             Wrapper to handle exceptions from an action.
 
@@ -417,17 +417,17 @@ class Apsis:
             run to error if an action fails.
             """
             try:
-                await action(self, run)
+                await action(self, snapshot)
             except Exception:
                 self.run_log.exc(run, "action")
 
         # The actions run in tasks and the run may transition again soon, so
         # hand the actions a snapshot instead.
-        run = snapshot_run(self, run)
+        snapshot = snapshot_run(self, run)
 
         loop = asyncio.get_event_loop()
         for action in actions:
-            task = loop.create_task(wrap(run, action))
+            task = loop.create_task(wrap(run, snapshot, action))
             self.__action_tasks.add(task)
             task.add_done_callback(
                 lambda _, task=task: self.__action_tasks.remove(task))
