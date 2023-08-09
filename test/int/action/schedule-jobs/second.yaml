@@ -1,0 +1,11 @@
+params: [label]
+
+program:
+  type: no-op
+
+action:
+  type: schedule
+  if:
+    states: [success, failure, error]
+  job_id: fourth
+

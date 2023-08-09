@@ -1,0 +1,21 @@
+params: [label]
+
+program:
+  type: no-op
+  duration: 0.5
+
+action:
+  - type: schedule
+    if:
+      states: success
+    job_id: second
+    args:
+      label: on-success
+
+  - type: schedule
+    if:
+      states: [failure, error]
+    job_id: third
+    args:
+      label: on-failure
+
