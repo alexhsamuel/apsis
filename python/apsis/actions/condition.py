@@ -1,5 +1,5 @@
 from   apsis.lib.json import check_schema
-from   apsis.lib.py import format_ctor
+from   apsis.lib import py
 from   apsis.states import ALL_STATES, FINISHED, states_from_jso, states_to_jso
 
 #-------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ class Condition:
 
 
     def __repr__(self):
-        return format_ctor(self, states=self.states)
+        return py.format_ctor(self, states=self.states)
 
 
     def __call__(self, run):
