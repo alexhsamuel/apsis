@@ -26,13 +26,17 @@ def test_schedule_action(inst):
     assert { r["run_id"] for r in client.get_runs().values() } == {r1}
 
     inst.wait_run(r1)
-    runs = tuple(client.get_runs(job_id="second").values())
-    assert len(runs) == 1
+
+    run, = tuple(client.get_runs(job_id="second").values())
+    assert run["args"] == {"label": "on-success"}
 
     runs = tuple(client.get_runs(job_id="third").values())
     assert len(runs) == 0
 
     runs = tuple(client.get_runs(job_id="fourth").values())
     assert len(runs) == 1
+
+    run, = tuple(client.get_runs(job_id="fifth").values())
+    assert run["args"] == {"label": "foo"}
 
 

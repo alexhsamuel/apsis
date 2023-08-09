@@ -19,3 +19,8 @@ action:
     args:
       label: on-failure
 
+  - type: schedule
+    if:
+      states: success
+    job_id: fifth
+
