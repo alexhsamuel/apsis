@@ -30,7 +30,7 @@ class SleepThreadAction(ThreadAction):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            condition   = pop("condition", Condition.from_jso, None)
+            condition   = pop("if", Condition.from_jso, None)
             duration    = pop("duration", float)
         return cls(duration, condition=condition)
 
@@ -65,7 +65,7 @@ class ErrorThreadAction(ThreadAction):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            condition   = pop("condition", Condition.from_jso, None)
+            condition   = pop("if", Condition.from_jso, None)
         return cls(condition=condition)
 
 
@@ -85,7 +85,7 @@ class LogAction(BaseAction):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            condition   = pop("condition", Condition.from_jso, None)
+            condition   = pop("if", Condition.from_jso, None)
         return cls(condition=condition)
 
 
