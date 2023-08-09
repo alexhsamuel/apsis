@@ -1,6 +1,6 @@
 from   apsis.lib.json import check_schema
 from   apsis.lib.py import format_ctor
-from   apsis.states import ALL_STATES, states_from_jso, states_to_jso
+from   apsis.states import ALL_STATES, FINISHED, states_from_jso, states_to_jso
 
 #-------------------------------------------------------------------------------
 
@@ -33,4 +33,6 @@ class Condition:
         }
 
 
+
+Condition.DEFAULT = Condition(states=FINISHED)
 

@@ -16,9 +16,9 @@ class ScheduleAction(BaseAction):
     """
 
     def __init__(self, instance, *, condition=None):
+        super().__init__(condition=condition)
         self.job_id     = instance.job_id
         self.args       = instance.args
-        self.condition  = condition
 
 
     async def __call__(self, apsis, run):
@@ -56,6 +56,7 @@ class ScheduleAction(BaseAction):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
+            condition   = pop("condition", Condition.from_jso, Condition.DEFAULT)
             job_id      = pop("job_id")
             args        = pop("args", default={})
             condition   = Condition.from_jso(pop("if", default=None))
