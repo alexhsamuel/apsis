@@ -21,6 +21,6 @@ action:
 
   - type: schedule
     if:
-      states: success
+      states: [success, error]
     job_id: fifth
 
