@@ -252,6 +252,7 @@ def load_jobs_dir(path):
         try:
             jobs[job_id] = load_yaml_file(path, job_id)
         except SchemaError as exc:
+            log.debug(f"error: {path}: {exc}", exc_info=True)
             exc.job_id = job_id
             errors.append(exc)
     if len(errors) > 0:
