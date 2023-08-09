@@ -42,7 +42,7 @@ def snapshot_run(apsis, run):
         for oi in apsis.outputs.get_metadata(run.run_id)
     }
 
-    return RunSnapshot(
+    snapshot = RunSnapshot(
         run_id      =run.run_id,
         inst        =run.inst,
         state       =run.state,
@@ -52,5 +52,9 @@ def snapshot_run(apsis, run):
         meta        =run.meta.copy(),
         outputs     =outputs,
     )
+    # FIXME: expected isn't part of the API, but we need it for now so that the
+    # run log can log messages from the snapshot.
+    snapshot.expected = run.expected
+    return snapshot
 
 
