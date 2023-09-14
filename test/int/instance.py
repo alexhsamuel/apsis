@@ -155,7 +155,7 @@ class ApsisInstance:
         return ujson.loads(stdout)
 
 
-    def wait_run(self, run_id, *, wait_states=("waiting", "starting", "running")):
+    def wait_run(self, run_id, *, wait_states=("new", "scheduled", "waiting", "starting", "running")):
         """
         Polls for a run to no longer be running.
         """
@@ -171,6 +171,6 @@ class ApsisInstance:
 
 
     def wait_for_run_to_start(self, run_id):
-        return self.wait_run(run_id, wait_states=("new", "starting"))
+        return self.wait_run(run_id, wait_states=("new", "scheduled", "waiting", "starting"))
 
 
