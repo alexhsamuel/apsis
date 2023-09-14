@@ -155,13 +155,13 @@ class ApsisInstance:
         return ujson.loads(stdout)
 
 
-    def wait_run(self, run_id):
+    def wait_run(self, run_id, *, wait_states=("waiting", "starting", "running")):
         """
         Polls for a run to no longer be running.
         """
         for _ in range(600):
             res = self.client.get_run(run_id)
-            if res["state"] in ("waiting", "starting", "running"):
+            if res["state"] in wait_states:
                 time.sleep(0.1)
                 continue
             else:
@@ -169,5 +169,8 @@ class ApsisInstance:
         else:
             raise RuntimeError("timeout waiting for run")
 
+
+    def wait_for_run_to_start(self, run_id):
+        return self.wait_run(run_id, wait_states=("new", "starting"))
 
 
