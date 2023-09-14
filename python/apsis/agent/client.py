@@ -280,6 +280,8 @@ async def start_agent(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         out, err = await apsis.lib.asyn.communicate(proc, timeout)
+    except asyncio.CancelledError:
+        raise AgentStartError(-1, "agent start canceled") from None
     except asyncio.TimeoutError as exc:
         raise AgentStartError(
             -1,
