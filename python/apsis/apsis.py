@@ -9,6 +9,7 @@ import traceback
 
 from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition
+from   .cond.max_running import MaxRunning
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
@@ -188,25 +189,52 @@ class Apsis:
 
             while len(conds) > 0:
                 cond = conds[0]
-
-                async def wait():
+                try:
                     match cond:
                         case PolledCondition():
-                            return await cond.wait()
+                            result = await asyncio.wait_for(cond.wait(), timeout)
+
+                        # Special case for MaxRunning, whose semantics aren't
+                        # compatible with our assumptions about conditions,
+                        # namely that once a condition is true, it remains
+                        # effectively true.  For MaxRunning, another run may
+                        # start whenever we yield to the event loop.  Therefore,
+                        # we have to check one more time, synchronously, before
+                        # continuing past the transition.
+                        case MaxRunning():
+                            while True:
+                                result = await asyncio.wait_for(
+                                    cond.wait(self.run_store),
+                                    timeout
+                                )
+                                if (
+                                        result is True
+                                        # Last check, synchronously.
+                                        and not cond.check(self.run_store)
+                                ):
+                                    # Another run just started, so go and wait.
+                                    continue
+                                else:
+                                    break
+
                         case RunStoreCondition():
-                            return await cond.wait(self.run_store)
+                            result = await asyncio.wait_for(
+                                cond.wait(self.run_store),
+                                timeout
+                            )
+
                         case _:
                             assert False, f"not implemented: {cond!r}"
 
-                try:
-                    result = await asyncio.wait_for(wait(), timeout)
                 except asyncio.CancelledError:
                     raise
+
                 except asyncio.TimeoutError:
                     msg = f"waiting for {cond}: timeout after {timeout} s"
                     self.run_log.info(run, msg)
                     self._transition(run, Run.STATE.error)
                     return
+
                 except Exception:
                     msg = f"waiting for {cond}: failed"
                     log.error(msg, exc_info=True)

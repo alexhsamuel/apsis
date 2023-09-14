@@ -67,30 +67,31 @@ class MaxRunning(RunStoreCondition):
         return type(self)(count, job_id, run.inst.args)
 
 
-    async def wait(self, run_store):
+    def check(self, run_store):
         max_count = int(self.__count)
+        # Count running jobs.
+        _, running = run_store.query(
+            job_id  =self.__job_id,
+            args    =self.__args,
+            state   =(Run.STATE.starting, Run.STATE.running),
+        )
+        count = len(list(running))
+        log.debug(f"found {count} running")
+        return count < max_count
 
+
+    async def wait(self, run_store):
         # Set up a live query for any changes to a run with the relevant job ID
         # and args.
         with run_store.query_live(
                 job_id  =self.__job_id,
                 args    =self.__args,
         ) as queue:
-
-            while True:
-                # Count running jobs.
-                _, running = run_store.query(
-                    job_id  =self.__job_id,
-                    args    =self.__args,
-                    state   =(Run.STATE.starting, Run.STATE.running),
-                )
-                count = len(list(running))
-                log.debug(f"found {count} running")
-                if count < max_count:
-                    return True
-
+            while not self.check(run_store):
                 # Wait until a relevant run transitions, then check again.
                 _ = await queue.get()
+
+        return True
 
 
 
