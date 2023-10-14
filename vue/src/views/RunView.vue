@@ -29,7 +29,7 @@ div
         :job-controls="false"
         :run-controls="false"
         :time-controls="true"
-        :query="{show: 20, grouping: false, path: run.job_id, args: run.args || {}}"
+        :query="{show: 20, grouping: false, job_id: run.job_id, args: run.args || {}}"
         style="max-height: 60rem; overflow-y: auto;"
       )
 

@@ -1,0 +1,8 @@
+program:
+  type: no-op
+
+condition:
+  type: apsis.cond.test.TestThreadPolledCondition
+  delay: 0.5
+  count: 2
+

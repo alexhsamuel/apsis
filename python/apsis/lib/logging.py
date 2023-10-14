@@ -117,6 +117,7 @@ class QueueHandler(logging.Handler):
         self.__length = length
         self.__buffer = []
         self.__queues = []
+        self.__loop = asyncio.get_event_loop()
 
 
     def register(self, length=None) -> asyncio.Queue:
@@ -152,7 +153,7 @@ class QueueHandler(logging.Handler):
 
         for queue in list(self.__queues):
             try:
-                queue.put_nowait([line])
+                self.__loop.call_soon_threadsafe(queue.put_nowait, [line])
             except asyncio.QueueFull:
                 pass
 

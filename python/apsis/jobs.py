@@ -7,8 +7,8 @@ import random
 import string
 import yaml
 
-from   . import actions
 from   .actions import Action
+from   .actions.schedule import successor_from_jso
 from   .cond import Condition
 from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
@@ -118,7 +118,7 @@ def jso_to_job(jso, job_id):
 
         # Successors are syntactic sugar for actions.
         sucs        = pop("successors", to_array, default=[])
-        acts.extend([ actions.successor_from_jso(s) for s in sucs ])
+        acts.extend([ successor_from_jso(s) for s in sucs ])
 
         metadata    = pop("metadata", default={})
         metadata["labels"] = [
@@ -252,6 +252,7 @@ def load_jobs_dir(path):
         try:
             jobs[job_id] = load_yaml_file(path, job_id)
         except SchemaError as exc:
+            log.debug(f"error: {path}: {exc}", exc_info=True)
             exc.job_id = job_id
             errors.append(exc)
     if len(errors) > 0:

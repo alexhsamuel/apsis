@@ -1,0 +1,17 @@
+params: [sleep]
+
+program:
+  type: shell
+  command: /usr/bin/sleep {{ sleep }}
+
+action:
+  - type: apsis.actions.test.SleepThreadAction
+    if:
+      states: [success, failure, skipped]
+    duration: 5
+
+  - type: apsis.actions.test.SleepThreadAction
+    if:
+      states: [success, failure, skipped]
+    duration: 5
+

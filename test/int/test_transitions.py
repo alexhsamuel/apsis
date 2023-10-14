@@ -114,3 +114,59 @@ def test_max_running(inst):
     assert run["state"] == "success"
 
 
+def test_max_running_terminate(inst):
+    client = inst.client
+
+    JOB = {
+        "program": {
+            "type": "program",
+            "argv": ["/usr/bin/sleep", "3"],
+        },
+        "condition": {
+            "type": "max_running",
+            "count": 1,
+        },
+    }
+
+    # Create and schedule a run.
+    res = client.schedule_adhoc("now", JOB)
+    job_id = res["job_id"]
+    run_id0 = res["run_id"]
+    inst.wait_for_run_to_start(run_id0)
+
+    # Schedule additional runs with the same (adhoc) job.
+    run_ids = {
+        client.schedule(job_id, {}, "now")["run_id"]
+        for _ in range(10)
+    }
+
+    # The first job should be running.
+    assert client.get_run(run_id0)["state"] == "running"
+    # The rest should be waiting.
+    assert all( client.get_run(r)["state"] == "waiting" for r in run_ids )
+
+    # Terminate the running run.
+    client.signal(run_id0, "SIGTERM")
+    inst.wait_run(run_id0)
+    assert client.get_run(run_id0)["state"] == "failure"
+    # One other run should be running.
+    assert sum(
+        client.get_run(r)["state"] in {"starting", "running"}
+        for r in run_ids
+    ) == 1
+
+    # Repeat for remaining runs.
+    while len(run_ids) > 0:
+        running = [
+            r for r in run_ids
+            if client.get_run(r)["state"] in {"starting", "running"}
+        ]
+        assert len(running) == 1
+        run_id, = running
+        inst.wait_for_run_to_start(run_id)
+        client.signal(run_id, "SIGTERM")
+        inst.wait_run(run_id)
+        assert client.get_run(run_id)["state"] == "failure"
+        run_ids.remove(run_id)
+
+

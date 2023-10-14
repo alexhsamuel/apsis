@@ -103,6 +103,11 @@ class ApsisInstance:
             yield iter(file)
 
 
+    def get_log_lines(self):
+        with self.get_log() as lines:
+            return tuple(lines)
+
+
     def stop_serve(self):
         assert self.srv_proc is not None
         self.srv_proc.send_signal(signal.SIGTERM)
@@ -150,17 +155,22 @@ class ApsisInstance:
         return ujson.loads(stdout)
 
 
-    def wait_run(self, run_id):
+    def wait_run(self, run_id, *, wait_states=("new", "scheduled", "waiting", "starting", "running")):
         """
         Polls for a run to no longer be running.
         """
-        while True:
+        for _ in range(600):
             res = self.client.get_run(run_id)
-            if res["state"] in ("waiting", "starting", "running"):
+            if res["state"] in wait_states:
                 time.sleep(0.1)
                 continue
             else:
                 return res
+        else:
+            raise RuntimeError("timeout waiting for run")
 
+
+    def wait_for_run_to_start(self, run_id):
+        return self.wait_run(run_id, wait_states=("new", "scheduled", "waiting", "starting"))
 
 

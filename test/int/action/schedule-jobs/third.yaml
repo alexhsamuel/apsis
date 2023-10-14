@@ -1,0 +1,5 @@
+params: [label]
+
+program:
+  type: no-op
+

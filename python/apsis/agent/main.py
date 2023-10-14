@@ -22,14 +22,6 @@ from   .processes import Processes
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Deduplicate with apsis.service.main.
-
-LOG_FORMATTER = logging.Formatter(
-    fmt="%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
-    datefmt="%Y-%m-%dT%H:%M:%S",
-)
-LOG_FORMATTER.converter = time.gmtime  # FIXME: Use ora.
-
 SANIC_LOG_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -78,14 +70,10 @@ SANIC_LOG_CONFIG = {
 
     "formatters": {
         "generic": {
-            "format": "%(asctime)s %(name)-18s [%(levelname)-7s] %(message)s",
-            "datefmt": LOG_FORMATTER.datefmt,
-            "class": "logging.Formatter"
+            "class": "apsis.lib.logging.Formatter",
         },
         "access": {
-            "format": "%(asctime)s %(name)-18s [%(levelname)-7s] [%(host)s %(request)s %(status)d %(byte)d] %(message)s",
-            "datefmt": LOG_FORMATTER.datefmt,
-            "class": "logging.Formatter"
+            "class": "apsis.lib.logging.AccessFormatter",
         },
     },
 
@@ -204,6 +192,8 @@ def main():
                 section["level"] = args.log_level
         app = sanic.Sanic(__name__, log_config=SANIC_LOG_CONFIG)
         app.config.LOGO = None
+        assert app.config.KEEP_ALIVE_TIMEOUT > 0
+        app.config.KEEP_ALIVE_TIMEOUT = 60
         app.config.auto_stop = None if args.no_stop else args.stop_time
         app.blueprint(API, url_prefix="/api/v1")
         app.ctx.token = token

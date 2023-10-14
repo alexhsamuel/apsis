@@ -1,0 +1,17 @@
+params: [label]
+
+program:
+  type: no-op
+
+action:
+  type: schedule
+  job_id: test/action/after
+  if:
+    states: success
+
+action:
+  type: schedule
+  job_id: test/action/fail
+  if:
+    states: [failure, error]
+

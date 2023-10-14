@@ -32,7 +32,7 @@ def test_output_basic(client):
     res = client.schedule("printf", {"string": "hello\n"})
     run_id = res["run_id"]
     # FIXME
-    sleep(0.25)
+    sleep(0.5)
     res = client.get_run(run_id)
     assert res["state"] == "success"
 

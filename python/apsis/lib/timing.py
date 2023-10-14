@@ -1,6 +1,8 @@
 import logging
 import time
 
+log = logging.getLogger(__name__)
+
 #-------------------------------------------------------------------------------
 
 class Timer:

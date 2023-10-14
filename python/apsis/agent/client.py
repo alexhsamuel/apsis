@@ -10,6 +10,7 @@ Uses async HTTPX for communication, including connection reuse.  Therefore,
 
 """
 
+import aiohttp
 import asyncio
 import contextlib
 import errno
@@ -24,6 +25,7 @@ import sys
 import tempfile
 import ujson
 from   urllib.parse import quote_plus
+import warnings
 
 import apsis.lib.asyn
 from   apsis.lib.py import if_none
@@ -37,6 +39,11 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
 DEFAULT = object()
+
+HTTP_IMPL = os.environ.get("APSIS_ASYNC_HTTP", "httpx")
+if HTTP_IMPL not in {"httpx", "aiohttp"}:
+    warnings.warn(f"unknown APSIS_ASYNC_HTTP={HTTP_IMPL}; using httpx")
+    HTTP_IMPL = "httpx"
 
 #-------------------------------------------------------------------------------
 
@@ -121,8 +128,20 @@ class RequestJsonError(RuntimeError):
 
 
 
+async def _load_data(rsp):
+    match HTTP_IMPL:
+        case "httpx":
+            return await rsp.aread()
+        case "aiohttp":
+            return await rsp.read()
+
+
 async def _get_jso(rsp):
-    data = await rsp.aread()
+    match HTTP_IMPL:
+        case "httpx":
+            data = await rsp.aread()
+        case "aiohttp":
+            data = await rsp.read()
     try:
         return ujson.loads(data)
     except ujson.JSONDecodeError as exc:
@@ -137,22 +156,40 @@ def _get_http_client(loop):
     """
     Returns an HTTP client for use with `loop`.
     """
-    client = httpx.AsyncClient(
-        timeout=httpx.Timeout(5.0),
-        # FIXME: For now, we use no server verification when establishing the
-        # TLS connection to the agent.  The agent uses a generic SSL cert with
-        # no real host name, so host verification cannot work; we'd have to
-        # generate a certificate for each agent host.  For now at least we have
-        # connection encryption.
-        verify=False,
-    )
-    # When the loop closes, close the client first.  Otherwise, we leak tasks
-    # and fds, and asyncio complains about them at shutdown.
-    loop.on_close(client.aclose())
+    match HTTP_IMPL:
+        case "httpx":
+            client = httpx.AsyncClient(
+                timeout=httpx.Timeout(5.0),
+                # FIXME: For now, we use no server verification when
+                # establishing the TLS connection to the agent.  The agent uses
+                # a generic SSL cert with no real host name, so host
+                # verification cannot work; we'd have to generate a certificate
+                # for each agent host.  For now at least we have connection
+                # encryption.
+                verify=False,
+                # FIXME: Don't use keepalive in general, until we understand the
+                # disconnect issues.
+                limits=httpx.Limits(
+                    max_keepalive_connections=0,
+                ),
+            )
+            # When the loop closes, close the client first.  Otherwise, we leak
+            # tasks and fds, and asyncio complains about them at shutdown.
+            loop.on_close(client.aclose())
+
+        case "aiohttp":
+            client = aiohttp.ClientSession(
+                loop=loop,
+                timeout=aiohttp.ClientTimeout(total=30),
+            )
+            # When the loop closes, close the client first.  Otherwise, we leak
+            # tasks and pooled fds, and asyncio complains at shutdown.
+            loop.on_close(client.close())
+
     return client
 
 
-def get_http_client() -> httpx.AsyncClient:
+def get_http_client():
     """
     Returns an HTTP client for use with the current event loop.
     """
@@ -222,7 +259,7 @@ def _get_agent_name(user, host, port):
 
 
 async def start_agent(
-        *, host=None, user=None, connect=None, timeout=30, state_dir=None):
+        *, host=None, user=None, connect=None, timeout=60, state_dir=None):
     """
     Starts the agent on `host` as `user`.
 
@@ -243,6 +280,8 @@ async def start_agent(
         *argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         out, err = await apsis.lib.asyn.communicate(proc, timeout)
+    except asyncio.CancelledError:
+        raise AgentStartError(-1, "agent start canceled") from None
     except asyncio.TimeoutError as exc:
         raise AgentStartError(
             -1,
@@ -343,6 +382,7 @@ class Agent:
             *,
             args={},
             restart=False,
+            client=None,
     ):
         """
         Context manager for an HTTP request to the agent.  The value is the
@@ -365,6 +405,9 @@ class Agent:
         # Delays in sec before each attempt to connect.
         delays = self.START_DELAYS if restart else [0]
 
+        if client is None:
+            client = get_http_client()
+
         for delay in delays:
             if delay > 0:
                 await asyncio.sleep(delay)
@@ -379,18 +422,34 @@ class Agent:
                 )
 
             try:
-                rsp = await get_http_client().request(
-                    method, url,
-                    headers={
-                        # The auth header, so the agent accepts us.
-                        "X-Auth-Token": token,
-                        "Content-Type": "application/json",
-                    },
-                    content=ujson.dumps(data),
-                )
+                match HTTP_IMPL:
+                    case "httpx":
+                        rsp = await client.request(
+                            method, url,
+                            headers={
+                                # The auth header, so the agent accepts us.
+                                "X-Auth-Token": token,
+                                "Content-Type": "application/json",
+                            },
+                            content=ujson.dumps(data),
+                        )
+                        status = rsp.status_code
+
+                    case "aiohttp":
+                        rsp = await client.request(
+                            method, url,
+                            verify_ssl=False,
+                            headers={
+                                # The auth header, so the agent accepts us.
+                                "X-Auth-Token": token,
+                                "Content-Type": "application/json",
+                            },
+                            data=ujson.dumps(data),
+                        )
+                        status = rsp.status
+
                 try:
-                    log.debug(f"{self}: {method} {url} → {rsp.status_code}")
-                    status = rsp.status_code
+                    log.debug(f"{self}: {method} {url} → {status}")
 
                     if status == 403:
                         # Forbidden.  A different agent is running on that port.  We
@@ -420,7 +479,12 @@ class Agent:
                         raise RuntimeError(f"unexpected status code: {status}")
 
                 finally:
-                    await rsp.aclose()
+                    match HTTP_IMPL:
+                        case "httpx":
+                            await rsp.aclose()
+                        case "aiohttp":
+                            pass
+                            # await rsp.release()
 
             except httpx.RequestError as exc:
                 # We want to show the entire exception stack, unless the
@@ -434,6 +498,12 @@ class Agent:
                     f"{self}: {method} {url} → connection {err}",
                     exc_info=not is_ecr,
                 )
+                # Try again with a new connection.
+                await self.disconnect(port, token)
+                continue
+
+            except aiohttp.ClientError as exc:
+                log.info(f"{self}: {method} {url} → {exc}", exc_info=True)
                 # Try again with a new connection.
                 await self.disconnect(port, token)
                 continue
@@ -475,27 +545,27 @@ class Agent:
                 "env"       : env,
                 "stdin"     : stdin,
             },
-        } 
+        }
         async with self.__request(
                 "POST", "/processes", data=data, restart=restart
         ) as rsp:
             return (await _get_jso(rsp))["process"]
 
 
-    async def get_process(self, proc_id, *, restart=False):
+    async def get_process(self, proc_id, *, restart=False, client=None):
         """
         Returns information about a process.
         """
         path = f"/processes/{proc_id}"
         try:
-            async with self.__request("GET", path, restart=restart) as rsp:
+            async with self.__request("GET", path, restart=restart, client=client) as rsp:
                 return (await _get_jso(rsp))["process"]
 
         except NotFoundError:
             raise NoSuchProcessError(proc_id)
 
 
-    async def get_process_output(self, proc_id, *, compression=None):
+    async def get_process_output(self, proc_id, *, compression=None, client=None):
         """
         Returns process output.
 
@@ -506,23 +576,23 @@ class Agent:
         path = f"/processes/{proc_id}/output"
         args = {} if compression is None else {"compression": compression}
         try:
-            async with self.__request("GET", path, args=args) as rsp:
+            async with self.__request("GET", path, args=args, client=client) as rsp:
                 length = int(rsp.headers["X-Raw-Length"])
                 cmpr = rsp.headers.get("X-Compression", None)
                 assert cmpr == compression
-                return await rsp.aread(), length, compression
+                return await _load_data(rsp), length, compression
 
         except NotFoundError:
             raise NoSuchProcessError(proc_id)
 
 
-    async def del_process(self, proc_id):
+    async def del_process(self, proc_id, *, client=None):
         """
         Deltes a process.  The process may not be running.
         """
         path = f"/processes/{proc_id}"
         try:
-            async with self.__request("DELETE", path) as rsp:
+            async with self.__request("DELETE", path, client=client) as rsp:
                 return (await _get_jso(rsp))["stop"]
 
         except NotFoundError:

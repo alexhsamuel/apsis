@@ -46,18 +46,17 @@ async def cancel_task(task, name, log):
     """
     Cancels and cleans up `task`, with logging as `name`.
     """
-    log.info(f"canceling {name} task")
     if task.cancelled():
-        log.info(f"{name} task already cancelled")
+        log.info(f"task already cancelled: {name}")
     else:
         task.cancel()
 
     try:
         return await task
     except asyncio.CancelledError:
-        log.info(f"{name} task cancelled")
+        log.info(f"task cancelled: {name}")
     except Exception:
-        log.error(f"{name} task raised", exc_info=True)
+        log.error(f"task cancelled with exc: {name}", exc_info=True)
 
 
 async def communicate(proc, timeout=None):

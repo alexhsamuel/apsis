@@ -29,6 +29,17 @@ def no_such_process_error(request, exception):
     return error(exception, status=400)
 
 
+@API.route("/alive")
+async def live(request):
+    return response_json({})
+
+
+@API.route("/stats")
+async def stats(request):
+    stats = request.app.apsis.get_stats()
+    return response_json(stats)
+
+
 #-------------------------------------------------------------------------------
 
 def to_state(state):

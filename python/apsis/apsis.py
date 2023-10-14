@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 from   mmap import PAGESIZE
 from   ora import now, Time
 import resource
@@ -8,12 +9,14 @@ import traceback
 
 from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition
+from   .cond.max_running import MaxRunning
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
 from   . import runs
 from   .run_log import RunLog
+from   .run_snapshot import snapshot_run
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
@@ -47,6 +50,10 @@ class Apsis:
         log.debug("creating Apsis instance")
         self.__start_time = now()
 
+        # Start a loop to monitor the async event loop.
+        self.__check_async_task = asyncio.ensure_future(self.__check_async())
+        self.__check_async_stats = {}
+
         self.cfg = cfg
         # FIXME: This should go in `apsis.config.config_globals` or similar.
         config_host_groups(cfg)
@@ -74,6 +81,8 @@ class Apsis:
         self.outputs = db.output_db
         # Tasks for running jobs currently awaited.
         self.__running_tasks = {}
+        # Tasks for running actions.
+        self.__action_tasks = set()
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -180,25 +189,52 @@ class Apsis:
 
             while len(conds) > 0:
                 cond = conds[0]
-
-                async def wait():
+                try:
                     match cond:
                         case PolledCondition():
-                            return await cond.wait()
+                            result = await asyncio.wait_for(cond.wait(), timeout)
+
+                        # Special case for MaxRunning, whose semantics aren't
+                        # compatible with our assumptions about conditions,
+                        # namely that once a condition is true, it remains
+                        # effectively true.  For MaxRunning, another run may
+                        # start whenever we yield to the event loop.  Therefore,
+                        # we have to check one more time, synchronously, before
+                        # continuing past the transition.
+                        case MaxRunning():
+                            while True:
+                                result = await asyncio.wait_for(
+                                    cond.wait(self.run_store),
+                                    timeout
+                                )
+                                if (
+                                        result is True
+                                        # Last check, synchronously.
+                                        and not cond.check(self.run_store)
+                                ):
+                                    # Another run just started, so go and wait.
+                                    continue
+                                else:
+                                    break
+
                         case RunStoreCondition():
-                            return await cond.wait(self.run_store)
+                            result = await asyncio.wait_for(
+                                cond.wait(self.run_store),
+                                timeout
+                            )
+
                         case _:
                             assert False, f"not implemented: {cond!r}"
 
-                try:
-                    result = await asyncio.wait_for(wait(), timeout)
                 except asyncio.CancelledError:
                     raise
+
                 except asyncio.TimeoutError:
                     msg = f"waiting for {cond}: timeout after {timeout} s"
                     self.run_log.info(run, msg)
                     self._transition(run, Run.STATE.error)
                     return
+
                 except Exception:
                     msg = f"waiting for {cond}: failed"
                     log.error(msg, exc_info=True)
@@ -231,7 +267,7 @@ class Apsis:
         task = asyncio.ensure_future(loop())
         # Register it, but drop it when it's done.
         self.__wait_tasks[run] = task
-        task.add_done_callback(lambda _: self.__wait_tasks.pop(run))
+        task.add_done_callback(lambda _, run=run: self.__wait_tasks.pop(run))
 
 
     def __start(self, run):
@@ -265,7 +301,8 @@ class Apsis:
 
         task = asyncio.ensure_future(start())
         self.__starting_tasks[run] = task
-        task.add_done_callback(lambda _: self.__starting_tasks.pop(run))
+        task.add_done_callback(
+            lambda _, run=run: self.__starting_tasks.pop(run))
 
 
     def __finish(self, run, future):
@@ -369,33 +406,59 @@ class Apsis:
         return True
 
 
-    def __do_actions(self, run):
+    def __start_actions(self, run):
         """
-        Performs configured actions on `run`.
+        Starts configured actions on `run` as tasks.
         """
-        actions = []
-
         # Find actions attached to the job.
+        # FIXME: Would be better to bind actions to the run and serialize them
+        # along with the run, as we do with programs.
         job_id = run.inst.job_id
         try:
             job = self.jobs.get_job(job_id)
         except LookupError:
             # Job is gone; can't get the actions.
             self.run_log.exc(run, "no job")
+            job = None
+            actions = []
         else:
-            actions.extend(job.actions)
+            actions = list(job.actions)
 
-        loop = asyncio.get_event_loop()
+        # Include actions configured globally for all runs.
+        actions += self.__actions
 
-        async def wrap(run, action):
+        # Check conditions on actions.
+        actions = [
+            a for a in actions
+            if a.condition is None or a.condition(run)
+        ]
+
+        if len(actions) == 0:
+            # Nothing to do.
+            return
+
+        async def wrap(run, snapshot, action):
+            """
+            Wrapper to handle exceptions from an action.
+
+            Since these are run as background tasks, we don't transition the
+            run to error if an action fails.
+            """
             try:
-                await action(self, run)
+                await action(self, snapshot)
             except Exception:
                 self.run_log.exc(run, "action")
 
-        for action in actions + self.__actions:
-            # FIXME: Hold the future?  Or make sure it doesn't run for long?
-            loop.create_task(wrap(run, action))
+        # The actions run in tasks and the run may transition again soon, so
+        # hand the actions a snapshot instead.
+        snapshot = snapshot_run(self, run)
+
+        loop = asyncio.get_event_loop()
+        for action in actions:
+            task = loop.create_task(wrap(run, snapshot, action))
+            self.__action_tasks.add(task)
+            task.add_done_callback(
+                lambda _, task=task: self.__action_tasks.remove(task))
 
 
     # --- Internal API ---------------------------------------------------------
@@ -456,7 +519,7 @@ class Apsis:
         # Persist the new state.
         self.run_store.update(run, time)
 
-        self.__do_actions(run)
+        self.__start_actions(run)
 
 
     def _validate_run(self, run):
@@ -526,28 +589,34 @@ class Apsis:
         """
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
+
         elif run.state == run.STATE.waiting:
             # Cancel the waiting task.  It will remove itself when done.
             await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
+
         else:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
+
         self.run_log.info(run, "skipped")
         self._transition(run, run.STATE.skipped, message="skipped")
 
 
     async def start(self, run):
         """
-        Starts immediately a scheduled or waiting run.
+        Immediately starts a scheduled or waiting run.
         """
-        # FIXME: Race conditions?
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
             self.run_log.info(run, "scheduled run started by override")
             self.__wait(run)
+
         elif run.state == run.STATE.waiting:
-            self.__wait_tasks.pop(run).cancel()
+            # Cancel the waiting task.  It will remove itself when done.
+            await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
             self.run_log.info(run, "waiting run started by override")
+            # Start the run.
             self.__start(run)
+
         else:
             raise RunError(f"can't start {run.run_id} in state {run.state.name}")
 
@@ -602,6 +671,8 @@ class Apsis:
 
     async def shut_down(self):
         log.info("shutting down Apsis")
+        for task in list(self.__action_tasks):
+            await cancel_task(task, "action", log)
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
         for run, task in list(self.__wait_tasks.items()):
@@ -611,7 +682,25 @@ class Apsis:
         for run_id, task in list(self.__running_tasks.items()):
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
+        await cancel_task(self.__check_async_task, "check async", log)
         log.info("Apsis shut down")
+
+
+    async def __check_async(self):
+        """
+        Monitors the async event loop.
+        """
+        while True:
+            # Wake up on the next round 10 seconds.
+            t = now()
+            next_second = t.EPOCH + math.ceil((t - t.EPOCH + 0.01) / 10) * 10
+            await asyncio.sleep(next_second - t)
+
+            # See how late we are.
+            latency = now() - next_second
+            self.__check_async_stats = {
+                "latency": latency,
+            }
 
 
     def get_stats(self):
@@ -619,12 +708,16 @@ class Apsis:
         stats = {
             "start_time"            : str(self.__start_time),
             "time"                  : str(now()),
+            "async"                 : self.__check_async_stats,
             "rusage_maxrss"         : res.ru_maxrss * 1024,
             "rusage_utime"          : res.ru_utime,
             "rusage_stime"          : res.ru_stime,
-            "num_waiting_tasks"     : len(self.__wait_tasks),
-            "num_starting_tasks"    : len(self.__starting_tasks),
-            "num_running_tasks"     : len(self.__running_tasks),
+            "tasks": {
+                "num_waiting"       : len(self.__wait_tasks),
+                "num_starting"      : len(self.__starting_tasks),
+                "num_running"       : len(self.__running_tasks),
+                "num_action"        : len(self.__action_tasks),
+            },
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
             "scheduled"             : self.scheduled.get_stats(),
             "run_store"             : self.run_store.get_stats(),

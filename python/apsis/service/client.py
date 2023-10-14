@@ -68,10 +68,10 @@ class Client:
         ))
 
 
-    def __request(self, method, *path, data=None, **query):
+    def __request(self, method, *path, timeout=None, data=None, **query):
         url = self.__url(*path, **query)
         logging.debug(f"{method} {url} data={data}")
-        resp = requests.request(method, url, json=data)
+        resp = requests.request(method, url, json=data, timeout=timeout)
         if 200 <= resp.status_code < 300:
             return resp.json()
         else:
@@ -94,6 +94,20 @@ class Client:
 
     def __put(self, *path, data=None, **query):
         return self.__request("PUT", *path, data=data, **query)
+
+
+    def alive(self, timeout):
+        """
+        Checks liveness of the service.
+
+        :param timeout:
+          Timeout in sec.
+        """
+        _ = self.__get("/api/v1/alive", timeout=timeout)
+
+
+    def stats(self):
+        return self.__get("/api/v1/stats")
 
 
     def skip(self, run_id):
