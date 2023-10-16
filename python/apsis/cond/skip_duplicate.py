@@ -14,7 +14,7 @@ class SkipDuplicate(Condition):
     Transitions a run if another run with the same job_id and args exists.
 
     This condition will never hold a run in the waiting state; it either
-    transitions it immediately or releases it.
+    transitions it immediately or evaluates to true.
     """
 
     DEFAULT_CHECK_STATES = ("waiting", "starting", "running")
@@ -42,8 +42,9 @@ class SkipDuplicate(Condition):
 
 
     def __str__(self):
-        states = ", ".join( s.name for s in self.__check_states )
-        return f"transition to {self.__target_state.name} if another run is {states}"
+        target = self.__target_state.name
+        states = "|".join( s.name for s in self.__check_states )
+        return f"transition to {target} if another run is {states}"
 
 
     def to_jso(self):
@@ -94,7 +95,7 @@ class BoundSkipDuplicate(RunStoreCondition):
 
     def __str__(self):
         target = self.__target_state.name
-        states = ", ".join( s.name for s in self.__check_states )
+        states = "|".join( s.name for s in self.__check_states )
         return f"transition to {target} if another {self.__inst} is {states}"
 
 

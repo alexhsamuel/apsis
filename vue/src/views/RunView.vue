@@ -52,9 +52,9 @@ div
                 tr(v-for="cond in run.conds" :key="cond.str")
                   td(style="padding-left: 0")
                     span(v-if="cond.type === 'dependency'")
-                      span dependency:
+                      span dependency: 
                       JobWithArgs(:job-id="cond.job_id" :args="cond.args")
-                      span &rarr; {{ join(cond.states, ' ') }}
+                      span  is {{ join(cond.states, '|') }}
                     span(v-else) {{ cond.str }}
 
             tr
