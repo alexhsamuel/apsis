@@ -11,7 +11,6 @@ import signal
 import socket
 import ssl
 import sys
-import time
 
 from   . import SSL_CERT, SSL_KEY
 from   ..lib.daemon import daemonize
