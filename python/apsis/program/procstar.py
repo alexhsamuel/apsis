@@ -11,7 +11,6 @@ from   .base import (
     program_outputs, Timeout,
 )
 from   apsis.host_group import expand_host
-import apsis.lib.asyn
 from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
 from   apsis.lib.net import NetAddress
