@@ -23,6 +23,8 @@ def daemonize(log_path):
     os.dup2(log_fd, 2)
     os.close(log_fd)
 
+    os.closerange(10, get_max_fds())
+
     # Double-fork to detach.
     log.info(f"detaching {os.getpid()} {os.getppid()}")
     if os.fork() > 0:
@@ -33,5 +35,11 @@ def daemonize(log_path):
         log.info(f"second exit {os.getpid()} {os.getppid()}")
         os._exit(0)
     log.info(f"detached {os.getpid()} {os.getppid()}")
+
+
+import resource
+def get_max_fds():
+    _, limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+    return 2048 if limit == resource.RLIM_INFINITY else limit
 
 
