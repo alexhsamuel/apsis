@@ -147,8 +147,8 @@ def test_max_running_terminate(inst):
 
     # Terminate the running run.
     client.signal(run_id0, "SIGTERM")
-    inst.wait_run(run_id0)
-    assert client.get_run(run_id0)["state"] == "failure"
+    res = inst.wait_run(run_id0)
+    assert res["state"] == "failure"
     # One other run should be running.
     assert sum(
         client.get_run(r)["state"] in {"starting", "running"}
@@ -165,8 +165,8 @@ def test_max_running_terminate(inst):
         run_id, = running
         inst.wait_for_run_to_start(run_id)
         client.signal(run_id, "SIGTERM")
-        inst.wait_run(run_id)
-        assert client.get_run(run_id)["state"] == "failure"
+        res = inst.wait_run(run_id)
+        assert res["state"] == "failure"
         run_ids.remove(run_id)
 
 
