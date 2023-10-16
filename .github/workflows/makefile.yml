@@ -17,9 +17,6 @@ jobs:
     - name: Upgrade pip
       run: pip3 install --upgrade pip 'setuptools>=61'
 
-    - name: Install Python dependencies
-      run: pip3 install -r requirements.txt
-
     - name: Install package
       run: pip3 install -e .[dev]
 
