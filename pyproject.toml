@@ -76,7 +76,6 @@ package-dir = {"" = "python"}
 log_level = "DEBUG"
 testpaths = "test"
 markers = ["local_ssh"]
-log_cli = true
 
 [tool.ruff]
 select = ["F", "E999"]

@@ -5,7 +5,7 @@ log = logging.getLogger("daemon")
 
 #-------------------------------------------------------------------------------
 
-def daemonize(log_path):
+def daemonize(log_path, *, keep_fds=[]):
     pid = os.getpid()
     import subprocess
     subprocess.run(f"/usr/bin/ls -l /proc/{pid}/fd 1>&2", shell=True, check=True)
@@ -23,7 +23,15 @@ def daemonize(log_path):
     os.dup2(log_fd, 2)
     os.close(log_fd)
 
-    os.closerange(10, get_max_fds())
+    logging.debug("closing fds")
+    keep_fds.sort()
+    keep_fds.append(get_max_fds())
+    start_fd = 3
+    for fd in sorted(keep_fds):
+        os.closerange(start_fd, fd)
+        start_fd = fd + 1
+
+    subprocess.run(f"/usr/bin/ls -l /proc/{pid}/fd 1>&2", shell=True, check=True)
 
     # Double-fork to detach.
     log.info(f"detaching {os.getpid()} {os.getppid()}")
