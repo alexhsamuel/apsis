@@ -19,11 +19,14 @@ def daemonize(log_path):
     # os.close(log_fd)
 
     # Double-fork to detach.
-    log.info("detaching")
+    log.info("detaching", os.getpid(), os.getppid())
     if os.fork() > 0:
+        log.info("first exit", os.getpid(), os.getppid())
         os._exit(0)
     os.setsid()
     if os.fork() > 0:
+        log.info("second exit", os.getpid(), os.getppid())
         os._exit(0)
+    log.info("detached", os.getpid(), os.getppid())
 
 
