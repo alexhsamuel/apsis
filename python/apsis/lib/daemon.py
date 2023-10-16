@@ -1,11 +1,27 @@
 import logging
 import os
+import resource
 
 log = logging.getLogger("daemon")
 
 #-------------------------------------------------------------------------------
 
-def daemonize(log_path):
+def get_max_fds():
+    _, limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+    return 2048 if limit == resource.RLIM_INFINITY else limit
+
+
+def close_fds(keep_fds):
+    keep_fds = list(sorted(keep_fds))
+    keep_fds.append(get_max_fds())
+    fd0 = 0
+    for fd1 in keep_fds:
+        if fd0 < fd1:
+            os.closerange(fd0, fd1)
+        fd0 = fd1 + 1
+
+
+def daemonize(log_path, *, keep_fds=[]):
     # Redirect stdin from /dev/null.
     null_fd = os.open("/dev/null", os.O_RDONLY)
     os.dup2(null_fd, 0)
@@ -17,6 +33,8 @@ def daemonize(log_path):
     os.dup2(log_fd, 1)
     os.dup2(log_fd, 2)
     os.close(log_fd)
+
+    close_fds([0, 1, 2] + list(keep_fds))
 
     # Double-fork to detach.
     log.info("detaching")
