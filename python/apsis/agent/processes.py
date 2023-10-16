@@ -375,9 +375,9 @@ class Processes:
         Called to indicate a child process has terminated.
         """
         assert signum == signal.SIGCHLD
-        log.info("SIGCHLD")
 
         def reap_all():
+            log.info("SIGCHLD: reaping")
             count = 0
             while self.reap():
                 count += 1
