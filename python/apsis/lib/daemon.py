@@ -7,7 +7,7 @@ log = logging.getLogger("daemon")
 
 def daemonize(log_path):
     import subprocess
-    subprocess.run("/usr/bin/ls -l /proc/self/fd", shell=True, check=True)
+    subprocess.run("/usr/bin/ls -l /proc/self/fd 1>&2", shell=True, check=True)
 
     # Redirect stdin from /dev/null.
     null_fd = os.open("/dev/null", os.O_RDONLY)
