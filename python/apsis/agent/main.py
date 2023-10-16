@@ -212,7 +212,10 @@ def main():
         ssl_context.load_cert_chain(SSL_CERT, keyfile=SSL_KEY)
 
         if not args.no_daemon:
-            daemonize(state_dir / "log")
+            daemonize(
+                state_dir / "log",
+                keep_fds=[pid_file.file.fileno(), sock.fileno()]
+            )
 
         logging.info(f"pid={os.getpid()}")
         uid = pwd.getpwuid(os.getuid())
@@ -222,10 +225,11 @@ def main():
         # FIXME: auto_reload added to sanic after 0.7.
         logging.info("running app")
         app.run(
-            sock    =sock,
-            ssl     =ssl_context,
+            sock        =sock,
+            ssl         =ssl_context,
             # FIXME: Debug seems to be completely broken?
-            # debug   =args.debug,
+            # debug     =args.debug,
+            auto_reload =False,
         )
 
     else:
