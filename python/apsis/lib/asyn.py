@@ -1,5 +1,8 @@
 import asyncio
 from   contextlib import suppress
+import logging
+
+logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -75,16 +78,17 @@ async def communicate(proc, timeout=None):
     err = []
 
     async def read(stream, chunks, size=1024):
-        print(f"communicate.read {stream}")
+        fd = stream._transport.get_protocol().fd
+        logger.info(f"communicate.read {fd}")
         while True:
             chunk = await stream.read(size)
-            print(f"communicate.read {stream} chunk")
+            logger.info(f"communicate.read {fd} chunk")
             if len(chunk) == 0:
                 # EOF
                 break
             else:
                 chunks.append(chunk)
-        print(f"communicate.read {stream} done")
+        logger.info(f"communicate.read {fd} done")
 
     gathered = asyncio.gather(
         read(proc.stdout, out),
