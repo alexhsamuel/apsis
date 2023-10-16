@@ -16,7 +16,7 @@ The components of Apsis are,
 
 - A command line UI for interacting with the service.
 
-The service is built on a a Python 3 async scheduling library, which is suitable
+The service is built on a Python 3 async scheduling library, which is suitable
 for embedding in other applications that require task scheduling.
 
 
