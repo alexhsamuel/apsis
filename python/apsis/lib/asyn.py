@@ -75,13 +75,16 @@ async def communicate(proc, timeout=None):
     err = []
 
     async def read(stream, chunks, size=1024):
+        print(f"communicate.read {stream}")
         while True:
             chunk = await stream.read(size)
+            print(f"communicate.read {stream} chunk")
             if len(chunk) == 0:
                 # EOF
                 break
             else:
                 chunks.append(chunk)
+        print(f"communicate.read {stream} done")
 
     gathered = asyncio.gather(
         read(proc.stdout, out),
