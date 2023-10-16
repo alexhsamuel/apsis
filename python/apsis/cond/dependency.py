@@ -29,7 +29,7 @@ class Dependency(RunStoreCondition):
     def __str__(self):
         inst = Instance(self.job_id, self.args)
         states = "|".join( s.name for s in self.states )
-        return f"dependency on {inst} → {states}"
+        return f"dependency {inst} is {states}"
 
 
     def to_jso(self):

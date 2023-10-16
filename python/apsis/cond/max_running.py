@@ -1,7 +1,7 @@
 import logging
 
 from   apsis.lib.py import format_ctor
-from   apsis.runs import Run, get_bind_args, template_expand
+from   apsis.runs import Instance, Run, get_bind_args, template_expand
 from   .base import RunStoreCondition
 
 log = logging.getLogger(__name__)
@@ -9,11 +9,17 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 class MaxRunning(RunStoreCondition):
+    """
+    Limits simultaneous running jobs.
+
+    The condition is true if the number of runs matching `job_id` and `args` in
+    the starting or running states is less than `count`.
+    """
 
     def __init__(self, count, job_id=None, args=None):
         """
         :param job_id:
-          Job ID of runs to count.  If none, bound to the job ID of the 
+          Job ID of runs to count.  If none, bound to the job ID of the
           owning instance.
         :param args:
           Args to match.  If none, the bound to the args of the owning instance.
@@ -29,13 +35,13 @@ class MaxRunning(RunStoreCondition):
 
 
     def __str__(self):
-        msg = f"max {self.__count} running"
-        if self.__job_id is not None:
-            msg += f" {self.__job_id}"
-            if self.__args is not None:
-                args = " ".join( f"{k}={v}" for k, v in self.__args.items() )
-                msg += f"({args})"
-        return msg
+        if self.__job_id is None or self.__args is None:
+            # Not yet bound.
+            return f"fewer than {self.__count} runs running"
+        else:
+            # Bound.
+            inst = Instance(self.__job_id, self.__args)
+            return f"fewer than {self.__count} runs of {inst} running"
 
 
     def to_jso(self):

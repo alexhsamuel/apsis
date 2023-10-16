@@ -185,7 +185,7 @@ class Apsis:
             conds = list(run.conds)
 
             if len(conds) > 0:
-                self.run_log.record(run, f"condition: {conds[0]}")
+                self.run_log.record(run, f"waiting until: {conds[0]}")
 
             while len(conds) > 0:
                 cond = conds[0]
@@ -246,7 +246,7 @@ class Apsis:
                         # The condition is satisfied.  Proceed to the next.
                         conds.pop(0)
                         if len(conds) > 0:
-                            self.run_log.record(run, f"condition: {conds[0]}")
+                            self.run_log.record(run, f"waiting until: {conds[0]}")
 
                     case cond.Transition(state):
                         # Force a transition.
