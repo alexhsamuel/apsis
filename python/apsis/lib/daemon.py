@@ -6,8 +6,9 @@ log = logging.getLogger("daemon")
 #-------------------------------------------------------------------------------
 
 def daemonize(log_path):
+    pid = os.getpid()
     import subprocess
-    subprocess.run("/usr/bin/ls -l /proc/self/fd 1>&2", shell=True, check=True)
+    subprocess.run(f"/usr/bin/ls -l /proc/{pid}/fd 1>&2", shell=True, check=True)
 
     # Redirect stdin from /dev/null.
     null_fd = os.open("/dev/null", os.O_RDONLY)
@@ -18,7 +19,7 @@ def daemonize(log_path):
     logging.debug(f"redirecting logs: {log_path}")
     log_fd = os.open(log_path, os.O_CREAT | os.O_APPEND | os.O_WRONLY)
     os.dup2(log_fd, 1)
-    subprocess.run("/usr/bin/ls -l /proc/self/fd 1>&2", shell=True, check=True)
+    subprocess.run(f"/usr/bin/ls -l /proc/{pid}/fd 1>&2", shell=True, check=True)
     os.dup2(log_fd, 2)
     os.close(log_fd)
 
