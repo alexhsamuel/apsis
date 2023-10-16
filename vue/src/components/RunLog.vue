@@ -31,6 +31,10 @@ export default {
 
   created() {
     this.load()
+    // FIXME: Instead of reloading periodically, push changes over the
+    // websocket protocol.  Do not set this interval too short, to avoid
+    // loading the backend.
+    setInterval(this.load, 60000)
   },
 
   methods: {
