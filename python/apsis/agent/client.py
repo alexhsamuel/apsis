@@ -259,7 +259,7 @@ def _get_agent_name(user, host, port):
 
 
 async def start_agent(
-        *, host=None, user=None, connect=None, timeout=60, state_dir=None):
+        *, host=None, user=None, connect=None, timeout=10, state_dir=None):
     """
     Starts the agent on `host` as `user`.
 
