@@ -55,6 +55,7 @@ packages = [
     "apsis.lib.itr",
     "apsis.program",
     "apsis.program.internal",
+    "apsis.program.procstar",
     "apsis.schedule",
     "apsis.service",
 ]
