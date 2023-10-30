@@ -37,6 +37,9 @@ class Output:
         :pamam compression:
           The compresison type, or `None` for uncompressed.
         """
+        if not isinstance(data, bytes):
+            raise TypeError("data must be bytes")
+
         self.metadata       = metadata
         self.data           = data
         self.compression    = compression
