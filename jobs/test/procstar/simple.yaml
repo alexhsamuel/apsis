@@ -1,0 +1,6 @@
+program:
+  type: procstar
+  argv:
+    - /usr/bin/echo
+    - "Hello, world!"
+
