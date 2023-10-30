@@ -3,6 +3,7 @@ import logging
 import math
 from   mmap import PAGESIZE
 from   ora import now, Time
+import procstar.ws.server
 import resource
 import sys
 import traceback
@@ -72,6 +73,12 @@ class Apsis:
         else:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
+
+        log.info("starting procstar server")
+        # FIXME: set host / port
+        self.procstar_server = procstar.ws.server.Server()
+        self.__procstar_task = asyncio.ensure_future(
+            self.procstar_server.run_forever(loc=(None, 12345)))
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
