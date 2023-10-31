@@ -34,12 +34,10 @@ class ProcstarProgram(base.Program):
 
 
     def to_jso(self):
-        o = super().to_jso() | {
+        return super().to_jso() | {
             "argv"      : list(self.__argv),
             "group_id"  : self.__group_id,
         }
-        log.info(o)
-        return o
 
 
     @classmethod
