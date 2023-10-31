@@ -58,10 +58,16 @@ class ProcstarProgram(base.Program):
             fds={
                 # FIXME: To file instead?
                 "stdout": procstar.spec.Proc.Fd.Capture("memory", "text"),
+                # Merge stderr into stdin.
                 "stderr": procstar.spec.Proc.Fd.Dup(1),
             }
+            # FIXME: Env.
         )
-        proc = await server.start(proc_id, spec, group_id=self.__group_id)
+        # FIXME: Handle NoOpenConnectionInGroup and wait.
+        try:
+            proc = await server.start(proc_id, spec, group_id=self.__group_id)
+        except Exception as exc:
+            raise base.ProgramError(f"procstar: {exc}")
         # Wait for an initial result.
         res = await anext(proc.results)
         if len(res.errors) > 0:
