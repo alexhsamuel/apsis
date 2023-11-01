@@ -11,6 +11,10 @@ from   apsis.runs import join_args, template_expand
 
 log = logging.getLogger(__name__)
 
+# The websockets library is too chatty at DEBUG (but remove this for debugging
+# low-level WS or TLS problems).
+logging.getLogger("websockets.server").setLevel(logging.INFO)
+
 #-------------------------------------------------------------------------------
 
 # Global procstar service.
