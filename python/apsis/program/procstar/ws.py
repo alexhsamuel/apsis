@@ -16,6 +16,19 @@ log = logging.getLogger(__name__)
 # Global procstar service.
 server = procstar.ws.server.Server()
 
+ENV = procstar.spec.Proc.Env(
+    # Inherit the entire environment from procstar, since it probably
+    # includes important configuration.
+    inherit=True,
+    # Exclude certain Procstar-specific variables.
+    vars={
+        "PROCSTAR_WS_CERT"  : None,
+        "PROCSTAR_WS_KEY"   : None,
+        "PROCSTAR_WS_TOKEN" : None,
+    }
+)
+
+
 class ProcstarProgram(base.Program):
 
     def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
@@ -58,19 +71,22 @@ class ProcstarProgram(base.Program):
                 "stdout": procstar.spec.Proc.Fd.Capture("memory", "text"),
                 # Merge stderr into stdin.
                 "stderr": procstar.spec.Proc.Fd.Dup(1),
-            }
-            # FIXME: Env.
+            },
+            env=ENV,
         )
         # FIXME: Handle NoOpenConnectionInGroup and wait.
         try:
             proc = await server.start(proc_id, spec, group_id=self.__group_id)
         except Exception as exc:
             raise base.ProgramError(f"procstar: {exc}")
+
         # Wait for an initial result.
         res = await anext(proc.results)
+
         if len(res.errors) > 0:
             # FIXME: Clean up the proc.
             raise base.ProgramError("; ".join(res.errors))
+
         else:
             # FIXME: Meta.
             run_state = {"proc_id": proc_id}
