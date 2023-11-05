@@ -68,15 +68,15 @@ class ProcstarProgram(base.Program):
     async def start(self, run_id, cfg):
         proc_id = str(uuid.uuid4())
         # FIXME
-        spec = procstar.spec.make_proc(
+        spec = procstar.spec.Proc(
             self.__argv,
+            env=ENV,
             fds={
                 # FIXME: To file instead?
                 "stdout": procstar.spec.Proc.Fd.Capture("memory", "text"),
                 # Merge stderr into stdin.
                 "stderr": procstar.spec.Proc.Fd.Dup(1),
             },
-            env=ENV,
         )
         # FIXME: Handle NoOpenConnectionInGroup and wait.
         try:
