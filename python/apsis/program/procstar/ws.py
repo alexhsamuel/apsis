@@ -88,7 +88,12 @@ class ProcstarProgram(base.Program):
         res = await anext(proc.results)
 
         if len(res.errors) > 0:
-            # FIXME: Clean up the proc.
+            # Clean up the process.
+            try:
+                await server.delete(proc.proc_id)
+            except Exception as exc:
+                log.error(f"delete {proc.proc_id}: {exc}")
+
             raise base.ProgramError("; ".join(res.errors))
 
         else:
@@ -104,16 +109,33 @@ class ProcstarProgram(base.Program):
                 # Not done yet.
                 # FIXME: Update anyway.
                 pass
+
             else:
                 out = res.fds.stdout.text.encode()
                 # FIXME: Compression.
                 outputs = base.program_outputs(out)
-                if res.status.exit_code == 0:
-                    result = base.ProgramSuccess(outputs=outputs)
+
+                # Clean up the process.
+                try:
+                    await server.delete(proc.proc_id)
+                except Exception as exc:
+                    log.error(f"delete {proc.proc_id}: {exc}")
+
+                if len(res.errors) > 0:
+                    message = "; ".join(res.errors)
+                    raise base.ProgramError(message, outputs=outputs)
+
+                elif res.status.exit_code == 0:
+                    return base.ProgramSuccess(outputs=outputs)
+
                 else:
-                    result = base.ProgramFailure(outputs=outputs)
-                # FIXME: Clean up.
-                return result
+                    message = "program failed: "
+                    if res.status.signum is None:
+                        message += f"exit code {res.status.exit_code}"
+                    else:
+                        # FIXME: Include signal name, which should be in result.
+                        message += f"kill by signal {res.status.signum}"
+                    raise base.ProgramFailure(message, outputs=outputs)
 
 
     def reconnect(self, run_id, run_state):
