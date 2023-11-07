@@ -24,12 +24,6 @@ ENV = procstar.spec.Proc.Env(
     # Inherit the entire environment from procstar, since it probably
     # includes important configuration.
     inherit=True,
-    # Exclude certain Procstar-specific variables.
-    vars={
-        "PROCSTAR_WS_CERT"  : None,
-        "PROCSTAR_WS_KEY"   : None,
-        "PROCSTAR_WS_TOKEN" : None,
-    }
 )
 
 
