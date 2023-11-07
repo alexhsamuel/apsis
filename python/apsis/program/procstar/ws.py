@@ -27,6 +27,25 @@ ENV = procstar.spec.Proc.Env(
 )
 
 
+def _get_metadata(res):
+    meta = {
+        k: v
+        for k in ("errors", )
+        if (v := getattr(res, k, None))
+    } | {
+        k: dict(v.__dict__)
+        for k in ("times", "status", "rusage", )
+        if (v := getattr(res, k, None))
+    }
+
+    try:
+        meta["procstar_conn"] = dict(res.procstar.conn.__dict__)
+        meta["procstar_proc"] = dict(res.procstar.proc.__dict__)
+    except AttributeError:
+        pass
+
+    return meta
+
 class ProcstarProgram(base.Program):
 
     def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
@@ -88,7 +107,8 @@ class ProcstarProgram(base.Program):
             except Exception as exc:
                 log.error(f"delete {proc.proc_id}: {exc}")
 
-            raise base.ProgramError("; ".join(res.errors))
+            raise base.ProgramError(
+                "; ".join(res.errors), meta=_get_metadata(res))
 
         else:
             # FIXME: Meta.
@@ -106,6 +126,7 @@ class ProcstarProgram(base.Program):
 
             else:
                 out = res.fds.stdout.text.encode()
+                meta = _get_metadata(res)
                 # FIXME: Compression.
                 outputs = base.program_outputs(out)
 
@@ -117,10 +138,17 @@ class ProcstarProgram(base.Program):
 
                 if len(res.errors) > 0:
                     message = "; ".join(res.errors)
-                    raise base.ProgramError(message, outputs=outputs)
+                    raise base.ProgramError(
+                        message,
+                        outputs =outputs,
+                        meta    =meta,
+                    )
 
                 elif res.status.exit_code == 0:
-                    return base.ProgramSuccess(outputs=outputs)
+                    return base.ProgramSuccess(
+                        outputs =outputs,
+                        meta    =meta,
+                    )
 
                 else:
                     message = "program failed: "
@@ -129,7 +157,11 @@ class ProcstarProgram(base.Program):
                     else:
                         # FIXME: Include signal name, which should be in result.
                         message += f"kill by signal {res.status.signum}"
-                    raise base.ProgramFailure(message, outputs=outputs)
+                    raise base.ProgramFailure(
+                        message,
+                        outputs =outputs,
+                        meta    =meta,
+                    )
 
 
     def reconnect(self, run_id, run_state):
