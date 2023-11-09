@@ -462,7 +462,6 @@ class RunLogDB:
 
 
     def query(self, *, run_id: str):
-        log.debug(f"query run log run_id={run_id}")
         where = self.TABLE.c.run_id == run_id
 
         # Respond with cached values.
