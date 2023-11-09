@@ -28,13 +28,16 @@ ENV = procstar.spec.Proc.Env(
 
 
 def _get_metadata(res):
+    """
+    Extracts run metadata from a proc result message.
+    """
     meta = {
         k: v
         for k in ("errors", )
         if (v := getattr(res, k, None))
     } | {
         k: dict(v.__dict__)
-        for k in ("times", "status", "proc_stat", "rusage", )
+        for k in ("times", "status", "proc_stat", "proc_statm", "rusage", )
         if (v := getattr(res, k, None))
     }
 
@@ -45,6 +48,7 @@ def _get_metadata(res):
         pass
 
     return meta
+
 
 class ProcstarProgram(base.Program):
 
