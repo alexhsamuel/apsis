@@ -139,3 +139,62 @@ A single host name is effectively a host alias.
       my_alias: host4.example.com
 
 
+Procstar
+--------
+
+The `procstar` section configures how Procstar-based programs are run.
+
+
+WebSocket server
+~~~~~~~~~~~~~~~~
+
+Apsis can run a WebSocket-based server, to which Procstar instances connect.
+When Apsis starts a run with a Procstar program, it chooses a connected Procstar
+instance and dispatches the program to there for execution.
+
+.. code:: yaml
+
+    procstar:
+      ws:
+        server:
+          enable: true
+          port: PORT
+          host: HOSTNAME
+
+This enables the WebSocket server.
+
+- `PORT` is the port to which to connect.
+
+    - If unset, Apsis uses the value of the `PROCSTAR_WS_PORT` environment
+      variable, or 59789 if unset.
+
+    - If null, Apsis chooses an unused port and logs it at startup.
+
+- `HOSTNAME` is the local hostname or IP number corresponding to the interface
+  on which to serve.
+
+    - If unset, Apsis uses the value of the `PROCSTAR_WS_HOSTNAME` environment variable.
+
+    - If null or "*", Apsis runs the server on all interfaces.
+
+
+.. code:: yaml
+
+    procstar:
+      ws:
+        groups:
+          start_timeout: TIME
+
+This configures how Apsis handles Procstar groups.  When a Procstar instance
+connects, it provides a group ID to which it belongs.  Each Procstar program
+likewise carries a group ID in which it should run.  The default group ID for
+both is named "default".  There is no registry of allowed group IDs: Apsis
+accepts any group ID from a procstar instance, and if a program specifies a
+group ID that Apsis hasn't seen, it optimistically assumes a Procstar instance
+with this group ID will later connect.
+
+If a Procstar run starts but no Procstar instance is connected in the specified
+group, the run remains in the _starting_ state.  The `start_timeout`
+configuration determines how long a Procstar run remains _starting_, before
+Apsis transitions it to _error_.
+
