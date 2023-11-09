@@ -34,7 +34,7 @@ def _get_metadata(res):
         if (v := getattr(res, k, None))
     } | {
         k: dict(v.__dict__)
-        for k in ("times", "status", "rusage", )
+        for k in ("times", "status", "proc_stat", "rusage", )
         if (v := getattr(res, k, None))
     }
 
