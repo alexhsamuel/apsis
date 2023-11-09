@@ -20,13 +20,6 @@ logging.getLogger("websockets.server").setLevel(logging.INFO)
 # Global procstar service.
 server = procstar.ws.server.Server()
 
-ENV = procstar.spec.Proc.Env(
-    # Inherit the entire environment from procstar, since it probably
-    # includes important configuration.
-    inherit=True,
-)
-
-
 def _get_metadata(res):
     """
     Extracts run metadata from a proc result message.
@@ -82,12 +75,17 @@ class ProcstarProgram(base.Program):
         return cls(argv, group_id=group_id)
 
 
-    async def start(self, run_id, cfg):
-        proc_id = str(uuid.uuid4())
-        # FIXME
-        spec = procstar.spec.Proc(
+    def make_spec(self):
+        """
+        Constructs the procstar proc spec for this program.
+        """
+        return procstar.spec.Proc(
             self.__argv,
-            env=ENV,
+            env=procstar.spec.Proc.Env(
+                # Inherit the entire environment from procstar, since it probably
+                # includes important configuration.
+                inherit=True,
+            ),
             fds={
                 # FIXME: To file instead?
                 "stdout": procstar.spec.Proc.Fd.Capture("memory", "text"),
@@ -95,6 +93,11 @@ class ProcstarProgram(base.Program):
                 "stderr": procstar.spec.Proc.Fd.Dup(1),
             },
         )
+
+
+    async def start(self, run_id, cfg):
+        proc_id = str(uuid.uuid4())
+        spec = self.make_spec()
         # FIXME: Handle NoOpenConnectionInGroup and wait.
         try:
             proc = await server.start(proc_id, spec, group_id=self.__group_id)
