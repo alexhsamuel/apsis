@@ -1,6 +1,7 @@
 params: [date]
 
 schedule:
+  enabled: false
   type: interval
   interval: 60
 
