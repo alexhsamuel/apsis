@@ -75,9 +75,10 @@ class Apsis:
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
         log.info("starting procstar server")
-        # FIXME: set host / port
+        # FIXME: set host / port from config
         self.__procstar_task = asyncio.ensure_future(
-            procstar_server.run_forever(loc=(None, 12345)))
+            procstar_server.run_forever()
+        )
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
