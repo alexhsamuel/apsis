@@ -145,23 +145,23 @@ Procstar
 The `procstar` section configures how Procstar-based programs are run.
 
 
-WebSocket server
-~~~~~~~~~~~~~~~~
+Agent server
+~~~~~~~~~~~~
 
-Apsis can run a WebSocket-based server, to which Procstar instances connect.
-When Apsis starts a run with a Procstar program, it chooses a connected Procstar
-instance and dispatches the program to there for execution.
+Apsis can run a server that accepts connections from Procstar agents.  When
+Apsis starts a run with a Procstar program, it chooses a connected Procstar
+agent and dispatches the program to there for execution.
 
 .. code:: yaml
 
     procstar:
-      ws:
+      agent:
         server:
           enable: true
           port: PORT
           host: HOSTNAME
 
-This enables the WebSocket server.
+This enables the Procstar agent server.
 
 - `PORT` is the port to which to connect.
 
