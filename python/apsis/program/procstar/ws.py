@@ -1,5 +1,4 @@
 import logging
-import procstar.proto
 import procstar.spec
 import procstar.ws.server
 import uuid
@@ -20,23 +19,23 @@ logging.getLogger("websockets.server").setLevel(logging.INFO)
 # Global procstar service.
 server = procstar.ws.server.Server()
 
-def _get_metadata(res):
+def _get_metadata(result):
     """
     Extracts run metadata from a proc result message.
     """
     meta = {
         k: v
         for k in ("errors", )
-        if (v := getattr(res, k, None))
+        if (v := getattr(result, k, None))
     } | {
         k: dict(v.__dict__)
         for k in ("times", "status", "proc_stat", "proc_statm", "rusage", )
-        if (v := getattr(res, k, None))
+        if (v := getattr(result, k, None))
     }
 
     try:
-        meta["procstar_conn"] = dict(res.procstar.conn.__dict__)
-        meta["procstar_proc"] = dict(res.procstar.proc.__dict__)
+        meta["procstar_conn"] = dict(result.procstar.conn.__dict__)
+        meta["procstar_proc"] = dict(result.procstar.proc.__dict__)
     except AttributeError:
         pass
 
@@ -105,70 +104,82 @@ class ProcstarProgram(base.Program):
             raise base.ProgramError(f"procstar: {exc}")
 
         # Wait for an initial result.
-        res = await anext(proc.results)
+        try:
+            try:
+                result = await anext(proc.results)
+            except Exception as exc:
+                raise base.ProgramError(str(exc))
+            else:
+                if len(result.errors) > 0:
+                    raise base.ProgramError(
+                        "; ".join(data.errors),
+                        meta=_get_metadata(result)
+                    )
 
-        if len(res.errors) > 0:
+                # FIXME: Metadata.
+                run_state = {"proc_id": proc_id}
+                done = self.wait(run_id, proc)
+                return base.ProgramRunning(run_state), done
+
+        except base.ProgramError:
             # Clean up the process.
             try:
                 await server.delete(proc.proc_id)
             except Exception as exc:
                 log.error(f"delete {proc.proc_id}: {exc}")
+            raise
 
+
+    def __on_complete(self, proc, result):
+        out = result.fds.stdout.text.encode()
+        meta = _get_metadata(result)
+        # FIXME: Compression.
+        outputs = base.program_outputs(out)
+
+        if len(result.errors) > 0:
+            message = "; ".join(result.errors)
             raise base.ProgramError(
-                "; ".join(res.errors), meta=_get_metadata(res))
+                message,
+                outputs =outputs,
+                meta    =meta,
+            )
+
+        elif result.status.exit_code == 0:
+            return base.ProgramSuccess(
+                outputs =outputs,
+                meta    =meta,
+            )
 
         else:
-            # FIXME: Meta.
-            run_state = {"proc_id": proc_id}
-            done = self.wait(run_id, proc)
-            return base.ProgramRunning(run_state), done
+            message = "program failed: "
+            if result.status.signum is None:
+                message += f"exit code {result.status.exit_code}"
+            else:
+                # FIXME: Include signal name, which should be in result.
+                message += f"kill by signal {result.status.signum}"
+            raise base.ProgramFailure(
+                message,
+                outputs =outputs,
+                meta    =meta,
+            )
 
 
     async def wait(self, run_id, proc):
-        async for res in proc.results:
-            if res.status is None:
-                # Not done yet.
-                # FIXME: Update anyway.
-                pass
-
-            else:
-                out = res.fds.stdout.text.encode()
-                meta = _get_metadata(res)
-                # FIXME: Compression.
-                outputs = base.program_outputs(out)
-
-                # Clean up the process.
-                try:
-                    await server.delete(proc.proc_id)
-                except Exception as exc:
-                    log.error(f"delete {proc.proc_id}: {exc}")
-
-                if len(res.errors) > 0:
-                    message = "; ".join(res.errors)
-                    raise base.ProgramError(
-                        message,
-                        outputs =outputs,
-                        meta    =meta,
-                    )
-
-                elif res.status.exit_code == 0:
-                    return base.ProgramSuccess(
-                        outputs =outputs,
-                        meta    =meta,
-                    )
-
+        try:
+            async for result in proc.results:
+                if result is None:
+                    # Not completed yet.
+                    # FIXME: Do something with this!
+                    pass
                 else:
-                    message = "program failed: "
-                    if res.status.signum is None:
-                        message += f"exit code {res.status.exit_code}"
-                    else:
-                        # FIXME: Include signal name, which should be in result.
-                        message += f"kill by signal {res.status.signum}"
-                    raise base.ProgramFailure(
-                        message,
-                        outputs =outputs,
-                        meta    =meta,
-                    )
+                    return self.__on_complete(proc, result)
+
+        finally:
+            # Clean up the process.
+            try:
+                await server.delete(proc.proc_id)
+            except Exception as exc:
+                log.error(f"delete {proc.proc_id}: {exc}")
 
 
     def reconnect(self, run_id, run_state):
