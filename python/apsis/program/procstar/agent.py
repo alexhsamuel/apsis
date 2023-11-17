@@ -1,6 +1,6 @@
 import logging
 import procstar.spec
-import procstar.ws.server
+import procstar.agent.server
 import uuid
 
 from   apsis.lib.json import check_schema
@@ -17,7 +17,7 @@ logging.getLogger("websockets.server").setLevel(logging.INFO)
 #-------------------------------------------------------------------------------
 
 # Global procstar service.
-server = procstar.ws.server.Server()
+server = procstar.agent.server.Server()
 
 def _get_metadata(result):
     """
@@ -112,7 +112,7 @@ class ProcstarProgram(base.Program):
             else:
                 if len(result.errors) > 0:
                     raise base.ProgramError(
-                        "; ".join(data.errors),
+                        "; ".join(result.errors),
                         meta=_get_metadata(result)
                     )
 

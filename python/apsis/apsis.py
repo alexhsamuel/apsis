@@ -14,7 +14,7 @@ from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
-from   .program.procstar.ws import server as procstar_server
+from   .program.procstar.agent import server as procstar_server
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run

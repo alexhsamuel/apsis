@@ -6,7 +6,7 @@ from   .base import (
 from   .agent import AgentProgram, AgentShellProgram
 from   .noop import NoOpProgram
 from   .process import ProcessProgram, ShellCommandProgram
-from   .procstar.ws import ProcstarProgram
+from   .procstar.agent import ProcstarProgram
 
 #-------------------------------------------------------------------------------
 
