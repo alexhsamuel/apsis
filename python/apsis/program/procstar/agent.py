@@ -44,6 +44,8 @@ def _get_metadata(result):
 
 class ProcstarProgram(base.Program):
 
+    SERVER = None
+
     def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
         self.__argv = tuple( str(a) for a in argv )
         self.__group_id = group_id
@@ -95,11 +97,17 @@ class ProcstarProgram(base.Program):
 
 
     async def start(self, run_id, cfg):
+        assert self.SERVER is not None
+
         proc_id = str(uuid.uuid4())
         spec = self.make_spec()
         # FIXME: Handle NoOpenConnectionInGroup and wait.
         try:
-            proc = await server.start(proc_id, spec, group_id=self.__group_id)
+            proc = await self.SERVER.start(
+                proc_id,
+                spec,
+                group_id=self.__group_id,
+            )
         except Exception as exc:
             raise base.ProgramError(f"procstar: {exc}")
 
@@ -197,6 +205,8 @@ class ProcstarProgram(base.Program):
 
 
     def reconnect(self, run_id, run_state):
+        assert self.SERVER is not None
+
         # FIXME
         raise NotImplementedError("reconnect")
 

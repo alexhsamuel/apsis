@@ -3,6 +3,7 @@ import logging
 import math
 from   mmap import PAGESIZE
 from   ora import now, Time
+import procstar.agent.server
 import resource
 import sys
 import traceback
@@ -14,7 +15,7 @@ from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
-from   .program.procstar.agent import server as procstar_server
+from   .program.procstar.agent import ProcstarProgram
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
@@ -76,9 +77,12 @@ class Apsis:
 
         log.info("starting procstar server")
         # FIXME: set host / port from config
+        self.__procstar_server = procstar.agent.server.Server()
         self.__procstar_task = asyncio.ensure_future(
-            procstar_server.run_forever()
+            self.__procstar_server.run_forever()
         )
+        # Use this agent server for procstar programs.
+        ProcstarProgram.SERVER = self.__procstar_server
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
