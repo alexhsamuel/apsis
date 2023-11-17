@@ -16,9 +16,6 @@ logging.getLogger("websockets.server").setLevel(logging.INFO)
 
 #-------------------------------------------------------------------------------
 
-# Global procstar service.
-server = procstar.agent.server.Server()
-
 def _get_metadata(result):
     """
     Extracts run metadata from a proc result message.
@@ -42,9 +39,40 @@ def _get_metadata(result):
     return meta
 
 
-class ProcstarProgram(base.Program):
+#-------------------------------------------------------------------------------
 
-    SERVER = None
+SERVER = None
+
+def start_server(cfg):
+    """
+    Creates and configures the global agent server.
+
+    :return:
+      Awaitable that runs the server.
+    """
+    global SERVER
+    assert SERVER is None
+
+    server_cfg  = cfg.get("server", {})
+    tls_cfg     = server_cfg.get("tls", {})
+    FROM_ENV    = procstar.agent.server.FROM_ENV
+
+    host            = server_cfg.get("host", FROM_ENV)
+    port            = server_cfg.get("port", FROM_ENV)
+    access_token    = server_cfg.get("access_token", FROM_ENV)
+    cert_path       = tls_cfg.get("cert_path", FROM_ENV)
+    key_path        = tls_cfg.get("key_path", FROM_ENV)
+
+    SERVER = procstar.agent.server.Server()
+    return SERVER.run_forever(
+        host        =host,
+        port        =port,
+        tls_cert    =(cert_path, key_path),
+        access_token=access_token,
+    )
+
+
+class ProcstarProgram(base.Program):
 
     def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
         self.__argv = tuple( str(a) for a in argv )
@@ -76,7 +104,7 @@ class ProcstarProgram(base.Program):
         return cls(argv, group_id=group_id)
 
 
-    def make_spec(self):
+    def __make_spec(self):
         """
         Constructs the procstar proc spec for this program.
         """
@@ -97,15 +125,14 @@ class ProcstarProgram(base.Program):
 
 
     async def start(self, run_id, cfg):
-        assert self.SERVER is not None
+        assert SERVER is not None
 
         proc_id = str(uuid.uuid4())
-        spec = self.make_spec()
         # FIXME: Handle NoOpenConnectionInGroup and wait.
         try:
-            proc = await self.SERVER.start(
+            proc = await SERVER.start(
                 proc_id,
-                spec,
+                self.__make_spec(),
                 group_id=self.__group_id,
             )
         except Exception as exc:
@@ -131,7 +158,7 @@ class ProcstarProgram(base.Program):
                 elif result.state == "running":
                     conn_id = result.procstar.conn.conn_id
                     run_state = {"conn_id": conn_id, "proc_id": proc_id}
-                    done = self.wait(run_id, proc)
+                    done = self.__wait(run_id, proc)
                     return base.ProgramRunning(run_state, meta=meta), done
 
                 else:
@@ -145,7 +172,7 @@ class ProcstarProgram(base.Program):
         except base.ProgramError:
             # Clean up the process, if it's not running.
             try:
-                await server.delete(proc.proc_id)
+                await SERVER.delete(proc.proc_id)
             except Exception as exc:
                 log.error(f"delete {proc.proc_id}: {exc}")
             raise
@@ -190,7 +217,7 @@ class ProcstarProgram(base.Program):
             assert False, f"unknown proc state: {result.state}"
 
 
-    async def wait(self, run_id, proc):
+    async def __wait(self, run_id, proc):
         try:
             async for result in proc.results:
                 if (success := self.__on_result(result)) is not None:
@@ -199,13 +226,13 @@ class ProcstarProgram(base.Program):
         finally:
             # Clean up the process.
             try:
-                await server.delete(proc.proc_id)
+                await SERVER.delete(proc.proc_id)
             except Exception as exc:
                 log.error(f"delete {proc.proc_id}: {exc}")
 
 
     def reconnect(self, run_id, run_state):
-        assert self.SERVER is not None
+        assert SERVER is not None
 
         # FIXME
         raise NotImplementedError("reconnect")

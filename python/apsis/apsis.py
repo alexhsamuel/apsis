@@ -3,7 +3,6 @@ import logging
 import math
 from   mmap import PAGESIZE
 from   ora import now, Time
-import procstar.agent.server
 import resource
 import sys
 import traceback
@@ -15,7 +14,7 @@ from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task
 from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
-from   .program.procstar.agent import ProcstarProgram
+from   .program.procstar.agent import start_server
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
@@ -76,13 +75,13 @@ class Apsis:
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
         log.info("starting procstar server")
-        # FIXME: set host / port from config
-        self.__procstar_server = procstar.agent.server.Server()
-        self.__procstar_task = asyncio.ensure_future(
-            self.__procstar_server.run_forever()
-        )
-        # Use this agent server for procstar programs.
-        ProcstarProgram.SERVER = self.__procstar_server
+        procstar_cfg = cfg.get("procstar", {}).get("agent", {})
+        if procstar_cfg.get("enable", False):
+            self.__procstar_task = asyncio.ensure_future(
+                start_server(procstar_cfg)
+            )
+        else:
+            self.__procstar_task = None
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
@@ -694,6 +693,8 @@ class Apsis:
             await cancel_task(task, f"run {run_id}", log)
         await self.run_store.shut_down()
         await cancel_task(self.__check_async_task, "check async", log)
+        if self.__procstar_task is not None:
+            await cancel_task(self.__procstar_task, "procstar server", log)
         log.info("Apsis shut down")
 
 

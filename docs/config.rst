@@ -145,8 +145,8 @@ Procstar
 The `procstar` section configures how Procstar-based programs are run.
 
 
-Agent server
-~~~~~~~~~~~~
+Procstar agent server
+~~~~~~~~~~~~~~~~~~~~~
 
 Apsis can run a server that accepts connections from Procstar agents.  When
 Apsis starts a run with a Procstar program, it chooses a connected Procstar
@@ -156,34 +156,51 @@ agent and dispatches the program to there for execution.
 
     procstar:
       agent:
-        server:
-          enable: true
-          port: PORT
-          host: HOSTNAME
+        enable: true
 
-This enables the Procstar agent server.
-
-- `PORT` is the port to which to connect.
-
-    - If unset, Apsis uses the value of the `PROCSTAR_WS_PORT` environment
-      variable, or 59789 if unset.
-
-    - If null, Apsis chooses an unused port and logs it at startup.
-
-- `HOSTNAME` is the local hostname or IP number corresponding to the interface
-  on which to serve.
-
-    - If unset, Apsis uses the value of the `PROCSTAR_WS_HOSTNAME` environment variable.
-
-    - If null or "*", Apsis runs the server on all interfaces.
+This enables the Procstar agent server on the default port and all network
+interfaces.
 
 
 .. code:: yaml
 
     procstar:
-      ws:
+      agent:
+        server:
+          port: PORT
+          host: HOSTNAME
+          access_token: "topsecretaccesstoken"
+          tls:
+            cert_path: "/opt/cert/host.crt"
+            key_path: "/opt/cert/host.key"
+
+This configures the server.
+
+- `port` is the port to which to connect.  If not configured, Apsis uses the
+  value of the `PROCSTAR_AGENT_PORT` environment variable, or 59789 if unset.
+
+- `host` is the local hostname or IP number corresponding to the interface on
+  which to serve.  If the hostname is `*`, runs on all interfaces.  If not
+  configured, Apsis uses the value of the `PROCSTAR_AGENT_HOSTNAME` environment
+  variable, or `*`.
+
+- `access_token` is a secret string that agents must provide to connect to the
+  server.  If not configured, Apsis uses the value of the `PROCSTAR_AGENT_TOKEN`
+  environment variable.  The default is the empty string.
+
+- `tls.cert_path` and `tls.key_path` are paths to TLS cert and corresponding key
+  files.  If not configured, Apsis uses the `PROCSTAR_AGENT_CERT` and
+  `PROCSTAR_AGENT_KEY` enviornment variables.  By default, uses a cert from the
+  system cert bundle.
+
+
+.. code:: yaml
+
+    procstar:
+      agent:
         groups:
           start_timeout: TIME
+          reconnect_timeout: TIME
 
 This configures how Apsis handles Procstar groups.  When a Procstar instance
 connects, it provides a group ID to which it belongs.  Each Procstar program
@@ -196,5 +213,9 @@ with this group ID will later connect.
 If a Procstar run starts but no Procstar instance is connected in the specified
 group, the run remains in the _starting_ state.  The `start_timeout`
 configuration determines how long a Procstar run remains _starting_, before
-Apsis transitions it to _error_.
+Apsis transitions it to _error_.  The default is 5 min.
+
+If Apsis reconnects a _running_ run with a Procstar program, the
+`reconnect_timeout` determines how long it waits for the Procstar instance to
+reconnect.  The default is 5 min.
 
