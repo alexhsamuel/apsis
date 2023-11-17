@@ -103,26 +103,39 @@ class ProcstarProgram(base.Program):
         except Exception as exc:
             raise base.ProgramError(f"procstar: {exc}")
 
-        # Wait for an initial result.
+        # Wait for the first result.
         try:
             try:
                 result = await anext(proc.results)
+
             except Exception as exc:
                 raise base.ProgramError(str(exc))
+
             else:
-                if len(result.errors) > 0:
+                meta = _get_metadata(result)
+
+                if result.state == "error":
                     raise base.ProgramError(
                         "; ".join(result.errors),
-                        meta=_get_metadata(result)
+                        meta=meta,
                     )
 
-                # FIXME: Metadata.
-                run_state = {"proc_id": proc_id}
-                done = self.wait(run_id, proc)
-                return base.ProgramRunning(run_state), done
+                elif result.state == "running":
+                    conn_id = result.procstar.conn.conn_id
+                    run_state = {"conn_id": conn_id, "proc_id": proc_id}
+                    done = self.wait(run_id, proc)
+                    return base.ProgramRunning(run_state, meta=meta), done
+
+                else:
+                    # We should not immediately receive a result with state
+                    # "terminated".
+                    raise base.ProgramError(
+                        f"unexpected proc state: {result.state}",
+                        meta=meta,
+                    )
 
         except base.ProgramError:
-            # Clean up the process.
+            # Clean up the process, if it's not running.
             try:
                 await server.delete(proc.proc_id)
             except Exception as exc:
@@ -130,49 +143,50 @@ class ProcstarProgram(base.Program):
             raise
 
 
-    def __on_complete(self, proc, result):
-        out = result.fds.stdout.text.encode()
+    def __on_result(self, result):
+        output = result.fds.stdout.text.encode()
+        outputs = base.program_outputs(output)
         meta = _get_metadata(result)
-        # FIXME: Compression.
-        outputs = base.program_outputs(out)
 
-        if len(result.errors) > 0:
-            message = "; ".join(result.errors)
+        if result.state == "error":
             raise base.ProgramError(
-                message,
+                "; ".join(result.errors),
                 outputs =outputs,
                 meta    =meta,
             )
 
-        elif result.status.exit_code == 0:
-            return base.ProgramSuccess(
-                outputs =outputs,
-                meta    =meta,
-            )
+        elif result.state == "running":
+            # Not completed yet.
+            # FIXME: Do something with this!
+            return None
+
+        elif result.state == "terminated":
+            if result.status.exit_code == 0:
+                return base.ProgramSuccess(
+                    outputs =outputs,
+                    meta    =meta,
+                )
+
+            else:
+                if result.status.signal is not None:
+                    cause = f"killed by {result.status.signal}"
+                else:
+                    cause = f"exit code {result.status.exit_code}"
+                raise base.ProgramFailure(
+                    f"program failed: {cause}",
+                    outputs =outputs,
+                    meta    =meta,
+                )
 
         else:
-            message = "program failed: "
-            if result.status.signum is None:
-                message += f"exit code {result.status.exit_code}"
-            else:
-                # FIXME: Include signal name, which should be in result.
-                message += f"kill by signal {result.status.signum}"
-            raise base.ProgramFailure(
-                message,
-                outputs =outputs,
-                meta    =meta,
-            )
+            assert False, f"unknown proc state: {result.state}"
 
 
     async def wait(self, run_id, proc):
         try:
             async for result in proc.results:
-                if result is None:
-                    # Not completed yet.
-                    # FIXME: Do something with this!
-                    pass
-                else:
-                    return self.__on_complete(proc, result)
+                if (success := self.__on_result(result)) is not None:
+                    return success
 
         finally:
             # Clean up the process.
