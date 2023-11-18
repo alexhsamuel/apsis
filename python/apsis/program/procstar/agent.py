@@ -4,6 +4,7 @@ import procstar.agent.server
 import uuid
 
 from   apsis.lib.json import check_schema
+from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none
 from   apsis.program import base
 from   apsis.runs import join_args, template_expand
@@ -53,17 +54,25 @@ def start_server(cfg):
     global SERVER
     assert SERVER is None
 
-    server_cfg  = cfg.get("server", {})
-    tls_cfg     = server_cfg.get("tls", {})
-    FROM_ENV    = procstar.agent.server.FROM_ENV
-
+    # Network stuff.
+    FROM_ENV        = procstar.agent.server.FROM_ENV
+    server_cfg      = cfg.get("server", {})
     host            = server_cfg.get("host", FROM_ENV)
     port            = server_cfg.get("port", FROM_ENV)
     access_token    = server_cfg.get("access_token", FROM_ENV)
+    tls_cfg         = server_cfg.get("tls", {})
     cert_path       = tls_cfg.get("cert_path", FROM_ENV)
     key_path        = tls_cfg.get("key_path", FROM_ENV)
 
+    # Group config.
+    groups_cfg      = cfg.get("groups", {})
+    start_timeout   = parse_duration(groups_cfg.get("start_timeout", "0"))
+    rec_timeout     = parse_duration(groups_cfg.get("reconnect_timeout", "0"))
+
     SERVER = procstar.agent.server.Server()
+    SERVER.start_timeout = start_timeout
+    SERVER.reconnect_timeout = rec_timeout
+
     return SERVER.run_forever(
         host        =host,
         port        =port,
@@ -133,7 +142,8 @@ class ProcstarProgram(base.Program):
             proc = await SERVER.start(
                 proc_id,
                 self.__make_spec(),
-                group_id=self.__group_id,
+                group_id    =self.__group_id,
+                conn_timeout=SERVER.start_timeout,
             )
         except Exception as exc:
             raise base.ProgramError(f"procstar: {exc}")

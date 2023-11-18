@@ -167,8 +167,8 @@ interfaces.
     procstar:
       agent:
         server:
-          port: PORT
-          host: HOSTNAME
+          port: 50000
+          host: "*"
           access_token: "topsecretaccesstoken"
           tls:
             cert_path: "/opt/cert/host.crt"
@@ -199,8 +199,8 @@ This configures the server.
     procstar:
       agent:
         groups:
-          start_timeout: TIME
-          reconnect_timeout: TIME
+          start_timeout: "1 min"
+          reconnect_timeout: 60
 
 This configures how Apsis handles Procstar groups.  When a Procstar instance
 connects, it provides a group ID to which it belongs.  Each Procstar program
@@ -213,9 +213,9 @@ with this group ID will later connect.
 If a Procstar run starts but no Procstar instance is connected in the specified
 group, the run remains in the _starting_ state.  The `start_timeout`
 configuration determines how long a Procstar run remains _starting_, before
-Apsis transitions it to _error_.  The default is 5 min.
+Apsis transitions it to _error_.  The default is 0.
 
 If Apsis reconnects a _running_ run with a Procstar program, the
 `reconnect_timeout` determines how long it waits for the Procstar instance to
-reconnect.  The default is 5 min.
+reconnect.  The default is 0.
 
