@@ -74,9 +74,9 @@ class Apsis:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
-        log.info("starting procstar server")
         procstar_cfg = cfg.get("procstar", {}).get("agent", {})
         if procstar_cfg.get("enable", False):
+            log.info("starting procstar server")
             self.__procstar_task = asyncio.ensure_future(
                 start_server(procstar_cfg)
             )
