@@ -19,9 +19,30 @@ logging.getLogger("websockets.server").setLevel(logging.INFO)
 
 #-------------------------------------------------------------------------------
 
-def _get_metadata(result):
+def _get_metadata(proc_id, result):
     """
     Extracts run metadata from a proc result message.
+
+    - `status`: Process raw status (see `man 2 wait`) and decoded exit code
+      and signal info.
+
+    - `times`: Process timing from the Procstar agent on the host running the
+      program.  `elapsed` is computed from a monotonic clock.
+
+    - `rusage`: Process resource usage.  See `man 2 getrusage` for details.
+
+    - `proc_stat`: Process information collected from `/proc/<pid>/stat`.  See
+      `man 5 proc` for details.
+
+    - `proc_statm`: Process memory use collected from `/proc/<pid>/statm`.  See
+      `man 5 proc` for details.
+
+    - `proc_id`: The Procstar process ID.
+
+    - `conn`: Connection info the the Procstar agent.
+
+    - `procstar_proc`: Process information about the Procstar agent itself.
+
     """
     meta = {
         k: v
@@ -29,12 +50,13 @@ def _get_metadata(result):
         if (v := getattr(result, k, None))
     } | {
         k: dict(v.__dict__)
-        for k in ("times", "status", "proc_stat", "proc_statm", "rusage", )
+        for k in ("status", "times", "rusage", "proc_stat", "proc_statm", )
         if (v := getattr(result, k, None))
     }
 
+    meta["proc_id"] = proc_id
     try:
-        meta["procstar_conn"] = dict(result.procstar.conn.__dict__)
+        meta["conn"] = dict(result.procstar.conn.__dict__)
         meta["procstar_proc"] = dict(result.procstar.proc.__dict__)
     except AttributeError:
         pass
@@ -159,7 +181,7 @@ class ProcstarProgram(base.Program):
                 raise base.ProgramError(str(exc))
 
             else:
-                meta = _get_metadata(result)
+                meta = _get_metadata(proc.proc_id, result)
 
                 if result.state == "error":
                     raise base.ProgramError(
@@ -205,7 +227,7 @@ class ProcstarProgram(base.Program):
 
             output  = result.fds.stdout.text.encode()
             outputs = base.program_outputs(output)
-            meta    = _get_metadata(result)
+            meta    = _get_metadata(proc.proc_id, result)
 
             # Clean up the process.
             try:
