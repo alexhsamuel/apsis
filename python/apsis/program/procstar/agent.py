@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import procstar.spec
+from   procstar.agent.exc import NoConnectionError
 import procstar.agent.server
 import uuid
 
@@ -189,60 +191,83 @@ class ProcstarProgram(base.Program):
 
 
     async def __wait(self, run_id, proc):
-        try:
-            async for result in proc.results:
-                output = result.fds.stdout.text.encode()
-                outputs = base.program_outputs(output)
-                meta = _get_metadata(result)
+        while True:
+            # Wait for the next result from the agent.
+            try:
+                result = await anext(proc.results)
+            except Exception as exc:
+                raise base.ProgramError(f"procstar: {exc}")
 
-                if result.state == "error":
-                    raise base.ProgramError(
-                        "; ".join(result.errors),
-                        outputs =outputs,
-                        meta    =meta,
-                    )
+            if result.state == "running":
+                # Not completed yet.
+                # FIXME: Do something with this!
+                continue
 
-                elif result.state == "running":
-                    # Not completed yet.
-                    # FIXME: Do something with this!
-                    pass
+            output  = result.fds.stdout.text.encode()
+            outputs = base.program_outputs(output)
+            meta    = _get_metadata(result)
 
-                elif result.state == "terminated":
-                    status = result.status
-                    if status.exit_code == 0:
-                        return base.ProgramSuccess(
-                            outputs =outputs,
-                            meta    =meta,
-                        )
-
-                    else:
-                        cause = (
-                            f"exit code {status.exit_code}"
-                            if status.signal is None
-                            else f"killed by {status.signal}"
-                        )
-                        raise base.ProgramFailure(
-                            f"program failed: {cause}",
-                            outputs =outputs,
-                            meta    =meta,
-                        )
-
-                else:
-                    assert False, f"unknown proc state: {result.state}"
-
-        finally:
             # Clean up the process.
             try:
                 await SERVER.delete(proc.proc_id)
             except Exception as exc:
                 log.error(f"delete {proc.proc_id}: {exc}")
 
+            if result.state == "error":
+                raise base.ProgramError(
+                    "; ".join(result.errors),
+                    outputs =outputs,
+                    meta    =meta,
+                )
+
+            elif result.state == "terminated":
+                status = result.status
+                if status.exit_code == 0:
+                    return base.ProgramSuccess(
+                        outputs =outputs,
+                        meta    =meta,
+                    )
+
+                else:
+                    cause = (
+                        f"exit code {status.exit_code}"
+                        if status.signal is None
+                        else f"killed by {status.signal}"
+                    )
+                    raise base.ProgramFailure(
+                        f"program failed: {cause}",
+                        outputs =outputs,
+                        meta    =meta,
+                    )
+
+            else:
+                assert False, f"unknown proc state: {result.state}"
+
 
     def reconnect(self, run_id, run_state):
         assert SERVER is not None
 
-        # FIXME
-        raise NotImplementedError("reconnect")
+        conn_id = run_state["conn_id"]
+        proc_id = run_state["proc_id"]
+
+        async def reconnect():
+            try:
+                proc = await SERVER.reconnect(
+                    conn_id,
+                    proc_id,
+                    conn_timeout=SERVER.reconnect_timeout,
+                )
+
+            except NoConnectionError as exc:
+                msg = f"reconnect failed: {proc_id}: {exc}"
+                log.error(msg)
+                raise base.ProgramError(msg)
+
+            else:
+                log.info(f"reconnected: {proc_id} on conn {conn_id}")
+                return await self.__wait(run_id, proc)
+
+        return asyncio.ensure_future(reconnect())
 
 
     async def signal(self, run_id, run_state, signal):
