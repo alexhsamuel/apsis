@@ -188,50 +188,47 @@ class ProcstarProgram(base.Program):
             raise
 
 
-    def __on_result(self, result):
-        output = result.fds.stdout.text.encode()
-        outputs = base.program_outputs(output)
-        meta = _get_metadata(result)
-
-        if result.state == "error":
-            raise base.ProgramError(
-                "; ".join(result.errors),
-                outputs =outputs,
-                meta    =meta,
-            )
-
-        elif result.state == "running":
-            # Not completed yet.
-            # FIXME: Do something with this!
-            return None
-
-        elif result.state == "terminated":
-            if result.status.exit_code == 0:
-                return base.ProgramSuccess(
-                    outputs =outputs,
-                    meta    =meta,
-                )
-
-            else:
-                if result.status.signal is not None:
-                    cause = f"killed by {result.status.signal}"
-                else:
-                    cause = f"exit code {result.status.exit_code}"
-                raise base.ProgramFailure(
-                    f"program failed: {cause}",
-                    outputs =outputs,
-                    meta    =meta,
-                )
-
-        else:
-            assert False, f"unknown proc state: {result.state}"
-
-
     async def __wait(self, run_id, proc):
         try:
             async for result in proc.results:
-                if (success := self.__on_result(result)) is not None:
-                    return success
+                output = result.fds.stdout.text.encode()
+                outputs = base.program_outputs(output)
+                meta = _get_metadata(result)
+
+                if result.state == "error":
+                    raise base.ProgramError(
+                        "; ".join(result.errors),
+                        outputs =outputs,
+                        meta    =meta,
+                    )
+
+                elif result.state == "running":
+                    # Not completed yet.
+                    # FIXME: Do something with this!
+                    pass
+
+                elif result.state == "terminated":
+                    status = result.status
+                    if status.exit_code == 0:
+                        return base.ProgramSuccess(
+                            outputs =outputs,
+                            meta    =meta,
+                        )
+
+                    else:
+                        cause = (
+                            f"exit code {status.exit_code}"
+                            if status.signal is None
+                            else f"killed by {status.signal}"
+                        )
+                        raise base.ProgramFailure(
+                            f"program failed: {cause}",
+                            outputs =outputs,
+                            meta    =meta,
+                        )
+
+                else:
+                    assert False, f"unknown proc state: {result.state}"
 
         finally:
             # Clean up the process.
