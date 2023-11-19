@@ -198,9 +198,10 @@ This configures the server.
 
     procstar:
       agent:
-        groups:
+        connection:
           start_timeout: "1 min"
           reconnect_timeout: 60
+          update_interval: 60
 
 This configures how Apsis handles Procstar groups.  When a Procstar instance
 connects, it provides a group ID to which it belongs.  Each Procstar program
@@ -219,3 +220,6 @@ If Apsis reconnects a _running_ run with a Procstar program, the
 `reconnect_timeout` determines how long it waits for the Procstar instance to
 reconnect.  The default is 0.
 
+While a process is running, Apsis requests an update of its results every
+`update_interval` if the agent is connected.  The default is 0, which configures
+no update requests.
