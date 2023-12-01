@@ -247,8 +247,10 @@ class ProcstarProgram(base.Program):
                 )
 
             # Wait for the next result from the agent, no more that update_interval.
-            if SERVER.update_interval > 0:
-                wait_timeout = min(timeout, SERVER.update_interval)
+            wait_timeout = (
+                min(timeout, SERVER.update_interval) if SERVER.update_interval > 0
+                else timeout
+            )
             logging.debug(f"waiting for result {wait_timeout} (timeout in {timeout}): {run_id}")
             try:
                 result = await asyncio.wait_for(anext(proc.results), wait_timeout)
