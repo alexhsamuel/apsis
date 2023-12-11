@@ -59,6 +59,28 @@ async def cancel_task(task, name, log):
         log.error(f"task cancelled with exc: {name}", exc_info=True)
 
 
+class TaskGroup:
+
+    def __init__(self, log):
+        self.__tasks = set()
+        self.__log = log
+
+
+    def add(self, coro, name):
+        task = asyncio.ensure_future(coro)
+        task.name = name
+        self.__tasks.add(task)
+        task.add_done_callback(lambda _, task=task: self.__tasks.remove(task))
+
+
+    def cancel_all(self):
+        for task in self.__tasks:
+            cancel_task(task, task.name, self.__log)
+
+
+
+#-------------------------------------------------------------------------------
+
 async def communicate(proc, timeout=None):
     """
     Like `proc.communicate` with a timeout.

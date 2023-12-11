@@ -109,7 +109,7 @@ def start_server(cfg):
     )
 
 
-class ProcstarProgram(base.Program):
+class ProcstarProgram(base.IncrementalProgram):
 
     def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
         self.__argv = tuple( str(a) for a in argv )
@@ -174,7 +174,8 @@ class ProcstarProgram(base.Program):
                 conn_timeout=SERVER.start_timeout,
             )
         except Exception as exc:
-            raise base.ProgramError(f"procstar: {exc}")
+            yield base.ProgramError(f"procstar: {exc}")
+            return
 
         # Wait for the first result.
         try:
@@ -182,13 +183,14 @@ class ProcstarProgram(base.Program):
                 result = await anext(proc.results)
 
             except Exception as exc:
-                raise base.ProgramError(str(exc))
+                yield base.ProgramError(str(exc))
+                return
 
             else:
                 meta = _get_metadata(proc.proc_id, result)
 
                 if result.state == "error":
-                    raise base.ProgramError(
+                    yield base.ProgramError(
                         "; ".join(result.errors),
                         meta=meta,
                     )
@@ -196,19 +198,20 @@ class ProcstarProgram(base.Program):
                 elif result.state == "running":
                     conn_id = result.procstar.conn.conn_id
                     run_state = {"conn_id": conn_id, "proc_id": proc_id}
-                    done = self.__wait(run_id, proc)
-                    return base.ProgramRunning(run_state, meta=meta), done
+                    yield base.ProgramRunning(run_state, meta=meta)
+
+                    async for update in self.__run(run_id, proc):
+                        yield update
 
                 else:
                     # We should not immediately receive a result with state
                     # "terminated".
-                    raise base.ProgramError(
+                    yield base.ProgramError(
                         f"unexpected proc state: {result.state}",
                         meta=meta,
                     )
 
-        except base.ProgramError:
-            # Clean up the process, if it's not running.
+        finally:
             try:
                 await SERVER.delete(proc.proc_id)
             except Exception as exc:
@@ -216,7 +219,7 @@ class ProcstarProgram(base.Program):
             raise
 
 
-    async def __wait(self, run_id, proc):
+    async def __run(self, run_id, proc):
         # Timeout to receive a result update from the agent, before marking the
         # run as error.
         # FIXME: This is temporary, until we handle WebSocket connection and
@@ -240,7 +243,7 @@ class ProcstarProgram(base.Program):
                     output  = proc.results.latest.fds.stdout.text.encode()
                     outputs = base.program_outputs(output)
                 logging.warning(f"no result update in {TIMEOUT} s: {run_id}")
-                raise base.ProgramError(
+                yield base.ProgramError(
                     f"lost Procstar process after {TIMEOUT} s",
                     outputs =outputs,
                     meta    =meta,
@@ -251,7 +254,6 @@ class ProcstarProgram(base.Program):
                 min(timeout, SERVER.update_interval) if SERVER.update_interval > 0
                 else timeout
             )
-            logging.debug(f"waiting for result {wait_timeout} (timeout in {timeout}): {run_id}")
             try:
                 result = await asyncio.wait_for(anext(proc.results), wait_timeout)
             except asyncio.TimeoutError:
@@ -265,7 +267,7 @@ class ProcstarProgram(base.Program):
                     logging.warning(f"no connection to agent: {run_id}")
                 continue
             except Exception as exc:
-                raise base.ProgramError(f"procstar: {exc}")
+                yield base.ProgramError(f"procstar: {exc}")
             else:
                 # Received a result update.  Reset the timeout clock.
                 last_result_time = time.monotonic()
@@ -288,7 +290,7 @@ class ProcstarProgram(base.Program):
 
             if result.state == "error":
                 # The process failed to start on the agent.
-                raise base.ProgramError(
+                yield base.ProgramError(
                     "; ".join(result.errors),
                     outputs =outputs,
                     meta    =meta,
@@ -299,7 +301,7 @@ class ProcstarProgram(base.Program):
                 status = result.status
                 if status.exit_code == 0:
                     # The process completed successfully.
-                    return base.ProgramSuccess(
+                    yield base.ProgramSuccess(
                         outputs =outputs,
                         meta    =meta,
                     )
@@ -311,7 +313,7 @@ class ProcstarProgram(base.Program):
                         if status.signal is None
                         else f"killed by {status.signal}"
                     )
-                    raise base.ProgramFailure(
+                    yield base.ProgramFailure(
                         f"program failed: {cause}",
                         outputs =outputs,
                         meta    =meta,

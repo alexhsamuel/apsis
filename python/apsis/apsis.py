@@ -12,8 +12,10 @@ from   .cond.base import PolledCondition, RunStoreCondition
 from   .cond.max_running import MaxRunning
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib.asyn import cancel_task
-from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
+from   .lib.asyn import cancel_task, TaskGroup
+from   .program.base import _InternalProgram, IncrementalProgram
+from   .program.base import Output, OutputMetadata
+from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess
 from   .program.procstar.agent import start_server
 from   . import runs
 from   .run_log import RunLog
@@ -22,6 +24,7 @@ from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgument
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
+from   .states import State
 
 log = logging.getLogger(__name__)
 
@@ -93,6 +96,9 @@ class Apsis:
         self.__running_tasks = {}
         # Tasks for running actions.
         self.__action_tasks = set()
+
+        # Tasks that manage individual runs.
+        self.__run_tasks = TaskGroup(log)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -168,6 +174,105 @@ class Apsis:
         # Set up the manager for scheduled tasks.
         log.info("starting scheduled loop")
         self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
+
+
+    def __start_incremental(self, run):
+        self.run_log.record(run, "starting (incremental)")
+        self._transition(run, State.starting)
+
+        # Call the program.  This produces an async iterable of updates.
+        updates = aiter(run.program.start(run.run_id, self.cfg))
+
+        async def go():
+            try:
+                assert run.state == State.starting
+                update = await anext(updates)
+                log.debug(f"run update: {run.run_id}: {update}")
+                match update:
+                    case ProgramRunning() as running:
+                        self.run_log.record(run, "running")
+                        self._transition(
+                            run, State.running,
+                            meta    =running.meta,
+                            times   =running.times,
+                        )
+
+                    case ProgramError() as error:
+                        self.run_log.info(run, f"error: {error.message}")
+                        self._transition(
+                            run, State.error,
+                            meta    =error.meta,
+                            times   =error.times,
+                            outputs =error.outputs,
+                        )
+                        return
+
+                    case _ as update:
+                        message = f"unexpected update when starting: {update}"
+                        self.run_log.info(run, f"error: {message}")
+                        self._transition(run, State.error)
+                        return
+
+                assert run.state == State.running
+                async for update in updates:
+                    log.debug(f"run update: {run.run_id}: {update}")
+                    match update:
+                        case ProgramRunning() as running:
+                            # FIXME: Update!
+                            log.info(f"got running update: {running}")
+                            continue
+
+                        case ProgramSuccess() as success:
+                            self.run_log.record(run, "success")
+                            self._transition(
+                                run, State.success,
+                                meta    =success.meta,
+                                times   =success.times,
+                                outputs =success.outputs,
+                            )
+                            break
+
+                        case ProgramFailure() as failure:
+                            # Program ran and failed.
+                            self.run_log.record(run, f"failure: {failure.message}")
+                            self._transition(
+                                run, State.failure,
+                                meta    =failure.meta,
+                                times   =failure.times,
+                                outputs =failure.outputs,
+                            )
+                            break
+
+                        case ProgramError() as error:
+                            self.run_log.info(run, f"error: {error.message}")
+                            self._transition(
+                                run, State.error,
+                                meta    =error.meta,
+                                times   =error.times,
+                                outputs =error.outputs,
+                            )
+                            break
+
+                        case _ as update:
+                            message = f"unexpected update when running: {update}"
+                            self.run_log.info(run, f"error: {message}")
+                            self._transition(run, State.error)
+                            break
+
+            except asyncio.CancelledError:
+                log.info(f"starting task cancelled: {run.run_id}")
+
+            except Exception:
+                # Program raised some other exception.
+                self.run_log.exc(run, "error: internal")
+                tb = traceback.format_exc().encode()
+                output = Output(OutputMetadata("traceback", length=len(tb)), tb)
+                self._transition(
+                    run, run.STATE.error,
+                    outputs ={"output": output}
+                )
+
+        self.__run_tasks.add(go(), f"running: {run.run_id}")
 
 
     def __wait(self, run):
@@ -281,6 +386,9 @@ class Apsis:
 
 
     def __start(self, run):
+        if isinstance(run.program, IncrementalProgram):
+            return self.__start_incremental(run)
+
         self.run_log.record(run, "starting")
         self._transition(run, run.STATE.starting)
 
@@ -691,6 +799,7 @@ class Apsis:
             await cancel_task(task, f"starting {run}", log)
         for run_id, task in list(self.__running_tasks.items()):
             await cancel_task(task, f"run {run_id}", log)
+        self.__run_tasks.cancel_all()
         await self.run_store.shut_down()
         await cancel_task(self.__check_async_task, "check async", log)
         if self.__procstar_task is not None:

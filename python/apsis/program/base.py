@@ -212,6 +212,25 @@ class Program(TypedJso):
 
 #-------------------------------------------------------------------------------
 
+class IncrementalProgram(Program):
+
+    def start(self, run_id, cfg):
+        """
+        Returns async iterator that yields `Program*` objects.
+        """
+        pass
+
+
+    def reconnect(self, run_id, run_state):
+        """
+        Returns async iterator that yields `Program*` objects.
+        """
+        pass
+
+
+
+#-------------------------------------------------------------------------------
+
 class _InternalProgram(Program):
     """
     Program type for internal use.
