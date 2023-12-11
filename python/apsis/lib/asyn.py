@@ -73,9 +73,9 @@ class TaskGroup:
         task.add_done_callback(lambda _, task=task: self.__tasks.remove(task))
 
 
-    def cancel_all(self):
+    async def cancel_all(self):
         for task in self.__tasks:
-            cancel_task(task, task.name, self.__log)
+            await cancel_task(task, task.name, self.__log)
 
 
 
