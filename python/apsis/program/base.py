@@ -76,6 +76,15 @@ class ProgramRunning:
 
 
 
+class ProgramUpdate:
+
+    def __init__(self, *, meta={}, outputs={}):
+        self.meta       = meta
+        self.outputs    = outputs
+
+
+
+# FIXME: Not an exception.
 class ProgramError(RuntimeError):
 
     def __init__(self, message, *, meta={}, times={}, outputs={}):
@@ -96,6 +105,7 @@ class ProgramSuccess:
 
 
 
+# FIXME: Not an exception.
 class ProgramFailure(RuntimeError):
 
     def __init__(self, message, *, meta={}, times={}, outputs={}):

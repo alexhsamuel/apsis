@@ -185,7 +185,7 @@ export default {
                 this.output = output
 
                 // If the output isn't too big, fetch it immediately.
-                if (this.output.output_len <= 65536)
+                if (this.output.output_len <= 65536 || this.outputData)
                   this.fetchOutputData()
             })
           })
@@ -239,8 +239,13 @@ export default {
 
     // When the update sequence number changes, reload the whole run.
     updateSeq(seq, previous) {
-      if (!this.run || this.run.seq !== seq)
+      if (!this.run || this.run.seq !== seq) {
         this.fetchRun()
+        if (this.output) {
+          this.outputRequested = false
+          this.fetchOutputMetadata()
+        }
+      }
     }
   },
 

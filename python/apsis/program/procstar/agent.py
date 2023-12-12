@@ -274,7 +274,13 @@ class ProcstarProgram(base.IncrementalProgram):
 
             if result.state == "running":
                 # Not completed yet.
-                # FIXME: Do something with this!
+
+                # FIXME: This needs to be more incremental.
+                # Collect results.
+                output  = result.fds.stdout.text.encode()
+                outputs = base.program_outputs(output)
+                meta    = _get_metadata(proc.proc_id, result)
+                yield base.ProgramUpdate(meta=meta, outputs=outputs)
                 continue
 
             # The process is no longer running.  Clean it up from the agent.

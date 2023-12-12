@@ -502,20 +502,41 @@ class OutputDB:
 
     def __init__(self, engine):
         self.__engine = engine
+        self.__connection = engine.connect().connection
 
 
-    def add(self, run_id: str, output_id: str, output: Output):
-        values = {
-            "run_id"        : run_id,
-            "output_id"     : output_id,
-            "name"          : output.metadata.name,
-            "content_type"  : output.metadata.content_type,
-            "length"        : output.metadata.length,
-            "compression"   : output.compression,
-            "data"          : output.data,
-        }
-        with self.__engine.begin() as conn:
-            conn.execute(self.TABLE.insert().values(**values))
+    def upsert(self, run_id: str, output_id: str, output: Output):
+        self.__connection.connection.execute(
+            """
+            INSERT INTO output (
+                run_id,
+                output_id,
+                name,
+                content_type,
+                length,
+                compression,
+                data
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(run_id, output_id)
+            DO UPDATE SET
+                name            = excluded.name,
+                content_type    = excluded.content_type,
+                length          = excluded.length,
+                compression     = excluded.compression,
+                data            = excluded.data
+            """,
+            (
+                run_id,
+                output_id,
+                output.metadata.name,
+                output.metadata.content_type,
+                output.metadata.length,
+                output.compression,
+                output.data,
+            )
+        )
+        self.__connection.connection.commit()
 
 
     def get_metadata(self, run_id):

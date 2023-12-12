@@ -15,7 +15,7 @@ from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task, TaskGroup
 from   .program.base import _InternalProgram, IncrementalProgram
 from   .program.base import Output, OutputMetadata
-from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess
+from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
 from   .program.procstar.agent import start_server
 from   . import runs
 from   .run_log import RunLog
@@ -214,13 +214,17 @@ class Apsis:
                         return
 
                 assert run.state == State.running
-                async for update in updates:
+
+                while run.state == State.running:
+                    update = await anext(updates)
                     log.debug(f"run update: {run.run_id}: {update}")
                     match update:
-                        case ProgramRunning() as running:
-                            # FIXME: Update!
-                            log.info(f"got running update: {running}")
-                            continue
+                        case ProgramUpdate() as update:
+                            self._update(
+                                run,
+                                outputs =update.outputs,
+                                meta    =update.meta,
+                            )
 
                         case ProgramSuccess() as success:
                             self.run_log.record(run, "success")
@@ -230,7 +234,6 @@ class Apsis:
                                 times   =success.times,
                                 outputs =success.outputs,
                             )
-                            break
 
                         case ProgramFailure() as failure:
                             # Program ran and failed.
@@ -241,7 +244,6 @@ class Apsis:
                                 times   =failure.times,
                                 outputs =failure.outputs,
                             )
-                            break
 
                         case ProgramError() as error:
                             self.run_log.info(run, f"error: {error.message}")
@@ -251,13 +253,11 @@ class Apsis:
                                 times   =error.times,
                                 outputs =error.outputs,
                             )
-                            break
 
                         case _ as update:
                             message = f"unexpected update when running: {update}"
                             self.run_log.info(run, f"error: {message}")
                             self._transition(run, State.error)
-                            break
 
             except asyncio.CancelledError:
                 log.info(f"starting task cancelled: {run.run_id}")
@@ -268,7 +268,7 @@ class Apsis:
                 tb = traceback.format_exc().encode()
                 output = Output(OutputMetadata("traceback", length=len(tb)), tb)
                 self._transition(
-                    run, run.STATE.error,
+                    run, State.error,
                     outputs ={"output": output}
                 )
 
@@ -610,6 +610,23 @@ class Apsis:
         )
 
 
+    def _update(self, run, *, outputs=None, meta=None):
+        """
+        Updates run state without transitioning.
+        """
+        assert run.state in {State.starting, State.running}
+
+        if meta is not None:
+            run._update(meta=meta)
+        if outputs is not None:
+            # FIXME: We absolutely need to do better than this to avoid crazy
+            # rewriting to the DB.
+            for output_id, output in outputs.items():
+                self.__db.output_db.upsert(run.run_id, output_id, output)
+
+        self.run_store.update(run, now())
+
+
     def _transition(self, run, state, *, outputs={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
@@ -617,10 +634,7 @@ class Apsis:
         time = now()
 
         # A run is no longer expected once it is no longer scheduled.
-        if run.expected and state not in {
-                run.STATE.new,
-                run.STATE.scheduled,
-        }:
+        if run.expected and state not in {State.new, State.scheduled}:
             self.__db.run_log_db.flush(run.run_id)
             run.expected = False
 
@@ -632,7 +646,7 @@ class Apsis:
         # OK for the time being because outputs are always added on the final
         # transition.  In general, we have to persist new outputs only.
         for output_id, output in outputs.items():
-            self.__db.output_db.add(run.run_id, output_id, output)
+            self.__db.output_db.upsert(run.run_id, output_id, output)
 
         # Persist the new state.
         self.run_store.update(run, time)
@@ -751,7 +765,6 @@ class Apsis:
         if state not in Run.FINISHED:
             raise RunError(f"can't mark {run.run_id} to state {state.name}")
         elif run.state not in Run.FINISHED:
-            # FIXME: Add a 'force' option to allow this?
             raise RunError(f"can't mark {run.run_id} in state {run.state.name}")
         elif state == run.state:
             raise RunError(f"run {run.run_id} already in state {state.name}")
@@ -799,7 +812,7 @@ class Apsis:
             await cancel_task(task, f"starting {run}", log)
         for run_id, task in list(self.__running_tasks.items()):
             await cancel_task(task, f"run {run_id}", log)
-        self.__run_tasks.cancel_all()
+        await self.__run_tasks.cancel_all()
         await self.run_store.shut_down()
         await cancel_task(self.__check_async_task, "check async", log)
         if self.__procstar_task is not None:
