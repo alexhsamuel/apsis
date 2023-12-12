@@ -205,7 +205,7 @@ class Program(TypedJso):
             return TypedJso.from_jso.__func__(cls, jso)
 
 
-    def run(self, run_id, cfg):
+    async def run(self, run_id, cfg):
         """
         Runs the program.
 
@@ -217,29 +217,26 @@ class Program(TypedJso):
         :return:
           Async iterator that yields `Program*` objects.
         """
-        async def updates():
-            # Starting.
-            try:
-                running, done = await self.start(run_id, cfg)
-            except ProgramError as err:
-                yield err
-            else:
-                assert isinstance(running, ProgramRunning)
-                yield running
+        # Starting.
+        try:
+            running, done = await self.start(run_id, cfg)
+        except ProgramError as err:
+            yield err
+        else:
+            assert isinstance(running, ProgramRunning)
+            yield running
 
-            # Running.
-            try:
-                success = await done
-            except (ProgramError, ProgramFailure) as err:
-                yield err
-            else:
-                assert isinstance(success, ProgramSuccess)
-                yield success
-
-        return updates()
+        # Running.
+        try:
+            success = await done
+        except (ProgramError, ProgramFailure) as err:
+            yield err
+        else:
+            assert isinstance(success, ProgramSuccess)
+            yield success
 
 
-    def connect(self, run_id, run_state, cfg):
+    async def connect(self, run_id, run_state, cfg):
         """
         Connects to the running program specified by `run_state`.
 
@@ -251,17 +248,14 @@ class Program(TypedJso):
         :return:
           Async iterator that yields `Program*` objects.
         """
-        async def updates():
-            done = self.reconnect(run_id, run_state)
-            try:
-                success = await done
-            except (ProgramError, ProgramFailure) as err:
-                yield err
-            else:
-                assert isinstance(success, ProgramSuccess)
-                yield success
-
-        return updates()
+        done = self.reconnect(run_id, run_state)
+        try:
+            success = await done
+        except (ProgramError, ProgramFailure) as err:
+            yield err
+        else:
+            assert isinstance(success, ProgramSuccess)
+            yield success
 
 
 

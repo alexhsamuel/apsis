@@ -161,10 +161,11 @@ class ProcstarProgram(base.Program):
         )
 
 
-    async def start(self, run_id, cfg):
+    async def run(self, run_id, cfg):
         assert SERVER is not None
 
         proc_id = str(uuid.uuid4())
+
         # FIXME: Handle NoOpenConnectionInGroup and wait.
         try:
             proc = await SERVER.start(
@@ -200,7 +201,7 @@ class ProcstarProgram(base.Program):
                     run_state = {"conn_id": conn_id, "proc_id": proc_id}
                     yield base.ProgramRunning(run_state, meta=meta)
 
-                    async for update in self.__run(run_id, proc):
+                    async for update in self.__finish(run_id, proc):
                         yield update
 
                 else:
@@ -219,7 +220,7 @@ class ProcstarProgram(base.Program):
             raise
 
 
-    async def __run(self, run_id, proc):
+    async def __finish(self, run_id, proc):
         # Timeout to receive a result update from the agent, before marking the
         # run as error.
         # FIXME: This is temporary, until we handle WebSocket connection and
@@ -329,30 +330,35 @@ class ProcstarProgram(base.Program):
                 assert False, f"unknown proc state: {result.state}"
 
 
-    def reconnect(self, run_id, run_state):
+    async def connect(self, run_id, run_state, cfg):
         assert SERVER is not None
 
         conn_id = run_state["conn_id"]
         proc_id = run_state["proc_id"]
 
-        async def reconnect():
+        try:
+            proc = await SERVER.reconnect(
+                conn_id,
+                proc_id,
+                conn_timeout=SERVER.reconnect_timeout,
+            )
+
+        except NoConnectionError as exc:
+            msg = f"reconnect failed: {proc_id}: {exc}"
+            log.error(msg)
+            yield base.ProgramError(msg)
+
+        else:
+            log.info(f"reconnected: {proc_id} on conn {conn_id}")
+            async for update in self.__finish(run_id, proc):
+                yield update
+
+        finally:
             try:
-                proc = await SERVER.reconnect(
-                    conn_id,
-                    proc_id,
-                    conn_timeout=SERVER.reconnect_timeout,
-                )
-
-            except NoConnectionError as exc:
-                msg = f"reconnect failed: {proc_id}: {exc}"
-                log.error(msg)
-                raise base.ProgramError(msg)
-
-            else:
-                log.info(f"reconnected: {proc_id} on conn {conn_id}")
-                return await self.__wait(run_id, proc)
-
-        return asyncio.ensure_future(reconnect())
+                await SERVER.delete(proc.proc_id)
+            except Exception as exc:
+                log.error(f"delete {proc.proc_id}: {exc}")
+            raise
 
 
     async def signal(self, run_id, run_state, signal):
