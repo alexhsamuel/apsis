@@ -278,8 +278,7 @@ class Apsis:
         """
         Starts a run.
 
-        :return:
-          A coro that runs the run's program to completion.
+        Runs the run's program in a task added to `__run_tasks`.
         """
         # Start the run by running its program.
         self.run_log.record(run, "starting")
@@ -296,8 +295,7 @@ class Apsis:
         """
         Reconnects to a running run.
 
-        :return:
-          A coro that runs the run's program to completion.
+        Finishes running the run's program in a task added to `__run_tasks`.
         """
         assert run.state == State.running
         assert run.run_state is not None
