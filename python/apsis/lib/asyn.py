@@ -90,8 +90,7 @@ class TaskGroup:
         """
         Cancels all running tasks.
         """
-        while len(self.__tasks) > 0:
-            key, task = self.__tasks.popitem()
+        for key, task in tuple(self.__tasks.items()):
             await cancel_task(task, key, self.__log)
 
 
