@@ -19,7 +19,7 @@ def test_basic(tmp_path):
 
     data = b"The quick brown fox jumped over the lazy dogs.\x01\x02\x03"
     output = Output(OutputMetadata("combined output", len(data)), data)
-    db.add("r42", "output", output)
+    db.upsert("r42", "output", output)
 
     meta = db.get_metadata("r42")
     assert list(meta.keys()) == ["output"]
@@ -34,7 +34,7 @@ def test_br(tmp_path):
 
     SqliteDB.create(path=path)
     db = SqliteDB.open(path).output_db
-    db.add("r99", "test", Output(
+    db.upsert("r99", "test", Output(
         OutputMetadata("program output", len(DATA)),
         brotli.compress(DATA), "br",
     ))
