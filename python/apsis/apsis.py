@@ -88,17 +88,16 @@ class Apsis:
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
-        self.__wait_tasks = {}
-        self.__starting_tasks = {}
         # For now, expose the output database directly.
         self.outputs = db.output_db
-        # Tasks for running jobs currently awaited.
+        # Tasks for waiting runs.
+        self.__wait_tasks = TaskGroup(log)
+        # Tasks for starting/running runs.
+        self.__starting_tasks = {}
         self.__running_tasks = {}
-        # Tasks for running actions.
-        self.__action_tasks = set()
-
-        # Tasks that manage individual runs.
         self.__run_tasks = TaskGroup(log)
+        # Tasks for running actions.
+        self.__action_tasks = TaskGroup(log)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -272,7 +271,7 @@ class Apsis:
                     outputs ={"output": output}
                 )
 
-        self.__run_tasks.add(go(), f"running: {run.run_id}")
+        self.__run_tasks.add(run.run_id, go())
 
 
     def __wait(self, run):
@@ -379,10 +378,7 @@ class Apsis:
                 self.__start(run)
 
         # Start the waiting task.
-        task = asyncio.ensure_future(loop())
-        # Register it, but drop it when it's done.
-        self.__wait_tasks[run] = task
-        task.add_done_callback(lambda _, run=run: self.__wait_tasks.pop(run))
+        self.__wait_tasks.add(run.run_id, loop())
 
 
     def __start(self, run):
@@ -571,12 +567,9 @@ class Apsis:
         # hand the actions a snapshot instead.
         snapshot = snapshot_run(self, run)
 
-        loop = asyncio.get_event_loop()
         for action in actions:
-            task = loop.create_task(wrap(run, snapshot, action))
-            self.__action_tasks.add(task)
-            task.add_done_callback(
-                lambda _, task=task: self.__action_tasks.remove(task))
+            key = (id(action), run.run_id, run.state)
+            self.__action_tasks.add(key, wrap(run, snapshot, action))
 
 
     # --- Internal API ---------------------------------------------------------
@@ -723,8 +716,8 @@ class Apsis:
             self.scheduled.unschedule(run)
 
         elif run.state == run.STATE.waiting:
-            # Cancel the waiting task.  It will remove itself when done.
-            await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
+            # Cancel the waiting task.
+            await self.__wait_tasks.cancel(run.run_id)
 
         else:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
@@ -744,7 +737,7 @@ class Apsis:
 
         elif run.state == run.STATE.waiting:
             # Cancel the waiting task.  It will remove itself when done.
-            await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
+            await self.__wait_tasks.cancel(run.run_id)
             self.run_log.info(run, "waiting run started by override")
             # Start the run.
             self.__start(run)
@@ -802,16 +795,14 @@ class Apsis:
 
     async def shut_down(self):
         log.info("shutting down Apsis")
-        for task in list(self.__action_tasks):
-            await cancel_task(task, "action", log)
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
-        for run, task in list(self.__wait_tasks.items()):
-            await cancel_task(task, f"waiting for {run}", log)
         for run, task in list(self.__starting_tasks.items()):
             await cancel_task(task, f"starting {run}", log)
         for run_id, task in list(self.__running_tasks.items()):
             await cancel_task(task, f"run {run_id}", log)
+        await self.__action_tasks.cancel_all()
+        await self.__wait_tasks.cancel_all()
         await self.__run_tasks.cancel_all()
         await self.run_store.shut_down()
         await cancel_task(self.__check_async_task, "check async", log)
@@ -848,8 +839,7 @@ class Apsis:
             "rusage_stime"          : res.ru_stime,
             "tasks": {
                 "num_waiting"       : len(self.__wait_tasks),
-                "num_starting"      : len(self.__starting_tasks),
-                "num_running"       : len(self.__running_tasks),
+                "num_running"       : len(self.__run_tasks),
                 "num_action"        : len(self.__action_tasks),
             },
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),

@@ -60,22 +60,39 @@ async def cancel_task(task, name, log):
 
 
 class TaskGroup:
+    """
+    Tracks a group of running tasks.
+
+    Each added tasks get a callback that removes itself from the group.
+    """
 
     def __init__(self, log):
-        self.__tasks = set()
+        self.__tasks = {}
         self.__log = log
 
 
-    def add(self, coro, name):
-        task = asyncio.ensure_future(coro)
-        task.name = name
-        self.__tasks.add(task)
-        task.add_done_callback(lambda _, task=task: self.__tasks.remove(task))
+    def __len__(self):
+        return len(self.__tasks)
+
+
+    def add(self, key, coro):
+        task = asyncio.get_event_loop().create_task(coro)
+        task.key = key
+        self.__tasks[key] = task
+        task.add_done_callback(lambda _, key=key: self.__tasks.pop(key))
+
+
+    async def cancel(self, key):
+        await cancel_task(self.__tasks[key], key, self.__log)
 
 
     async def cancel_all(self):
-        for task in self.__tasks:
-            await cancel_task(task, task.name, self.__log)
+        """
+        Cancels all running tasks.
+        """
+        while len(self.__tasks) > 0:
+            key, task = self.__tasks.popitem()
+            await cancel_task(task, key, self.__log)
 
 
 
