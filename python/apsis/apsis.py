@@ -175,105 +175,6 @@ class Apsis:
         self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
 
 
-    def __start_incremental(self, run):
-        self.run_log.record(run, "starting (incremental)")
-        self._transition(run, State.starting)
-
-        # Call the program.  This produces an async iterable of updates.
-        updates = aiter(run.program.start(run.run_id, self.cfg))
-
-        async def go():
-            try:
-                assert run.state == State.starting
-                update = await anext(updates)
-                log.debug(f"run update: {run.run_id}: {update}")
-                match update:
-                    case ProgramRunning() as running:
-                        self.run_log.record(run, "running")
-                        self._transition(
-                            run, State.running,
-                            meta    =running.meta,
-                            times   =running.times,
-                        )
-
-                    case ProgramError() as error:
-                        self.run_log.info(run, f"error: {error.message}")
-                        self._transition(
-                            run, State.error,
-                            meta    =error.meta,
-                            times   =error.times,
-                            outputs =error.outputs,
-                        )
-                        return
-
-                    case _ as update:
-                        message = f"unexpected update when starting: {update}"
-                        self.run_log.info(run, f"error: {message}")
-                        self._transition(run, State.error)
-                        return
-
-                assert run.state == State.running
-
-                while run.state == State.running:
-                    update = await anext(updates)
-                    log.debug(f"run update: {run.run_id}: {update}")
-                    match update:
-                        case ProgramUpdate() as update:
-                            self._update(
-                                run,
-                                outputs =update.outputs,
-                                meta    =update.meta,
-                            )
-
-                        case ProgramSuccess() as success:
-                            self.run_log.record(run, "success")
-                            self._transition(
-                                run, State.success,
-                                meta    =success.meta,
-                                times   =success.times,
-                                outputs =success.outputs,
-                            )
-
-                        case ProgramFailure() as failure:
-                            # Program ran and failed.
-                            self.run_log.record(run, f"failure: {failure.message}")
-                            self._transition(
-                                run, State.failure,
-                                meta    =failure.meta,
-                                times   =failure.times,
-                                outputs =failure.outputs,
-                            )
-
-                        case ProgramError() as error:
-                            self.run_log.info(run, f"error: {error.message}")
-                            self._transition(
-                                run, State.error,
-                                meta    =error.meta,
-                                times   =error.times,
-                                outputs =error.outputs,
-                            )
-
-                        case _ as update:
-                            message = f"unexpected update when running: {update}"
-                            self.run_log.info(run, f"error: {message}")
-                            self._transition(run, State.error)
-
-            except asyncio.CancelledError:
-                log.info(f"starting task cancelled: {run.run_id}")
-
-            except Exception:
-                # Program raised some other exception.
-                self.run_log.exc(run, "error: internal")
-                tb = traceback.format_exc().encode()
-                output = Output(OutputMetadata("traceback", length=len(tb)), tb)
-                self._transition(
-                    run, State.error,
-                    outputs ={"output": output}
-                )
-
-        self.__run_tasks.add(run.run_id, go())
-
-
     def __wait(self, run):
         """
         Starts waiting for `run`.
@@ -379,6 +280,105 @@ class Apsis:
 
         # Start the waiting task.
         self.__wait_tasks.add(run.run_id, loop())
+
+
+    def __start_incremental(self, run):
+        self.run_log.record(run, "starting (incremental)")
+        self._transition(run, State.starting)
+
+        # Call the program.  This produces an async iterable of updates.
+        updates = aiter(run.program.start(run.run_id, self.cfg))
+
+        async def go():
+            try:
+                assert run.state == State.starting
+                update = await anext(updates)
+                log.debug(f"run update: {run.run_id}: {update}")
+                match update:
+                    case ProgramRunning() as running:
+                        self.run_log.record(run, "running")
+                        self._transition(
+                            run, State.running,
+                            meta    =running.meta,
+                            times   =running.times,
+                        )
+
+                    case ProgramError() as error:
+                        self.run_log.info(run, f"error: {error.message}")
+                        self._transition(
+                            run, State.error,
+                            meta    =error.meta,
+                            times   =error.times,
+                            outputs =error.outputs,
+                        )
+                        return
+
+                    case _ as update:
+                        message = f"unexpected update when starting: {update}"
+                        self.run_log.info(run, f"error: {message}")
+                        self._transition(run, State.error)
+                        return
+
+                assert run.state == State.running
+
+                while run.state == State.running:
+                    update = await anext(updates)
+                    log.debug(f"run update: {run.run_id}: {update}")
+                    match update:
+                        case ProgramUpdate() as update:
+                            self._update(
+                                run,
+                                outputs =update.outputs,
+                                meta    =update.meta,
+                            )
+
+                        case ProgramSuccess() as success:
+                            self.run_log.record(run, "success")
+                            self._transition(
+                                run, State.success,
+                                meta    =success.meta,
+                                times   =success.times,
+                                outputs =success.outputs,
+                            )
+
+                        case ProgramFailure() as failure:
+                            # Program ran and failed.
+                            self.run_log.record(run, f"failure: {failure.message}")
+                            self._transition(
+                                run, State.failure,
+                                meta    =failure.meta,
+                                times   =failure.times,
+                                outputs =failure.outputs,
+                            )
+
+                        case ProgramError() as error:
+                            self.run_log.info(run, f"error: {error.message}")
+                            self._transition(
+                                run, State.error,
+                                meta    =error.meta,
+                                times   =error.times,
+                                outputs =error.outputs,
+                            )
+
+                        case _ as update:
+                            message = f"unexpected update when running: {update}"
+                            self.run_log.info(run, f"error: {message}")
+                            self._transition(run, State.error)
+
+            except asyncio.CancelledError:
+                log.info(f"starting task cancelled: {run.run_id}")
+
+            except Exception:
+                # Program raised some other exception.
+                self.run_log.exc(run, "error: internal")
+                tb = traceback.format_exc().encode()
+                output = Output(OutputMetadata("traceback", length=len(tb)), tb)
+                self._transition(
+                    run, State.error,
+                    outputs ={"output": output}
+                )
+
+        self.__run_tasks.add(run.run_id, go())
 
 
     def __start(self, run):
