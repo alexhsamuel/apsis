@@ -289,7 +289,7 @@ class Apsis:
             run.run_id,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
-        self.__run_tasks.add(run.run_id, self.__run(run, aiter(updates)))
+        self.__run_tasks.add(run.run_id, self.__do_program(run, aiter(updates)))
 
 
     def __reconnect(self, run):
@@ -308,10 +308,10 @@ class Apsis:
             run.run_state,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
-        self.__run_tasks.add(run.run_id, self.__run(run, aiter(updates)))
+        self.__run_tasks.add(run.run_id, self.__do_program(run, aiter(updates)))
 
 
-    async def __run(self, run, updates):
+    async def __do_program(self, run, updates):
         """
         Processes `updates` for `run` until the run is finished.
         """
