@@ -1,6 +1,7 @@
 from   contextlib import contextmanager
 import functools
 import logging
+import os
 from   pathlib import Path
 import signal
 import subprocess
@@ -34,6 +35,7 @@ class ApsisInstance:
         )
         self.cfg_path   = self.tmp_dir / "config.yaml"
         self.log_path   = self.tmp_dir / "apsis.log"
+        self.agent_dir  = self.tmp_dir / "agent"
 
         self.cfg        = dict(cfg)
         self.srv_proc   = None
@@ -67,7 +69,11 @@ class ApsisInstance:
                     "--config", str(self.cfg_path),
                     "--port", str(self.port),
                 ],
-                stderr=log_file
+                env={
+                    **os.environ,
+                    "APSIS_AGENT_DIR": str(self.agent_dir),
+                },
+                stderr=log_file,
             )
 
 
@@ -111,15 +117,19 @@ class ApsisInstance:
     def stop_serve(self):
         assert self.srv_proc is not None
         self.srv_proc.send_signal(signal.SIGTERM)
-        return self.srv_proc.wait()
+        res = self.srv_proc.wait()
+        self.srv_proc = None
+
+        # Dump the log file.
+        with open(self.log_path) as file:
+            sys.stderr.write(file.read())
+
+        return res
 
 
     def close(self):
         if self.srv_proc is not None:
             self.stop_serve()
-            with open(self.log_path) as file:
-                sys.stdout.write(file.read())
-            sys.stdout.flush()
 
 
     def run_apsis_cmd(self, *argv):
