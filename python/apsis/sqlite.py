@@ -277,8 +277,6 @@ class RunDB:
     @staticmethod
     def __query_runs(conn, expr):
         query = sa.select([TBL_RUNS]).where(expr)
-        log.debug(str(query).replace("\n", " "))
-
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
@@ -395,7 +393,6 @@ class RunDB:
         :param min_timestamp:
           If not none, limits to runs with timestamp not less than this.
         """
-        log.debug(f"query job_id={job_id} since={since}")
         where = []
         if job_id is not None:
             where.append(TBL_RUNS.c.job_id == job_id)
@@ -408,7 +405,10 @@ class RunDB:
             # FIMXE: Return only the last record for each run_id?
             runs = list(self.__query_runs(conn, sa.and_(*where)))
 
-        log.debug(f"query returned {len(runs)} runs")
+        log.debug(
+            f"query job_id={job_id} since={since} min_timestamp={min_timestamp}"
+            f" → {len(runs)} runs"
+        )
         return runs
 
 
