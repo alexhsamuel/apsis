@@ -109,7 +109,7 @@ def start_server(cfg):
     )
 
 
-class ProcstarProgram(base.IncrementalProgram):
+class ProcstarProgram(base.Program):
 
     def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
         self.__argv = tuple( str(a) for a in argv )

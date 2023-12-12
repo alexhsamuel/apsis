@@ -167,18 +167,8 @@ class Program(TypedJso):
         """
         Starts the run.
 
-        Updates `run` in place.
-
-        :param run_id:
-          The run ID; used for logging only.
-        :param cfg:
-          The global config.
-        :raise ProgramError:
-          The program failed to start.
-        :return:
-          `running, done`, where `running` is a `ProgramRunning` instance and
-          `done` is a coroutine or future that returns `ProgramSuccess` when the
-          program is complete.
+        :deprecated:
+          Implement `run()` instead.
         """
 
 
@@ -186,12 +176,8 @@ class Program(TypedJso):
         """
         Reconnects to an already running run.
 
-        :param run_id:
-          The run ID; used for logging only.
-        :param run_state:
-          State information for the running program.
-        :return:
-          A coroutine or future for the program completion, as `start`.
+        :deprecated:
+          Implement `connect()` instead.
         """
 
 
@@ -219,23 +205,63 @@ class Program(TypedJso):
             return TypedJso.from_jso.__func__(cls, jso)
 
 
-
-#-------------------------------------------------------------------------------
-
-class IncrementalProgram(Program):
-
-    def start(self, run_id, cfg):
+    def run(self, run_id, cfg):
         """
-        Returns async iterator that yields `Program*` objects.
+        Runs the program.
+
+        The default implementation is a facade for `start()`, for backward
+        compatibility.  Subclasses should override this method.
+
+        :param run_id:
+          Used for logging only.
+        :return:
+          Async iterator that yields `Program*` objects.
         """
-        pass
+        async def updates():
+            # Starting.
+            try:
+                running, done = await self.start(run_id, cfg)
+            except ProgramError as err:
+                yield err
+            else:
+                assert isinstance(running, ProgramRunning)
+                yield running
+
+            # Running.
+            try:
+                success = await done
+            except (ProgramError, ProgramFailure) as err:
+                yield err
+            else:
+                assert isinstance(success, ProgramSuccess)
+                yield success
+
+        return updates()
 
 
-    def reconnect(self, run_id, run_state):
+    def connect(self, run_id, run_state, cfg):
         """
-        Returns async iterator that yields `Program*` objects.
+        Connects to the running program specified by `run_state`.
+
+        The default implementation is a facade for `reconnect()`, for backward
+        compatibility.  Subclasses should override this method.
+
+        :param run_id:
+          Used for logging only.
+        :return:
+          Async iterator that yields `Program*` objects.
         """
-        pass
+        async def updates():
+            done = self.reconnect(run_id, run_state)
+            try:
+                success = await done
+            except (ProgramError, ProgramFailure) as err:
+                yield err
+            else:
+                assert isinstance(success, ProgramSuccess)
+                yield success
+
+        return updates()
 
 
 
