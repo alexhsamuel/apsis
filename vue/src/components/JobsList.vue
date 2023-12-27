@@ -201,7 +201,6 @@ export default {
   },
 
   created() {
-    console.log('JobsList created')
     const v = this
     const url = '/api/v1/jobs'
     this.loading = true
