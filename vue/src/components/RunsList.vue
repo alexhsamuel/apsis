@@ -370,8 +370,10 @@ export default {
         runs = filter(runs, run => includesAll(this.labels, run.labels))
       if (this.args)
         runs = filter(runs, getArgPredicate(this.args))
-      if (this.keywords)
-        runs = filter(runs, run => matchKeywords(this.keywords, run.job_id))
+      if (this.keywords) {
+        const keywords = this.keywords.map(s => s.toLowerCase())
+        runs = filter(runs, run => matchKeywords(keywords, run.job_id.toLowerCase()))
+      }
 
       return sortBy(runs, r => r.time_key)
     },

@@ -220,8 +220,10 @@ export default {
       }
       if (this.labels)
         jobs = filter(jobs, job => includesAll(this.labels, job.metadata.labels))
-      if (this.keywords)
-        jobs = filter(jobs, job => matchKeywords(this.keywords, job.job_id))
+      if (this.keywords) {
+        const keywords = this.keywords.map(s => s.toLowerCase())
+        jobs = filter(jobs, job => matchKeywords(keywords, job.job_id.toLowerCase()))
+      }
 
       return jobs
     },
