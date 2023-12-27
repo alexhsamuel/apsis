@@ -119,6 +119,7 @@ import PathNav from '@/components/PathNav'
 import Program from '@/components/Program'
 import { matchKeywords, includesAll } from '@/runs'
 import SearchInput from '@/components/SearchInput'
+import store from '@/store.js'
 import TriangleIcon from '@/components/icons/TriangleIcon'
 import WordsInput from '@/components/WordsInput'
 
@@ -182,9 +183,9 @@ export default {
 
   data() {
     return {
+      store,
       loading: true,
       allJobs: [],
-      expand: {},
     }
   },
 
@@ -200,16 +201,21 @@ export default {
   },
 
   created() {
+    console.log('JobsList created')
     const v = this
     const url = '/api/v1/jobs'
     this.loading = true
     fetch(url)
       .then((response) => response.json())
       .then((response) => response.forEach((j) => v.allJobs.push(j)))
-      .then(() => { this.expandAll(false); this.loading = false })
+      .then(() => { this.loading = false })
   },
 
   computed: {
+    expand() {
+      return this.store.state.jobsExpand
+    },
+
     /** Jobs after applying the filter.  */
     visibleJobs() {
       var jobs = filter(this.allJobs, job => !job.ad_hoc)
