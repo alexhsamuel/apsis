@@ -1,7 +1,8 @@
 import logging
 
 from   apsis.lib.py import format_ctor, iterize
-from   apsis.runs import Run, Instance, get_bind_args
+from   apsis.runs import Instance, get_bind_args
+from   apsis.states import State
 from   .base import RunStoreCondition, _bind
 
 log = logging.getLogger(__name__)
@@ -13,9 +14,14 @@ class Dependency(RunStoreCondition):
     True if a run exists and is in a given state.
     """
 
-    def __init__(self, job_id, args={}, states={Run.STATE.success}):
+    DEFAULT_STATE = { State.success }
+
+    def __init__(
+            self, job_id, args={},
+            states=DEFAULT_STATE,
+    ):
         states = frozenset(iterize(states))
-        assert all( isinstance(s, Run.STATE) for s in states )
+        assert all( isinstance(s, State) for s in states )
 
         self.job_id = job_id
         self.args = args
@@ -43,7 +49,7 @@ class Dependency(RunStoreCondition):
 
     @classmethod
     def from_jso(cls, jso):
-        states = { Run.STATE[s] for s in iterize(jso.pop("states", "success")) }
+        states = { State[s] for s in iterize(jso.pop("states", "success")) }
         return cls(
             jso.pop("job_id"),
             jso.pop("args", {}),
