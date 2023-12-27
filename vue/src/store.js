@@ -44,6 +44,9 @@ class Store {
 
     // User-selected time zone.
     timeZone: 'UTC',
+
+    // Expand state in the job tree.
+    jobsExpand: {},
   }
 
   setTime(time) {
