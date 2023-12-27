@@ -11,7 +11,7 @@ import websockets
 from   apsis import __version__
 import apsis.agent.client
 import apsis.lib.logging
-from   . import api, control
+from   . import api, control, procstar
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import load_jobs_dir, JobErrors
@@ -64,6 +64,7 @@ app.config.LOGO = None
 
 app.blueprint(api.API, url_prefix="/api/v1")
 app.blueprint(control.API, url_prefix="/api/control")
+app.blueprint(procstar.API, url_prefix="/api/procstar")
 
 vue_dir = Path(__file__).parent / "vue"
 assert vue_dir.is_dir()
