@@ -161,19 +161,23 @@ export default {
   },
 
   created() {
-    const url = '/api/v1/jobs/' + this.job_id  // FIXME
-    fetch(url)
-      .then(async (response) => {
-        if (response.ok)
-          this.job = await response.json()
-        else if (response.status === 404)
-          this.job = null
-        else
-          store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
-      })
+    this.fetchJob(this.job_id)
   },
 
   methods: {
+    fetchJob(job_id) {
+      const url = '/api/v1/jobs/' + job_id  // FIXME
+      fetch(url)
+        .then(async (response) => {
+          if (response.ok)
+            this.job = await response.json()
+          else if (response.status === 404)
+            this.job = null
+          else
+            store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
+        })
+    },
+
     markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
 
     setScheduleArg(param, ev) {
@@ -224,6 +228,14 @@ export default {
     },
 
     join,
+  },
+
+  watch: {
+    // Navigating to another job through the router doesn't recreate the view; the job_id just changes.
+    job_id: function (job_id) {
+      this.job = undefined
+      this.fetchJob(job_id)
+    }
   },
 
 }
