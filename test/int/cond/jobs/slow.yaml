@@ -1,0 +1,6 @@
+params: [date, flavor]
+
+program:
+  type: no-op
+  duration: 1
+
