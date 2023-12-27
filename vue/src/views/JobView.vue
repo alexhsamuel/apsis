@@ -43,7 +43,12 @@ div.component
       tr
         th conditions
         td(v-if="job.condition.length > 0")
-          .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
+          .condition(v-for="cond in job.condition" :key="cond.str")
+            span(v-if="cond.type === 'dependency'")
+              span dependency: 
+              Job(:job-id="cond.job_id")
+              span  is {{ join(cond.states, '|') }}
+            span(v-else) {{ cond.str }}
         td(v-else) No conditions.
 
       tr
@@ -217,6 +222,8 @@ export default {
       modal.$mount()
       this.$root.$el.appendChild(modal.$el)
     },
+
+    join,
   },
 
 }
