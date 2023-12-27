@@ -9,6 +9,10 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+def join_states(states):
+    return "|".join( s.name for s in sorted(states, key=lambda s: s.value) )
+
+
 class Dependency(RunStoreCondition):
     """
     Waits for a run in a given state or states.
@@ -26,7 +30,7 @@ class Dependency(RunStoreCondition):
         assert all( isinstance(s, State) for s in states )
         if exist is not None:
             assert all( isinstance(s, State) for s in exist )
-            assert len(set(exist) - set(states)) == 0
+            assert len(set(states) - set(exist)) == 0
 
         self.job_id = job_id
         self.args   = args
@@ -45,10 +49,10 @@ class Dependency(RunStoreCondition):
 
     def __str__(self):
         inst = Instance(self.job_id, self.args)
-        states = "|".join( s.name for s in self.states )
+        states = join_states(self.states)
         exist = (
             "" if self.exist is None
-            else ", must exist as " + "|".join( s.name for s in self.exist )
+            else ", must exist as " + join_states(self.exist)
         )
         return f"dependency {inst} is {states}{exist}"
 
@@ -103,18 +107,18 @@ class Dependency(RunStoreCondition):
                 if self.exist is not None:
                     # First check whether a valid dependency run exists, in one
                     # of the exist states.
-                    exist_runs = run_store.query(
+                    _, exist_runs = run_store.query(
                         job_id  =self.job_id,
                         args    =self.args,
                         state   =self.exist,
                     )
-                    if next(exist_runs, None) is None:
+                    if len(exist_runs) == 0:
                         # No dependency run exists in a valid starting state.
                         inst = Instance(self.job_id, self.args)
-                        exst = "|".join(self.exist)
-                        return self.Transaction(
+                        exst = join_states(self.exist)
+                        return self.Transition(
                             State.error,
-                            f"no dependency {inst} in {exst}"
+                            f"no dependency {inst} exists in {exst}"
                         )
 
                 # Wait for something to happen.  
