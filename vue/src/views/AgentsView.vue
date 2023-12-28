@@ -136,6 +136,7 @@ groups {
     }
 
     .basics {
+      align-self: start;
       display: grid;
       grid-template-columns: 16ex 1fr;
 
