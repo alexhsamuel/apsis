@@ -137,8 +137,10 @@ groups {
 
     .basics {
       align-self: start;
+
       display: grid;
       grid-template-columns: 16ex 1fr;
+      row-gap: 4px;
 
       label {
         font-weight: bold;
