@@ -91,6 +91,8 @@ export default {
 <style lang="scss" scoped>
 @import 'src/styles/vars.scss';
 
+$gray: #e8e8e8;
+
 .controls {
   margin-bottom: 32px;
 
@@ -119,7 +121,7 @@ groups {
   row-gap: 24px;
 
   .group {
-    border: 1px solid $apsis-frame-color;
+    border: 1px solid $gray;
 
     display: grid;
     grid-template-columns: 24ex 128ex;
@@ -127,7 +129,7 @@ groups {
 
   .name {
     padding: 8px 16px;
-    background: $apsis-frame-color;
+    background: $gray;
   }
 }
 
@@ -140,8 +142,8 @@ groups {
       color: #a0a0a0;
     }
 
-    border-left: 1px solid $apsis-frame-color;
-    border-bottom: 1px solid $apsis-frame-color;
+    border-left: 1px solid $gray;
+    border-bottom: 1px solid $gray;
     &:last-child {
       border-bottom: none;
     }
