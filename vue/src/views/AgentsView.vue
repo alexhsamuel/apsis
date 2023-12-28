@@ -3,8 +3,11 @@ div
   div(v-if="groups")
     h1 Groups
     div.controls
-      input(type="checkbox" v-model="showDisconnected")
-      label Show disconnected
+      button(@click="fetchGroups()") Refresh
+
+      div
+        input(type="checkbox" v-model="showDisconnected")
+        label Show disconnected
 
     div.groups
       div.group(v-for="(conns, group_id) in filteredGroups" :key="group_id")
@@ -44,6 +47,7 @@ export default {
     return {
       store,
       groups: undefined,
+      timerId: undefined,
       showDisconnected: true,
     }
   },
@@ -54,18 +58,23 @@ export default {
 
   methods: {
     fetchGroups() {
+      if (self.timerId)
+        clearTimeout(self.timerId)
+
       const url = '/api/procstar/groups'
       fetch(url).then(async (rsp) => {
           if (rsp.ok)
             this.groups = await rsp.json()
           // FIXME: Handle error, e.g. no procstar server.
       })
+
+      // Load again in a minute.
+      self.timerId = setTimeout(this.fetchGroups, 60 * 1000)
     },
   },
 
   computed: {
     filteredGroups() {
-      console.log('filteredGroups', this.showDisconnected)
       let groups = this.groups
       if (groups)
         if (!this.showDisconnected)
@@ -80,7 +89,15 @@ export default {
 @import 'src/styles/vars.scss';
 
 .controls {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+
+  display: flex;
+  align-items: center;
+  column-gap: 24px;
+
+  button {
+    height: 28px;
+  }
 }
 
 groups {
