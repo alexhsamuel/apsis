@@ -160,6 +160,40 @@ given state.  Specify the job ID of the dependency, and any arguments.
 The arguments are template-expanded.  If the dependency job shares a param with
 the dependent job, it may be omitted; the same arg is used.
 
+By default, the dependency causes the run to wait until a matching **success**
+run arises.  You can specify another target state or set of states:
+
+.. code:: yaml
+
+    condition:
+        type: dependency
+        job_id: "previous job"
+        args:
+            label: foobar
+        states: ["success", "failure"]
+
+This condition does not actually create the dependecy run.  You must create that
+run elsewhere, usually by scheduling it.  If the run doesn't exist at all, the
+dependency condition will wait until `waiting.max_time` elapses, and then
+transition the run to **error**.
+
+To check that a corresponding dependency run exists at all, using set `exist` to
+true.  With this, the condition transitions the run to **error** _immediately_
+if the run does not exist, or if it has completed unsuccessfully.  If a run
+exists that may still transition to **success**, the condition waits as usual.
+
+.. code:: yaml
+
+    condition:
+        type: dependency
+        job_id: "previous job"
+        args:
+            label: foobar
+        exist: true
+
+Instead of true, you may provide a set of states in which the run must exist.
+The default is state from which one of the target states is reachable.
+
 
 Skipping Duplicates
 '''''''''''''''''''

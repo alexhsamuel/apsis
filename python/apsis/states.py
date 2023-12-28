@@ -47,3 +47,23 @@ def states_to_jso(states):
     )
 
 
+def reachable(state):
+    """
+    Returns the set of states reachable from `state` by zero or more
+    transitions.
+    """
+    reachable = {state}
+    while True:
+        # Find immediate successors.
+        succ = {
+            s
+            for s, pred in TRANSITIONS.items()
+            if any( r in pred for r in reachable )
+        }
+        # If there are no new successors, stop.
+        if len(succ - reachable) == 0:
+            return reachable
+        else:
+            reachable |= succ
+
+
