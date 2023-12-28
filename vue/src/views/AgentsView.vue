@@ -13,7 +13,7 @@ div
           div.count {{ conns.length }} connection{{ conns.length == 1 ? '' : 's' }}
 
         div.conns
-          div.conn(v-for="conn in conns")
+          div.conn(v-for="conn in conns" :class="{ connected: conn.info.stats.connected }")
             div.basics
               label Connection ID
               span {{ conn.info.conn.conn_id }}
@@ -119,12 +119,12 @@ groups {
 .conns {
   display: flex;
   flex-direction: column;
-  row-gap: 4px;
+  row-gap: 8px;
 
   .conn {
-    border: 1px solid $apsis-frame-color;
-    > *:first-child {
-      border-right: 1px solid $apsis-frame-color;
+    background: #f8f8f8;
+    &.connected {
+      color: #a0a0a0;
     }
 
     display: grid;
@@ -153,9 +153,6 @@ groups {
       font-size: 85%;
       display: grid;
       grid-template-columns: 1fr 1fr;
-
-      label {
-      }
     }
   }
 }
