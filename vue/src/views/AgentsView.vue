@@ -123,7 +123,7 @@ groups {
 
   .conn {
     background: #f8f8f8;
-    &.connected {
+    &:not(.connected) {
       color: #a0a0a0;
     }
 
