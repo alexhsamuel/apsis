@@ -1,13 +1,14 @@
 <template lang="pug">
 div
   div(v-if="groups")
-    h1 Groups
     div.controls
       button(@click="fetchGroups()") Refresh
 
       div
         input(type="checkbox" v-model="showDisconnected")
         label Show disconnected
+
+    h1 Groups
 
     div.groups
       div.group(v-for="(conns, group_id) in filteredGroups" :key="group_id")
@@ -18,20 +19,18 @@ div
         div.conns
           div.conn(v-for="conn in conns" :class="{ connected: conn.info.stats.connected }")
             div.basics
-              label Connection ID
-              span {{ conn.info.conn.conn_id }}
               label Host
               span {{ conn.info.proc.hostname }}
-              label User:Group
+              label User &amp; Group
               span {{ conn.info.proc.username }}:{{ conn.info.proc.groupname }}
               label PID
               span {{ conn.info.proc.pid }}
+              label Connection ID
+              span {{ conn.info.conn.conn_id }}
             div.stats
               template(v-for="(value, name) in conn.info.stats")
-                label {{ name }}
-                div {{ value }}
-
-        div.rule
+                label(:class="{ bold: name === 'connected' }") {{ name }}
+                div(:class="{ bold: name === 'connected' }") {{ value }}
 
 </template>
 
@@ -76,9 +75,13 @@ export default {
   computed: {
     filteredGroups() {
       let groups = this.groups
-      if (groups)
+      if (groups) {
         if (!this.showDisconnected)
+          // Hide disconnected connections.
           groups = mapValues(groups, g => filter(g, c => c.info.stats.connected))
+        // Sort connections in each group by hostname.
+        mapValues(groups, g => g.sort(c => c.info.proc.hostname))
+      }
       return groups
     },
   },
@@ -111,24 +114,19 @@ groups {
 
 .groups {
   display: flex;
-  row-gap: 32px;
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: 24px;
 
   .group {
+    border: 1px solid $apsis-frame-color;
+
     display: grid;
-    grid-template-columns: 24ex 1fr;
+    grid-template-columns: 24ex 128ex;
   }
 
   .name {
-    padding: 8px 16px 8px 0;
-  }
-
-  .rule {
-    width: 100%;
-    height: 1px;
-    grid-column-start: 1;
-    grid-column-end: 3;
-    margin-top: 8px;
-    margin-bottom: 8px;
+    padding: 8px 16px;
     background: $apsis-frame-color;
   }
 }
@@ -136,12 +134,16 @@ groups {
 .conns {
   display: flex;
   flex-direction: column;
-  row-gap: 8px;
 
   .conn {
-    background: #f8f8f8;
     &:not(.connected) {
       color: #a0a0a0;
+    }
+
+    border-left: 1px solid $apsis-frame-color;
+    border-bottom: 1px solid $apsis-frame-color;
+    &:last-child {
+      border-bottom: none;
     }
 
     display: grid;
@@ -173,6 +175,10 @@ groups {
       font-size: 85%;
       display: grid;
       grid-template-columns: 1fr 1fr;
+    }
+
+    .bold {
+      font-weight: bold;
     }
   }
 }
