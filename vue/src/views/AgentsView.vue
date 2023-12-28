@@ -11,14 +11,19 @@ div
 
         div.conns
           div.conn(v-for="conn in conns")
-            label Connection ID
-            span {{ conn.info.conn.conn_id }}
-            label Host
-            span {{ conn.info.proc.hostname }}
-            label User:Group
-            span {{ conn.info.proc.username }}:{{ conn.info.proc.groupname }}
-            label PID
-            span {{ conn.info.proc.pid }}
+            div.basics
+              label Connection ID
+              span {{ conn.info.conn.conn_id }}
+              label Host
+              span {{ conn.info.proc.hostname }}
+              label User:Group
+              span {{ conn.info.proc.username }}:{{ conn.info.proc.groupname }}
+              label PID
+              span {{ conn.info.proc.pid }}
+            div.stats
+              template(v-for="(value, name) in conn.info.stats")
+                label {{ name }}
+                div {{ value }}
 
         div.rule
 
@@ -98,17 +103,38 @@ groups {
 
   .conn {
     border: 1px solid $apsis-frame-color;
-    padding: 8px 16px;
 
-    display: grid;
-    grid-template-columns: 16ex 1fr;
+    display: flex;
+    white-space: nowrap;
 
-    label {
-      font-weight: bold;
+    > *:first-child {
+      border-right: 1px solid $apsis-frame-color;
+    }
+    > * {
+      padding: 8px 16px;
     }
 
-    .conn_id {
+    .basics {
+      display: grid;
+      grid-template-columns: 16ex 1fr;
+
+      label {
+        font-weight: bold;
+      }
+
+      .conn_id {
+        font-family: $base-code-font-family;
+      }
+    }
+
+    .stats {
       font-family: $base-code-font-family;
+      font-size: 85%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+
+      label {
+      }
     }
   }
 }
