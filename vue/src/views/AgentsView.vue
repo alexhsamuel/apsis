@@ -2,9 +2,12 @@
 div
   div(v-if="groups")
     h1 Groups
+    div
+      input(type="checkbox" v-model="showDisconnected")
+      label Show disconnected
 
     div.groups
-      div.group(v-for="(conns, group_id) in groups" :key="group_id")
+      div.group(v-for="(conns, group_id) in filteredGroups" :key="group_id")
         div.name()
           div.group_id {{ group_id }}
           div.count {{ conns.length }} connection{{ conns.length == 1 ? '' : 's' }}
@@ -30,6 +33,8 @@ div
 </template>
 
 <script>
+import { filter, mapValues } from 'lodash'
+
 import store from '@/store.js'
 
 export default {
@@ -39,6 +44,7 @@ export default {
     return {
       store,
       groups: undefined,
+      showDisconnected: true,
     }
   },
 
@@ -51,12 +57,22 @@ export default {
       const url = '/api/procstar/groups'
       fetch(url).then(async (rsp) => {
           if (rsp.ok)
-            this.groups = Object.freeze(await rsp.json())
+            this.groups = await rsp.json()
           // FIXME: Handle error, e.g. no procstar server.
       })
     },
   },
 
+  computed: {
+    filteredGroups() {
+      console.log('filteredGroups', this.showDisconnected)
+      let groups = this.groups
+      if (groups)
+        if (!this.showDisconnected)
+          groups = mapValues(groups, g => filter(g, c => c.info.stats.connected))
+      return groups
+    },
+  },
 }
 </script>
 
