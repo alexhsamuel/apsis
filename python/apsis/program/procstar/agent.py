@@ -193,15 +193,15 @@ class ProcstarProgram(base.Program):
                         meta=meta,
                     )
 
-                elif result.state == "running":
+                elif result.state in {"running", "terminated"}:
+                    # If immediately receive a result with state "terminated",
+                    # we must have missed the previous running result.
                     conn_id = result.procstar.conn.conn_id
                     run_state = {"conn_id": conn_id, "proc_id": proc_id}
                     done = self.__wait(run_id, proc)
                     return base.ProgramRunning(run_state, meta=meta), done
 
                 else:
-                    # We should not immediately receive a result with state
-                    # "terminated".
                     raise base.ProgramError(
                         f"unexpected proc state: {result.state}",
                         meta=meta,
@@ -253,7 +253,11 @@ class ProcstarProgram(base.Program):
             )
             logging.debug(f"waiting for result {wait_timeout} (timeout in {timeout}): {run_id}")
             try:
-                result = await asyncio.wait_for(anext(proc.results), wait_timeout)
+                # Unless the proc is already terminated, await the next message.
+                result = (
+                    proc.results.latest if proc.results.latest.state == "terminated"
+                    else await asyncio.wait_for(anext(proc.results), wait_timeout)
+                )
             except asyncio.TimeoutError:
                 # Didn't receive a result.
                 if conn.open:
