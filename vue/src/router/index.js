@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
+import AgentsView   from '@/views/AgentsView'
 import ControlView  from '@/views/ControlView'
 import JobView      from '@/views/JobView'
 import JobsView     from '@/views/JobsView'
@@ -21,6 +22,12 @@ export default new Router({
       props: false,
       name: 'control',
       component: ControlView,
+    },
+    {
+      path: '/agents',
+      props: false,
+      name: 'agents',
+      component: AgentsView,
     },
     {
       path: '/jobs/:path*',
