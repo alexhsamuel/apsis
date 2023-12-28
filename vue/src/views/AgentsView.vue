@@ -2,7 +2,7 @@
 div
   div(v-if="groups")
     h1 Groups
-    div
+    div.controls
       input(type="checkbox" v-model="showDisconnected")
       label Show disconnected
 
@@ -79,6 +79,10 @@ export default {
 <style lang="scss" scoped>
 @import 'src/styles/vars.scss';
 
+.controls {
+  margin-bottom: 24px;
+}
+
 groups {
   font-size: 100%;
 }
@@ -119,13 +123,14 @@ groups {
 
   .conn {
     border: 1px solid $apsis-frame-color;
-
-    display: flex;
-    white-space: nowrap;
-
     > *:first-child {
       border-right: 1px solid $apsis-frame-color;
     }
+
+    display: grid;
+    grid-template-columns: 50% 50%;
+    white-space: nowrap;
+
     > * {
       padding: 8px 16px;
     }
