@@ -122,6 +122,7 @@ groups {
 
   .group {
     border: 1px solid $gray;
+    border-radius: 4px;
 
     display: grid;
     grid-template-columns: 24ex 128ex;
