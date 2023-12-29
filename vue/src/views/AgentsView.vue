@@ -27,10 +27,13 @@ div
               span {{ conn.info.proc.pid }}
               label Connection ID
               span {{ conn.info.conn.conn_id }}
+              label Restricted Exe
+              span
+                tt {{ conn.info.conn.restricted_exe }}
             div.stats
               template(v-for="(value, name) in conn.info.stats")
-                label(:class="{ bold: name === 'connected' }") {{ name }}
-                div(:class="{ bold: name === 'connected' }") {{ value }}
+                label {{ name.replaceAll('_', ' ') }}
+                div {{ value }}
 
 </template>
 
@@ -167,17 +170,14 @@ groups {
       label {
         font-weight: bold;
       }
-
-      .conn_id {
-        font-family: $base-code-font-family;
-      }
     }
 
     .stats {
-      font-family: $base-code-font-family;
       font-size: 85%;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 28ex 1fr;
+
+      font-family: $base-code-font-family;
     }
 
     .bold {
