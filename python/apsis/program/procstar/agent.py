@@ -10,6 +10,7 @@ import uuid
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none
+from   apsis.lib.sys import to_signal
 from   apsis.program import base
 from   apsis.runs import join_args, template_expand
 
@@ -255,7 +256,9 @@ class ProcstarProgram(base.Program):
             try:
                 # Unless the proc is already terminated, await the next message.
                 result = (
-                    proc.results.latest if proc.results.latest.state == "terminated"
+                    proc.results.latest
+                    if proc.results.latest is not None
+                    and proc.results.latest.state == "terminated"
                     else await asyncio.wait_for(anext(proc.results), wait_timeout)
                 )
             except asyncio.TimeoutError:
@@ -316,7 +319,7 @@ class ProcstarProgram(base.Program):
                         else f"killed by {status.signal}"
                     )
                     raise base.ProgramFailure(
-                        f"program failed: {cause}",
+                        str(cause),
                         outputs =outputs,
                         meta    =meta,
                     )
@@ -352,8 +355,10 @@ class ProcstarProgram(base.Program):
 
 
     async def signal(self, run_id, run_state, signal):
-        # FIXME
-        raise NotImplementedError("signal")
+        signal = to_signal(signal)
+        log.info(f"sending signal: {run_id}: {signal}")
+        proc_id = run_state["proc_id"]
+        await SERVER.send_signal(proc_id, int(signal))
 
 
 

@@ -12,7 +12,7 @@ def get_username():
     return pwd.getpwuid(os.getuid()).pw_name
 
 
-def to_signal(sig):
+def to_signal(sig) -> signal.Signals:
     """
     Parses a signal number or named signal.
 
