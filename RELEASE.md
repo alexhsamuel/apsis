@@ -1,7 +1,8 @@
 # v0.21
 
-- New `exists` option to dependency condition, to detect if the dependency
-  doesn't exist at all.  #316
+- New `exists` option to a
+  [dependency condition](https://apsis-scheduler.readthedocs.io/en/latest/jobs.html#dependencies),
+  to detect if the dependency doesn't exist at all.  #316
 - Keyword search in the web UI is case-insensitive.  #312
 - Collapse state of jobs in the job view is persistent.  #314
 
