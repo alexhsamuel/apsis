@@ -12,6 +12,7 @@ schedule:
   stop: 22:00:00
   interval: 3600
   args: {scope: interval}
+  enabled: false
 
 - type: daily
   tz: America/New_York

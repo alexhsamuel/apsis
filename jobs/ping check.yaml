@@ -16,7 +16,7 @@ schedule:
 - type: interval
   args: {host: "soho.indetermi.net"}
   interval: 10 min
-  enabled: true
+  enabled: false
 
 - type: interval
   args: {host: "ap.indetermi.net"}
