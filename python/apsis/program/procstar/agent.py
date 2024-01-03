@@ -283,10 +283,8 @@ class ProcstarProgram(base.Program):
                 last_result_time = time.monotonic()
 
             if result.state == "running":
-                # Not completed yet.
-
-                # FIXME: This needs to be more incremental.
-                # Collect results.
+                # Not completed yet.  Collect results.
+                # FIXME: Output should be incremental.
                 output  = result.fds.stdout.text.encode()
                 outputs = base.program_outputs(output)
                 meta    = _get_metadata(proc.proc_id, result)

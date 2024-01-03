@@ -220,6 +220,12 @@ If Apsis reconnects a _running_ run with a Procstar program, the
 `reconnect_timeout` determines how long it waits for the Procstar instance to
 reconnect.  The default is 0.
 
-While a process is running, Apsis requests an update of its results every
-`update_interval` if the agent is connected.  The default is 0, which configures
-no update requests.
+..
+    FIXME: Do not use `update_interval` until Procstar is able to send
+    incremental output, to avoid overwhelming Apsis with the output volume.
+
+    While a process is running, Apsis requests an update of its results every
+    `update_interval` if the agent is connected.  The default is 0, which configures
+    no update requests. 
+
+
