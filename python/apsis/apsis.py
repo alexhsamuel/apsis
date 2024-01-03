@@ -13,6 +13,7 @@ from   .cond.max_running import MaxRunning
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task, TaskGroup
+from   .lib.sys import to_signal
 from   .program.base import _InternalProgram
 from   .program.base import Output, OutputMetadata
 from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
@@ -706,6 +707,24 @@ class Apsis:
         self.run_log.info(
             new_run, f"scheduled as rerun of {run.run_id}", timestamp=timestamp)
         return new_run
+
+
+    async def send_signal(self, run, signal):
+        """
+        :raise RuntimeError:
+          `run` is not running.
+        """
+        signal = to_signal(signal)
+        if run.state != State.running:
+            raise RuntimeError("invalid run state for signal: {run.state.name}")
+        assert run.program is not None
+
+        self.run_log.info(run, f"sending {signal.name}")
+        try:
+            await run.program.signal(run.run_id, run.run_state, signal)
+        except Exception:
+            self.run_log.exc(run, f"sending {signal.name} failed")
+            raise RuntimeError(f"sending {signal.name} failed")
 
 
     async def shut_down(self):

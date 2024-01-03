@@ -10,6 +10,7 @@ import uuid
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none
+from   apsis.lib.sys import to_signal
 from   apsis.program import base
 from   apsis.runs import join_args, template_expand
 
@@ -196,7 +197,9 @@ class ProcstarProgram(base.Program):
                         meta=meta,
                     )
 
-                elif result.state == "running":
+                elif result.state in {"running", "terminated"}:
+                    # If immediately receive a result with state "terminated",
+                    # we must have missed the previous running result.
                     conn_id = result.procstar.conn.conn_id
                     run_state = {"conn_id": conn_id, "proc_id": proc_id}
                     yield base.ProgramRunning(run_state, meta=meta)
@@ -256,7 +259,13 @@ class ProcstarProgram(base.Program):
                 else timeout
             )
             try:
-                result = await asyncio.wait_for(anext(proc.results), wait_timeout)
+                # Unless the proc is already terminated, await the next message.
+                result = (
+                    proc.results.latest
+                    if proc.results.latest is not None
+                    and proc.results.latest.state == "terminated"
+                    else await asyncio.wait_for(anext(proc.results), wait_timeout)
+                )
             except asyncio.TimeoutError:
                 # Didn't receive a result.
                 if conn.open:
@@ -321,7 +330,7 @@ class ProcstarProgram(base.Program):
                         else f"killed by {status.signal}"
                     )
                     yield base.ProgramFailure(
-                        f"program failed: {cause}",
+                        str(cause),
                         outputs =outputs,
                         meta    =meta,
                     )
@@ -362,8 +371,10 @@ class ProcstarProgram(base.Program):
 
 
     async def signal(self, run_id, run_state, signal):
-        # FIXME
-        raise NotImplementedError("signal")
+        signal = to_signal(signal)
+        log.info(f"sending signal: {run_id}: {signal}")
+        proc_id = run_state["proc_id"]
+        await SERVER.send_signal(proc_id, int(signal))
 
 
 
