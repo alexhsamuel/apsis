@@ -167,7 +167,6 @@ class ProcstarProgram(base.Program):
 
         proc_id = str(uuid.uuid4())
 
-        # FIXME: Handle NoOpenConnectionInGroup and wait.
         try:
             proc = await SERVER.start(
                 proc_id,
