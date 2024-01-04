@@ -288,7 +288,7 @@ export default {
             path.pop()
           }
         }
-      this.expand = expand
+      this.store.state.jobsExpand = expand
     },
   },
 }
