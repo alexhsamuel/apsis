@@ -1,5 +1,6 @@
 import logging
 
+from   apsis.lib.json import check_schema
 from   apsis.lib.py import format_ctor, iterize
 from   apsis.runs import Instance, get_bind_args
 from   apsis.states import State, reachable
@@ -71,20 +72,22 @@ class Dependency(RunStoreCondition):
 
     @classmethod
     def from_jso(cls, jso):
-        states = { State[s] for s in iterize(jso.pop("states", "success")) }
-        exist = jso.pop("exist", None)
-        if exist is True:
-            # Require the existence of a run in any state from which one of the
-            # target states is reachable.
-            exist = { s for s in State if reachable(s) & states }
-        elif exist is not None:
-            exist = { State[s] for s in iterize(exist) }
-        return cls(
-            jso.pop("job_id"),
-            jso.pop("args", {}),
-            states  =states,
-            exist   =exist,
-        )
+        with check_schema(jso) as pop:
+            states = pop("states", default="success")
+            states = { State[s] for s in iterize(states) }
+            exist = pop("exist", default=None)
+            if exist is True:
+                # Require the existence of a run in any state from which one of
+                # the target states is reachable.
+                exist = { s for s in State if reachable(s) & states }
+            elif exist is not None:
+                exist = { State[s] for s in iterize(exist) }
+            return cls(
+                pop("job_id"),
+                pop("args", default={}),
+                states  =states,
+                exist   =exist,
+            )
 
 
     def bind(self, run, jobs):
