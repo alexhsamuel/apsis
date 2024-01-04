@@ -1,0 +1,9 @@
+params: [label, foo]
+
+program: 'echo "dep1 label={{ label }} foo={{ foo }}"'
+
+condition:
+  type: dependency
+  job_id: test/exist/dep0
+  exist: true
+

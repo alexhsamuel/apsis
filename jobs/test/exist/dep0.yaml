@@ -1,0 +1,4 @@
+params: [label]
+
+program: 'echo "dep0 label={{ label }}"'
+
