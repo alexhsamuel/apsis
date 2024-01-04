@@ -43,7 +43,12 @@ div.component
       tr
         th conditions
         td(v-if="job.condition.length > 0")
-          .condition.code(v-for="cond in job.condition" :key="cond.str") {{ cond.str }}
+          .condition(v-for="cond in job.condition" :key="cond.str")
+            span(v-if="cond.type === 'dependency'")
+              span dependency: 
+              Job(:job-id="cond.job_id")
+              span  is {{ join(cond.states, '|') }}
+            span(v-else) {{ cond.str }}
         td(v-else) No conditions.
 
       tr
@@ -156,19 +161,23 @@ export default {
   },
 
   created() {
-    const url = '/api/v1/jobs/' + this.job_id  // FIXME
-    fetch(url)
-      .then(async (response) => {
-        if (response.ok)
-          this.job = await response.json()
-        else if (response.status === 404)
-          this.job = null
-        else
-          store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
-      })
+    this.fetchJob(this.job_id)
   },
 
   methods: {
+    fetchJob(job_id) {
+      const url = '/api/v1/jobs/' + job_id  // FIXME
+      fetch(url)
+        .then(async (response) => {
+          if (response.ok)
+            this.job = await response.json()
+          else if (response.status === 404)
+            this.job = null
+          else
+            store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
+        })
+    },
+
     markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
 
     setScheduleArg(param, ev) {
@@ -217,6 +226,16 @@ export default {
       modal.$mount()
       this.$root.$el.appendChild(modal.$el)
     },
+
+    join,
+  },
+
+  watch: {
+    // Navigating to another job through the router doesn't recreate the view; the job_id just changes.
+    job_id: function (job_id) {
+      this.job = undefined
+      this.fetchJob(job_id)
+    }
   },
 
 }

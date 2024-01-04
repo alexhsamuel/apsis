@@ -68,6 +68,7 @@ def or_none(fn):
 nstr    = or_none(str)
 nint    = or_none(int)
 nfloat  = or_none(float)
+nbool   = or_none(bool)
 
 
 def is_seq(obj):

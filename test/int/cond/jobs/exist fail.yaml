@@ -1,0 +1,13 @@
+params: [date, color]
+
+program:
+  type: no-op
+  duration: 0
+
+condition:
+  - type: dependency
+    job_id: fail
+    args:
+      flavor: vanilla
+    exist: true
+

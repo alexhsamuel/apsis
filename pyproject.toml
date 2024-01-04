@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apsis"
-version = "0.20.5"
+version = "0.21.0"
 description = "Easy-to-use task scheduler"
 readme = "README.md"
 license = {text = "MIT License"}
@@ -34,7 +34,7 @@ dependencies = [
     "websockets ==10.*",
 ]
 
-optional-dependencies = {dev = ["pytest", "pytest-asyncio", "bump2version"]}
+optional-dependencies = {dev = ["pytest", "pytest-asyncio", "bump2version"], doc = ["sphinx", "readthedocs-sphinx-ext", "sphinx-rtd-theme"]}
 
 [project.urls]
 Repository = "https://github.com/alexhsamuel/apsis"

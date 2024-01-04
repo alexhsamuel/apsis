@@ -1,10 +1,11 @@
 import asyncio
 import logging
 
-from   .base import (Program, ProgramRunning, ProgramSuccess)
+from   .base import (
+    Program, ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError)
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
-from   apsis.lib.py import or_none, nstr
+from   apsis.lib.py import or_none, nstr, nbool
 from   apsis.runs import template_expand
 
 log = logging.getLogger(__name__)
@@ -13,11 +14,15 @@ log = logging.getLogger(__name__)
 
 class NoOpProgram(Program):
     """
-    A program that does nothing and always succeeds.
+    A program that does nothing.
+
+    `duration` is the time it takes the program to run.  If `success` is true,
+    the program always succeeds; if false, it fails; if none, it errors.
     """
 
-    def __init__(self, *, duration=0):
+    def __init__(self, *, duration=0, success=True):
         self.__duration = nstr(duration)
+        self.__success = None if success is None else bool(success)
 
 
     def __str__(self):
@@ -28,20 +33,22 @@ class NoOpProgram(Program):
 
     def bind(self, args):
         duration = or_none(template_expand)(self.__duration, args)
-        return type(self)(duration=duration)
+        return type(self)(duration=duration, success=self.__success)
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            duration = pop("duration", nstr, None)
-        return cls(duration=duration)
+            duration    = pop("duration", nstr, None)
+            success     = pop("success", nbool, True)
+        return cls(duration=duration, success=success)
 
 
     def to_jso(self):
         return {
             **super().to_jso(),
-            "duration": self.__duration,
+            "duration"  : self.__duration,
+            "success"   : self.__success,
         }
 
 
@@ -54,7 +61,12 @@ class NoOpProgram(Program):
         if self.__duration is not None:
             duration = parse_duration(self.__duration)
             await asyncio.sleep(duration)
-        return ProgramSuccess()
+        if self.__success is True:
+            return ProgramSuccess()
+        elif self.__success is False:
+            raise ProgramFailure("failed")
+        else:
+            raise ProgramError("error")
 
 
     def reconnect(self, run_id, run_state):
