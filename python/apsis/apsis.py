@@ -177,6 +177,17 @@ class Apsis:
         # If a max waiting time is configured, compute the timeout for this run.
         cfg = self.cfg.get("waiting", {})
         timeout = cfg.get("max_time", None)
+        if timeout is None:
+            waiting_timeout = None
+        else:
+            # Adjust timeout to be relative to the time the run started waiting.
+            try:
+                waiting_time = run.times["waiting"]
+            except KeyError:
+                log.error(f"no waiting time in run: {run}")
+                waiting_timeout = timeout
+            else:
+                waiting_timeout = timeout - (now() - waiting_time)
 
         async def loop():
             """
@@ -192,7 +203,10 @@ class Apsis:
                 try:
                     match cond:
                         case PolledCondition():
-                            result = await asyncio.wait_for(cond.wait(), timeout)
+                            result = await asyncio.wait_for(
+                                cond.wait(),
+                                waiting_timeout
+                            )
 
                         # Special case for MaxRunning, whose semantics aren't
                         # compatible with our assumptions about conditions,
@@ -205,7 +219,7 @@ class Apsis:
                             while True:
                                 result = await asyncio.wait_for(
                                     cond.wait(self.run_store),
-                                    timeout
+                                    waiting_timeout
                                 )
                                 if (
                                         result is True
@@ -220,7 +234,7 @@ class Apsis:
                         case RunStoreCondition():
                             result = await asyncio.wait_for(
                                 cond.wait(self.run_store),
-                                timeout
+                                waiting_timeout
                             )
 
                         case _:
