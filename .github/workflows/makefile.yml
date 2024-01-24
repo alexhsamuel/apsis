@@ -21,7 +21,11 @@ jobs:
       run: pip3 install -e .[dev]
 
     - name: Install procstar
-      run: curl -sS https://github.com/alexhsamuel/procstar/releases/download/v$(python -c 'import procstar; print(procstar.__version__)')/procstar --output /usr/local/bin/procstar; chmod +x /usr/local/bin/procstar
+      uses: robinraju/release-downloader@v1.8
+      with:
+        repository: "alexhsamuel/procstar"
+        latest: true
+        fileName: procstar
 
     - name: Run Python unit tests
       run: pytest test/unit -m "not local_ssh"
