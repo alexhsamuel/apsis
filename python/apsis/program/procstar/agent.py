@@ -105,7 +105,7 @@ def start_server(cfg):
     return SERVER.run_forever(
         host        =host,
         port        =port,
-        tls_cert    =(cert_path, key_path),
+        tls_cert    =FROM_ENV if cert_path is FROM_ENV else (cert_path, key_path),
         access_token=access_token,
     )
 

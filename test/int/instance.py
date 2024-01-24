@@ -56,7 +56,7 @@ class ApsisInstance:
             yaml.dump(self.cfg, file)
 
 
-    def start_serve(self):
+    def start_serve(self, *, env={}):
         assert self.cfg is not None
         assert self.srv_proc is None
 
@@ -69,8 +69,7 @@ class ApsisInstance:
                     "--config", str(self.cfg_path),
                     "--port", str(self.port),
                 ],
-                env={
-                    **os.environ,
+                env=os.environ | env | {
                     "APSIS_AGENT_DIR": str(self.agent_dir),
                 },
                 stderr=log_file,
@@ -165,11 +164,17 @@ class ApsisInstance:
         return ujson.loads(stdout)
 
 
-    def wait_run(self, run_id, *, wait_states=("new", "scheduled", "waiting", "starting", "running")):
+    def wait_run(
+            self,
+            run_id,
+            *,
+            timeout=60,
+            wait_states=("new", "scheduled", "waiting", "starting", "running"),
+    ):
         """
         Polls for a run to no longer be running.
         """
-        for _ in range(600):
+        for _ in range(int(timeout / 0.1)):
             res = self.client.get_run(run_id)
             if res["state"] in wait_states:
                 time.sleep(0.1)
