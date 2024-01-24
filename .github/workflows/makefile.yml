@@ -20,6 +20,12 @@ jobs:
     - name: Install package
       run: pip3 install -e .[dev]
 
+    - name: Show path
+      run: echo $PATH
+
+    - name: Install procstar
+      run: curl https://github.com/alexhsamuel/procstar/releases/download/v$(python -c 'import procstar; print(procstar.__version__)')/procstar
+
     - name: Run Python unit tets
       run: pytest test/unit -m "not local_ssh"
 
