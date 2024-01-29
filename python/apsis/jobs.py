@@ -332,7 +332,8 @@ def check_job_dir(path):
 
     for job in jobs_dir.get_jobs():
         log.info(f"checking: {job.job_id}")
-        yield from check_job(jobs_dir, job)
+        for err in check_job(jobs_dir, job):
+            yield f"{job.job_id}: {err}"
 
 
 #-------------------------------------------------------------------------------
