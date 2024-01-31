@@ -161,7 +161,8 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
             try:
                 # Stop enqueuing log messages.
                 log.info("removing logging websocket handler")
-                root_log.handlers.remove(WS_HANDLER)
+                if WS_HANDLER in root_log.handlers:
+                    root_log.handlers.remove(WS_HANDLER)
 
                 log.info("shutting down run websockets")
                 WS_HANDLER.shut_down()
