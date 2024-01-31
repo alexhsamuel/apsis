@@ -178,14 +178,13 @@ class ProcstarProgram(base.Program):
             yield base.ProgramError(f"procstar: {exc}")
             return
 
-        # Wait for the first result.
         try:
+            # Wait for the first result.
             try:
                 result = await anext(proc.results)
 
             except Exception as exc:
                 yield base.ProgramError(str(exc))
-                return
 
             else:
                 meta = _get_metadata(proc.proc_id, result)
@@ -214,12 +213,14 @@ class ProcstarProgram(base.Program):
                         meta=meta,
                     )
 
-        finally:
+        except asyncio.CancelledError:
+            pass
+
+        else:
             try:
                 await SERVER.delete(proc.proc_id)
             except Exception as exc:
                 log.error(f"delete {proc.proc_id}: {exc}")
-            raise
 
 
     async def __finish(self, run_id, proc):
@@ -290,12 +291,6 @@ class ProcstarProgram(base.Program):
                 yield base.ProgramUpdate(meta=meta, outputs=outputs)
                 continue
 
-            # The process is no longer running.  Clean it up from the agent.
-            try:
-                await SERVER.delete(proc.proc_id)
-            except Exception as exc:
-                log.error(f"delete {proc.proc_id}: {exc}")
-
             # Collect results.
             output  = result.fds.stdout.text.encode()
             outputs = base.program_outputs(output)
@@ -343,6 +338,7 @@ class ProcstarProgram(base.Program):
         proc_id = run_state["proc_id"]
 
         try:
+            log.info(f"reconnecting: {proc_id} on conn {conn_id}")
             proc = await SERVER.reconnect(
                 conn_id,
                 proc_id,
@@ -361,9 +357,9 @@ class ProcstarProgram(base.Program):
 
         finally:
             try:
-                await SERVER.delete(proc.proc_id)
+                await SERVER.delete(proc_id)
             except Exception as exc:
-                log.error(f"delete {proc.proc_id}: {exc}")
+                log.error(f"delete {proc_id}: {exc}")
             raise
 
 
