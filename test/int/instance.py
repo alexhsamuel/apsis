@@ -23,7 +23,7 @@ def run_apsisctl(*argv):
 class ApsisInstance:
 
     # FIXME: Choose an available port.
-    def __init__(self, *, port=5005, job_dir=None, cfg={}):
+    def __init__(self, *, port=5005, job_dir=None, cfg={}, env={}):
         self.port       = int(port)
 
         self.tmp_dir    = Path(tempfile.mkdtemp())
@@ -39,6 +39,7 @@ class ApsisInstance:
 
         self.cfg        = dict(cfg)
         self.srv_proc   = None
+        self.env        = dict(env)
 
 
     def create_db(self):
@@ -69,7 +70,7 @@ class ApsisInstance:
                     "--config", str(self.cfg_path),
                     "--port", str(self.port),
                 ],
-                env=os.environ | env | {
+                env=os.environ | self.env | env | {
                     "APSIS_AGENT_DIR": str(self.agent_dir),
                 },
                 stderr=log_file,
@@ -129,6 +130,12 @@ class ApsisInstance:
     def close(self):
         if self.srv_proc is not None:
             self.stop_serve()
+
+
+    def restart(self):
+        self.stop_serve()
+        self.start_serve()
+        self.wait_for_serve()
 
 
     def run_apsis_cmd(self, *argv):
