@@ -112,3 +112,8 @@ def test_reconnect_many():
             assert res["state"] == "success"
 
 
+# FIXME:
+# - check that procstar has no undeleted runs at shutdown
+# - signal tests
+# - procstar connection timeout and reconnect (SIGHUP)
+
