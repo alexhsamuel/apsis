@@ -1,4 +1,4 @@
-from   contextlib import closing
+from   contextlib import closing, contextmanager
 import os
 from   pathlib import Path
 from   procstar.agent.testing import get_procstar_path, TLS_CERT_PATH
@@ -12,18 +12,21 @@ from   instance import ApsisInstance
 
 #-------------------------------------------------------------------------------
 
+AGENT_PORT = 59790
+
 ENV = {
     "PROCSTAR_AGENT_CERT": TLS_CERT_PATH,
     "PROCSTAR_AGENT_TOKEN": secrets.token_urlsafe(32),
 }
 
-@pytest.fixture(scope="function")
-def procstar(*, group_id="default"):
+@contextmanager
+def procstar_inst(*, group_id="default"):
     conn_id = str(uuid.uuid4())
     argv = [
         get_procstar_path(),
         "--agent",
         "--agent-host", "localhost",
+        "--agent-port", str(AGENT_PORT),
         "--group-id", group_id,
         "--conn-id", conn_id,
         "--connect-interval-start", "0.1",
@@ -40,8 +43,8 @@ def procstar(*, group_id="default"):
         proc.wait()
 
 
-@pytest.fixture(scope="function")
-def inst():
+@contextmanager
+def apsis_inst():
     job_dir = Path(__file__).parent / "jobs"
     with closing(ApsisInstance(job_dir=job_dir)) as inst:
         inst.create_db()
@@ -49,6 +52,9 @@ def inst():
             "procstar": {
                 "agent": {
                     "enable": True,
+                    "server": {
+                        "port": AGENT_PORT,
+                    },
                 },
             },
         })
@@ -57,9 +63,10 @@ def inst():
         yield inst
 
 
-def test_program(procstar, inst):
-    run_id = inst.client.schedule("sleep", {"time": 1})["run_id"]
-    res = inst.wait_run(run_id, timeout=5)
-    assert res["state"] == "success"
+def test_program():
+    with procstar_inst(), apsis_inst() as inst:
+        run_id = inst.client.schedule("sleep", {"time": 1})["run_id"]
+        res = inst.wait_run(run_id, timeout=5)
+        assert res["state"] == "success"
 
 
