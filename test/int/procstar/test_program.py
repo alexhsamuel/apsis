@@ -103,7 +103,8 @@ def test_reconnect_many():
         # Wait for the runs to start; we can't reconnect to starting runs.
         for run_id in run_ids:
             res = inst.wait_run(run_id, wait_states=("starting", ))
-            assert res["state"] == "running"
+            # Some may have completed already.
+            assert res["state"] in {"running", "success"}
 
         inst.restart()
 
