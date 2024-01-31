@@ -399,7 +399,7 @@ class Apsis:
                     case _ as update:
                         assert False, f"unexpected update: {update}"
 
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, StopAsyncIteration):
             log.info(f"run task cancelled: {run.run_id}")
             # We do not transition the run here.  The run can survive an Apsis
             # restart and we can connect to it later.
