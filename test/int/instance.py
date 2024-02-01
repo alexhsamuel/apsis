@@ -16,13 +16,6 @@ from   apsis.sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
 
-def set_cfg(cfg, key, value):
-    *parts, name = key.split(".")
-    for part in parts:
-        cfg = cfg.setdefault(part, {})
-    cfg[name] = value
-
-
 def run_apsisctl(*argv):
     subprocess.run(["apsisctl", *( str(a) for a in argv )], check=True)
 
@@ -155,6 +148,7 @@ class ApsisService:
 
 
     def restart(self):
+        logging.info("restarting Apsis service")
         self.stop_serve()
         self.start_serve()
         self.wait_for_serve()

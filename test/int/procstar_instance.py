@@ -6,6 +6,7 @@ import signal
 import subprocess
 import uuid
 
+from   apsis.lib.py import merge_mappings
 import instance
 
 logger = logging.getLogger(__name__)
@@ -84,17 +85,18 @@ class Agent:
 
 
 class ApsisService(instance.ApsisService):
+    """
+    Apsis service configured to run a Procstar agent service.
+    """
 
-    def __init__(self, *, cfg={}, **kw_args):
-        self.agent_port = DEFAULT_AGENT_PORT
-
-        # FIXME: Choose an available port.
-        cfg |= {
+    # FIXME: Choose an available port by default, instead of fixed.
+    def __init__(self, *, agent_port=DEFAULT_AGENT_PORT, cfg={}, **kw_args):
+        cfg = merge_mappings(cfg, {
             "procstar": {
                 "agent": {
                     "enable": True,
                     "server": {
-                        "port": self.agent_port,
+                        "port": agent_port,
                     },
                     "connection": {
                         "start_timeout": 2,
@@ -102,8 +104,9 @@ class ApsisService(instance.ApsisService):
                     },
                 },
             },
-        }
+        })
         super().__init__(cfg=cfg, env=AUTH_ENV, **kw_args)
+        self.agent_port = agent_port
 
 
     def agent(self, **kw_args):

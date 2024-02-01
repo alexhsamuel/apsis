@@ -1,6 +1,5 @@
 from   pathlib import Path
 
-from   apsis.lib import logging
 from   procstar_instance import ApsisService
 
 JOB_DIR = Path(__file__).parent / "jobs"
