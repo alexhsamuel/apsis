@@ -34,7 +34,7 @@ dependencies = [
     "websockets ==10.*",
 ]
 
-optional-dependencies = {dev = ["pytest", "pytest-asyncio", "bump2version"], doc = ["sphinx", "readthedocs-sphinx-ext", "sphinx-rtd-theme"]}
+optional-dependencies = {dev = ["build", "pytest", "pytest-asyncio", "bump-my-version"], doc = ["sphinx", "readthedocs-sphinx-ext", "sphinx-rtd-theme"]}
 
 [project.urls]
 Repository = "https://github.com/alexhsamuel/apsis"
