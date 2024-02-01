@@ -399,6 +399,16 @@ class Apsis:
                     case _ as update:
                         assert False, f"unexpected update: {update}"
 
+            else:
+                # Exhaust the async iterator, so that cleanup can run.
+                try:
+                    update = await anext(updates)
+                except StopAsyncIteration:
+                    # Expected.
+                    pass
+                else:
+                    assert False, f"unexpected update: {update}"
+
         except (asyncio.CancelledError, StopAsyncIteration):
             log.info(f"run task cancelled: {run.run_id}")
             # We do not transition the run here.  The run can survive an Apsis
