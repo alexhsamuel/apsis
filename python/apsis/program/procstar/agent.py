@@ -330,6 +330,9 @@ class ProcstarProgram(base.Program):
             else:
                 assert False, f"unknown proc state: {result.state}"
 
+            break
+
+
 
     async def connect(self, run_id, run_state, cfg):
         assert SERVER is not None
