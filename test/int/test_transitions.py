@@ -8,13 +8,13 @@ import ora
 import pytest
 import time
 
-from   instance import ApsisInstance
+from   instance import ApsisService
 
 #-------------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def inst():
-    with closing(ApsisInstance()) as inst:
+    with closing(ApsisService()) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()

@@ -1,7 +1,7 @@
 from   contextlib import closing
 import time
 
-from   instance import ApsisInstance
+from   instance import ApsisService
 
 #-------------------------------------------------------------------------------
 
@@ -11,7 +11,7 @@ def test_waiting_max_time():
             "max_time": 0.5,
         }
     }
-    with closing(ApsisInstance(cfg=CFG)) as inst:
+    with closing(ApsisService(cfg=CFG)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()

@@ -2,13 +2,13 @@ from   contextlib import closing
 import logging
 from   pathlib import Path
 
-from   instance import ApsisInstance
+from   instance import ApsisService
 
 #-------------------------------------------------------------------------------
 
 def test_reconnect(tmpdir):
     job_dir = Path(__file__).parent / "jobs"
-    with closing(ApsisInstance(job_dir=job_dir)) as inst:
+    with closing(ApsisService(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()

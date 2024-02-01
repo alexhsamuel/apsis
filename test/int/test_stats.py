@@ -2,14 +2,14 @@ from   contextlib import closing
 import json
 import time
 
-from   instance import ApsisInstance
+from   instance import ApsisService
 
 #-------------------------------------------------------------------------------
 
 def test_stats(tmp_path):
     path = tmp_path / "stats.json"
 
-    with closing(ApsisInstance()) as inst:
+    with closing(ApsisService()) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()

@@ -1,75 +1,16 @@
-from   contextlib import closing, contextmanager
-import logging
-import os
 from   pathlib import Path
-from   procstar.agent.testing import get_procstar_path, TLS_CERT_PATH
-import secrets
-import signal
-import subprocess
-import uuid
 
-from   instance import ApsisInstance
+from   apsis.lib import logging
+from   procstar_instance import ApsisService
+
+JOB_DIR = Path(__file__).parent / "jobs"
 
 #-------------------------------------------------------------------------------
 
-AGENT_PORT = 59790
-
-ENV = {
-    "PROCSTAR_AGENT_CERT": TLS_CERT_PATH,
-    "PROCSTAR_AGENT_TOKEN": secrets.token_urlsafe(32),
-}
-
-@contextmanager
-def procstar_agent(*, group_id="default"):
-    conn_id = str(uuid.uuid4())
-    argv = [
-        get_procstar_path(),
-        "--agent",
-        "--agent-host", "localhost",
-        "--agent-port", str(AGENT_PORT),
-        "--group-id", group_id,
-        "--conn-id", conn_id,
-        "--connect-interval-start", "0.1",
-        "--connect-interval-max", "0.1",
-    ]
-    env = os.environ | ENV | {
-        "RUST_BACKTRACE": "1",
-    }
-    proc = subprocess.Popen(argv, env=env)
-    try:
-        yield conn_id
-    finally:
-        proc.send_signal(signal.SIGKILL)
-        proc.wait()
-
-
-@contextmanager
-def apsis_inst():
-    job_dir = Path(__file__).parent / "jobs"
-    with closing(ApsisInstance(job_dir=job_dir, env=ENV)) as inst:
-        inst.create_db()
-        inst.write_cfg({
-            "procstar": {
-                "agent": {
-                    "enable": True,
-                    "server": {
-                        "port": AGENT_PORT,
-                    },
-                    "connection": {
-                        "reconnect_timeout": 5,
-                    },
-                },
-            },
-        })
-        inst.start_serve()
-        inst.wait_for_serve()
-        yield inst
-
-
 def test_program():
-    with procstar_agent(), apsis_inst() as inst:
-        run_id = inst.client.schedule("sleep", {"time": 1})["run_id"]
-        res = inst.wait_run(run_id, timeout=5)
+    with ApsisService(job_dir=JOB_DIR) as svc, svc.agent():
+        run_id = svc.client.schedule("sleep", {"time": 1})["run_id"]
+        res = svc.wait_run(run_id, timeout=5)
         assert res["state"] == "success"
 
 
@@ -77,39 +18,37 @@ def test_reconnect():
     """
     Tests reconnecting to a running run after Apsis restart.
     """
-    with procstar_agent(), apsis_inst() as inst:
-        run_id = inst.client.schedule("sleep", {"time": 1})["run_id"]
+    with ApsisService(job_dir=JOB_DIR) as svc, svc.agent():
+        run_id = svc.client.schedule("sleep", {"time": 1})["run_id"]
         # Wait for the run to start; we can't reconnect to starting runs.
-        res = inst.wait_run(run_id, wait_states=("starting", ))
+        res = svc.wait_run(run_id, wait_states=("starting", ))
         assert res["state"] == "running"
 
-        inst.restart()
+        svc.restart()
 
-        res = inst.wait_run(run_id, timeout=5)
+        res = svc.wait_run(run_id, timeout=5)
         assert res["state"] == "success"
 
 
-def test_reconnect_many():
+def test_reconnect_many(num=256):
     """
     Tests reconnecting to many running runs after Apsis restart.
     """
-    N = 256
-
-    with procstar_agent(), apsis_inst() as inst:
+    with ApsisService(job_dir=JOB_DIR) as svc, svc.agent():
         run_ids = [
-            inst.client.schedule("sleep", {"time": 1})["run_id"]
-            for _ in range(N)
+            svc.client.schedule("sleep", {"time": 1})["run_id"]
+            for _ in range(num)
         ]
         # Wait for the runs to start; we can't reconnect to starting runs.
         for run_id in run_ids:
-            res = inst.wait_run(run_id, wait_states=("starting", ))
+            res = svc.wait_run(run_id, wait_states=("starting", ))
             # Some may have completed already.
             assert res["state"] in {"running", "success"}
 
-        inst.restart()
+        svc.restart()
 
         for run_id in run_ids:
-            res = inst.wait_run(run_id, timeout=5)
+            res = svc.wait_run(run_id, timeout=5)
             assert res["state"] == "success"
 
 

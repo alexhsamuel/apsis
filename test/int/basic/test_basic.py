@@ -3,14 +3,14 @@ from   pathlib import Path
 import pytest
 import sqlite3
 
-from   instance import ApsisInstance, run_apsisctl
+from   instance import ApsisService, run_apsisctl
 
 #-------------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def inst():
     job_dir = Path(__file__).parent / "jobs"
-    with closing(ApsisInstance(job_dir=job_dir)) as inst:
+    with closing(ApsisService(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()

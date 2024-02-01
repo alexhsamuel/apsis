@@ -16,11 +16,21 @@ from   apsis.sqlite import SqliteDB
 
 #-------------------------------------------------------------------------------
 
+def set_cfg(cfg, key, value):
+    *parts, name = key.split(".")
+    for part in parts:
+        cfg = cfg.setdefault(part, {})
+    cfg[name] = value
+
+
 def run_apsisctl(*argv):
     subprocess.run(["apsisctl", *( str(a) for a in argv )], check=True)
 
 
-class ApsisInstance:
+class ApsisService:
+    """
+    An Apsis service instance running in a separate process.
+    """
 
     # FIXME: Choose an available port.
     def __init__(self, *, port=5005, job_dir=None, cfg={}, env={}):
@@ -46,18 +56,16 @@ class ApsisInstance:
         SqliteDB.create(self.db_path)
 
 
-    # FIXME: Remove cfg param.
-    def write_cfg(self, cfg={}):
-        self.cfg |= {
+    def write_cfg(self):
+        cfg = self.cfg | {
             "database": str(self.db_path),
             "job_dir": str(self.jobs_dir),
-            **cfg
         }
         with open(self.cfg_path, "w") as file:
-            yaml.dump(self.cfg, file)
+            yaml.dump(cfg, file)
 
 
-    def start_serve(self, *, env={}):
+    def start_serve(self):
         assert self.cfg is not None
         assert self.srv_proc is None
 
@@ -70,7 +78,7 @@ class ApsisInstance:
                     "--config", str(self.cfg_path),
                     "--port", str(self.port),
                 ],
-                env=os.environ | self.env | env | {
+                env=os.environ | self.env | {
                     "APSIS_AGENT_DIR": str(self.agent_dir),
                 },
                 stderr=log_file,
@@ -127,7 +135,21 @@ class ApsisInstance:
         return res
 
 
+    # FIXME: Remove.
     def close(self):
+        if self.srv_proc is not None:
+            self.stop_serve()
+
+
+    def __enter__(self):
+        self.create_db()
+        self.write_cfg()
+        self.start_serve()
+        self.wait_for_serve()
+        return self
+
+
+    def __exit__(self, *exc_info):
         if self.srv_proc is not None:
             self.stop_serve()
 
@@ -194,5 +216,6 @@ class ApsisInstance:
 
     def wait_for_run_to_start(self, run_id):
         return self.wait_run(run_id, wait_states=("new", "scheduled", "waiting", "starting"))
+
 
 
