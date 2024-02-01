@@ -1,6 +1,8 @@
+import functools
 import logging
 import os
 from   procstar.agent.testing import get_procstar_path, TLS_CERT_PATH
+import procstar.client
 import secrets
 import signal
 import subprocess
@@ -33,7 +35,12 @@ class Agent:
             port,
             conn_id     =None,
             group_id    ="default",
+            serve       =None,
     ):
+        """
+        :param serve:
+          If not none, run the HTTP service on this port.
+        """
         if conn_id is None:
             conn_id = str(uuid.uuid4())
 
@@ -41,6 +48,12 @@ class Agent:
         self.conn_id    = conn_id
         self.host       = host
         self.port       = port
+        self.serve      = serve is not None
+        self.serve_port = (
+            None if serve is None
+            else 3000 if serve is True  # FIXME: Choose a port.
+            else int(serve)
+        )
 
         self.proc       = None
 
@@ -59,6 +72,12 @@ class Agent:
             "--connect-interval-start", "0.1",
             "--connect-interval-max", "0.1",
         ]
+        if self.serve:
+            argv.extend([
+                "--serve",
+                "--serve-port", str(self.serve_port),
+            ])
+
         env = os.environ | AUTH_ENV | {
             "RUST_BACKTRACE": "1",
         }
@@ -81,6 +100,12 @@ class Agent:
 
     def __exit__(self, *exc_info):
         self.close()
+
+
+    @functools.cached_property
+    def client(self):
+        assert self.serve, "agent not serving HTTP"
+        return procstar.client.Client((self.host, self.serve_port))
 
 
 
