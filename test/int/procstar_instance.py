@@ -124,8 +124,8 @@ class ApsisService(instance.ApsisService):
                         "port": agent_port,
                     },
                     "connection": {
-                        "start_timeout": 2,
-                        "reconnect_timeout": 2,
+                        "start_timeout": 5,
+                        "reconnect_timeout": 5,
                     },
                 },
             },
