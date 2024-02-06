@@ -161,7 +161,8 @@ class Client:
         """
         Sends `signal` to a running processes.
         """
-        return self.__put("/api/v1/runs", run_id, "signal", str(signal))
+        signal = getattr(signal, "name", str(signal))
+        return self.__put("/api/v1/runs", run_id, "signal", signal)
 
 
     def mark(self, run_id, state_name):
