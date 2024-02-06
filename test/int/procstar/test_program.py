@@ -1,4 +1,5 @@
 from   pathlib import Path
+import signal
 
 from   procstar_instance import ApsisService
 
@@ -50,13 +51,39 @@ def test_reconnect_many(num=256):
         svc.restart()
 
         for run_id in run_ids:
-            res = svc.wait_run(run_id, timeout=5)
+            res = svc.wait_run(run_id, timeout=0.025 * num)
             assert res["state"] == "success"
 
         assert len(agent.client.get_procs()) == 0
 
 
+def test_signal():
+    SIGNALS = (
+        signal.SIGTERM, signal.SIGINT, signal.SIGKILL,
+        signal.SIGUSR1, signal.SIGUSR2
+    )
+    with ApsisService(job_dir=JOB_DIR) as svc, svc.agent():
+        # Schedule some runs.
+        run_ids = [
+            svc.client.schedule("sleep", {"time": 1})["run_id"]
+            for _ in range(len(SIGNALS) + 1)
+        ]
+        # Wait for them to start.
+        for run_id in run_ids:
+            svc.wait_run(run_id, wait_states=("scheduled", "waiting", "starting"))
+        # Send them signals.
+        for sig, run_id in zip(SIGNALS, run_ids):
+            svc.client.signal(run_id, sig)
+        # Check status.
+        for sig, run_id in zip(SIGNALS, run_ids):
+            res = svc.wait_run(run_id)
+            assert res["state"] == "failure"
+            assert res["meta"]["status"]["signal"] == sig.name
+        # The last run didn't get a signal.
+        res = svc.wait_run(run_ids[-1])
+        assert res["state"] == "success"
+
+
 # FIXME:
-# - signal tests
 # - procstar connection timeout and reconnect (SIGHUP)
 
