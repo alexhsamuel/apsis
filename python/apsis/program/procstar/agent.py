@@ -110,26 +110,22 @@ def start_server(cfg):
     )
 
 
-class ProcstarProgram(base.Program):
+#-------------------------------------------------------------------------------
 
-    def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
-        self.__argv = tuple( str(a) for a in argv )
-        self.__group_id = group_id
+class BoundProcstarProgram(base.Program):
+
+    def __init__(self, argv, *, group_id):
+        self.__argv = [ str(a) for a in argv ]
+        self.__group_id = str(group_id)
 
 
     def __str__(self):
         return join_args(self.__argv)
 
 
-    def bind(self, args):
-        argv        = tuple( template_expand(a, args) for a in self.__argv )
-        group_id    = or_none(template_expand)(self.__group_id, args)
-        return type(self)(argv, group_id=group_id)
-
-
     def to_jso(self):
         return super().to_jso() | {
-            "argv"      : list(self.__argv),
+            "argv"      : self.__argv,
             "group_id"  : self.__group_id,
         }
 
@@ -371,6 +367,74 @@ class ProcstarProgram(base.Program):
         log.info(f"sending signal: {run_id}: {signal}")
         proc_id = run_state["proc_id"]
         await SERVER.send_signal(proc_id, int(signal))
+
+
+
+#-------------------------------------------------------------------------------
+
+class ProcstarProgram(base.Program):
+
+    def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
+        self.__argv = [ str(a) for a in argv ]
+        self.__group_id = group_id
+
+
+    def __str__(self):
+        return join_args(self.__argv)
+
+
+    def bind(self, args):
+        argv        = tuple( template_expand(a, args) for a in self.__argv )
+        group_id    = or_none(template_expand)(self.__group_id, args)
+        return BoundProcstarProgram(argv, group_id=group_id)
+
+
+    def to_jso(self):
+        return super().to_jso() | {
+            "argv"      : self.__argv,
+            "group_id"  : self.__group_id,
+        }
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            argv        = pop("argv")
+            group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
+        return cls(argv, group_id=group_id)
+
+
+
+#-------------------------------------------------------------------------------
+
+class ProcstarShellProgram(base.Program):
+
+    SHELL = "/usr/bin/bash"
+
+    def __init__(self, command, *, group_id=procstar.proto.DEFAULT_GROUP):
+        self.__command = str(command)
+        self.__group_id = str(group_id)
+
+
+    def bind(self, args):
+        argv        = [self.SHELL, "-c", self.__command]
+        group_id    = or_none(template_expand)(self.__group_id, args)
+        return BoundProcstarProgram(argv, group_id=group_id)
+
+
+    def to_jso(self):
+        return super().to_jso() | {
+            "command"   : self.__argv,
+            "group_id"  : self.__group_id,
+        }
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            command     = pop("command")
+            group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
+        return cls(command, group_id=group_id)
 
 
 
