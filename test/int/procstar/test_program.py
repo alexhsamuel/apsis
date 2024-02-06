@@ -84,6 +84,6 @@ def test_signal():
         assert res["state"] == "success"
 
 
-# FIXME:
-# - procstar connection timeout and reconnect (SIGHUP)
+# FIXME: procstar connection timeout and reconnect: use SIGHUP to pause agent,
+# wait for websocket timeout, then resume agent and watch it reconnect.
 
