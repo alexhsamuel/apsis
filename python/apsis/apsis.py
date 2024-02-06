@@ -740,7 +740,7 @@ class Apsis:
         """
         signal = to_signal(signal)
         if run.state != State.running:
-            raise RuntimeError("invalid run state for signal: {run.state.name}")
+            raise RuntimeError(f"invalid run state for signal: {run.state.name}")
         assert run.program is not None
 
         self.run_log.info(run, f"sending {signal.name}")
