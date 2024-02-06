@@ -1,3 +1,12 @@
+# v0.22
+
+- [Procstar](https://github.com/alexhsamuel/procstar) agent-based programs.
+- The child-class API of `apsis.program.base.Program` has changed.  Implement
+  `run()` and `connect()` in subclasses, rather than deprecated `start()` and
+  `reconnect()`.  Default implementations of the new methods provide
+  compatibility with the old methods, but these will be removed in the future.
+
+
 # v0.21
 
 - New `exists` option to a
