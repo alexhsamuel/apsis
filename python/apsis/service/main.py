@@ -11,7 +11,7 @@ import websockets
 from   apsis import __version__
 import apsis.agent.client
 import apsis.lib.logging
-from   . import api, control
+from   . import api, control, procstar
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
 from   ..jobs import load_jobs_dir, JobErrors
@@ -64,6 +64,7 @@ app.config.LOGO = None
 
 app.blueprint(api.API, url_prefix="/api/v1")
 app.blueprint(control.API, url_prefix="/api/control")
+app.blueprint(procstar.API, url_prefix="/api/procstar")
 
 vue_dir = Path(__file__).parent / "vue"
 assert vue_dir.is_dir()
@@ -160,7 +161,8 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
             try:
                 # Stop enqueuing log messages.
                 log.info("removing logging websocket handler")
-                root_log.handlers.remove(WS_HANDLER)
+                if WS_HANDLER in root_log.handlers:
+                    root_log.handlers.remove(WS_HANDLER)
 
                 log.info("shutting down run websockets")
                 WS_HANDLER.shut_down()

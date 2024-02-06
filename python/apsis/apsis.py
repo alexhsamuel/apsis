@@ -12,8 +12,12 @@ from   .cond.base import PolledCondition, RunStoreCondition
 from   .cond.max_running import MaxRunning
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib.asyn import cancel_task
-from   .program.base import _InternalProgram, Output, OutputMetadata, ProgramError, ProgramFailure
+from   .lib.asyn import cancel_task, TaskGroup
+from   .lib.sys import to_signal
+from   .program.base import _InternalProgram
+from   .program.base import Output, OutputMetadata
+from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
+from   .program.procstar.agent import start_server
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
@@ -21,6 +25,7 @@ from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgument
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
+from   .states import State
 
 log = logging.getLogger(__name__)
 
@@ -73,16 +78,25 @@ class Apsis:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
+        procstar_cfg = cfg.get("procstar", {}).get("agent", {})
+        if procstar_cfg.get("enable", False):
+            log.info("starting procstar server")
+            self.__procstar_task = asyncio.ensure_future(
+                start_server(procstar_cfg)
+            )
+        else:
+            self.__procstar_task = None
+
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
-        self.__wait_tasks = {}
-        self.__starting_tasks = {}
         # For now, expose the output database directly.
         self.outputs = db.output_db
-        # Tasks for running jobs currently awaited.
-        self.__running_tasks = {}
+        # Tasks for waiting runs.
+        self.__wait_tasks = TaskGroup(log)
+        # Tasks for starting/running runs.
+        self.__run_tasks = TaskGroup(log)
         # Tasks for running actions.
-        self.__action_tasks = set()
+        self.__action_tasks = TaskGroup(log)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
@@ -101,7 +115,7 @@ class Apsis:
 
             # Restore scheduled runs from DB.
             log.info("restoring scheduled runs")
-            _, scheduled_runs = self.run_store.query(state=Run.STATE.scheduled)
+            _, scheduled_runs = self.run_store.query(state=State.scheduled)
             for run in scheduled_runs:
                 assert not run.expected
                 if not self.__prepare_run(run):
@@ -112,7 +126,7 @@ class Apsis:
 
             # Restore waiting runs from DB.
             log.info("restoring waiting runs")
-            _, waiting_runs = self.run_store.query(state=Run.STATE.waiting)
+            _, waiting_runs = self.run_store.query(state=State.waiting)
             for run in waiting_runs:
                 assert not run.expected
                 if not self.__prepare_run(run):
@@ -123,7 +137,7 @@ class Apsis:
             # If a run is starting in the DB, we can't know if it actually
             # started or not, so mark it as error.
             log.info("processing starting runs")
-            _, starting_runs = self.run_store.query(state=Run.STATE.starting)
+            _, starting_runs = self.run_store.query(state=State.starting)
             for run in starting_runs:
                 self.run_log.record(run, "restored starting: might have started")
                 self._transition(
@@ -132,16 +146,10 @@ class Apsis:
                 )
 
             # Reconnect to running runs.
-            _, running_runs = self.run_store.query(state=Run.STATE.running)
+            _, running_runs = self.run_store.query(state=State.running)
             log.info("reconnecting running runs")
             for run in running_runs:
-                assert run.program is not None
-                self.run_log.record(run, "restore: reconnecting to running run")
-                if isinstance(run.program, _InternalProgram):
-                    future = run.program.reconnect(run.run_id, run.run_state, self)
-                else:
-                    future = run.program.reconnect(run.run_id, run.run_state)
-                self.__finish(run, future)
+                self.__reconnect(run)
 
             log.info("restoring done")
 
@@ -278,111 +286,143 @@ class Apsis:
                 self.__start(run)
 
         # Start the waiting task.
-        task = asyncio.ensure_future(loop())
-        # Register it, but drop it when it's done.
-        self.__wait_tasks[run] = task
-        task.add_done_callback(lambda _, run=run: self.__wait_tasks.pop(run))
+        self.__wait_tasks.add(run.run_id, loop())
 
 
     def __start(self, run):
+        """
+        Starts a run.
+
+        Runs the run's program in a task added to `__run_tasks`.
+        """
+        # Start the run by running its program.
         self.run_log.record(run, "starting")
-        self._transition(run, run.STATE.starting)
+        self._transition(run, State.starting)
+        # Call the program.  This produces an async iterator of updates.
+        updates = run.program.run(
+            run.run_id,
+            self if isinstance(run.program, _InternalProgram) else self.cfg,
+        )
+        self.__run_tasks.add(run.run_id, self.__do_program(run, aiter(updates)))
 
-        async def start():
-            try:
-                if isinstance(run.program, _InternalProgram):
-                    start = run.program.start(run.run_id, self)
-                else:
-                    start = run.program.start(run.run_id, self.cfg)
-                running, coro = await start
 
-            except ProgramError as exc:
-                # Program failed to start.
-                self.run_log.exc(run, "error: starting program")
-                self._transition(
-                    run, run.STATE.error,
-                    meta    =exc.meta,
-                    times   =exc.times,
-                    outputs =exc.outputs,
-                )
+    def __reconnect(self, run):
+        """
+        Reconnects to a running run.
+
+        Finishes running the run's program in a task added to `__run_tasks`.
+        """
+        assert run.state == State.running
+        assert run.run_state is not None
+        self.run_log.record(run, "reconnecting")
+        # Connect to the program.  This produces an async iterator of updates.
+        updates = run.program.connect(
+            run.run_id,
+            run.run_state,
+            self if isinstance(run.program, _InternalProgram) else self.cfg,
+        )
+        self.__run_tasks.add(run.run_id, self.__do_program(run, aiter(updates)))
+
+
+    async def __do_program(self, run, updates):
+        """
+        Processes `updates` for `run` until the run is finished.
+        """
+        try:
+            if run.state == State.starting:
+                update = await anext(updates)
+                log.debug(f"run update: {run.run_id}: {update}")
+                match update:
+                    case ProgramRunning() as running:
+                        self.run_log.record(run, "running")
+                        self._transition(
+                            run, State.running,
+                            run_state   =running.run_state,
+                            meta        =running.meta,
+                            times       =running.times,
+                        )
+
+                    case ProgramError() as error:
+                        self.run_log.info(run, f"error: {error.message}")
+                        self._transition(
+                            run, State.error,
+                            meta        =error.meta,
+                            times       =error.times,
+                            outputs     =error.outputs,
+                        )
+                        return
+
+                    case _ as update:
+                        assert False, f"unexpected update: {update}"
+
+            assert run.state == State.running
+
+            while run.state == State.running:
+                update = await anext(updates)
+                log.debug(f"run update: {run.run_id}: {update}")
+                match update:
+                    case ProgramUpdate() as update:
+                        self._update(
+                            run,
+                            outputs     =update.outputs,
+                            meta        =update.meta,
+                        )
+
+                    case ProgramSuccess() as success:
+                        self.run_log.record(run, "success")
+                        self._transition(
+                            run, State.success,
+                            meta        =success.meta,
+                            times       =success.times,
+                            outputs     =success.outputs,
+                        )
+
+                    case ProgramFailure() as failure:
+                        # Program ran and failed.
+                        self.run_log.record(run, f"failure: {failure.message}")
+                        self._transition(
+                            run, State.failure,
+                            meta        =failure.meta,
+                            times       =failure.times,
+                            outputs     =failure.outputs,
+                        )
+
+                    case ProgramError() as error:
+                        self.run_log.info(run, f"error: {error.message}")
+                        self._transition(
+                            run, State.error,
+                            meta        =error.meta,
+                            times       =error.times,
+                            outputs     =error.outputs,
+                        )
+
+                    case _ as update:
+                        assert False, f"unexpected update: {update}"
 
             else:
-                # Program started successfully.
-                self.run_log.record(run, "running")
-                self._transition(run, run.STATE.running, **running.__dict__)
-                future = asyncio.ensure_future(coro)
-                self.__finish(run, future)
-
-        task = asyncio.ensure_future(start())
-        self.__starting_tasks[run] = task
-        task.add_done_callback(
-            lambda _, run=run: self.__starting_tasks.pop(run))
-
-
-    def __finish(self, run, future):
-        def done(future):
-            try:
+                # Exhaust the async iterator, so that cleanup can run.
                 try:
-                    success = future.result()
-
-                except asyncio.CancelledError:
-                    log.info(
-                        f"cancelled waiting for run to complete: {run.run_id}")
-                    return
-
-                except ProgramFailure as exc:
-                    # Program ran and failed.
-                    self.run_log.record(run, f"failure: {exc.message}")
-                    self._transition(
-                        run, run.STATE.failure,
-                        meta    =exc.meta,
-                        times   =exc.times,
-                        outputs =exc.outputs,
-                    )
-
-                except ProgramError as exc:
-                    # Program failed to start.
-                    self.run_log.info(run, f"error: {exc.message}")
-                    self._transition(
-                        run, run.STATE.error,
-                        meta    =exc.meta,
-                        times   =exc.times,
-                        outputs =exc.outputs,
-                    )
-
-                except Exception:
-                    # Program raised some other exception.
-                    self.run_log.exc(run, "error: internal")
-                    tb = traceback.format_exc().encode()
-                    self._transition(
-                        run, run.STATE.error,
-                        outputs ={
-                            "output": Output(
-                                OutputMetadata("traceback", length=len(tb)),
-                                tb
-                            ),
-                        }
-                    )
-
+                    update = await anext(updates)
+                except StopAsyncIteration:
+                    # Expected.
+                    pass
                 else:
-                    # Program ran and completed successfully.
-                    self.run_log.record(run, "success")
-                    self._transition(
-                        run, run.STATE.success,
-                        meta    =success.meta,
-                        times   =success.times,
-                        outputs =success.outputs,
-                    )
+                    assert False, f"unexpected update: {update}"
 
-            except Exception:
-                log.fatal(f"internal error in {run}", exc_info=True)
-                raise SystemExit(1)
+        except (asyncio.CancelledError, StopAsyncIteration):
+            log.info(f"run task cancelled: {run.run_id}")
+            # We do not transition the run here.  The run can survive an Apsis
+            # restart and we can connect to it later.
 
-            finally:
-                del self.__running_tasks[run.run_id]
-
-        self.__running_tasks[run.run_id] = future
-        future.add_done_callback(done)
+        except Exception:
+            # Program raised some other exception.
+            self.run_log.exc(run, "error: internal")
+            tb = traceback.format_exc().encode()
+            output = Output(OutputMetadata("traceback", length=len(tb)), tb)
+            self._transition(
+                run, State.error,
+                outputs ={"output": output}
+            )
 
 
     def __prepare_run(self, run):
@@ -467,12 +507,9 @@ class Apsis:
         # hand the actions a snapshot instead.
         snapshot = snapshot_run(self, run)
 
-        loop = asyncio.get_event_loop()
         for action in actions:
-            task = loop.create_task(wrap(run, snapshot, action))
-            self.__action_tasks.add(task)
-            task.add_done_callback(
-                lambda _, task=task: self.__action_tasks.remove(task))
+            key = (id(action), run.run_id, run.state)
+            self.__action_tasks.add(key, wrap(run, snapshot, action))
 
 
     # --- Internal API ---------------------------------------------------------
@@ -506,6 +543,23 @@ class Apsis:
         )
 
 
+    def _update(self, run, *, outputs=None, meta=None):
+        """
+        Updates run state without transitioning.
+        """
+        assert run.state in {State.starting, State.running}
+
+        if meta is not None:
+            run._update(meta=meta)
+        if outputs is not None:
+            # FIXME: We absolutely need to do better than this to avoid crazy
+            # rewriting to the DB.
+            for output_id, output in outputs.items():
+                self.__db.output_db.upsert(run.run_id, output_id, output)
+
+        self.run_store.update(run, now())
+
+
     def _transition(self, run, state, *, outputs={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
@@ -513,10 +567,7 @@ class Apsis:
         time = now()
 
         # A run is no longer expected once it is no longer scheduled.
-        if run.expected and state not in {
-                run.STATE.new,
-                run.STATE.scheduled,
-        }:
+        if run.expected and state not in {State.new, State.scheduled}:
             self.__db.run_log_db.flush(run.run_id)
             run.expected = False
 
@@ -528,7 +579,7 @@ class Apsis:
         # OK for the time being because outputs are always added on the final
         # transition.  In general, we have to persist new outputs only.
         for output_id, output in outputs.items():
-            self.__db.output_db.add(run.run_id, output_id, output)
+            self.__db.output_db.upsert(run.run_id, output_id, output)
 
         # Persist the new state.
         self.run_store.update(run, time)
@@ -605,8 +656,8 @@ class Apsis:
             self.scheduled.unschedule(run)
 
         elif run.state == run.STATE.waiting:
-            # Cancel the waiting task.  It will remove itself when done.
-            await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
+            # Cancel the waiting task.
+            await self.__wait_tasks.cancel(run.run_id)
 
         else:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
@@ -626,7 +677,7 @@ class Apsis:
 
         elif run.state == run.STATE.waiting:
             # Cancel the waiting task.  It will remove itself when done.
-            await cancel_task(self.__wait_tasks[run], f"waiting for {run}", log)
+            await self.__wait_tasks.cancel(run.run_id)
             self.run_log.info(run, "waiting run started by override")
             # Start the run.
             self.__start(run)
@@ -647,7 +698,6 @@ class Apsis:
         if state not in Run.FINISHED:
             raise RunError(f"can't mark {run.run_id} to state {state.name}")
         elif run.state not in Run.FINISHED:
-            # FIXME: Add a 'force' option to allow this?
             raise RunError(f"can't mark {run.run_id} in state {run.state.name}")
         elif state == run.state:
             raise RunError(f"run {run.run_id} already in state {state.name}")
@@ -683,20 +733,35 @@ class Apsis:
         return new_run
 
 
+    async def send_signal(self, run, signal):
+        """
+        :raise RuntimeError:
+          `run` is not running.
+        """
+        signal = to_signal(signal)
+        if run.state != State.running:
+            raise RuntimeError(f"invalid run state for signal: {run.state.name}")
+        assert run.program is not None
+
+        self.run_log.info(run, f"sending {signal.name}")
+        try:
+            await run.program.signal(run.run_id, run.run_state, signal)
+        except Exception:
+            self.run_log.exc(run, f"sending {signal.name} failed")
+            raise RuntimeError(f"sending {signal.name} failed")
+
+
     async def shut_down(self):
         log.info("shutting down Apsis")
-        for task in list(self.__action_tasks):
-            await cancel_task(task, "action", log)
         await cancel_task(self.__scheduler_task, "scheduler", log)
         await cancel_task(self.__scheduled_task, "scheduled", log)
-        for run, task in list(self.__wait_tasks.items()):
-            await cancel_task(task, f"waiting for {run}", log)
-        for run, task in list(self.__starting_tasks.items()):
-            await cancel_task(task, f"starting {run}", log)
-        for run_id, task in list(self.__running_tasks.items()):
-            await cancel_task(task, f"run {run_id}", log)
+        await self.__action_tasks.cancel_all()
+        await self.__wait_tasks.cancel_all()
+        await self.__run_tasks.cancel_all()
         await self.run_store.shut_down()
         await cancel_task(self.__check_async_task, "check async", log)
+        if self.__procstar_task is not None:
+            await cancel_task(self.__procstar_task, "procstar server", log)
         log.info("Apsis shut down")
 
 
@@ -728,8 +793,7 @@ class Apsis:
             "rusage_stime"          : res.ru_stime,
             "tasks": {
                 "num_waiting"       : len(self.__wait_tasks),
-                "num_starting"      : len(self.__starting_tasks),
-                "num_running"       : len(self.__running_tasks),
+                "num_running"       : len(self.__run_tasks),
                 "num_action"        : len(self.__action_tasks),
             },
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),

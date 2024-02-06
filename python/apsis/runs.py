@@ -206,6 +206,11 @@ class Run:
         return f"{self.run_id} {self.state.name} {self.inst}"
 
 
+    def _update(self, *, meta=None):
+        if meta is not None:
+            self.meta = meta
+
+
     def _transition(self, timestamp, state, *, meta={}, times={},
                     message=None, run_state=None, force=False):
         """

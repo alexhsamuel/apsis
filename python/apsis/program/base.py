@@ -37,6 +37,9 @@ class Output:
         :pamam compression:
           The compresison type, or `None` for uncompressed.
         """
+        if not isinstance(data, bytes):
+            raise TypeError("data must be bytes")
+
         self.metadata       = metadata
         self.data           = data
         self.compression    = compression
@@ -73,6 +76,15 @@ class ProgramRunning:
 
 
 
+class ProgramUpdate:
+
+    def __init__(self, *, meta={}, outputs={}):
+        self.meta       = meta
+        self.outputs    = outputs
+
+
+
+# FIXME: Not an exception.
 class ProgramError(RuntimeError):
 
     def __init__(self, message, *, meta={}, times={}, outputs={}):
@@ -93,6 +105,7 @@ class ProgramSuccess:
 
 
 
+# FIXME: Not an exception.
 class ProgramFailure(RuntimeError):
 
     def __init__(self, message, *, meta={}, times={}, outputs={}):
@@ -154,18 +167,8 @@ class Program(TypedJso):
         """
         Starts the run.
 
-        Updates `run` in place.
-
-        :param run_id:
-          The run ID; used for logging only.
-        :param cfg:
-          The global config.
-        :raise ProgramError:
-          The program failed to start.
-        :return:
-          `running, done`, where `running` is a `ProgramRunning` instance and
-          `done` is a coroutine or future that returns `ProgramSuccess` when the
-          program is complete.
+        :deprecated:
+          Implement `run()` instead.
         """
 
 
@@ -173,12 +176,8 @@ class Program(TypedJso):
         """
         Reconnects to an already running run.
 
-        :param run_id:
-          The run ID; used for logging only.
-        :param run_state:
-          State information for the running program.
-        :return:
-          A coroutine or future for the program completion, as `start`.
+        :deprecated:
+          Implement `connect()` instead.
         """
 
 
@@ -204,6 +203,59 @@ class Program(TypedJso):
             return AgentProgram(jso)
         else:
             return TypedJso.from_jso.__func__(cls, jso)
+
+
+    async def run(self, run_id, cfg):
+        """
+        Runs the program.
+
+        The default implementation is a facade for `start()`, for backward
+        compatibility.  Subclasses should override this method.
+
+        :param run_id:
+          Used for logging only.
+        :return:
+          Async iterator that yields `Program*` objects.
+        """
+        # Starting.
+        try:
+            running, done = await self.start(run_id, cfg)
+        except ProgramError as err:
+            yield err
+        else:
+            assert isinstance(running, ProgramRunning)
+            yield running
+
+        # Running.
+        try:
+            success = await done
+        except (ProgramError, ProgramFailure) as err:
+            yield err
+        else:
+            assert isinstance(success, ProgramSuccess)
+            yield success
+
+
+    async def connect(self, run_id, run_state, cfg):
+        """
+        Connects to the running program specified by `run_state`.
+
+        The default implementation is a facade for `reconnect()`, for backward
+        compatibility.  Subclasses should override this method.
+
+        :param run_id:
+          Used for logging only.
+        :return:
+          Async iterator that yields `Program*` objects.
+        """
+        done = self.reconnect(run_id, run_state)
+        try:
+            success = await done
+        except (ProgramError, ProgramFailure) as err:
+            yield err
+        else:
+            assert isinstance(success, ProgramSuccess)
+            yield success
 
 
 

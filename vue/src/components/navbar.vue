@@ -15,6 +15,7 @@ nav
   router-link.link(to="/jobs") Jobs
   router-link.link(to="/runs") Runs
   router-link.link(to="/control") Control
+  router-link.link(to="/agents") Agents
 
   .spacer(style="flex-basis: 100%")
 

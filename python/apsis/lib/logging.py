@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from   logging import log, debug, info, warning, error, critical
 import logging.handlers
 import ora
 import rich.highlighter

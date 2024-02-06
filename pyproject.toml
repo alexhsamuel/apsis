@@ -23,6 +23,7 @@ dependencies = [
     "httpx",
     "jinja2",
     "ora",
+    "procstar",
     "pyyaml",
     "requests",
     "rich",
@@ -33,7 +34,7 @@ dependencies = [
     "websockets ==10.*",
 ]
 
-optional-dependencies = {dev = ["pytest", "pytest-asyncio", "bump2version"], doc = ["sphinx", "readthedocs-sphinx-ext", "sphinx-rtd-theme"]}
+optional-dependencies = {dev = ["build", "pytest", "pytest-asyncio", "bump-my-version"], doc = ["sphinx", "readthedocs-sphinx-ext", "sphinx-rtd-theme"]}
 
 [project.urls]
 Repository = "https://github.com/alexhsamuel/apsis"
@@ -54,6 +55,7 @@ packages = [
     "apsis.lib.itr",
     "apsis.program",
     "apsis.program.internal",
+    "apsis.program.procstar",
     "apsis.schedule",
     "apsis.service",
 ]

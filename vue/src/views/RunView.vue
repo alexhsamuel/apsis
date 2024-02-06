@@ -146,11 +146,11 @@ export default {
     },
 
     /**
-     * The state of the run summary in the store, for detecting updates.
+     * The update sequence of the run summary in the store, for detecting updates.
      */
-    storeState() {
+    updateSeq() {
       const run = store.state.runs.get(this.run_id)
-      return run ? run.state : undefined
+      return run ? run.seq : undefined
     },
   },
 
@@ -185,7 +185,7 @@ export default {
                 this.output = output
 
                 // If the output isn't too big, fetch it immediately.
-                if (this.output.output_len <= 65536)
+                if (this.output.output_len <= 65536 || this.outputData)
                   this.fetchOutputData()
             })
           })
@@ -237,10 +237,15 @@ export default {
       this.fetchRun()
     },
 
-    storeState(state, previous) {
-      if (!this.run || this.run.state !== state)
-        // The run summary state has changed, so reload the whole run.
+    // When the update sequence number changes, reload the whole run.
+    updateSeq(seq, previous) {
+      if (!this.run || this.run.seq !== seq) {
         this.fetchRun()
+        if (this.output) {
+          this.outputRequested = false
+          this.fetchOutputMetadata()
+        }
+      }
     }
   },
 

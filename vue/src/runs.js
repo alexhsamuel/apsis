@@ -34,10 +34,13 @@ function timeKey(run) {
   return run.times.schedule || run.times.running || run.times.error
 }
 
+let nextSeq = 0
+
 /**
  * Updates store `state` with runs from a socket `msg`.
  */
 export function updateRuns(msg, state) {
+  const seq = nextSeq++
   const runs = new Map(state.runs)
   let nadd = 0
   let nchg = 0
@@ -56,6 +59,7 @@ export function updateRuns(msg, state) {
       // Add sort and group keys to runs in msg.
       run.group_key = groupKey(run)
       run.time_key = timeKey(run)
+      run.seq = seq
       if (runs.has(run.run_id))
         nchg++
       else

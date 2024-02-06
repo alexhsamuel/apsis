@@ -1,6 +1,7 @@
 from   contextlib import contextmanager
 import functools
 import logging
+import os
 from   pathlib import Path
 import signal
 import subprocess
@@ -19,10 +20,13 @@ def run_apsisctl(*argv):
     subprocess.run(["apsisctl", *( str(a) for a in argv )], check=True)
 
 
-class ApsisInstance:
+class ApsisService:
+    """
+    An Apsis service instance running in a separate process.
+    """
 
     # FIXME: Choose an available port.
-    def __init__(self, *, port=5005, job_dir=None, cfg={}):
+    def __init__(self, *, port=5005, job_dir=None, cfg={}, env={}):
         self.port       = int(port)
 
         self.tmp_dir    = Path(tempfile.mkdtemp())
@@ -34,24 +38,24 @@ class ApsisInstance:
         )
         self.cfg_path   = self.tmp_dir / "config.yaml"
         self.log_path   = self.tmp_dir / "apsis.log"
+        self.agent_dir  = self.tmp_dir / "agent"
 
         self.cfg        = dict(cfg)
         self.srv_proc   = None
+        self.env        = dict(env)
 
 
     def create_db(self):
         SqliteDB.create(self.db_path)
 
 
-    # FIXME: Remove cfg param.
-    def write_cfg(self, cfg={}):
-        self.cfg |= {
+    def write_cfg(self):
+        cfg = self.cfg | {
             "database": str(self.db_path),
             "job_dir": str(self.jobs_dir),
-            **cfg
         }
         with open(self.cfg_path, "w") as file:
-            yaml.dump(self.cfg, file)
+            yaml.dump(cfg, file)
 
 
     def start_serve(self):
@@ -67,7 +71,10 @@ class ApsisInstance:
                     "--config", str(self.cfg_path),
                     "--port", str(self.port),
                 ],
-                stderr=log_file
+                env=os.environ | self.env | {
+                    "APSIS_AGENT_DIR": str(self.agent_dir),
+                },
+                stderr=log_file,
             )
 
 
@@ -111,15 +118,40 @@ class ApsisInstance:
     def stop_serve(self):
         assert self.srv_proc is not None
         self.srv_proc.send_signal(signal.SIGTERM)
-        return self.srv_proc.wait()
+        res = self.srv_proc.wait()
+        self.srv_proc = None
+
+        # Dump the log file.
+        with open(self.log_path) as file:
+            sys.stderr.write(file.read())
+
+        return res
 
 
+    # FIXME: Remove.
     def close(self):
         if self.srv_proc is not None:
             self.stop_serve()
-            with open(self.log_path) as file:
-                sys.stdout.write(file.read())
-            sys.stdout.flush()
+
+
+    def __enter__(self):
+        self.create_db()
+        self.write_cfg()
+        self.start_serve()
+        self.wait_for_serve()
+        return self
+
+
+    def __exit__(self, *exc_info):
+        if self.srv_proc is not None:
+            self.stop_serve()
+
+
+    def restart(self):
+        logging.info("restarting Apsis service")
+        self.stop_serve()
+        self.start_serve()
+        self.wait_for_serve()
 
 
     def run_apsis_cmd(self, *argv):
@@ -155,11 +187,17 @@ class ApsisInstance:
         return ujson.loads(stdout)
 
 
-    def wait_run(self, run_id, *, wait_states=("new", "scheduled", "waiting", "starting", "running")):
+    def wait_run(
+            self,
+            run_id,
+            *,
+            timeout=60,
+            wait_states=("new", "scheduled", "waiting", "starting", "running"),
+    ):
         """
         Polls for a run to no longer be running.
         """
-        for _ in range(600):
+        for _ in range(int(timeout / 0.1)):
             res = self.client.get_run(run_id)
             if res["state"] in wait_states:
                 time.sleep(0.1)
@@ -172,5 +210,6 @@ class ApsisInstance:
 
     def wait_for_run_to_start(self, run_id):
         return self.wait_run(run_id, wait_states=("new", "scheduled", "waiting", "starting"))
+
 
 

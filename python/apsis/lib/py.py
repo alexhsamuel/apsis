@@ -1,3 +1,4 @@
+from   collections.abc import Mapping
 import inspect
 import functools
 import shutil
@@ -166,6 +167,32 @@ def to_front(items, order):
     return [ f for f in front if f is not MISSING ] + rest
 
 
+def merge_mappings(res, /, *mappings):
+    """
+    Performs deep merge of mappings.
+
+    :return:
+      A deep-copied (for mappings, not other data structures) `dict`.
+    """
+    res = dict(res)
+    for mapping in mappings:
+        for key, val1 in mapping.items():
+            if isinstance(val1, Mapping):
+                try:
+                    val0 = res[key]
+                except KeyError:
+                    # Replace non-mapping with mapping.
+                    res[key] = dict(val1)
+                else:
+                    res[key] = (
+                        merge_mappings(val0, val1) if isinstance(val0, Mapping)
+                        else val1
+                    )
+            else:
+                res[key] = val1
+    return res
+
+
 def format_call(__fn, *args, **kw_args):
     """
     Formats a function call, with arguments, as a string.
@@ -287,7 +314,7 @@ def export(obj):
     all_names.append(name)
 
     return obj
-    
+
 
 # FIXME: This doesn't work for values.  Add one that takes a name, or something.
 
@@ -316,5 +343,5 @@ def dump_methods(obj):
             if len(line) > width:
                 line = line[: width - 1] + "\u2026"
             print(line)
-    
+
 

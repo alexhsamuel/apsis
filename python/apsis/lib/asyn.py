@@ -59,6 +59,44 @@ async def cancel_task(task, name, log):
         log.error(f"task cancelled with exc: {name}", exc_info=True)
 
 
+class TaskGroup:
+    """
+    Tracks a group of running tasks.
+
+    Each added tasks get a callback that removes itself from the group.
+    """
+
+    def __init__(self, log):
+        self.__tasks = {}
+        self.__log = log
+
+
+    def __len__(self):
+        return len(self.__tasks)
+
+
+    def add(self, key, coro):
+        task = asyncio.get_event_loop().create_task(coro)
+        task.key = key
+        self.__tasks[key] = task
+        task.add_done_callback(lambda _, key=key: self.__tasks.pop(key))
+
+
+    async def cancel(self, key):
+        await cancel_task(self.__tasks[key], key, self.__log)
+
+
+    async def cancel_all(self):
+        """
+        Cancels all running tasks.
+        """
+        for key, task in tuple(self.__tasks.items()):
+            await cancel_task(task, key, self.__log)
+
+
+
+#-------------------------------------------------------------------------------
+
 async def communicate(proc, timeout=None):
     """
     Like `proc.communicate` with a timeout.

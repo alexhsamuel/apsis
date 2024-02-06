@@ -11,6 +11,7 @@ from   apsis.apsis import reschedule_runs
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
+from   apsis.lib.sys import to_signal
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
 
@@ -361,23 +362,23 @@ async def run_rerun(request, run_id):
     return response_json(jso)
 
 
-# FIXME: PUT is probably right, but run actions currently are POST only.
+# PUT is probably right, but run actions currently are POST only.
 @API.route("/runs/<run_id>/signal/<signal>", methods={"PUT", "POST"})
 async def run_signal(request, run_id, signal):
     apsis = request.app.apsis
     _, run = apsis.run_store.get(run_id)
 
-    if run.state not in {run.STATE.running}:
-        return error("invalid run state for signal", 409, state=run.state.name)
-    assert run.program is not None
-
-    apsis.run_log.info(run, f"sending signal {signal}")
     try:
-        # FIXME: This should be via the apsis API.
-        await run.program.signal(run_id, run.run_state, signal)
+        signal = to_signal(signal)
+    except ValueError:
+        return error(f"invalid signal: {signal}", 400)
+
+    try:
+        await apsis.send_signal(run, signal)
     except RuntimeError as exc:
-        return error(str(exc), 400)  # FIXME: code?
-    return response_json({})
+        return error(str(exc), 400)
+    else:
+        return response_json({})
 
 
 @API.route("/runs/<run_id>/mark/<state>", methods={"PUT", "POST"})

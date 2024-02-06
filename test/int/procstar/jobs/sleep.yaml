@@ -1,0 +1,6 @@
+params: [time]
+
+program:
+  type: procstar
+  argv: ["/usr/bin/sleep", "{{ time }}"]
+

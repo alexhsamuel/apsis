@@ -326,7 +326,10 @@ class Agent:
           instance is already running.
         """
         if state_dir is DEFAULT:
-            state_dir = get_test_state_dir() if in_test() else None
+            try:
+                state_dir = os.environ["APSIS_AGENT_DIR"]
+            except KeyError:
+                state_dir = get_test_state_dir() if in_test() else None
 
         self.__host         = host
         self.__user         = user

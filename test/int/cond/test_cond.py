@@ -7,7 +7,7 @@ from   pathlib import Path
 import pytest
 import time
 
-from   instance import ApsisInstance
+from   instance import ApsisService
 
 #-------------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ job_dir = Path(__file__).absolute().parent / "jobs"
 
 @pytest.fixture(scope="function")
 def inst():
-    with closing(ApsisInstance(job_dir=job_dir)) as inst:
+    with closing(ApsisService(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()
@@ -33,12 +33,8 @@ def test_args_max_waiting():
     Tests that a run waiting for more than `waiting.max_time` is
     transitioned to error.
     """
-    with closing(ApsisInstance(job_dir=job_dir, port=5006)) as inst:
-        inst.create_db()
-        inst.write_cfg({"waiting": {"max_time": 1}})
-        inst.start_serve()
-        inst.wait_for_serve()
-        client = inst.client
+    with ApsisService(job_dir=job_dir, port=5006, cfg={"waiting": {"max_time": 1}}) as svc:
+        client = svc.client
 
         res = client.schedule("dependent", {"date": "2022-11-01", "color": "red"})
         run_id = res["run_id"]

@@ -8,7 +8,7 @@ import pytest
 import random
 import time
 
-from   instance import ApsisInstance
+from   instance import ApsisService
 
 #-------------------------------------------------------------------------------
 
@@ -16,7 +16,7 @@ job_dir = Path(__file__).absolute().parent / "jobs"
 
 @pytest.fixture(scope="function")
 def inst():
-    with closing(ApsisInstance(job_dir=job_dir)) as inst:
+    with closing(ApsisService(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()
