@@ -159,7 +159,7 @@ def _get_http_client(loop):
     match HTTP_IMPL:
         case "httpx":
             client = httpx.AsyncClient(
-                timeout=httpx.Timeout(5.0),
+                timeout=httpx.Timeout(30.0),
                 # FIXME: For now, we use no server verification when
                 # establishing the TLS connection to the agent.  The agent uses
                 # a generic SSL cert with no real host name, so host
