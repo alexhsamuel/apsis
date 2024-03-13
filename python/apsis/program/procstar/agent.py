@@ -224,7 +224,7 @@ class BoundProcstarProgram(base.Program):
         # run as error.
         # FIXME: This is temporary, until we handle WebSocket connection and
         # disconnection, and aging out of connections, properly.
-        TIMEOUT = 600
+        TIMEOUT = 86400
 
         conn = SERVER.connections[proc.conn_id]
         last_result_time = time.monotonic()
