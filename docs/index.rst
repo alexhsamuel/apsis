@@ -10,6 +10,7 @@ Apsis, a scheduler
    programs
    schedules
    config
+   monitoring
    extending
 
 
