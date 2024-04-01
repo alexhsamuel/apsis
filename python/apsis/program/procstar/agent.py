@@ -288,7 +288,7 @@ class BoundProcstarProgram(base.Program):
                 continue
 
             # Collect results.
-            output  = result.fds.stdout.text.encode()
+            output  = b"" if result.fds.stdout is None else result.fds.stdout.text.encode()
             outputs = base.program_outputs(output)
             meta    = _get_metadata(proc.proc_id, result)
 
