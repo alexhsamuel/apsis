@@ -159,12 +159,13 @@ class AgentProgram(Program):
         POLL_INTERVAL = 1
 
         if HTTP_IMPL == "httpx":
+            TIMEOUT = 60
             client_ctx = httpx.AsyncClient(
                 verify=False,
-                timeout=httpx.Timeout(5),
+                timeout=httpx.Timeout(TIMEOUT),
                 limits=httpx.Limits(
                     max_keepalive_connections=1,
-                    keepalive_expiry=5,
+                    keepalive_expiry=TIMEOUT,
                 ),
             )
         else:
