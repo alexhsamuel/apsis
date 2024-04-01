@@ -248,8 +248,9 @@ def main():
     #--- command: schedule -------------------------------------------
 
     def cmd_schedule(client, args):
-        run = client.schedule(args.job_id, dict(args.args), args.time)
-        apsis.cmdline.print_run(run, con)
+        for _ in range(args.count):
+            run = client.schedule(args.job_id, dict(args.args), args.time)
+            apsis.cmdline.print_run(run, con)
 
 
     def parse_arg(arg):
@@ -260,6 +261,9 @@ def main():
     cmd = parser.add_command(
         "schedule", cmd_schedule,
         description="Creates and schedules a run.")
+    cmd.add_argument(
+        "--count", metavar="NUM", type=int, default=1,
+        help="schedule NUM runs [def: 1]")
     cmd.add_argument(
         "time", metavar="TIME", type=apsis.cmdline.parse_at_time,
         help="time to run [time, daytime, 'now']")
