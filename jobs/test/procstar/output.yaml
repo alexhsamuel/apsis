@@ -1,0 +1,16 @@
+params: [count, time, size]
+
+program:
+  type: procstar
+  argv:
+    - "/usr/bin/python"
+    - "-c"
+    - |
+      import time
+      COUNT = {{ count }}
+      TIME = {{ time }}
+      SIZE = {{ size }}
+      for _ in range(COUNT):
+        print("x" * (SIZE - 1))
+        time.sleep(TIME)
+
