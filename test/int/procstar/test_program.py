@@ -16,6 +16,19 @@ def test_program():
         assert len(agent.client.get_procs()) == 0
 
 
+def test_command_program():
+    with ApsisService(job_dir=JOB_DIR) as svc, svc.agent(serve=True):
+        job = svc.client.get_job("sleep command")
+        assert job["program"]["type"] == "procstar-shell"
+
+        run_id = svc.client.schedule("sleep command", {"time": 1})["run_id"]
+        res = svc.wait_run(run_id, timeout=5)
+        assert res["state"] == "success"
+        assert svc.client.get_outputs(run_id) == [{"output_id": "output", "output_len": 24}]
+        output = svc.client.get_output(run_id, "output")
+        assert output == b"sleeping for 1 sec\ndone\n"
+
+
 def test_reconnect():
     """
     Tests reconnecting to a running run after Apsis restart.

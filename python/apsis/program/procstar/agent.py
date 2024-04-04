@@ -419,14 +419,14 @@ class ProcstarShellProgram(base.Program):
 
 
     def bind(self, args):
-        argv        = [self.SHELL, "-c", self.__command]
+        argv        = [self.SHELL, "-c", template_expand(self.__command, args)]
         group_id    = or_none(template_expand)(self.__group_id, args)
         return BoundProcstarProgram(argv, group_id=group_id)
 
 
     def to_jso(self):
         return super().to_jso() | {
-            "command"   : self.__argv,
+            "command"   : self.__command,
             "group_id"  : self.__group_id,
         }
 
