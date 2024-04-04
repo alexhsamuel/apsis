@@ -23,7 +23,7 @@ def test_command_program():
         assert res["state"] == "success"
         assert svc.client.get_outputs(run_id) == [{"output_id": "output", "output_len": 24}]
         output = svc.client.get_output(run_id, "output")
-        assert output == "sleeping for 1 sec\ndone\n"
+        assert output == b"sleeping for 1 sec\ndone\n"
 
 
 def test_reconnect():
