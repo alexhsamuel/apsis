@@ -426,7 +426,7 @@ class ProcstarShellProgram(base.Program):
 
     def to_jso(self):
         return super().to_jso() | {
-            "command"   : self.__argv,
+            "command"   : self.__command,
             "group_id"  : self.__group_id,
         }
 

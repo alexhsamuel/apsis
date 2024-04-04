@@ -18,6 +18,9 @@ def test_program():
 
 def test_command_program():
     with ApsisService(job_dir=JOB_DIR) as svc, svc.agent(serve=True):
+        job = svc.client.get_job("sleep command")
+        assert job["program"]["type"] == "procstar-shell"
+
         run_id = svc.client.schedule("sleep command", {"time": 1})["run_id"]
         res = svc.wait_run(run_id, timeout=5)
         assert res["state"] == "success"
