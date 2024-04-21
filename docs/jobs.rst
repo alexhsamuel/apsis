@@ -1,5 +1,5 @@
-Configuring Jobs
-================
+Jobs
+====
 
 Jobs are configured by files in the jobs directory.  The jobs directory may
 contain subdirectories, to organize jobs.  Each job file uses the `.yaml` file

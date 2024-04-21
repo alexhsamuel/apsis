@@ -1,7 +1,7 @@
 .. _schedules:
 
-Configuring Schedules
-=====================
+Schedules
+=========
 
 The `schedule` key configures when Apsis should schedule runs of the job.  You
 can give a single schedule, or a list of multiple schedules.
