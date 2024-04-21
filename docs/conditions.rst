@@ -21,7 +21,7 @@ Condition types are listed below.
 
 
 Max running jobs
-''''''''''''''''
+----------------
 
 The `max_running` condition causes a run to wait as long as there are too many
 other running runs with the same job ID and arguments.  For `max_running: 1`,
@@ -35,7 +35,7 @@ there may be only one such running job.
 
 
 Dependencies
-''''''''''''
+------------
 
 The `dependency` condition causes a run to wait until another run exists in a
 given state.  Specify the job ID of the dependency, and any arguments.
@@ -86,8 +86,37 @@ Instead of true, you may provide a set of states in which the run must exist.
 The default is state from which one of the target states is reachable.
 
 
+Alarms
+''''''
+
+The `exist` feature of a dependency condition enables you to schedule an alarm
+run, which either succeeds or transitions to **error** at its scheduled time,
+depending on whether a different run exists in a particular state.
+
+Suppose, for instance, `important job` is scheduled to run at noon.  The
+following schedules a run at 12:30, which will succeed immediately if `important
+job` has succeeded.  If the dependency run is still waiting, or ran and failed,
+or encountered an error, or was never scheduled, the alarm run transitiones
+immediately to **error**.  The alarm run itself does nothing.
+
+.. code:: yaml
+
+    schedule:
+        type: daily
+        daytime: 12:30:00
+
+    condition:
+        type: dependency
+        job_id: important job
+        exist: [success]
+
+    program:
+        type: no-op
+
+
+
 Skipping Duplicates
-'''''''''''''''''''
+-------------------
 
 The `skip_duplicate` condition causes a run to transition to the **skipped**
 state if there is another run with the same job ID and arguments that is either

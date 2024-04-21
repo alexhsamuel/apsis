@@ -1,0 +1,12 @@
+params: [date]
+
+condition:
+  type: dependency
+  job_id: dependent
+  args:
+    color: purple
+  exist: [success]
+
+program:
+  type: no-op
+

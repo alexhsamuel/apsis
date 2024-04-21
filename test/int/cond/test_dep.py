@@ -3,6 +3,7 @@ Tests dependency conditions.
 """
 
 from   contextlib import closing
+import ora
 from   pathlib import Path
 import pytest
 import random
@@ -230,5 +231,50 @@ def test_exist_fail(inst):
     run_id = res["run_id"]
     res = inst.wait_run(run_id)
     assert res["state"] == "error"
+
+
+def test_alarm_error(inst):
+    """
+    Tests error functionality of an alarm run: a job with an `exist:
+    [success]` dependency, which errors immediately when scheduled unless the
+    dependency is satisfied.
+    """
+    client = inst.client
+    DATE = "2024-04-20"
+
+    # Schedule the dependent for now, and an alarm for 1 sec in the future.
+    now = ora.now()
+    depd_run_id = client.schedule("dependent", {"date": DATE, "color": "purple"}, time=str(now))["run_id"]
+    alrm_run_id = client.schedule("alarm", {"date": DATE}, time=str(now + 1))["run_id"]
+
+    # The alarm errors, because the dependent never left waiting.
+    res = inst.wait_run(alrm_run_id)
+    assert res["state"] == "error"
+    res = client.get_run(depd_run_id)
+    assert res["state"] == "waiting"
+
+
+def test_alarm_success(inst):
+    """
+    Tests success functionality of an alarm run: a job with an `exist:
+    [success]` dependency, which errors immediately when scheduled unless the
+    dependency is satisfied.
+    """
+    client = inst.client
+    DATE = "2024-04-13"
+
+    # Schedule the dependent for now, and an alarm for 1 sec in the future.
+    now = ora.now()
+    depd_run_id = client.schedule("dependent", {"date": DATE, "color": "purple"}, time=str(now))["run_id"]
+    alrm_run_id = client.schedule("alarm", {"date": DATE}, time=str(now + 1))["run_id"]
+    # Run necessary dependencies.
+    client.schedule("dependency", {"date": DATE, "flavor": "vanilla"})
+    client.schedule("dependency", {"date": DATE, "flavor": "chocolate"})
+
+    # The alarm succeeds, because the dependent succeeded first.
+    res = inst.wait_run(alrm_run_id)
+    assert res["state"] == "success"
+    res = client.get_run(depd_run_id)
+    assert res["state"] == "success"
 
 
