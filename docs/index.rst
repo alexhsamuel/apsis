@@ -7,6 +7,7 @@ Apsis, a scheduler
 
    concepts
    jobs
+   conditions
    programs
    schedules
    config

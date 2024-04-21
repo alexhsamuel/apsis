@@ -1,9 +1,9 @@
 .. _programs:
 
-Configurating Programs
-======================
+Programs
+========
 
-Apsis provides a number of ways to specify a job's program.  
+Apsis provides a number of ways to specify a job's program.
 
 A job's program is configured with the top-level `program` key.  The subkey
 `type` indicates the program type; remaining keys are specific to the
