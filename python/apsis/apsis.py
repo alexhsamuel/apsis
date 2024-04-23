@@ -81,9 +81,8 @@ class Apsis:
         procstar_cfg = cfg.get("procstar", {}).get("agent", {})
         if procstar_cfg.get("enable", False):
             log.info("starting procstar server")
-            self.__procstar_task = asyncio.ensure_future(
-                start_server(procstar_cfg)
-            )
+            server_coro = start_server(procstar_cfg)
+            self.__procstar_task = asyncio.ensure_future(server_coro)
         else:
             self.__procstar_task = None
 

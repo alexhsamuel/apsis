@@ -128,7 +128,7 @@ groups {
     border-radius: 4px;
 
     display: grid;
-    grid-template-columns: 24ex 128ex;
+    grid-template-columns: 24ex 1fr;
   }
 
   .name {
@@ -153,7 +153,7 @@ groups {
     }
 
     display: grid;
-    grid-template-columns: 50% 50%;
+    grid-template-columns: 1fr 1fr;
     white-space: nowrap;
 
     > * {
