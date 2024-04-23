@@ -162,11 +162,12 @@ class BoundProcstarProgram(base.Program):
         assert SERVER is not None
 
         proc_id = str(uuid.uuid4())
+        spec = self.__make_spec()
 
         try:
             proc = await SERVER.start(
                 proc_id,
-                self.__make_spec(),
+                spec,
                 group_id    =self.__group_id,
                 conn_timeout=SERVER.start_timeout,
             )
