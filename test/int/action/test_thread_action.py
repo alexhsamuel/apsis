@@ -2,13 +2,18 @@
 Tests thread actions.
 """
 
+import asyncio
 from   contextlib import closing
 import json
+import logging
 from   pathlib import Path
 import pytest
 import time
+import websockets.client
 
 from   instance import ApsisService
+
+logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -102,5 +107,51 @@ def test_error_thread_action(inst):
         log = list(log)
     assert any( "error action" in l for l in log )
     assert any( "RuntimeError: something went wrong" in l for l in log )
+
+
+@pytest.mark.asyncio
+async def test_thread_action_logging(inst):
+    """
+    Tests logging in a threaded action combined with the websocket log API.
+    """
+    # Open a connection to the websocket log endpoint.
+    log_url = f"ws://localhost:{inst.port}/api/log"
+    log_conn = await websockets.client.connect(log_url)
+
+    # Start a task to collect logs from the endpoint until it closes.
+    log = []
+    async def collect_log():
+        while True:
+            try:
+                line = await log_conn.recv()
+            except websockets.ConnectionClosed:
+                await log_conn.close()
+                break
+            else:
+                log.append(line)
+
+    log_task = asyncio.create_task(collect_log())
+
+    try:
+        # Run a job with a threaded action that logs.
+        run_id = inst.client.schedule("with log thread action", {})["run_id"]
+        await inst.async_wait_run(run_id)
+
+        # Give Apsis a moment to complete the action.
+        await asyncio.sleep(1)
+
+        # Stop Apsis.
+        inst.stop_serve()
+
+    finally:
+        # Wait for the log task to be done.
+        await log_task
+
+    # There should be a log line with the run ID.
+    token = f"run ID: {run_id}"
+    assert any( token in l for l in log )
+
+    # There should be lots of warnings.
+    assert sum( "lots of logging" in l for l in log ) == 1024
 
 

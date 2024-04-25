@@ -90,3 +90,24 @@ class LogAction(BaseAction):
 
 
 
+class LogThreadAction(ThreadAction):
+    """
+    Thread action that dumps out contents of the run snapshot.
+    """
+
+    def run(self, run):
+        log.info(f"run ID: {run.run_id}")
+        log.info(f"run: {run}")
+        # Produce lots of logging.
+        for _ in range(1024):
+            log.warning("lots of logging")
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            condition   = pop("if", Condition.from_jso, None)
+        return cls(condition=condition)
+
+
+

@@ -1,3 +1,4 @@
+import asyncio
 from   contextlib import contextmanager
 import functools
 import logging
@@ -201,6 +202,26 @@ class ApsisService:
             res = self.client.get_run(run_id)
             if res["state"] in wait_states:
                 time.sleep(0.1)
+                continue
+            else:
+                return res
+        else:
+            raise RuntimeError("timeout waiting for run")
+
+
+    async def async_wait_run(
+            self,
+            run_id,
+            *,
+            timeout=60,
+            wait_states=("new", "scheduled", "waiting", "starting", "running"),
+    ):
+        # FIXME: There should be a proper slow-poll endpoint for this, instead
+        # of polling.
+        for _ in range(int(timeout / 0.1)):
+            res = self.client.get_run(run_id)
+            if res["state"] in wait_states:
+                await asyncio.sleep(0.1)
                 continue
             else:
                 return res
