@@ -6,6 +6,7 @@ import ora
 import rich.highlighter
 import rich.logging
 import rich.text
+import threading
 
 import apsis.cmdline
 
@@ -119,6 +120,7 @@ class QueueHandler(logging.Handler):
         self.__buffer = []
         self.__queues = []
         self.__loop = asyncio.get_event_loop()
+        self.__main_thread = threading.current_thread()
 
 
     def register(self, length=None) -> asyncio.Queue:
@@ -153,10 +155,19 @@ class QueueHandler(logging.Handler):
             del self.__buffer[: -self.__length]
 
         for queue in list(self.__queues):
-            try:
-                self.__loop.call_soon_threadsafe(queue.put_nowait, [line])
-            except asyncio.QueueFull:
-                pass
+            def _maybe_put():
+                """
+                Appends without blocking, or discards if full.
+                """
+                try:
+                    queue.put_nowait([line])
+                except asyncio.QueueFull:
+                    pass
+
+            if threading.current_thread() is self.__main_thread:
+                _maybe_put()
+            else:
+                self.__loop.call_soon_threadsafe(_maybe_put)
 
 
     def shut_down(self):
