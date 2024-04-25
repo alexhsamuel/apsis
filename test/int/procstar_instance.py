@@ -1,8 +1,8 @@
 import functools
 import logging
 import os
-from   procstar.testing.agent import get_procstar_path, TLS_CERT_PATH
-import procstar.http.client
+from   procstar.agent.testing import get_procstar_path, TLS_CERT_PATH
+import procstar.client
 import secrets
 import signal
 import subprocess
@@ -105,7 +105,7 @@ class Agent:
     @functools.cached_property
     def client(self):
         assert self.serve, "agent not serving HTTP"
-        return procstar.http.client.Client((self.host, self.serve_port))
+        return procstar.client.Client((self.host, self.serve_port))
 
 
 
