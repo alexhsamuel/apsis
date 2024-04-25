@@ -150,9 +150,7 @@ class BoundProcstarProgram(base.Program):
                 inherit=True,
             ),
             fds={
-                # FIXME: To file instead!
-                # FIXME: Binary instead!
-                "stdout": procstar.spec.Proc.Fd.Capture("memory", "utf8"),
+                "stdout": procstar.spec.Proc.Fd.Capture("tempfile", None),
                 # Merge stderr into stdin.
                 "stderr": procstar.spec.Proc.Fd.Dup(1),
             },
@@ -291,10 +289,7 @@ class BoundProcstarProgram(base.Program):
 
             # Collect results.
             stdout = await proc.results.get_fd_res("stdout")
-            outputs = base.program_outputs(
-                b"" if stdout is None
-                else stdout.text.encode()
-            )
+            outputs = base.program_outputs(stdout.data)
             meta    = _get_metadata(proc.proc_id, result)
 
             if result.state == "error":
