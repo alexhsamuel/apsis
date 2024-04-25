@@ -110,7 +110,7 @@ class QueueHandler(logging.Handler):
     Publishes formatted log messages to registered async queues.
     """
 
-    def __init__(self, length=1000, formatter=None):
+    def __init__(self, length=4096, formatter=None):
         if formatter is None:
             formatter = logging.Formatter()
 
