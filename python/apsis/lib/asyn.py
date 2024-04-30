@@ -59,6 +59,20 @@ async def cancel_task(task, name, log):
         log.error(f"task cancelled with exc: {name}", exc_info=True)
 
 
+async def poll(fn, interval, immediate=True):
+    """
+    Invokes async `fn` every `interval`.
+
+    :param immediate:
+      Call `fn` immediately, before the first interval.
+    """
+    if immediate:
+        await fn()
+    while True:
+        await asyncio.sleep(interval)
+        await fn()
+
+
 class TaskGroup:
     """
     Tracks a group of running tasks.
