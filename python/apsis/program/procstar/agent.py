@@ -7,6 +7,7 @@ import procstar.agent.server
 import time
 import uuid
 
+from   apsis.lib import asyn
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none
@@ -150,7 +151,13 @@ class BoundProcstarProgram(base.Program):
                 inherit=True,
             ),
             fds={
-                "stdout": procstar.spec.Proc.Fd.Capture("tempfile", None),
+                # Capture stdout to a temporary file.
+                "stdout": procstar.spec.Proc.Fd.Capture(
+                    "tempfile",
+                    encoding=None,
+                    # Don't attach output to results, so we can poll quickly.
+                    attached=False,
+                ),
                 # Merge stderr into stdin.
                 "stderr": procstar.spec.Proc.Fd.Dup(1),
             },
@@ -220,6 +227,34 @@ class BoundProcstarProgram(base.Program):
 
 
     async def __finish(self, run_id, proc):
+        result_request_interval = 20
+        output_request_interval = 10
+        timeout = 129600
+
+        async def result_task():
+            """
+            Handles incoming results, until the proc completes.
+            """
+            async with proc.watch_results(
+                    request_interval=result_request_interval
+            ) as results:
+                try:
+                    async for result in results:
+                        meta = _get_metadata(proc.proc_id, result)
+                        yield base.ProgramUpdate(meta=meta)
+
+                    # The final result should be terminated.
+                    assert result.state == "terminated"
+
+                except proto.ProcessDeletedError:
+                    # FIXME
+                    pass
+                except proto.ProcessUnknownError:
+                    # FIXME
+                    pass
+
+
+    async def __finish_old(self, run_id, proc):
         # Timeout to receive a result update from the agent, before marking the
         # run as error.
         # FIXME: This is temporary, until we handle WebSocket connection and
@@ -287,10 +322,17 @@ class BoundProcstarProgram(base.Program):
                 yield base.ProgramUpdate(meta=meta, outputs=outputs)
                 continue
 
-            # Collect results.
-            stdout = await proc.results.get_fd_res("stdout")
-            outputs = base.program_outputs(stdout.data)
-            meta    = _get_metadata(proc.proc_id, result)
+            # Completed.  Finish up this run.
+            meta = _get_metadata(proc.proc_id, result)
+
+            # Request the full output.
+            await conn.send(proto.ProcFdDataRequest(proc.proc_id, "stdout"))
+
+            # Collect output.
+            output, encoding = await proc.results.get_fd_res("stdout")
+            assert isinstance(output, bytes)
+            assert encoding is None
+            outputs = base.program_outputs(output)
 
             if result.state == "error":
                 # The process failed to start on the agent.
