@@ -28,7 +28,7 @@ class OutputMetadata:
 
 class Output:
 
-    def __init__(self, metadata: OutputMetadata, data, compression=None):
+    def __init__(self, metadata: OutputMetadata, data: bytes, compression=None):
         """
         :param metadata:
           Information about the data.
@@ -53,7 +53,7 @@ class Output:
 
 
 
-def program_outputs(output, *, length=None, compression=None):
+def program_outputs(output: bytes, *, length=None, compression=None):
     if length is None:
         length = len(output)
     return {
