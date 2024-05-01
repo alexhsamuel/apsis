@@ -3,11 +3,11 @@ import logging
 from   procstar import proto
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError
+from   procstar.agent.proc import Process
 import procstar.agent.server
 import time
 import uuid
 
-from   apsis.lib import asyn
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none
@@ -164,94 +164,86 @@ class BoundProcstarProgram(base.Program):
         )
 
 
-    async def run(self, run_id, cfg):
-        assert SERVER is not None
+    async def __start(self) -> Process:
+        return await SERVER.start(
+            proc_id     =str(uuid.uuid4()),
+            spec        =self.__make_spec(),
+            group_id    =self.__group_id,
+            conn_timeout=SERVER.start_timeout,
+        )
 
-        proc_id = str(uuid.uuid4())
-        spec = self.__make_spec()
 
-        try:
-            proc = await SERVER.start(
-                proc_id,
-                spec,
-                group_id    =self.__group_id,
-                conn_timeout=SERVER.start_timeout,
-            )
-        except Exception as exc:
-            yield base.ProgramError(f"procstar: {exc}")
-            return
+    @staticmethod
+    async def __run(proc):
+        result_interval = 11
+        output_interval = 5
 
-        try:
-            # Wait for the first result.
-            try:
-                result = await anext(proc.results)
-
-            except Exception as exc:
-                yield base.ProgramError(str(exc))
-
+        async with proc.results(
+                immediate=True,
+                result_interval=result_interval,
+                output_interval=output_interval,
+        ) as results:
+            # Initial result, when the proc starts.
+            result = await anext(results)
+            meta = _get_metadata(proc.proc_id, result)
+            if result.state == "error":
+                raise RuntimeError("; ".join(result.errors))
             else:
+                # Note: If immediately receive a result with state "terminated", we
+                # must have missed the previous running result.
+                run_state = {
+                    "conn_id": proc.conn_id,
+                    "proc_id": proc.proc_id,
+                }
+                yield base.ProgramRunning(run_state, meta=meta)
+
+            # Further results, until terminated.
+            async for result in results:
                 meta = _get_metadata(proc.proc_id, result)
+                yield base.ProgramUpdate(meta=meta)
+            # The final result should be terminated.
+            assert result.state == "terminated"
 
-                if result.state == "error":
-                    yield base.ProgramError(
-                        "; ".join(result.errors),
-                        meta=meta,
-                    )
 
-                elif result.state in {"running", "terminated"}:
-                    # If immediately receive a result with state "terminated",
-                    # we must have missed the previous running result.
-                    conn_id = result.procstar.conn.conn_id
-                    run_state = {"conn_id": conn_id, "proc_id": proc_id}
-                    yield base.ProgramRunning(run_state, meta=meta)
+    @staticmethod
+    async def __delete(proc: Process):
+        try:
+            await SERVER.delete(proc.proc_id)
+        except Exception as exc:
+            log.error(f"delete {proc.proc_id}: {exc}")
 
-                    async for update in self.__finish(run_id, proc):
-                        yield update
 
-                else:
-                    # We should not immediately receive a result with state
-                    # "terminated".
-                    yield base.ProgramError(
-                        f"unexpected proc state: {result.state}",
-                        meta=meta,
-                    )
+    async def run(self, run_id, cfg):
+        """
+        Runs this program.
+
+        Returns an async iterator of program updates.
+        """
+        assert SERVER is not None
+        proc = None
+
+        try:
+            proc = await self.__start()
+            async for update in self.__run(proc):
+                yield update
 
         except asyncio.CancelledError:
-            pass
+            # Don't clean up the proc; we can reconnect.
+            proc = None
 
-        else:
-            try:
-                await SERVER.delete(proc.proc_id)
-            except Exception as exc:
-                log.error(f"delete {proc.proc_id}: {exc}")
+        except Exception as exc:
+            # Attach metadata, if available.
+            meta = (
+                _get_metadata(proc.proc_id, proc.result)
+                if proc is not None and proc.result is not None
+                else None
+            )
+            yield base.ProgramError(f"procstar: {exc}", meta=meta)
 
+        finally:
+            if proc is not None:
+                await self.__delete(proc)
 
-    async def __finish(self, run_id, proc):
-        result_request_interval = 20
-        output_request_interval = 10
-        timeout = 129600
-
-        async def result_task():
-            """
-            Handles incoming results, until the proc completes.
-            """
-            async with proc.watch_results(
-                    request_interval=result_request_interval
-            ) as results:
-                try:
-                    async for result in results:
-                        meta = _get_metadata(proc.proc_id, result)
-                        yield base.ProgramUpdate(meta=meta)
-
-                    # The final result should be terminated.
-                    assert result.state == "terminated"
-
-                except proto.ProcessDeletedError:
-                    # FIXME
-                    pass
-                except proto.ProcessUnknownError:
-                    # FIXME
-                    pass
 
 
     async def __finish_old(self, run_id, proc):
