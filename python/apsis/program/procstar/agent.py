@@ -36,10 +36,10 @@ def _get_metadata(proc_id, result):
     - `rusage`: Process resource usage.  See `man 2 getrusage` for details.
 
     - `proc_stat`: Process information collected from `/proc/<pid>/stat`.  See
-      `man 5 proc` for details.
+      the `proc(5)` man page for details.
 
     - `proc_statm`: Process memory use collected from `/proc/<pid>/statm`.  See
-      `man 5 proc` for details.
+      the `proc(5)` man page for details.
 
     - `proc_id`: The Procstar process ID.
 
