@@ -1,0 +1,6 @@
+params: [msg]
+
+program:
+  type: procstar
+  argv: ["/usr/bin/echo", "{{ msg }}"]
+
