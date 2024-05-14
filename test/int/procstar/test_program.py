@@ -100,3 +100,8 @@ def test_signal():
 # FIXME: procstar connection timeout and reconnect: use SIGHUP to pause agent,
 # wait for websocket timeout, then resume agent and watch it reconnect.
 
+if __name__ == "__main__":
+    from apsis.lib import logging
+    logging.configure(level="DEBUG")
+    test_reconnect_many()
+

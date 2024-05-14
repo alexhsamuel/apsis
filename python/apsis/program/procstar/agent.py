@@ -170,6 +170,18 @@ class BoundProcstarProgram(base.Program):
         )
 
 
+    async def __delete(self, proc):
+        try:
+            # Request deletion.
+            await proc.delete()
+            # Process updates; the iterator exhausts when the proc is deleted.
+            async for update in proc.updates:
+                pass
+        except Exception as exc:
+            # Just log this; from Apsis's standpoint, the proc is long done.
+            log.error(f"delete {proc_id}: {exc}")
+
+
     async def run(self, run_id, cfg):
         """
         Runs the program.
@@ -207,11 +219,11 @@ class BoundProcstarProgram(base.Program):
                 meta=_make_metadata(proc_id, res)
             )
 
-            async for update in self.__finish(run_id, proc, res):
-                yield update
-
         except Exception as exc:
-            log.error(f"procstar: {traceback.format_exc()}")
+            if proc is not None:
+                await self.__delete(proc)
+
+            log.error(f"procstar: {traceback.format_exc()}")  # FIXME
             yield base.ProgramError(
                 f"procstar: {exc}",
                 meta=(
@@ -221,15 +233,10 @@ class BoundProcstarProgram(base.Program):
                 )
             )
 
-        finally:
-            if proc is not None:
-                try:
-                    await proc.delete()
-                    # Process remaining updates until the proc is deleted.
-                    async for update in proc.updates:
-                        pass
-                except Exception as exc:
-                    log.error(f"delete {proc_id}: {exc}")
+        else:
+            # Hand off to __finish.
+            async for update in self.__finish(run_id, proc, res):
+                yield update
 
 
     async def __finish(self, run_id, proc, res):
@@ -333,13 +340,7 @@ class BoundProcstarProgram(base.Program):
         finally:
             await tasks.cancel_all()
             if proc is not None:
-                try:
-                    await proc.delete()
-                    # Process remaining updates until the proc is deleted.
-                    async for update in proc.updates:
-                        pass
-                except Exception as exc:
-                    log.error(f"delete {proc_id}: {exc}")
+                await self.__delete(proc)
 
 
     async def connect(self, run_id, run_state, cfg):
@@ -363,15 +364,9 @@ class BoundProcstarProgram(base.Program):
 
         else:
             log.info(f"reconnected: {proc_id} on conn {conn_id}")
+            # Hand off to __finish.
             async for update in self.__finish(run_id, proc, None):
                 yield update
-
-        finally:
-            try:
-                await SERVER.delete(proc_id)
-            except Exception as exc:
-                log.error(f"delete {proc_id}: {exc}")
-            raise
 
 
     async def signal(self, run_id, run_state, signal):
