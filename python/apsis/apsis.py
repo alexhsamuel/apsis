@@ -330,7 +330,6 @@ class Apsis:
         try:
             if run.state == State.starting:
                 update = await anext(updates)
-                log.debug(f"run update: {run.run_id}: {update}")
                 match update:
                     case ProgramRunning() as running:
                         self.run_log.record(run, "running")
@@ -358,7 +357,6 @@ class Apsis:
 
             while run.state == State.running:
                 update = await anext(updates)
-                log.debug(f"run update: {run.run_id}: {update}")
                 match update:
                     case ProgramUpdate() as update:
                         self._update(
