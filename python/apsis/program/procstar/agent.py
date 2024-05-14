@@ -3,11 +3,13 @@ import logging
 from   procstar import proto
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError
-from   procstar.agent.proc import Process
+from   procstar.agent.proc import FdData, Result
 import procstar.agent.server
 import time
+import traceback
 import uuid
 
+from   apsis.lib import asyn
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import or_none
@@ -23,7 +25,7 @@ logging.getLogger("websockets.server").setLevel(logging.INFO)
 
 #-------------------------------------------------------------------------------
 
-def _get_metadata(proc_id, result):
+def _make_metadata(proc_id, res: dict):
     """
     Extracts run metadata from a proc result message.
 
@@ -50,22 +52,25 @@ def _get_metadata(proc_id, result):
     """
     meta = {
         k: v
-        for k in ("errors", )
-        if (v := getattr(result, k, None))
-    } | {
-        k: dict(v.__dict__)
-        for k in ("status", "times", "rusage", "proc_stat", "proc_statm", )
-        if (v := getattr(result, k, None))
+        for k in ("status", "errors", "times", "rusage", "proc_stat", "proc_statm", )
+        if (v := res.get(k))
     }
 
     meta["proc_id"] = proc_id
     try:
-        meta["conn"] = dict(result.procstar.conn.__dict__)
-        meta["procstar_proc"] = dict(result.procstar.proc.__dict__)
+        meta["conn"] = dict(res["procstar"].conn.__dict__)
+        meta["procstar_proc"] = dict(res["procstar"].proc.__dict__)
     except AttributeError:
         pass
 
     return meta
+
+
+def _make_outputs(fd_data):
+    assert fd_data.fd == "stdout"
+    assert fd_data.interval.start == 0  # FIXME: For now.
+    assert fd_data.encoding is None
+    return base.program_outputs(fd_data.data, length=fd_data.interval.stop)
 
 
 #-------------------------------------------------------------------------------
@@ -139,9 +144,10 @@ class BoundProcstarProgram(base.Program):
         return cls(argv, group_id=group_id)
 
 
-    def __make_spec(self):
+    @property
+    def spec(self):
         """
-        Constructs the procstar proc spec for this program.
+        The procstar proc spec for the program.
         """
         return procstar.spec.Proc(
             self.__argv,
@@ -164,86 +170,148 @@ class BoundProcstarProgram(base.Program):
         )
 
 
-    async def __start(self) -> Process:
-        return await SERVER.start(
-            proc_id     =str(uuid.uuid4()),
-            spec        =self.__make_spec(),
-            group_id    =self.__group_id,
-            conn_timeout=SERVER.start_timeout,
-        )
-
-
-    @staticmethod
-    async def __run(proc):
-        result_interval = 11
-        output_interval = 5
-
-        async with proc.results(
-                immediate=True,
-                result_interval=result_interval,
-                output_interval=output_interval,
-        ) as results:
-            # Initial result, when the proc starts.
-            result = await anext(results)
-            meta = _get_metadata(proc.proc_id, result)
-            if result.state == "error":
-                raise RuntimeError("; ".join(result.errors))
-            else:
-                # Note: If immediately receive a result with state "terminated", we
-                # must have missed the previous running result.
-                run_state = {
-                    "conn_id": proc.conn_id,
-                    "proc_id": proc.proc_id,
-                }
-                yield base.ProgramRunning(run_state, meta=meta)
-
-            # Further results, until terminated.
-            async for result in results:
-                meta = _get_metadata(proc.proc_id, result)
-                yield base.ProgramUpdate(meta=meta)
-            # The final result should be terminated.
-            assert result.state == "terminated"
-
-
-    @staticmethod
-    async def __delete(proc: Process):
-        try:
-            await SERVER.delete(proc.proc_id)
-        except Exception as exc:
-            log.error(f"delete {proc.proc_id}: {exc}")
-
-
     async def run(self, run_id, cfg):
         """
-        Runs this program.
+        Runs the program.
 
         Returns an async iterator of program updates.
         """
+        # FIXME
+        result_interval = 11
+        output_interval = 5
+
         assert SERVER is not None
         proc = None
+        tasks = asyn.TaskGroup()
+
+        # Generate a proc ID.
+        proc_id = str(uuid.uuid4())
+
+        # Track the most recent proc result and output data we've received.
+        res = None
+        fd_data = None
 
         try:
-            proc = await self.__start()
-            async for update in self.__run(proc):
-                yield update
+            # Start the proc.
+            proc = await SERVER.start(
+                proc_id     =proc_id,
+                group_id    =self.__group_id,
+                spec        =self.spec,
+                conn_timeout=SERVER.start_timeout,  # FIXME
+            )
+
+            # Wait for the first result to arrive.
+            result = await anext(proc.updates)
+            assert isinstance(result, Result), "expected initial result"
+            # Unpack Procstar's result dict.
+            res = result.res
+
+            run_state = {
+                "conn_id": proc.conn_id,
+                "proc_id": proc_id,
+            }
+            yield base.ProgramRunning(
+                run_state,
+                meta=_make_metadata(proc_id, res)
+            )
+
+            # Start tasks to request periodic updates of results and output.
+            tasks.add(
+                "poll result",
+                asyn.poll(proc.request_result, result_interval)
+            )
+            tasks.add(
+                "poll output",
+                asyn.poll(
+                    lambda: proc.request_fd_data("stdout"),  # FIXME: From start for now only.
+                    output_interval
+                )
+            )
+
+            # Process further updates, until the process terminates.
+            async for update in proc.updates:
+                match update:
+                    case FdData() as fd_data:
+                        yield base.ProgramUpdate(outputs=_make_outputs(fd_data))
+
+                    case Result(res):
+                        meta = _make_metadata(proc_id, res)
+
+                        if res["state"] == "running":
+                            # Intermediate result.
+                            yield base.ProgramUpdate(meta=meta)
+                        else:
+                            # Process terminated.
+                            break
+
+            else:
+                # Proc was deleted-- but we didn't delete it.
+                assert False, "proc deleted"
+
+            # Stop update tasks.
+            await tasks.cancel_all()
+
+            # Do we have the complete output?
+            length = res["fds"]["stdout"]["length"]
+            if length > 0 and (
+                    fd_data is None
+                    or fd_data.interval.stop < length
+            ):
+                # Request the complete output.
+                await proc.request_fd_data("stdout")  # FIXME: From the start for now only.
+                # Wait for it.
+                async for update in proc.updates:
+                    match update:
+                        case FdData() as fd_data:
+                            assert fd_data.interval.stop == length
+                            outputs = _make_outputs(fd_data)
+                            break
+
+                        case _:
+                            log.debug("expected final FdData")
+
+            else:
+                # No further output update.
+                outputs = None
+
+            status = res["status"]
+            if status["exit_code"] == 0:
+                # The process terminated successfully.
+                yield base.ProgramSuccess(meta=meta, outputs=outputs)
+            else:
+                # The process terminated unsuccessfully.
+                cause = (
+                    f"exit code {status['exit_code']}"
+                    if status.signal is None
+                    else f"killed by {status['signal']}"
+                )
+                yield base.ProgramFailure(cause, meta=meta, outputs=outputs)
 
         except asyncio.CancelledError:
             # Don't clean up the proc; we can reconnect.
             proc = None
 
         except Exception as exc:
-            # Attach metadata, if available.
-            meta = (
-                _get_metadata(proc.proc_id, proc.result)
-                if proc is not None and proc.result is not None
-                else None
+            log.error(f"procstar: {traceback.format_exc()}")
+            yield base.ProgramError(
+                f"procstar: {exc}",
+                meta=(
+                    _make_metadata(proc_id, res)
+                    if proc is not None and res is not None
+                    else None
+                )
             )
-            yield base.ProgramError(f"procstar: {exc}", meta=meta)
 
         finally:
+            await tasks.cancel_all()
             if proc is not None:
-                await self.__delete(proc)
-
+                try:
+                    await proc.delete()
+                    # Process remaining updates until the proc is deleted.
+                    async for update in proc.updates:
+                        pass
+                except Exception as exc:
+                    log.error(f"delete {proc_id}: {exc}")
 
 
     async def __finish_old(self, run_id, proc):
@@ -266,10 +334,10 @@ class BoundProcstarProgram(base.Program):
                 if proc.results.latest is None:
                     meta = outputs = None
                 else:
-                    meta    = _get_metadata(proc.proc_id, proc.results.latest)
+                    meta    = _make_metadata(proc.proc_id, proc.results.latest)
                     output  = proc.results.latest.fds.stdout.text.encode()
                     outputs = base.program_outputs(output)
-                logging.warning(f"no result update in {TIMEOUT} s: {run_id}")
+                log.warning(f"no result update in {TIMEOUT} s: {run_id}")
                 yield base.ProgramError(
                     f"lost Procstar process after {TIMEOUT} s",
                     outputs =outputs,
@@ -297,7 +365,7 @@ class BoundProcstarProgram(base.Program):
                     await conn.send(proto.ProcResultRequest(proc.proc_id))
                 else:
                     # Can't request an update; the agent is not connected.
-                    logging.warning(f"no connection to agent: {run_id}")
+                    log.warning(f"no connection to agent: {run_id}")
                 continue
             except Exception as exc:
                 yield base.ProgramError(f"procstar: {exc}")
@@ -310,12 +378,12 @@ class BoundProcstarProgram(base.Program):
                 # FIXME: Output should be incremental.
                 output  = result.fds.stdout.text.encode()
                 outputs = base.program_outputs(output)
-                meta    = _get_metadata(proc.proc_id, result)
+                meta    = _make_metadata(proc.proc_id, result)
                 yield base.ProgramUpdate(meta=meta, outputs=outputs)
                 continue
 
             # Completed.  Finish up this run.
-            meta = _get_metadata(proc.proc_id, result)
+            meta = _make_metadata(proc.proc_id, result)
 
             # Request the full output.
             await conn.send(proto.ProcFdDataRequest(proc.proc_id, "stdout"))
@@ -399,8 +467,13 @@ class BoundProcstarProgram(base.Program):
     async def signal(self, run_id, run_state, signal):
         signal = to_signal(signal)
         log.info(f"sending signal: {run_id}: {signal}")
+
         proc_id = run_state["proc_id"]
-        await SERVER.send_signal(proc_id, int(signal))
+        try:
+            proc = SERVER.processes[proc_id]
+        except KeyError:
+            raise ValueError(f"no process: {proc_id}")
+        await proc.send_signal(proc_id, int(signal))
 
 
 
