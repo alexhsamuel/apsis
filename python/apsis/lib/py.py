@@ -218,6 +218,11 @@ def format_ctor(obj, *args, **kw_args):
     return format_call(obj.__class__, *args, **kw_args)
 
 
+def format_repr(obj):
+    attrs = { a: getattr(obj, a) for a in dir(obj) if not a.startswith("_") }
+    return format_ctor(obj, **attrs)
+
+
 def look_up(name, obj):
     """
     Looks up a qualified name.
