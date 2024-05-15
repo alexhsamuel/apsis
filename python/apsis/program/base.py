@@ -83,7 +83,7 @@ class ProgramRunning:
 
 class ProgramUpdate:
 
-    def __init__(self, *, meta={}, outputs={}):
+    def __init__(self, *, meta=None, outputs=None):
         self.meta       = meta
         self.outputs    = outputs
 
