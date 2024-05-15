@@ -72,7 +72,13 @@ div
           tr(v-for="(value, key) in run.meta" :key="key")
             th {{ key }}
             td
-              tt {{ value }}
+              tt(v-if="typeof value === 'object'")
+                table.fields.subfields
+                  tbody
+                    tr(v-for="(sv, sk) in value" :key="sk")
+                      th {{ sk }}
+                      td {{ sv }}
+              tt(v-else) {{ value }}
 
     Frame(title="Output")
       button(
@@ -269,6 +275,21 @@ export default {
 .state {
   font-weight: bold;
   margin-right: 2ex;
+}
+
+.subfields {
+  font-size: 85%;
+
+  th {
+    font-size: 85%;
+    min-width: 24ex;
+  }
+
+  th, td {
+    line-height: 1.1rem;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }
 </style>
 
