@@ -56,10 +56,10 @@ def _make_metadata(proc_id, res: dict):
         if (v := getattr(res, k, None)) is not None
     }
 
-    meta["proc_id"] = proc_id
+    meta["procstar_proc_id"] = proc_id
     try:
-        meta["conn"] = dict(res.procstar.conn.__dict__)
-        meta["procstar_proc"] = dict(res.procstar.proc.__dict__)
+        meta["procstar_conn"] = dict(res.procstar.conn.__dict__)
+        meta["procstar_agent"] = dict(res.procstar.proc.__dict__)
     except AttributeError:
         pass
 
@@ -233,8 +233,8 @@ class BoundProcstarProgram(base.Program):
 
     async def __finish(self, run_id, proc, res):
         # FIXME
-        result_interval = 11
-        output_interval = 5
+        result_interval = 5
+        output_interval = 60
 
         proc_id = proc.proc_id
 
