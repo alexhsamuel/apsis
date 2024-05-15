@@ -103,5 +103,6 @@ def test_signal():
 if __name__ == "__main__":
     from apsis.lib import logging
     logging.configure(level="DEBUG")
-    test_reconnect_many()
+    logging.set_log_levels()
+    test_program()
 
