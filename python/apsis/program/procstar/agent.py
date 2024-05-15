@@ -1,11 +1,9 @@
 import asyncio
 import logging
-from   procstar import proto
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError
 from   procstar.agent.proc import FdData, Result
 import procstar.agent.server
-import time
 import traceback
 import uuid
 
@@ -51,15 +49,17 @@ def _make_metadata(proc_id, res: dict):
 
     """
     meta = {
-        k: v
-        for k in ("status", "errors", "times", "rusage", "proc_stat", "proc_statm", )
-        if (v := res.get(k))
+        "errors": res.errors,
+    } | {
+        k: dict(v.__dict__)
+        for k in ("status", "times", "rusage", "proc_stat", "proc_statm", )
+        if (v := getattr(res, k, None)) is not None
     }
 
     meta["proc_id"] = proc_id
     try:
-        meta["conn"] = dict(res["procstar"].conn.__dict__)
-        meta["procstar_proc"] = dict(res["procstar"].proc.__dict__)
+        meta["conn"] = dict(res.procstar.conn.__dict__)
+        meta["procstar_proc"] = dict(res.procstar.proc.__dict__)
     except AttributeError:
         pass
 
@@ -174,12 +174,9 @@ class BoundProcstarProgram(base.Program):
         try:
             # Request deletion.
             await proc.delete()
-            # Process updates; the iterator exhausts when the proc is deleted.
-            async for update in proc.updates:
-                pass
         except Exception as exc:
             # Just log this; from Apsis's standpoint, the proc is long done.
-            log.error(f"delete {proc_id}: {exc}")
+            log.error(f"delete {proc.proc_id}: {exc}")
 
 
     async def run(self, run_id, cfg):
@@ -197,18 +194,12 @@ class BoundProcstarProgram(base.Program):
 
         try:
             # Start the proc.
-            proc = await SERVER.start(
+            proc, res = await SERVER.start(
                 proc_id     =proc_id,
                 group_id    =self.__group_id,
                 spec        =self.spec,
                 conn_timeout=SERVER.start_timeout,  # FIXME
             )
-
-            # Wait for the first result to arrive.
-            result = await anext(proc.updates)
-            assert isinstance(result, Result), "expected initial result"
-            # Unpack Procstar's result dict.
-            res = result.res
 
             run_state = {
                 "conn_id": proc.conn_id,
@@ -220,10 +211,11 @@ class BoundProcstarProgram(base.Program):
             )
 
         except Exception as exc:
+            log.error(f"procstar: {traceback.format_exc()}")  # FIXME
+
             if proc is not None:
                 await self.__delete(proc)
 
-            log.error(f"procstar: {traceback.format_exc()}")  # FIXME
             yield base.ProgramError(
                 f"procstar: {exc}",
                 meta=(
@@ -268,10 +260,10 @@ class BoundProcstarProgram(base.Program):
                     case FdData() as fd_data:
                         yield base.ProgramUpdate(outputs=_make_outputs(fd_data))
 
-                    case Result(res):
+                    case Result() as res:
                         meta = _make_metadata(proc_id, res)
 
-                        if res["state"] == "running":
+                        if res.state == "running":
                             # Intermediate result.
                             yield base.ProgramUpdate(meta=meta)
                         else:
@@ -286,7 +278,7 @@ class BoundProcstarProgram(base.Program):
             await tasks.cancel_all()
 
             # Do we have the complete output?
-            length = res["fds"]["stdout"]["length"]
+            length = res.fds.stdout.length
             if length > 0 and (
                     fd_data is None
                     or fd_data.interval.stop < length
@@ -308,14 +300,13 @@ class BoundProcstarProgram(base.Program):
                 # No further output update.
                 outputs = {}
 
-            status = res["status"]
-            if status["exit_code"] == 0:
+            if res.status.exit_code == 0:
                 # The process terminated successfully.
                 yield base.ProgramSuccess(meta=meta, outputs=outputs)
             else:
                 # The process terminated unsuccessfully.
-                exit_code = status["exit_code"]
-                signal = status["signal"]
+                exit_code = res.status.exit_code
+                signal = res.status.signal
                 cause = (
                     f"exit code {exit_code}" if signal is None
                     else f"killed by {signal}"
@@ -328,6 +319,7 @@ class BoundProcstarProgram(base.Program):
 
         except Exception as exc:
             log.error(f"procstar: {traceback.format_exc()}")
+
             yield base.ProgramError(
                 f"procstar: {exc}",
                 meta=(
