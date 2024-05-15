@@ -91,7 +91,7 @@ div
 </template>
 
 <script>
-import { forEach, join, sortBy, toPairs } from 'lodash'
+import { forEach, join } from 'lodash'
 
 import * as api from '@/api'
 import Frame from '@/components/Frame'
@@ -141,10 +141,6 @@ export default {
   },
 
   computed: {
-    run_times() {
-      return sortBy(toPairs(this.run.times), ([k, v]) => v)
-    },
-
     /**
      * The update sequence of the run summary in the store, for detecting updates.
      */
