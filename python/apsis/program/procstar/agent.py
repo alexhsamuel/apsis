@@ -10,7 +10,7 @@ import uuid
 from   apsis.lib import asyn
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import parse_duration
-from   apsis.lib.py import or_none
+from   apsis.lib.py import or_none, get_cfg
 from   apsis.lib.sys import to_signal
 from   apsis.program import base
 from   apsis.runs import join_args, template_expand
@@ -87,31 +87,22 @@ def start_server(cfg):
     global SERVER
     assert SERVER is None, "server already created"
 
-    # Network stuff.
-    FROM_ENV        = procstar.agent.server.FROM_ENV
-    server_cfg      = cfg.get("server", {})
-    host            = server_cfg.get("host", FROM_ENV)
-    port            = server_cfg.get("port", FROM_ENV)
-    access_token    = server_cfg.get("access_token", FROM_ENV)
-    tls_cfg         = server_cfg.get("tls", {})
-    cert_path       = tls_cfg.get("cert_path", FROM_ENV)
-    key_path        = tls_cfg.get("key_path", FROM_ENV)
-
-    # Group config.
-    conn_cfg        = cfg.get("connection", {})
-    start_timeout   = parse_duration(conn_cfg.get("start_timeout", "0"))
-    rec_timeout     = parse_duration(conn_cfg.get("reconnect_timeout", "0"))
-    update_interval = parse_duration(conn_cfg.get("update_interval", "0"))
+    # Network/auth stuff.
+    FROM_ENV    = procstar.agent.server.FROM_ENV
+    server_cfg  = cfg.get("server", {})
+    host        = server_cfg.get("host", FROM_ENV)
+    port        = server_cfg.get("port", FROM_ENV)
+    access_token= server_cfg.get("access_token", FROM_ENV)
+    tls_cfg     = server_cfg.get("tls", {})
+    cert_path   = tls_cfg.get("cert_path", FROM_ENV)
+    key_path    = tls_cfg.get("key_path", FROM_ENV)
+    tls_cert    = FROM_ENV if cert_path is FROM_ENV else (cert_path, key_path)
 
     SERVER = procstar.agent.server.Server()
-    SERVER.start_timeout = start_timeout
-    SERVER.reconnect_timeout = rec_timeout
-    SERVER.update_interval = update_interval
-
     return SERVER.run_forever(
         host        =host,
         port        =port,
-        tls_cert    =FROM_ENV if cert_path is FROM_ENV else (cert_path, key_path),
+        tls_cert    =tls_cert,
         access_token=access_token,
     )
 
@@ -193,12 +184,15 @@ class BoundProcstarProgram(base.Program):
         res = None
 
         try:
+            conn_timeout = parse_duration(
+                get_cfg(cfg, "procstar.agent.connection.start_timeout", 0))
+
             # Start the proc.
             proc, res = await SERVER.start(
                 proc_id     =proc_id,
                 group_id    =self.__group_id,
                 spec        =self.spec,
-                conn_timeout=SERVER.start_timeout,  # FIXME
+                conn_timeout=conn_timeout,
             )
 
             run_state = {
@@ -341,12 +335,15 @@ class BoundProcstarProgram(base.Program):
         conn_id = run_state["conn_id"]
         proc_id = run_state["proc_id"]
 
+        conn_timeout = parse_duration(
+            get_cfg(cfg, "procstar.agent.connection.reconnect_timeout", "0"))
+
         try:
             log.info(f"reconnecting: {proc_id} on conn {conn_id}")
             proc = await SERVER.reconnect(
-                conn_id,
-                proc_id,
-                conn_timeout=SERVER.reconnect_timeout,
+                conn_id     =conn_id,
+                proc_id     =proc_id,
+                conn_timeout=conn_timeout,
             )
 
         except NoConnectionError as exc:

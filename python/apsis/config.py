@@ -5,6 +5,7 @@ import yaml
 
 from   .lib.json import to_array
 from   .lib.parse import nparse_duration
+from   .lib.py import get_cfg
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +35,16 @@ def check(cfg, base_path: Path):
     max_time = waiting["max_time"] = nparse_duration(waiting.get("max_time", None))
     if max_time is not None and max_time <= 0:
         log.error("negative waiting.max_time: {max_time}")
+
+    def _check_duration(path):
+        duration = nparse_duration(get_cfg(cfg, path, None))
+        if duration is not None and duration <= 0:
+            log.error("negative duration: {path}")
+
+    _check_duration("procstar.agent.connection.start_timeout")
+    _check_duration("procstar.agent.connection.reconnect_timeout")
+    _check_duration("procstar.agent.connection.metadata_interval")
+    _check_duration("procstar.agent.connection.output_interval")
 
     # runs_lookback → runs.lookback
     try:

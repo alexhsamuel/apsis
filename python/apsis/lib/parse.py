@@ -38,6 +38,8 @@ def parse_duration(string) -> float:
     :raise ValueError:
       Can't parse `string` as a duration.
     """
+    string = str(string)
+
     try:
         return float(string)
     except (TypeError, ValueError):
