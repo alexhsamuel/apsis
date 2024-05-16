@@ -11,7 +11,7 @@ program:
       COUNT = {{ count }}
       TIME = {{ time }}
       SIZE = {{ size }}
-      for _ in range(COUNT):
-        print("x" * (SIZE - 1))
+      for i in range(COUNT):
+        print(format(i, "06d"), "x" * (SIZE - 8))
         time.sleep(TIME)
 
