@@ -2,7 +2,7 @@ import asyncio
 import logging
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError
-from   procstar.agent.proc import FdData, Result
+from   procstar.agent.proc import FdData, Interval, Result
 import procstar.agent.server
 import traceback
 import uuid
@@ -64,6 +64,23 @@ def _make_metadata(proc_id, res: dict):
         pass
 
     return meta
+
+
+def _combine_fd_data(old, new):
+    if old is None:
+        return new
+
+    assert new.fd == old.fd
+    assert new.encoding == old.encoding
+    assert new.interval.stop - new.interval.start == len(new.data)
+    # FIXME: Be more lenient?
+    assert new.interval.start == old.interval.stop
+    return FdData(
+        fd      =old.fd,
+        encoding=old.encoding,
+        interval=Interval(old.interval.start, new.interval.stop),
+        data    =old.data + new.data,
+    )
 
 
 def _make_outputs(fd_data):
@@ -265,29 +282,40 @@ class BoundProcstarProgram(base.Program):
         proc_id = proc.proc_id
 
         try:
+            # Output collected so far.
+            fd_data = None
+
             # Start tasks to request periodic updates of results and output.
             update_interval = nparse_duration(run_cfg.get("update_interval", None))
             output_interval = nparse_duration(run_cfg.get("output_interval", None))
             tasks = asyn.TaskGroup()
             if update_interval is not None:
                 tasks.add(
-                    "poll result",
+                    "poll update",
                     asyn.poll(proc.request_result, update_interval)
                 )
             if output_interval is not None:
                 tasks.add(
                     "poll output",
                     asyn.poll(
-                        lambda: proc.request_fd_data("stdout"),  # FIXME: From start for now only.
+                        lambda: proc.request_fd_data(
+                            "stdout",
+                            # From the current position to the end.
+                            interval=Interval(
+                                0 if fd_data is None else fd_data.interval.stop,
+                                None
+                            ),
+                        ),
                         output_interval
                     )
                 )
 
             # Process further updates, until the process terminates.
-            fd_data = None
             async for update in proc.updates:
                 match update:
-                    case FdData() as fd_data:
+                    case FdData():
+                        fd_data = _combine_fd_data(fd_data, update)
+                        # FIXME: Update only the incremental output.
                         yield base.ProgramUpdate(outputs=_make_outputs(fd_data))
 
                     case Result() as res:
@@ -313,13 +341,23 @@ class BoundProcstarProgram(base.Program):
                     fd_data is None
                     or fd_data.interval.stop < length
             ):
-                # Request the complete output.
-                await proc.request_fd_data("stdout")  # FIXME: From the start for now only.
+                # Request any remaining output.
+                await proc.request_fd_data(
+                    "stdout",
+                    interval=Interval(
+                        0 if fd_data is None else fd_data.interval.stop,
+                        None
+                    )
+                )
                 # Wait for it.
                 async for update in proc.updates:
                     match update:
-                        case FdData() as fd_data:
-                            assert fd_data.interval.stop == length
+                        case FdData():
+                            fd_data = _combine_fd_data(fd_data, update)
+                            # Confirm that we've accumulated all the output as
+                            # specified in the result.
+                            assert fd_data.interval.start == 0
+                            assert fd_data.interval.stop == res.fds.stdout.length
                             outputs = _make_outputs(fd_data)
                             break
 
