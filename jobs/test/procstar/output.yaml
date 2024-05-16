@@ -4,6 +4,7 @@ program:
   type: procstar
   argv:
     - "/usr/bin/python"
+    - "-u"
     - "-c"
     - |
       import time
