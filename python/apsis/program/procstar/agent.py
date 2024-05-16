@@ -265,22 +265,23 @@ class BoundProcstarProgram(base.Program):
         proc_id = proc.proc_id
 
         try:
+            # Start tasks to request periodic updates of results and output.
             update_interval = nparse_duration(run_cfg.get("update_interval", None))
             output_interval = nparse_duration(run_cfg.get("output_interval", None))
-
-            # Start tasks to request periodic updates of results and output.
             tasks = asyn.TaskGroup()
-            tasks.add(
-                "poll result",
-                asyn.poll(proc.request_result, update_interval)
-            )
-            tasks.add(
-                "poll output",
-                asyn.poll(
-                    lambda: proc.request_fd_data("stdout"),  # FIXME: From start for now only.
-                    output_interval
+            if update_interval is not None:
+                tasks.add(
+                    "poll result",
+                    asyn.poll(proc.request_result, update_interval)
                 )
-            )
+            if output_interval is not None:
+                tasks.add(
+                    "poll output",
+                    asyn.poll(
+                        lambda: proc.request_fd_data("stdout"),  # FIXME: From start for now only.
+                        output_interval
+                    )
+                )
 
             # Process further updates, until the process terminates.
             fd_data = None
