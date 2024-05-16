@@ -178,6 +178,7 @@ class BoundProcstarProgram(base.Program):
         """
         assert SERVER is not None
         agent_cfg = get_cfg(cfg, "procstar.agent", {})
+        run_cfg = get_cfg(agent_cfg, "run", {})
 
         # Generate a proc ID.
         proc_id = str(uuid.uuid4())
@@ -219,18 +220,53 @@ class BoundProcstarProgram(base.Program):
 
         else:
             # Hand off to __finish.
-            async for update in self.__finish(run_id, proc, res, agent_cfg):
+            async for update in self.__finish(run_id, proc, res, run_cfg):
                 yield update
 
 
-    async def __finish(self, run_id, proc, res, agent_cfg):
+    async def connect(self, run_id, run_state, cfg):
+        assert SERVER is not None
+        agent_cfg = get_cfg(cfg, "procstar.agent", {})
+        run_cfg = get_cfg(agent_cfg, "run", {})
+
+        conn_id = run_state["conn_id"]
+        proc_id = run_state["proc_id"]
+
+        try:
+            conn_timeout = nparse_duration(
+                get_cfg(agent_cfg, "connection.reconnect_timeout", None))
+
+            log.info(f"reconnecting: {proc_id} on conn {conn_id}")
+            proc = await SERVER.reconnect(
+                conn_id     =conn_id,
+                proc_id     =proc_id,
+                conn_timeout=conn_timeout,
+            )
+
+        except NoConnectionError as exc:
+            msg = f"reconnect failed: {proc_id}: {exc}"
+            log.error(msg)
+            yield base.ProgramError(msg)
+
+        else:
+            log.info(f"reconnected: {proc_id} on conn {conn_id}")
+            # Hand off to __finish.
+            async for update in self.__finish(run_id, proc, None, run_cfg):
+                yield update
+
+
+    async def __finish(self, run_id, proc, res, run_cfg):
+        """
+        Handles running `proc` until termination.
+
+        :param res:
+          The most recent `Result`, if any.
+        """
         proc_id = proc.proc_id
 
         try:
-            update_interval = nparse_duration(
-                get_cfg(agent_cfg, "run.update_interval", None))
-            output_interval = nparse_duration(
-                get_cfg(agent_cfg, "run.output_interval", None))
+            update_interval = nparse_duration(run_cfg.get("update_interval", None))
+            output_interval = nparse_duration(run_cfg.get("output_interval", None))
 
             # Start tasks to request periodic updates of results and output.
             tasks = asyn.TaskGroup()
@@ -326,36 +362,6 @@ class BoundProcstarProgram(base.Program):
             await tasks.cancel_all()
             if proc is not None:
                 await self.__delete(proc)
-
-
-    async def connect(self, run_id, run_state, cfg):
-        assert SERVER is not None
-        agent_cfg = get_cfg(cfg, "procstar.agent", {})
-
-        conn_id = run_state["conn_id"]
-        proc_id = run_state["proc_id"]
-
-        try:
-            conn_timeout = nparse_duration(
-                get_cfg(agent_cfg, "connection.reconnect_timeout", None))
-
-            log.info(f"reconnecting: {proc_id} on conn {conn_id}")
-            proc = await SERVER.reconnect(
-                conn_id     =conn_id,
-                proc_id     =proc_id,
-                conn_timeout=conn_timeout,
-            )
-
-        except NoConnectionError as exc:
-            msg = f"reconnect failed: {proc_id}: {exc}"
-            log.error(msg)
-            yield base.ProgramError(msg)
-
-        else:
-            log.info(f"reconnected: {proc_id} on conn {conn_id}")
-            # Hand off to __finish.
-            async for update in self.__finish(run_id, proc, None, agent_cfg):
-                yield update
 
 
     async def signal(self, run_id, run_state, signal):
