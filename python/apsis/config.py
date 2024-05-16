@@ -43,8 +43,8 @@ def check(cfg, base_path: Path):
 
     _check_duration("procstar.agent.connection.start_timeout")
     _check_duration("procstar.agent.connection.reconnect_timeout")
-    _check_duration("procstar.agent.connection.metadata_interval")
-    _check_duration("procstar.agent.connection.output_interval")
+    _check_duration("procstar.agent.run.update_interval")
+    _check_duration("procstar.agent.run.output_interval")
 
     # runs_lookback → runs.lookback
     try:

@@ -9,7 +9,7 @@ import uuid
 
 from   apsis.lib import asyn
 from   apsis.lib.json import check_schema
-from   apsis.lib.parse import parse_duration
+from   apsis.lib.parse import nparse_duration
 from   apsis.lib.py import or_none, get_cfg
 from   apsis.lib.sys import to_signal
 from   apsis.program import base
@@ -176,16 +176,18 @@ class BoundProcstarProgram(base.Program):
 
         Returns an async iterator of program updates.
         """
+        assert SERVER is not None
+        agent_cfg = get_cfg(cfg, "procstar.agent", {})
+
         # Generate a proc ID.
         proc_id = str(uuid.uuid4())
 
-        assert SERVER is not None
         proc = None
         res = None
 
         try:
-            conn_timeout = parse_duration(
-                get_cfg(cfg, "procstar.agent.connection.start_timeout", 0))
+            conn_timeout = nparse_duration(
+                get_cfg(agent_cfg, "connection.start_timeout", None))
 
             # Start the proc.
             proc, res = await SERVER.start(
@@ -212,32 +214,29 @@ class BoundProcstarProgram(base.Program):
 
             yield base.ProgramError(
                 f"procstar: {exc}",
-                meta=(
-                    _make_metadata(proc_id, res)
-                    if proc is not None and res is not None
-                    else None
-                )
+                meta=_make_metadata(proc_id, res) if res is not None else None,
             )
 
         else:
             # Hand off to __finish.
-            async for update in self.__finish(run_id, proc, res):
+            async for update in self.__finish(run_id, proc, res, agent_cfg):
                 yield update
 
 
-    async def __finish(self, run_id, proc, res):
-        # FIXME
-        result_interval = 5
-        output_interval = 60
-
+    async def __finish(self, run_id, proc, res, agent_cfg):
         proc_id = proc.proc_id
 
         try:
+            update_interval = nparse_duration(
+                get_cfg(agent_cfg, "run.update_interval", None))
+            output_interval = nparse_duration(
+                get_cfg(agent_cfg, "run.output_interval", None))
+
             # Start tasks to request periodic updates of results and output.
             tasks = asyn.TaskGroup()
             tasks.add(
                 "poll result",
-                asyn.poll(proc.request_result, result_interval)
+                asyn.poll(proc.request_result, update_interval)
             )
             tasks.add(
                 "poll output",
@@ -331,14 +330,15 @@ class BoundProcstarProgram(base.Program):
 
     async def connect(self, run_id, run_state, cfg):
         assert SERVER is not None
+        agent_cfg = get_cfg(cfg, "procstar.agent", {})
 
         conn_id = run_state["conn_id"]
         proc_id = run_state["proc_id"]
 
-        conn_timeout = parse_duration(
-            get_cfg(cfg, "procstar.agent.connection.reconnect_timeout", "0"))
-
         try:
+            conn_timeout = nparse_duration(
+                get_cfg(agent_cfg, "connection.reconnect_timeout", None))
+
             log.info(f"reconnecting: {proc_id} on conn {conn_id}")
             proc = await SERVER.reconnect(
                 conn_id     =conn_id,
@@ -354,7 +354,7 @@ class BoundProcstarProgram(base.Program):
         else:
             log.info(f"reconnected: {proc_id} on conn {conn_id}")
             # Hand off to __finish.
-            async for update in self.__finish(run_id, proc, None):
+            async for update in self.__finish(run_id, proc, None, agent_cfg):
                 yield update
 
 
