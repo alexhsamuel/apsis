@@ -220,7 +220,7 @@ class BoundProcstarProgram(base.Program):
 
         else:
             # Hand off to __finish.
-            async for update in self.__finish(run_id, proc, res, run_cfg):
+            async for update in self.__finish(proc, res, run_cfg):
                 yield update
 
 
@@ -251,11 +251,11 @@ class BoundProcstarProgram(base.Program):
         else:
             log.info(f"reconnected: {proc_id} on conn {conn_id}")
             # Hand off to __finish.
-            async for update in self.__finish(run_id, proc, None, run_cfg):
+            async for update in self.__finish(proc, None, run_cfg):
                 yield update
 
 
-    async def __finish(self, run_id, proc, res, run_cfg):
+    async def __finish(self, proc, res, run_cfg):
         """
         Handles running `proc` until termination.
 
