@@ -25,14 +25,10 @@ class OutputStore:
         try:
             del (outputs := self.__outputs[run_id])[output_id]
         except KeyError:
-            log.info("NO CLEAN UP!")
             pass
         else:
             if len(outputs) == 0:
                 del self.__outputs[run_id]
-                log.info("CLEAN UP RUN!")
-            else:
-                log.info("CLEAN UP OUTPUT!")
 
         # Write to the DB.
         self.__output_db.upsert(run_id, output_id, output)
