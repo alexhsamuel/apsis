@@ -362,7 +362,7 @@ class BoundProcstarProgram(base.Program):
                         case _:
                             log.debug("expected final FdData")
 
-            outputs = _make_outputs(fd_data)
+            outputs = {} if fd_data is None else _make_outputs(fd_data)
 
             if res.status.exit_code == 0:
                 # The process terminated successfully.
