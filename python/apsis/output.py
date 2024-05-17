@@ -6,6 +6,12 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+# Implementation notes: We call `write()` only on _running_ runs, as many times
+# as necessary; this caches the output to memory only.  We assume the running
+# program can retrieve the entire output if necessaary.  Once the run
+# terminates, a single call to `write_through()` commits the output to the
+# database.
+
 class OutputStore:
     """
     In-memory cache of outputs, backed by persistent output database.
