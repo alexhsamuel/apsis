@@ -315,7 +315,6 @@ class BoundProcstarProgram(base.Program):
                 match update:
                     case FdData():
                         fd_data = _combine_fd_data(fd_data, update)
-                        # FIXME: Update only the incremental output.
                         yield base.ProgramUpdate(outputs=_make_outputs(fd_data))
 
                     case Result() as res:
@@ -358,15 +357,12 @@ class BoundProcstarProgram(base.Program):
                             # specified in the result.
                             assert fd_data.interval.start == 0
                             assert fd_data.interval.stop == res.fds.stdout.length
-                            outputs = _make_outputs(fd_data)
                             break
 
                         case _:
                             log.debug("expected final FdData")
 
-            else:
-                # No further output update.
-                outputs = {}
+            outputs = _make_outputs(fd_data)
 
             if res.status.exit_code == 0:
                 # The process terminated successfully.

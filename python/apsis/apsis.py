@@ -14,6 +14,7 @@ from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import cancel_task, TaskGroup
 from   .lib.sys import to_signal
+from   .output import OutputStore
 from   .program.base import _InternalProgram
 from   .program.base import Output, OutputMetadata
 from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
@@ -88,8 +89,7 @@ class Apsis:
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
-        # For now, expose the output database directly.
-        self.outputs = db.output_db
+        self.outputs = OutputStore(db.output_db)
         # Tasks for waiting runs.
         self.__wait_tasks = TaskGroup(log)
         # Tasks for starting/running runs.
@@ -549,10 +549,8 @@ class Apsis:
         if meta is not None:
             run._update(meta=meta)
         if outputs is not None:
-            # FIXME: We absolutely need to do better than this to avoid crazy
-            # rewriting to the DB.
             for output_id, output in outputs.items():
-                self.__db.output_db.upsert(run.run_id, output_id, output)
+                self.outputs.write(run.run_id, output_id, output)
 
         self.run_store.update(run, now())
 
@@ -572,11 +570,8 @@ class Apsis:
         run._transition(time, state, **kw_args)
 
         # Persist outputs.
-        # FIXME: We are persisting outputs assuming all are new.  This is only
-        # OK for the time being because outputs are always added on the final
-        # transition.  In general, we have to persist new outputs only.
         for output_id, output in outputs.items():
-            self.__db.output_db.upsert(run.run_id, output_id, output)
+            self.outputs.write_through(run.run_id, output_id, output)
 
         # Persist the new state.
         self.run_store.update(run, time)
@@ -796,6 +791,7 @@ class Apsis:
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
             "scheduled"             : self.scheduled.get_stats(),
             "run_store"             : self.run_store.get_stats(),
+            "outputs"               : self.outputs.get_stats(),
         }
 
         try:
