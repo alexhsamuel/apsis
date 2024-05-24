@@ -3,18 +3,22 @@ Tests basic transitions by running an Apsis service and interacting with it
 via the HTTP client.
 """
 
+from   collections import Counter
 from   contextlib import closing
 import ora
+from   pathlib import Path
 import pytest
 import time
 
 from   instance import ApsisService
 
+JOB_DIR = Path(__file__).parent / "jobs"
+
 #-------------------------------------------------------------------------------
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def inst():
-    with closing(ApsisService()) as inst:
+    with closing(ApsisService(job_dir=JOB_DIR)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()
@@ -168,5 +172,27 @@ def test_max_running_terminate(inst):
         res = inst.wait_run(run_id)
         assert res["state"] == "failure"
         run_ids.remove(run_id)
+
+
+@pytest.mark.parametrize("N", ( 2**i for i in range(1, 8) ))
+def test_skip_duplicate_race(inst, N):
+    client = inst.client
+
+    # Start a bunch of runs that all have the same dependency, followed by a
+    # skip_duplicate condition.
+    run_ids = [
+        client.schedule("skip duplicate race", {})["run_id"]
+        for _ in range(N)
+    ]
+    assert all( client.get_run(r)["state"] == "waiting" for r in run_ids )
+
+    # Run the dependency.  All the waiting runs should move past the dependency
+    # and evaluate the skip duplicates condition at around the same time.
+    client.schedule("dep", {})
+
+    # Exactly one should have run, the rest skipped.
+    states = Counter( inst.wait_run(r)["state"] for r in run_ids )
+    assert states["success"] == 1
+    assert states["skipped"] == N - 1
 
 

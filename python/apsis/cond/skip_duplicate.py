@@ -3,7 +3,7 @@ import logging
 from   apsis.lib import py
 from   apsis.lib.json import check_schema
 from   apsis.runs import Instance, Run, to_state
-from   .base import Condition, RunStoreCondition
+from   .base import Condition, NonmonotonicRunStoreCondition
 
 log = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class SkipDuplicate(Condition):
 
 #-------------------------------------------------------------------------------
 
-class BoundSkipDuplicate(RunStoreCondition):
+class BoundSkipDuplicate(NonmonotonicRunStoreCondition):
 
     def __init__(self, check_states, target_state, inst, run_id):
         self.__check_states = check_states
@@ -119,7 +119,10 @@ class BoundSkipDuplicate(RunStoreCondition):
             )
 
 
-    async def wait(self, run_store):
+    # Note: Because check() never returns false, there's no poll loop between
+    # wait() and check().
+
+    def check(self, run_store):
         # Query runs with the same job_id and args as this one.
         _, runs = run_store.query(
             job_id  =self.__inst.job_id,
@@ -139,6 +142,10 @@ class BoundSkipDuplicate(RunStoreCondition):
         else:
             # No match; we're good.
             return True
+
+
+    async def wait(self, run_store):
+        return True
 
 
 

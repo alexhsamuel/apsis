@@ -2,13 +2,13 @@ import logging
 
 from   apsis.lib.py import format_ctor
 from   apsis.runs import Instance, Run, get_bind_args, template_expand
-from   .base import RunStoreCondition
+from   .base import Condition, NonmonotonicRunStoreCondition
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class MaxRunning(RunStoreCondition):
+class MaxRunning(Condition):
     """
     Limits simultaneous running jobs.
 
@@ -24,9 +24,9 @@ class MaxRunning(RunStoreCondition):
         :param args:
           Args to match.  If none, the bound to the args of the owning instance.
         """
-        self.__count = count
-        self.__job_id = job_id
-        self.__args = args
+        self.__count    = count
+        self.__job_id   = job_id
+        self.__args     = args
 
 
     def __repr__(self):
@@ -35,13 +35,7 @@ class MaxRunning(RunStoreCondition):
 
 
     def __str__(self):
-        if self.__job_id is None or self.__args is None:
-            # Not yet bound.
-            return f"fewer than {self.__count} runs running"
-        else:
-            # Bound.
-            inst = Instance(self.__job_id, self.__args)
-            return f"fewer than {self.__count} runs of {inst} running"
+        return f"fewer than {self.__count} runs running"
 
 
     def to_jso(self):
@@ -70,11 +64,49 @@ class MaxRunning(RunStoreCondition):
         # inst.args, and bind to job args.
         if self.__args is not None:
             raise NotImplementedError()
-        return type(self)(count, job_id, run.inst.args)
+        return BoundMaxRunning(count, job_id, run.inst.args)
+
+
+
+#-------------------------------------------------------------------------------
+
+class BoundMaxRunning(NonmonotonicRunStoreCondition):
+
+    def __init__(self, count, job_id, args):
+        self.__count    = int(count)
+        self.__job_id   = job_id
+        self.__args     = args
+
+
+    def __repr__(self):
+        return format_ctor(
+            self, self.__count, job_id=self.__job_id, args=self.__args)
+
+
+    def __str__(self):
+        inst = Instance(self.__job_id, self.__args)
+        return f"fewer than {self.__count} runs of {inst} running"
+
+
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "count" : self.__count,
+            "job_id": self.__job_id,
+             "args" : self.__args,
+        }
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        return cls(
+            jso.pop("count"),
+            jso.pop("job_id"),
+            jso.pop("args"),
+        )
 
 
     def check(self, run_store):
-        max_count = int(self.__count)
         # Count running jobs.
         _, running = run_store.query(
             job_id  =self.__job_id,
@@ -83,7 +115,7 @@ class MaxRunning(RunStoreCondition):
         )
         count = len(list(running))
         log.debug(f"found {count} running")
-        return count < max_count
+        return count < self.__count
 
 
     async def wait(self, run_store):
@@ -93,11 +125,10 @@ class MaxRunning(RunStoreCondition):
                 job_id  =self.__job_id,
                 args    =self.__args,
         ) as queue:
-            while not self.check(run_store):
+            while (result := self.check(run_store)) is False:
                 # Wait until a relevant run transitions, then check again.
                 _ = await queue.get()
-
-        return True
+        return result
 
 
 
