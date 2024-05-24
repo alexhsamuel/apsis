@@ -128,6 +128,29 @@ class RunStoreCondition(Condition):
         start.
 
         :return:
+          `True` if the run is ready, or `Transition` to cause the run to
+          transition to a new state.
+        """
+        return True
+
+
+
+class NonmonotonicRunStoreCondition(RunStoreCondition):
+    """
+    A `RunStoreCondition` where the condition is not monotonic, i.e. once
+    satisfied, it may later no longer be satisfied.
+
+    The waiting logic invokes condition's (synchronous) `check()` method after
+    `wait()` has succeeded, to confirm that condition is still met before
+    immediatley continuing to the next condition.
+    """
+
+    def check(self, run_store):
+        """
+        Checks synchronously if run-based conditions have been met.  The
+        semantics should match those of `wait()`.
+
+        :return:
           `True` if the run is ready, `False` otherwise, or `Transition` to
           cause the run to transition to a new state.
         """

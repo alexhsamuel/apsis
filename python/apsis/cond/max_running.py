@@ -2,7 +2,7 @@ import logging
 
 from   apsis.lib.py import format_ctor
 from   apsis.runs import Instance, Run, get_bind_args, template_expand
-from   .base import Condition, RunStoreCondition
+from   .base import Condition, NonmonotonicRunStoreCondition
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class MaxRunning(Condition):
 
 #-------------------------------------------------------------------------------
 
-class BoundMaxRunning(RunStoreCondition):
+class BoundMaxRunning(NonmonotonicRunStoreCondition):
 
     def __init__(self, count, job_id, args):
         self.__count    = int(count)
@@ -125,11 +125,10 @@ class BoundMaxRunning(RunStoreCondition):
                 job_id  =self.__job_id,
                 args    =self.__args,
         ) as queue:
-            while not self.check(run_store):
+            while (result := self.check(run_store)) is False:
                 # Wait until a relevant run transitions, then check again.
                 _ = await queue.get()
-
-        return True
+        return result
 
 
 
