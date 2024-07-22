@@ -1,6 +1,9 @@
 from pathlib import Path
 from contextlib import closing
 import subprocess
+import os
+import signal
+from time import sleep
 
 from instance import ApsisService
 
@@ -90,5 +93,85 @@ def test_replica():
         new_run_id = client.schedule("job1", {})["run_id"]
         inst.wait_run(new_run_id)
         assert client.get_run(new_run_id)["state"] == "success"
+
+        inst.stop_serve()
+
+
+def test_replica_killing_apsis_and_litestream():
+    """
+    Similar to `test_replica`, but here:
+    - Apsis and Litestream processes are terminated with SIGKILL signal;
+    - Apsis is killed while there is still a run in the running state;
+
+    Steps:
+    - start Litestream process;
+    - start Apsis and schedule a run;
+    - kill Apsis and Litestream using SIGKILL signals;
+    - stop Litestream process gracefully through SIGTERM;
+    - restore db from Litestream replica;
+    - check that the run is still in running state using the restored db.
+    """
+
+    with closing(ApsisService(job_dir=JOB_DIR)) as inst:
+
+        inst.create_db()
+        inst.write_cfg()
+
+        # start Litestream replica
+        litestream_replica_path = inst.tmp_dir / "litestream_replica.db"
+        with subprocess.Popen(
+            [
+                "litestream",
+                "replicate",
+                inst.db_path,
+                f"file://{str(litestream_replica_path)}",
+            ]
+        ) as litestream_process:
+
+            inst.start_serve()
+            inst.wait_for_serve()
+
+            client = inst.client
+            run_id = client.schedule("job1", {})["run_id"]
+
+            # stop Apsis and Litestream
+            sleep(1)
+            os.kill(inst.srv_proc.pid, signal.SIGKILL)
+            sleep(1)
+            os.kill(litestream_process.pid, signal.SIGKILL)
+
+        # restore the db from the replica
+        restored_db_name = "restored.db"
+        restored_db_path = inst.tmp_dir / restored_db_name
+        subprocess.run(
+            [
+                "litestream",
+                "restore",
+                "-o",
+                str(restored_db_path),
+                f"file://{str(litestream_replica_path)}",
+            ],
+            check=True,
+        )
+
+        # rewrite the config to use restored db
+        inst.db_path = restored_db_path
+        inst.write_cfg()
+
+        # restart Apsis
+        inst.srv_proc = None
+        inst.start_serve()
+        inst.wait_for_serve()
+
+        log = inst.get_log_lines()
+        assert any(restored_db_name in l for l in log)
+
+        # check the run is still in the running state after reconnecting to the new Apsis instance
+        client = inst.client
+        assert client.get_run(run_id)["state"] == "running"
+
+        # check run eventually completes successfully
+        inst.wait_run(run_id)
+        assert client.get_run(run_id)["state"] == "success"
 
         inst.stop_serve()
