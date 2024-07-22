@@ -120,7 +120,6 @@ def test_replica_killing_apsis_and_litestream():
     - start Litestream process;
     - start Apsis and schedule a run;
     - kill Apsis and Litestream using SIGKILL signals;
-    - stop Litestream process gracefully through SIGTERM;
     - restore db from Litestream replica;
     - check that the run is still in running state using the restored db.
     """
