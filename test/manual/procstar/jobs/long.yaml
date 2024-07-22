@@ -1,0 +1,21 @@
+params: [time]
+
+program:
+  type: procstar
+  argv:
+    - "/usr/bin/bash"
+    - "-c"
+    - |
+      time={{ time }}
+      echo "starting for $time sec"
+      for ((i = 1; i <= $time; i++)); do
+        echo "$i sec"
+        sleep 1
+      done
+      echo "done"
+
+schedule:
+  type: interval
+  interval: 5m
+  args:
+    time: 60

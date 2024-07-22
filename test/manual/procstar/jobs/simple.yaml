@@ -1,0 +1,9 @@
+program:
+  type: procstar
+  argv:
+    - /usr/bin/echo
+    - "Hello, world!"
+
+schedule:
+  type: interval
+  interval: 60s

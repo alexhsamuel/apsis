@@ -1,0 +1,25 @@
+params: [count, time, size]
+
+program:
+  type: procstar
+  argv:
+    - "/usr/bin/python"
+    - "-u"
+    - "-c"
+    - |
+      import time
+      COUNT = {{ count }}
+      TIME = {{ time }}
+      SIZE = {{ size }}
+      for i in range(COUNT):
+        print(format(i, "06d"), "x" * (SIZE - 8))
+        time.sleep(TIME)
+
+schedule:
+  type: interval
+  interval: 5m
+  args:
+    count: 300
+    time: 0.2
+    size: 1024
+
