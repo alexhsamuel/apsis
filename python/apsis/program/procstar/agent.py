@@ -331,7 +331,7 @@ class BoundProcstarProgram(base.Program):
                             break
 
             else:
-                # Proc was deleted-- but we didn't delete it.
+                # Proc was deleted--but we didn't delete it.
                 assert False, "proc deleted"
 
             # Stop update tasks.
