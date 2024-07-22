@@ -260,6 +260,9 @@ class BoundProcstarProgram(base.Program):
                 conn_timeout=conn_timeout,
             )
 
+            # Request a result immediately.
+            await proc.request_result()
+
         except NoConnectionError as exc:
             msg = f"reconnect failed: {proc_id}: {exc}"
             log.error(msg)
