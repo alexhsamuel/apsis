@@ -13,6 +13,31 @@ JOB_DIR = Path(__file__).parent / "jobs"
 # -------------------------------------------------------------------------------
 
 
+def start_litestream(db_path, replica_path):
+
+    return subprocess.Popen(
+        [
+            "litestream",
+            "replicate",
+            db_path,
+            f"file://{str(replica_path)}",
+        ]
+    )
+
+
+def restore_litestream_db(restored_db_path, litestream_replica_path):
+    subprocess.run(
+        [
+            "litestream",
+            "restore",
+            "-o",
+            str(restored_db_path),
+            f"file://{str(litestream_replica_path)}",
+        ],
+        check=True,
+    )
+
+
 def test_replica():
     """
     Tests Litestream replica of the SQLite db.
@@ -32,13 +57,9 @@ def test_replica():
 
         # start Litestream replica
         litestream_replica_path = inst.tmp_dir / "litestream_replica.db"
-        with subprocess.Popen(
-            [
-                "litestream",
-                "replicate",
-                inst.db_path,
-                f"file://{str(litestream_replica_path)}",
-            ]
+
+        with start_litestream(
+            inst.db_path, litestream_replica_path
         ) as litestream_process:
 
             inst.start_serve()
@@ -62,16 +83,8 @@ def test_replica():
         # restore the db from the replica
         restored_db_name = "restored.db"
         restored_db_path = inst.tmp_dir / restored_db_name
-        subprocess.run(
-            [
-                "litestream",
-                "restore",
-                "-o",
-                str(restored_db_path),
-                f"file://{str(litestream_replica_path)}",
-            ],
-            check=True,
-        )
+
+        restore_litestream_db(restored_db_path, litestream_replica_path)
 
         # rewrite the config to use restored db
         inst.db_path = restored_db_path
@@ -119,13 +132,9 @@ def test_replica_killing_apsis_and_litestream():
 
         # start Litestream replica
         litestream_replica_path = inst.tmp_dir / "litestream_replica.db"
-        with subprocess.Popen(
-            [
-                "litestream",
-                "replicate",
-                inst.db_path,
-                f"file://{str(litestream_replica_path)}",
-            ]
+
+        with start_litestream(
+            inst.db_path, litestream_replica_path
         ) as litestream_process:
 
             inst.start_serve()
@@ -143,16 +152,7 @@ def test_replica_killing_apsis_and_litestream():
         # restore the db from the replica
         restored_db_name = "restored.db"
         restored_db_path = inst.tmp_dir / restored_db_name
-        subprocess.run(
-            [
-                "litestream",
-                "restore",
-                "-o",
-                str(restored_db_path),
-                f"file://{str(litestream_replica_path)}",
-            ],
-            check=True,
-        )
+        restore_litestream_db(restored_db_path, litestream_replica_path)
 
         # rewrite the config to use restored db
         inst.db_path = restored_db_path
