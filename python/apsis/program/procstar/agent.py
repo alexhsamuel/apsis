@@ -232,7 +232,7 @@ class BoundProcstarProgram(base.Program):
 
             yield base.ProgramError(
                 f"procstar: {exc}",
-                meta=_make_metadata(proc_id, res) if res is not None else None,
+                meta=_make_metadata(proc_id, res) if res is not None else {},
             )
 
         else:
@@ -293,11 +293,14 @@ class BoundProcstarProgram(base.Program):
             output_interval = nparse_duration(run_cfg.get("output_interval", None))
             tasks = asyn.TaskGroup()
             if update_interval is not None:
+                # Start a task that periodically requests the current result.
                 tasks.add(
                     "poll update",
                     asyn.poll(proc.request_result, update_interval)
                 )
             if output_interval is not None:
+                # Start a task that periodically requests any additional output
+                # fd data.
                 tasks.add(
                     "poll output",
                     asyn.poll(
@@ -392,7 +395,7 @@ class BoundProcstarProgram(base.Program):
                 meta=(
                     _make_metadata(proc_id, res)
                     if proc is not None and res is not None
-                    else None
+                    else {}
                 )
             )
 
