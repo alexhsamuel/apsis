@@ -1,10 +1,11 @@
-from pathlib import Path
-from contextlib import closing
-import subprocess
+from   contextlib import closing
 import os
-import signal
-from time import sleep
+from   pathlib import Path
 import pytest
+import shutil
+import signal
+import subprocess
+from   time import sleep
 
 from instance import ApsisService
 
