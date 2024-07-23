@@ -7,20 +7,17 @@ import signal
 import subprocess
 from   time import sleep
 
-from instance import ApsisService
-
+from   instance import ApsisService
 
 JOB_DIR = Path(__file__).parent / "jobs"
 
 # -------------------------------------------------------------------------------
-
 
 def is_litestream_available():
     return shutil.which("litestream") is not None
 
 
 def start_litestream(db_path, replica_path):
-
     return subprocess.Popen(
         [
             "litestream",
@@ -56,9 +53,7 @@ def test_replica():
     - restore db from Litestream replica;
     - check that Apsis works fine with the restored db and that data initially written to the original db are there.
     """
-
     with closing(ApsisService(job_dir=JOB_DIR)) as inst:
-
         inst.create_db()
         inst.write_cfg()
 
@@ -66,9 +61,8 @@ def test_replica():
         litestream_replica_path = inst.tmp_dir / "litestream_replica.db"
 
         with start_litestream(
-            inst.db_path, litestream_replica_path
+                inst.db_path, litestream_replica_path
         ) as litestream_process:
-
             inst.start_serve()
             inst.wait_for_serve()
 
@@ -131,9 +125,7 @@ def test_replica_killing_apsis_and_litestream():
     - restore db from Litestream replica;
     - check that the run is still in running state using the restored db.
     """
-
     with closing(ApsisService(job_dir=JOB_DIR)) as inst:
-
         inst.create_db()
         inst.write_cfg()
 
@@ -143,7 +135,6 @@ def test_replica_killing_apsis_and_litestream():
         with start_litestream(
             inst.db_path, litestream_replica_path
         ) as litestream_process:
-
             inst.start_serve()
             inst.wait_for_serve()
 
@@ -181,3 +172,5 @@ def test_replica_killing_apsis_and_litestream():
         assert client.get_run(run_id)["state"] == "success"
 
         inst.stop_serve()
+
+
