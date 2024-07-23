@@ -4,6 +4,7 @@ import subprocess
 import os
 import signal
 from time import sleep
+import pytest
 
 from instance import ApsisService
 
@@ -11,6 +12,19 @@ from instance import ApsisService
 JOB_DIR = Path(__file__).parent / "jobs"
 
 # -------------------------------------------------------------------------------
+
+
+def is_litestream_available():
+    try:
+        subprocess.run(
+            ["litestream", "version"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+    return True
 
 
 def start_litestream(db_path, replica_path):
@@ -38,6 +52,7 @@ def restore_litestream_db(restored_db_path, litestream_replica_path):
     )
 
 
+@pytest.mark.skipif(not is_litestream_available(), reason="Litestream is not available")
 def test_replica():
     """
     Tests Litestream replica of the SQLite db.
@@ -110,6 +125,7 @@ def test_replica():
         inst.stop_serve()
 
 
+@pytest.mark.skipif(not is_litestream_available(), reason="Litestream is not available")
 def test_replica_killing_apsis_and_litestream():
     """
     Similar to `test_replica`, but here:
