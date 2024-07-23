@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install Litestream
-      run: sudo apt install litestream
+      run: wget https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.deb && sudo dpkg -i litestream-v0.3.13-linux-amd64.deb
 
     - name: Upgrade pip
       run: pip3 install --upgrade pip 'setuptools>=61'
