@@ -98,7 +98,6 @@ def test_replica():
         assert any(restored_db_name in l for l in log)
 
         # check runs data is accurate in the restored db
-        client = inst.client
         for id, state in zip(run_ids, expected_states):
             assert client.get_run(id)["state"] == state
 
@@ -166,7 +165,6 @@ def test_replica_killing_apsis_and_litestream():
         assert any(restored_db_name in l for l in log)
 
         # check the run is still in the running state after reconnecting to the new Apsis instance
-        client = inst.client
         assert client.get_run(run_id)["state"] == "running"
 
         # check run eventually completes successfully
