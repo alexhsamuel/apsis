@@ -15,16 +15,7 @@ JOB_DIR = Path(__file__).parent / "jobs"
 
 
 def is_litestream_available():
-    try:
-        subprocess.run(
-            ["litestream", "version"],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
-    return True
+    return True if shutil.which("litestream") else False
 
 
 def start_litestream(db_path, replica_path):
