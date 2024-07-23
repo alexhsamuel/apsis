@@ -1,4 +1,4 @@
-from   contextlib import closing
+from   contextlib import closing, contextmanager
 import os
 from   pathlib import Path
 import pytest
@@ -17,25 +17,31 @@ def is_litestream_available():
     return shutil.which("litestream") is not None
 
 
-def start_litestream(db_path, replica_path):
-    return subprocess.Popen(
+@contextmanager
+def litestream_replica(db_path, replica_path):
+    proc = subprocess.Popen(
         [
             "litestream",
             "replicate",
             db_path,
-            f"file://{str(replica_path)}",
+            f"file://{replica_path}",
         ]
     )
+    try:
+        yield proc
+    finally:
+        # Give Litestream a second to do one last sync.
+        sleep(1)
+        proc.terminate()
 
 
-def restore_litestream_db(restored_db_path, litestream_replica_path):
+def restore_litestream_db(restored_db_path, replica_path):
     subprocess.run(
         [
             "litestream",
             "restore",
-            "-o",
-            str(restored_db_path),
-            f"file://{str(litestream_replica_path)}",
+            "-o", str(restored_db_path),
+            f"file://{replica_path}",
         ],
         check=True,
     )
@@ -56,37 +62,33 @@ def test_replica():
     with closing(ApsisService(job_dir=JOB_DIR)) as inst:
         inst.create_db()
         inst.write_cfg()
+        client = inst.client
 
         # start Litestream replica
-        litestream_replica_path = inst.tmp_dir / "litestream_replica.db"
+        replica_path = inst.tmp_dir / "litestream_replica.db"
 
-        with start_litestream(
-                inst.db_path, litestream_replica_path
-        ) as litestream_process:
+        with litestream_replica(inst.db_path, replica_path):
             inst.start_serve()
             inst.wait_for_serve()
 
             # populate apsis db with some data
-            client = inst.client
-            run_ids = []
-            expected_states = ["success", "failure", "error", "skipped"]
-            for state in expected_states:
-                run_id = client.schedule("job1", {})["run_id"]
-                inst.wait_run(run_id)
-                assert client.get_run(run_id)["state"] == "success"
+            run_ids = {
+                s: client.schedule("no-op", {})["run_id"]
+                for s in ["success", "failure", "error", "skipped"]
+            }
+            assert all( inst.wait_run(r)["state"] == "success" for r in run_ids.values() )
+            for state, run_id in run_ids.items():
                 if state != "success":
                     client.mark(run_id, state)
-                run_ids.append(run_id)
 
             # stop Apsis and Litestream
             inst.stop_serve()
-            litestream_process.terminate()
 
         # restore the db from the replica
         restored_db_name = "restored.db"
         restored_db_path = inst.tmp_dir / restored_db_name
 
-        restore_litestream_db(restored_db_path, litestream_replica_path)
+        restore_litestream_db(restored_db_path, replica_path)
 
         # rewrite the config to use restored db
         inst.db_path = restored_db_path
@@ -100,11 +102,11 @@ def test_replica():
         assert any( restored_db_name in l for l in log )
 
         # check runs data is accurate in the restored db
-        for id, state in zip(run_ids, expected_states):
-            assert client.get_run(id)["state"] == state
+        for state, run_id in run_ids.items():
+            assert client.get_run(run_id)["state"] == state
 
         # run job again to verify the db is in a good state and Apsis can read/write it
-        new_run_id = client.schedule("job1", {})["run_id"]
+        new_run_id = client.schedule("no-op", {})["run_id"]
         inst.wait_run(new_run_id)
         assert client.get_run(new_run_id)["state"] == "success"
 
@@ -130,27 +132,25 @@ def test_replica_killing_apsis_and_litestream():
         inst.write_cfg()
 
         # start Litestream replica
-        litestream_replica_path = inst.tmp_dir / "litestream_replica.db"
+        replica_path = inst.tmp_dir / "litestream_replica.db"
 
-        with start_litestream(
-            inst.db_path, litestream_replica_path
-        ) as litestream_process:
+        with litestream_replica(inst.db_path, replica_path) as litestream_proc:
             inst.start_serve()
             inst.wait_for_serve()
 
             client = inst.client
-            run_id = client.schedule("job1", {})["run_id"]
+            run_id = client.schedule("sleep", {"duration": "4"})["run_id"]
 
-            # stop Apsis and Litestream
+            # kill Apsis and Litestream
             sleep(1)
             os.kill(inst.srv_proc.pid, signal.SIGKILL)
             sleep(1)
-            os.kill(litestream_process.pid, signal.SIGKILL)
+            os.kill(litestream_proc.pid, signal.SIGKILL)
 
         # restore the db from the replica
         restored_db_name = "restored.db"
         restored_db_path = inst.tmp_dir / restored_db_name
-        restore_litestream_db(restored_db_path, litestream_replica_path)
+        restore_litestream_db(restored_db_path, replica_path)
 
         # rewrite the config to use restored db
         inst.db_path = restored_db_path

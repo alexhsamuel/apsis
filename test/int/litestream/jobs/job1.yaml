@@ -1,3 +1,0 @@
-program:
-  type: shell
-  command: /usr/bin/sleep 10
