@@ -115,12 +115,16 @@ def start_server(cfg):
     key_path    = tls_cfg.get("key_path", FROM_ENV)
     tls_cert    = FROM_ENV if cert_path is FROM_ENV else (cert_path, key_path)
 
+    conn_cfg    = cfg.get("connection", {})
+    reconnect_timeout = nparse_duration(conn_cfg.get("reconnect_timeout", None))
+
     SERVER = procstar.agent.server.Server()
     return SERVER.run_forever(
-        host        =host,
-        port        =port,
-        tls_cert    =tls_cert,
-        access_token=access_token,
+        host                =host,
+        port                =port,
+        tls_cert            =tls_cert,
+        access_token        =access_token,
+        reconnect_timeout   =reconnect_timeout,
     )
 
 

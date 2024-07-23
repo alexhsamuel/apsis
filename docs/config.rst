@@ -173,6 +173,7 @@ interfaces.
           tls:
             cert_path: "/opt/cert/host.crt"
             key_path: "/opt/cert/host.key"
+          reconnect_timeout: "1 hour"
 
 This configures the server.
 
@@ -200,7 +201,7 @@ This configures the server.
       agent:
         connection:
           start_timeout: "1 min"
-          reconnect_timeout: 60
+          reconnect_timeout: "1 hour"
 
 This configures how Apsis handles Procstar groups.  When a Procstar instance
 connects, it provides a group ID to which it belongs.  Each Procstar program
@@ -215,9 +216,11 @@ group, the run remains in the _starting_ state.  The `start_timeout`
 configuration determines how long a Procstar run remains _starting_, before
 Apsis transitions it to _error_.  The default is 0.
 
-When Apsis attempts to reconnect a _running_ run to a Procstar program, the
-`reconnect_timeout` determines how long it waits for the Procstar agent to
-reconnect.  The default is 0.
+The `reconnect_timeout` duration determines how long Apsis waits for a Procstar
+agent to reconnect.  This applies when Apsis restarts and attempts to reconnect
+_running_ runs, or if a Procstar agent unexpectedly disconnects (due to a
+network error or similar).  If the timeout expires, Apsis transitions any runs
+on this agent to _error_ and forgets the agent.
 
 
 .. code:: yaml

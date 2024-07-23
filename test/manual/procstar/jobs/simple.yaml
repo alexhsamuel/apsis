@@ -7,3 +7,4 @@ program:
 schedule:
   type: interval
   interval: 60s
+

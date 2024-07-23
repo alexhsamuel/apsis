@@ -6,7 +6,7 @@ procstar:
     enable: true
     connection:
       start_timeout: 1 min
-      reconnect_timeout: 60
+      reconnect_timeout: 15
       update_interval: 2
 
 waiting:
