@@ -72,6 +72,7 @@ def test_replica():
             for state in expected_states:
                 run_id = client.schedule("job1", {})["run_id"]
                 inst.wait_run(run_id)
+                assert client.get_run(run_id)["state"] == "success"
                 if state != "success":
                     client.mark(run_id, state)
                 run_ids.append(run_id)
