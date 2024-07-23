@@ -14,6 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Install Litestream
+      run: wget --quiet https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.deb && sudo dpkg -i litestream-v0.3.13-linux-amd64.deb
+
     - name: Upgrade pip
       run: pip3 install --upgrade pip 'setuptools>=61'
 
@@ -21,7 +24,7 @@ jobs:
       run: pip3 install -e .[dev]
 
     - name: Install procstar
-      run: wget -ti https://github.com/alexhsamuel/procstar/releases/download/v$(python -c 'import procstar; print(procstar.__version__)')/procstar && chmod +x procstar && mv procstar /usr/local/bin/
+      run: wget --quiet -ti https://github.com/alexhsamuel/procstar/releases/download/v$(python -c 'import procstar; print(procstar.__version__)')/procstar && chmod +x procstar && mv procstar /usr/local/bin/
 
     - name: Run Python unit tests
       run: pytest test/unit -m "not local_ssh"
