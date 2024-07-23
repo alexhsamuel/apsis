@@ -15,7 +15,7 @@ JOB_DIR = Path(__file__).parent / "jobs"
 
 
 def is_litestream_available():
-    return True if shutil.which("litestream") else False
+    return shutil.which("litestream") is not None
 
 
 def start_litestream(db_path, replica_path):
