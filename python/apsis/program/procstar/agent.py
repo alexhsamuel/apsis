@@ -289,28 +289,25 @@ class BoundProcstarProgram(base.Program):
             update_interval = nparse_duration(run_cfg.get("update_interval", None))
             output_interval = nparse_duration(run_cfg.get("output_interval", None))
             tasks = asyn.TaskGroup()
+
             if update_interval is not None:
                 # Start a task that periodically requests the current result.
                 tasks.add(
                     "poll update",
                     asyn.poll(proc.request_result, update_interval)
                 )
+
             if output_interval is not None:
-                # Start a task that periodically requests any additional output
-                # fd data.
+                # Start a task that periodically requests additional output.
+                def more_output():
+                    # From the current position to the end.
+                    start = 0 if fd_data is None else fd_data.interval.stop
+                    interval = Interval(start, None)
+                    return proc.request_fd_data("stdout", interval=interval)
+
                 tasks.add(
                     "poll output",
-                    asyn.poll(
-                        lambda: proc.request_fd_data(
-                            "stdout",
-                            # From the current position to the end.
-                            interval=Interval(
-                                0 if fd_data is None else fd_data.interval.stop,
-                                None
-                            ),
-                        ),
-                        output_interval
-                    )
+                    asyn.poll(more_output, output_interval)
                 )
 
             # Process further updates, until the process terminates.
