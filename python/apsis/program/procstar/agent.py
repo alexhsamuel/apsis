@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import procstar.spec
-from   procstar.agent.exc import NoConnectionError
+from   procstar.agent.exc import NoConnectionError, NoOpenConnectionInGroup
 from   procstar.agent.proc import FdData, Interval, Result
 import procstar.agent.server
 import traceback
@@ -198,19 +198,15 @@ class BoundProcstarProgram(base.Program):
         Returns an async iterator of program updates.
         """
         assert SERVER is not None
-        agent_cfg = get_cfg(cfg, "procstar.agent", {})
-        run_cfg = get_cfg(agent_cfg, "run", {})
+        agent_cfg       = get_cfg(cfg, "procstar.agent", {})
+        run_cfg         = get_cfg(agent_cfg, "run", {})
+        conn_timeout    = get_cfg(agent_cfg, "connection.start_timeout", None)
+        conn_timeout    = nparse_duration(conn_timeout)
 
         # Generate a proc ID.
         proc_id = str(uuid.uuid4())
 
-        proc = None
-        res = None
-
         try:
-            conn_timeout = nparse_duration(
-                get_cfg(agent_cfg, "connection.start_timeout", None))
-
             # Start the proc.
             proc, res = await SERVER.start(
                 proc_id     =proc_id,
@@ -219,6 +215,15 @@ class BoundProcstarProgram(base.Program):
                 conn_timeout=conn_timeout,
             )
 
+        except NoOpenConnectionInGroup as exc:
+            log.warning(str(exc))
+            yield base.ProgramError(f"procstar: {exc}")
+
+        except Exception as exc:
+            log.error(f"procstar: {traceback.format_exc()}")
+            yield base.ProgramError(f"procstar: {exc}")
+
+        else:
             run_state = {
                 "conn_id": proc.conn_id,
                 "proc_id": proc_id,
@@ -228,18 +233,6 @@ class BoundProcstarProgram(base.Program):
                 meta=_make_metadata(proc_id, res)
             )
 
-        except Exception as exc:
-            log.error(f"procstar: {traceback.format_exc()}")  # FIXME
-
-            if proc is not None:
-                await self.__delete(proc)
-
-            yield base.ProgramError(
-                f"procstar: {exc}",
-                meta=_make_metadata(proc_id, res) if res is not None else {},
-            )
-
-        else:
             # Hand off to __finish.
             async for update in self.__finish(proc, res, run_cfg):
                 yield update
