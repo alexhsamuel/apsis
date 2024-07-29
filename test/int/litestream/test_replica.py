@@ -237,10 +237,8 @@ def test_replica_killing_apsis_and_litestream_with_heavy_load():
             assert all(fut.result()["state"] == "running" for fut in as_completed(runs_states))
             assert all(fut.result()["state"] == "scheduled" for fut in as_completed(sched_runs_states))
 
-            # check runs eventually complete successfully
-            runs_results = [exe.submit(inst.wait_run, r) for r in runs_ids]
-            sched_runs_results = [exe.submit(inst.wait_run, r) for r in sched_runs_ids]
-            assert all(fut.result()["state"] == "success" for fut in as_completed(runs_results))
-            assert all(fut.result()["state"] == "success" for fut in as_completed(sched_runs_results))
+            # check all runs eventually complete successfully
+            all_runs_results = [exe.submit(inst.wait_run, r) for r in runs_ids + sched_runs_ids]
+            assert all(fut.result()["state"] == "success" for fut in as_completed(all_runs_results))
 
         inst.stop_serve()
