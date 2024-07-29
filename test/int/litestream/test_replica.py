@@ -1,4 +1,6 @@
+from   concurrent.futures import ThreadPoolExecutor, as_completed
 from   contextlib import closing, contextmanager
+import ora
 import os
 from   pathlib import Path
 import pytest
@@ -174,3 +176,71 @@ def test_replica_killing_apsis_and_litestream():
         inst.stop_serve()
 
 
+@pytest.mark.skipif(not is_litestream_available(), reason="Litestream is not available")
+def test_replica_killing_apsis_and_litestream_with_heavy_load():
+    """
+    Very similar to `test_replica_killing_apsis_and_litestream`, but here a much heavier runs load is used.
+    """
+    num_jobs = 500
+    with closing(ApsisService(job_dir=JOB_DIR)) as inst:
+        inst.create_db()
+        inst.write_cfg()
+
+        # start Litestream replica
+        replica_path = inst.tmp_dir / "litestream_replica.db"
+
+        with litestream_replica(inst.db_path, replica_path) as litestream_proc:
+            inst.start_serve()
+            inst.wait_for_serve()
+
+            client = inst.client
+            # populate apsis db with a large number of runs
+            with ThreadPoolExecutor() as exe:
+                runs_fut = [exe.submit(client.schedule, "sleep", {"duration": "9"}) for _ in range(num_jobs)]
+                sched_runs_fut = [exe.submit(client.schedule, "sleep", {"duration": "1"}, time=ora.now() + 14) for _ in range(num_jobs)]
+                runs_ids = [fut.result()["run_id"] for fut in as_completed(runs_fut)]
+                sched_runs_ids = [fut.result()["run_id"] for fut in as_completed(sched_runs_fut)]
+
+                runs_states = [exe.submit(client.get_run, r) for r in runs_ids]
+                sched_runs_states = [exe.submit(client.get_run, r) for r in sched_runs_ids]
+                assert all(fut.result()["state"] == "running" for fut in as_completed(runs_states))
+                assert all(fut.result()["state"] == "scheduled" for fut in as_completed(sched_runs_states))
+
+            # kill Apsis and Litestream
+            sleep(1)
+            os.kill(inst.srv_proc.pid, signal.SIGKILL)
+            sleep(1)
+            os.kill(litestream_proc.pid, signal.SIGKILL)
+
+        # restore the db from the replica
+        restored_db_name = "restored.db"
+        restored_db_path = inst.tmp_dir / restored_db_name
+        restore_litestream_db(restored_db_path, replica_path)
+
+        # rewrite the config to use restored db
+        inst.db_path = restored_db_path
+        inst.write_cfg()
+
+        # restart Apsis
+        inst.srv_proc = None
+        inst.start_serve()
+        inst.wait_for_serve()
+
+        log = inst.get_log_lines()
+        assert any( restored_db_name in l for l in log )
+        sleep(1)
+
+        with ThreadPoolExecutor() as exe:
+            # check runs are still in the right state after reconnecting to the new Apsis instance
+            runs_states = [exe.submit(client.get_run, r) for r in runs_ids]
+            sched_runs_states = [exe.submit(client.get_run, r) for r in sched_runs_ids]
+            assert all(fut.result()["state"] == "running" for fut in as_completed(runs_states))
+            assert all(fut.result()["state"] == "scheduled" for fut in as_completed(sched_runs_states))
+
+            # check runs eventually complete successfully
+            runs_results = [exe.submit(inst.wait_run, r) for r in runs_ids]
+            sched_runs_results = [exe.submit(inst.wait_run, r) for r in sched_runs_ids]
+            assert all(fut.result()["state"] == "success" for fut in as_completed(runs_results))
+            assert all(fut.result()["state"] == "success" for fut in as_completed(sched_runs_results))
+
+        inst.stop_serve()
