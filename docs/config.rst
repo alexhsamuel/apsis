@@ -173,6 +173,7 @@ interfaces.
           tls:
             cert_path: "/opt/cert/host.crt"
             key_path: "/opt/cert/host.key"
+          reconnect_timeout: "1 hour"
 
 This configures the server.
 
@@ -200,8 +201,7 @@ This configures the server.
       agent:
         connection:
           start_timeout: "1 min"
-          reconnect_timeout: 60
-          update_interval: 60
+          reconnect_timeout: "1 hour"
 
 This configures how Apsis handles Procstar groups.  When a Procstar instance
 connects, it provides a group ID to which it belongs.  Each Procstar program
@@ -216,16 +216,23 @@ group, the run remains in the _starting_ state.  The `start_timeout`
 configuration determines how long a Procstar run remains _starting_, before
 Apsis transitions it to _error_.  The default is 0.
 
-If Apsis reconnects a _running_ run with a Procstar program, the
-`reconnect_timeout` determines how long it waits for the Procstar instance to
-reconnect.  The default is 0.
+The `reconnect_timeout` duration determines how long Apsis waits for a Procstar
+agent to reconnect.  This applies when Apsis restarts and attempts to reconnect
+_running_ runs, or if a Procstar agent unexpectedly disconnects (due to a
+network error or similar).  If the timeout expires, Apsis transitions any runs
+on this agent to _error_ and forgets the agent.
 
-..
-    FIXME: Do not use `update_interval` until Procstar is able to send
-    incremental output, to avoid overwhelming Apsis with the output volume.
 
-    While a process is running, Apsis requests an update of its results every
-    `update_interval` if the agent is connected.  The default is 0, which configures
-    no update requests. 
+.. code:: yaml
 
+    procstar:
+      agent:
+        run:
+          update_interval: "1 min"
+          output_interval" "15 sec"
+
+This configures how often Apsis requests process (including metadata) and output
+updates for a run from the agent running it.  If null or omitted, Apsis does not
+retrieve process metadata and output while the run is running, only once it
+terminates.
 

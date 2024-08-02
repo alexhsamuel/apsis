@@ -3,6 +3,7 @@ from   dataclasses import dataclass
 from   apsis.lib.api import decompress
 from   apsis.lib.json import TypedJso, check_schema
 from   apsis.lib.parse import parse_duration
+from   apsis.lib.py import format_repr
 from   apsis.lib.sys import to_signal
 from   apsis.runs import template_expand
 
@@ -28,7 +29,7 @@ class OutputMetadata:
 
 class Output:
 
-    def __init__(self, metadata: OutputMetadata, data, compression=None):
+    def __init__(self, metadata: OutputMetadata, data: bytes, compression=None):
         """
         :param metadata:
           Information about the data.
@@ -53,7 +54,7 @@ class Output:
 
 
 
-def program_outputs(output, *, length=None, compression=None):
+def program_outputs(output: bytes, *, length=None, compression=None):
     if length is None:
         length = len(output)
     return {
@@ -75,12 +76,20 @@ class ProgramRunning:
         self.times      = times
 
 
+    def __repr__(self):
+        return format_repr(self)
+
+
 
 class ProgramUpdate:
 
-    def __init__(self, *, meta={}, outputs={}):
+    def __init__(self, *, meta=None, outputs=None):
         self.meta       = meta
         self.outputs    = outputs
+
+
+    def __repr__(self):
+        return format_repr(self)
 
 
 
@@ -95,6 +104,10 @@ class ProgramError(RuntimeError):
         self.outputs    = outputs
 
 
+    def __repr__(self):
+        return format_repr(self)
+
+
 
 class ProgramSuccess:
 
@@ -102,6 +115,10 @@ class ProgramSuccess:
         self.meta       = meta
         self.times      = times
         self.outputs    = outputs
+
+
+    def __repr__(self):
+        return format_repr(self)
 
 
 
@@ -113,6 +130,10 @@ class ProgramFailure(RuntimeError):
         self.meta       = meta
         self.times      = times
         self.outputs    = outputs
+
+
+    def __repr__(self):
+        return format_repr(self)
 
 
 

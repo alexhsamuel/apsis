@@ -1,3 +1,17 @@
+# v0.23
+
+- Requires [Procstar](https://github.com/alexhsamuel/procstar) v0.3.
+- The Procstar agent protocol has changed substantially.  Now uses msgpack.
+- The `procstar.agent.connection.start_timeout` config controls how long Apsis
+  waits for a suitable agent connection to start a run.
+- The `procstar.agent.connection.reconnect_timeout` config controls how long
+  Apsis waits for an agent to reconnect, before dropping it.
+- An agent now unregisters itself cleanly from Apsis during normal shutdown.
+- SIGUSR1 triggers a shutdown-on-idle state in an agent; see [`shutdown` in the
+  Procstar docs](https://github.com/alexhsamuel/procstar/blob/main/docs/shutdown.rst).
+- The "Agents" view in the web UI shows the state of each conencted agent.
+
+
 # v0.22
 
 - [Procstar](https://github.com/alexhsamuel/procstar) agent-based programs.

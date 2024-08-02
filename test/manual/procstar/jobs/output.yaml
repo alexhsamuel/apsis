@@ -15,3 +15,11 @@ program:
         print(format(i, "06d"), "x" * (SIZE - 8))
         time.sleep(TIME)
 
+schedule:
+  type: interval
+  interval: 5m
+  args:
+    count: 300
+    time: 0.2
+    size: 1024
+

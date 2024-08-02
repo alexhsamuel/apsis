@@ -218,6 +218,24 @@ def format_ctor(obj, *args, **kw_args):
     return format_call(obj.__class__, *args, **kw_args)
 
 
+def format_repr(obj):
+    attrs = { a: getattr(obj, a) for a in dir(obj) if not a.startswith("_") }
+    return format_ctor(obj, **attrs)
+
+
+def get_cfg(cfg, path, default):
+    """
+    Retrieves a config by `path` from nested dict `cfg`.
+
+    :param path:
+      A dotted path.
+    """
+    *subs, last = path.split(".")
+    for sub in subs:
+        cfg = cfg.get(sub, {})
+    return cfg.get(last, default)
+
+
 def look_up(name, obj):
     """
     Looks up a qualified name.

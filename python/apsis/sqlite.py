@@ -558,6 +558,12 @@ class OutputDB:
 
 
     def get_output(self, run_id, output_id) -> Output:
+        """
+        Returns an output.
+
+        :raise LookupError:
+          No output for `run_id, output_id`.
+        """
         cols = self.TABLE.c
         query = (
             sa.select(

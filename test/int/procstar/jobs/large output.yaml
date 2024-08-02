@@ -1,0 +1,14 @@
+params: size
+
+program:
+  type: procstar
+  argv:
+    - /usr/bin/python
+    - "-c"
+    - |
+      nr, r = divmod({{ size }}, 80)
+      for _ in range(nr):
+          print("x" * 79)
+      print("x" * (r - 1))
+
+

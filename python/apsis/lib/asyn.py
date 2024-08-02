@@ -42,21 +42,38 @@ _install()
 
 #-------------------------------------------------------------------------------
 
-async def cancel_task(task, name, log):
+async def cancel_task(task, name=None, log=None):
     """
     Cancels and cleans up `task`, with logging as `name`.
     """
     if task.cancelled():
-        log.info(f"task already cancelled: {name}")
+        if log is not None:
+            log.info(f"task already cancelled: {name}")
     else:
         task.cancel()
 
     try:
         return await task
     except asyncio.CancelledError:
-        log.info(f"task cancelled: {name}")
+        if log is not None:
+            log.info(f"task cancelled: {name}")
     except Exception:
-        log.error(f"task cancelled with exc: {name}", exc_info=True)
+        if log is not None:
+            log.error(f"task cancelled with exc: {name}", exc_info=True)
+
+
+async def poll(fn, interval, immediate=False):
+    """
+    Invokes async `fn` every `interval`.
+
+    :param immediate:
+      Call `fn` immediately, before the first interval.
+    """
+    if immediate:
+        await fn()
+    while True:
+        await asyncio.sleep(interval)
+        await fn()
 
 
 class TaskGroup:
@@ -66,7 +83,7 @@ class TaskGroup:
     Each added tasks get a callback that removes itself from the group.
     """
 
-    def __init__(self, log):
+    def __init__(self, log=None):
         self.__tasks = {}
         self.__log = log
 
