@@ -7,7 +7,6 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
-from   apsis.apsis import reschedule_runs
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
@@ -530,12 +529,5 @@ async def run_post(request):
     await apsis.schedule(time, run)
     jso = runs_to_jso(request.app, ora.now(), [run])
     return response_json(jso)
-
-
-# FIXME: Is there a need for this?
-@API.route("/runs/reschedule/<job_id:path>", methods={"POST"})
-async def runs_reschedule_post(request, job_id):
-    await reschedule_runs(request.app.apsis, job_id)
-    return response_json({})
 
 
