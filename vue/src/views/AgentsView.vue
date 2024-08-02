@@ -14,11 +14,14 @@ div
       div.group(v-for="(conns, group_id) in filteredGroups" :key="group_id")
         div.name()
           div.group_id {{ group_id }}
-          div.count {{ conns.length }} connection{{ conns.length == 1 ? '' : 's' }}
+          div.count {{ conns.filter(c => c.shutdown_state === 'active').length }} active connections
+          div.count {{ conns.length }} connections
 
         div.conns
           div.conn(v-for="conn in conns" :class="{ connected: conn.info.stats.connected }")
             div.basics
+              label State
+              span(:class="['shutdown-' + conn.shutdown_state]") {{ conn.shutdown_state }}
               label Host
               span {{ conn.info.proc.hostname }}
               label User &amp; Group
@@ -170,6 +173,16 @@ groups {
       label {
         font-weight: bold;
       }
+    }
+
+    .shutdown-active {
+      color: green;
+    }
+    .shutdown-idling {
+      color: orange;
+    }
+    .shutdown-done {
+      color: red;
     }
 
     .stats {
