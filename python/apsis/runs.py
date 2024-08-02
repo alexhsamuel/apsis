@@ -7,6 +7,7 @@ from   ora import now, Time
 import shlex
 
 from   . import states
+from   .lib.asyn import Publisher
 from   .lib.calendar import get_calendar
 from   .lib.memo import memoize
 from   .lib.py import format_ctor, iterize
@@ -374,18 +375,15 @@ class RunStore:
         for run in self.__runs.values():
             self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
-        # For live notification.
-        self.__queues = set()
+        # For live notification.  We publish messages of the form (when, run).
+        self.__publisher = Publisher()
 
 
     def __send(self, when, run):
         """
         Sends live notification of changes to `run`.
         """
-        for filter, queue in self.__queues:
-            filtered_run = list(filter([run]))
-            if len(filtered_run) > 0:
-                queue.put_nowait((when, filtered_run))
+        self.__publisher.publish((when, run))
 
 
     def add(self, run):
@@ -516,44 +514,30 @@ class RunStore:
         :keywords:
           See `_RunsFilter.__init__.
         """
-        filter = _RunsFilter(**filter_args)
+        runs_filter = _RunsFilter(**filter_args)
+        predicate = lambda m: (m[0], list(runs_filter(m[1])))
 
-        queue = asyncio.Queue()
-        self.__queues.add((filter, queue))
+        # Subscribe to future runs.
+        with self.__publisher.subscription(predicate=predicate) as sub:
+            # Publish current runs first.
+            when, runs = self._query_filter(runs_filter)
+            sub.publish((when, runs))
 
-        when, runs = self._query_filter(filter)
-        if len(runs) > 0:
-            queue.put_nowait((when, runs))
-
-        try:
-            yield queue
-        finally:
-            self.__queues.remove((filter, queue))
+            yield sub
 
 
     async def shut_down(self):
         """
         Terminates any live queries.
         """
-        while True:
-            try:
-                _, queue = next(iter(self.__queues))
-            except StopIteration:
-                break
-
-            # Indicate that this queue is shutting down.
-            queue.put_nowait(None)
-            # FIXME: Join doesn't seem to work.
-            # await queue.join()
-            await asyncio.sleep(0.5)
-            log.info("live query queue shut down")
+        self.__publisher.end()
 
 
     def get_stats(self):
         return {
             "num_runs"      : len(self.__runs),
-            "num_queues"    : len(self.__queues),
-            "len_queues"    : sum( q.qsize() for _, q in self.__queues ),
+            "num_queues"    : self.__publisher.num_queues,
+            "len_queues"    : self.__publisher.len_queues,
         }
 
 

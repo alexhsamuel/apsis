@@ -124,10 +124,10 @@ class BoundMaxRunning(NonmonotonicRunStoreCondition):
         with run_store.query_live(
                 job_id  =self.__job_id,
                 args    =self.__args,
-        ) as queue:
+        ) as sub:
             while (result := self.check(run_store)) is False:
                 # Wait until a relevant run transitions, then check again.
-                _ = await queue.get()
+                _ = await anext(sub)
         return result
 
 

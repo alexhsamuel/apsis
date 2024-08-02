@@ -1,5 +1,8 @@
 # Live updates
 
+**TODO**: Make `_RunsFilter` into `_RunPredicate` for one run.  Make sure it's
+performant.
+
 WebSocket API for web UI:
 - run updates for all runs (as current)
 - run log updates for a single run

@@ -453,21 +453,17 @@ async def websocket_runs(request, ws):
     since, = request.args.pop("since", (None, ))
 
     log.info("live runs connect")
-    with request.app.apsis.run_store.query_live(since=since) as queue:
+    with request.app.apsis.run_store.query_live(since=since) as sub:
         while True:
             # FIXME: If the socket closes, clean up instead of blocking until
             # the next run is available.  Not sure how to do this.  ws.ping()
             # with a timeout doesn't appear to work.
-            next_runs = [await queue.get()]
-            # Sleep a short while to allow additional runs to enqueue.  This
-            # avoids sending lots of short messages to the client.
+            next_runs = [await anext(sub)]
+            # Sleep a short while to allow additional runs to enqueue, then
+            # drain them.  This avoids sending lots of short messages to the
+            # client.
             await asyncio.sleep(0.5)
-            # Drain the queue.
-            while True:
-                try:
-                    next_runs.append(queue.get_nowait())
-                except asyncio.QueueEmpty:
-                    break
+            next_runs.extend(sub.drain())
 
             if any( r is None for r in next_runs ):
                 # Signalled to shut down.

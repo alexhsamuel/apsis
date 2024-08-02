@@ -105,7 +105,7 @@ class Dependency(RunStoreCondition):
         with run_store.query_live(
                 job_id  =self.job_id,
                 args    =self.args,
-        ) as queue:
+        ) as sub:
             while True:
                 if self.exist is not None:
                     # First check whether a valid dependency run exists, in one
@@ -124,8 +124,8 @@ class Dependency(RunStoreCondition):
                             f"no dependency {inst} exists in {exst}"
                         )
 
-                # Wait for something to happen.  
-                _, runs = await queue.get()
+                # Wait for something to happen.
+                _, runs = await anext(sub)
                 # Is there a run in any of the target states?
                 runs = ( r for r in runs if r.state in self.states )
                 run = next(runs, None)
