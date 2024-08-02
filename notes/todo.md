@@ -1,3 +1,21 @@
+# Live updates
+
+WebSocket API for web UI:
+- run updates for all runs (as current)
+- run log updates for a single run
+- run data updates for a single run
+- agent changes: connect, disconnect, timeout
+- job changes
+
+Persistent connection:
+- run changes (run summaries only)
+- job changes
+
+Transient connection:
+- run log updates (single run)
+- run data updates (single run)
+
+
 # Cleanup
 
 - Remove `message` from run JSON and `runs` table.
