@@ -8,6 +8,7 @@ import traceback
 import uuid
 
 from   apsis.lib import asyn
+from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import nparse_duration
 from   apsis.lib.py import or_none, get_cfg
@@ -83,11 +84,32 @@ def _combine_fd_data(old, new):
     )
 
 
-def _make_outputs(fd_data):
+async def _make_outputs(fd_data, *, final=False):
+    """
+    Constructs program outputs from combined output fd data.
+
+    :param compression:
+      If not none, compresses output accordingly.
+    """
+    if fd_data is None:
+        return {}
+
     assert fd_data.fd == "stdout"
     assert fd_data.interval.start == 0  # FIXME: For now.
     assert fd_data.encoding is None
-    return base.program_outputs(fd_data.data, length=fd_data.interval.stop)
+
+    output = fd_data.data
+    length = fd_data.interval.stop
+    compression = None
+
+    if final and length > 16384:
+        # Compress the output.
+        try:
+            output, compression = await compress_async(output, "br"), "br"
+        except RuntimeError as exc:
+            log.error(f"{exc}; not compressiong")
+
+    return base.program_outputs(output, length=length, compression=compression)
 
 
 #-------------------------------------------------------------------------------
@@ -315,7 +337,7 @@ class BoundProcstarProgram(base.Program):
                 match update:
                     case FdData():
                         fd_data = _combine_fd_data(fd_data, update)
-                        yield base.ProgramUpdate(outputs=_make_outputs(fd_data))
+                        yield base.ProgramUpdate(outputs=await _make_outputs(fd_data))
 
                     case Result() as res:
                         meta = _make_metadata(proc_id, res)
@@ -362,7 +384,7 @@ class BoundProcstarProgram(base.Program):
                         case _:
                             log.debug("expected final FdData")
 
-            outputs = {} if fd_data is None else _make_outputs(fd_data)
+            outputs = await _make_outputs(fd_data, final=True)
 
             if res.status.exit_code == 0:
                 # The process terminated successfully.
