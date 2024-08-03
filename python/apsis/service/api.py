@@ -397,27 +397,6 @@ async def run_mark(request, run_id, state):
     return response_json({})
 
 
-def _filter_runs(runs, args):
-    """
-    Constructs a filter for runs from query args.
-    """
-    try:
-        run_id, = args["run_id"]
-    except KeyError:
-        pass
-    else:
-        runs = ( r for r in runs if r.run_id == run_id )
-
-    try:
-        job_id, = args["job_id"]
-    except KeyError:
-        pass
-    else:
-        runs = ( r for r in runs if r.inst.job_id == job_id )
-
-    return runs
-
-
 @API.route("/runs")
 async def runs(request):
     apsis = request.app.apsis
@@ -450,36 +429,37 @@ async def runs(request):
 
 @API.websocket("/ws/runs")
 async def websocket_runs(request, ws):
-    since, = request.args.pop("since", (None, ))
-
     log.info("live runs connect")
     done = False
-    with request.app.apsis.run_store.query_live(since=since) as sub:
+
+    run_id  = request.args.get("run_id")
+    job_id  = request.args.get("job_id")
+
+    with request.app.apsis.run_store.query_live(
+            run_ids=None if run_id is None else [run_id],
+            job_id=job_id,
+    ) as sub:
         while not done:
             try:
                 # FIXME: If the socket closes, clean up instead of blocking until
                 # the next run is available.  Not sure how to do this.  ws.ping()
                 # with a timeout doesn't appear to work.
-                _, run = await anext(sub)
+                run = await anext(sub)
             except StopAsyncIteration:
-                next_runs = []
+                runs = []
             else:
                 # Sleep a short while to allow additional runs to enqueue, then
                 # drain them.  This avoids sending lots of short messages to the
                 # client.
                 await asyncio.sleep(0.5)
-                next_runs = [run]
-                next_runs.extend( r for _, r in sub.drain() )
-
-            when = next_runs[-1][0]
-            assert all( w <= when for w, _ in next_runs )
-            runs = apsis.lib.itr.chain.from_iterable( r for _, r in next_runs )
-            runs = _filter_runs(runs, request.args)
+                runs = [run]
+                runs.extend(sub.drain())
 
             # Break large sets into chunks, to avoid block for too long.
             for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
                 with Timer() as timer:
-                    jso = runs_to_jso(request.app, when, chunk, summary=True)
+                    # FIXME: when=ora.now() is bogus, but we don't need it.
+                    jso = runs_to_jso(request.app, ora.now(), chunk, summary=True)
                     # FIXME: JSOs are cached but ujson.dumps() still takes real
                     # time.
                     json = ujson.dumps(jso, escape_forward_slashes=False)

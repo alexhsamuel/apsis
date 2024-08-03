@@ -125,7 +125,7 @@ class Dependency(RunStoreCondition):
                         )
 
                 # Wait for something to happen.
-                _, run = await anext(sub)
+                run = await anext(sub)
                 # Is the run in any of the target states?
                 if run.state in self.states:
                     assert run.inst.job_id == self.job_id

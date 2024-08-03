@@ -355,15 +355,15 @@ class RunStore:
         for run in self.__runs.values():
             self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
-        # For live notification.  We publish messages of the form (when, run).
+        # For live notification.  Messages are runs that have transitioned.
         self.__publisher = Publisher()
 
 
-    def __send(self, when, run):
+    def __send(self, run):
         """
         Sends live notification of changes to `run`.
         """
-        self.__publisher.publish((when, run))
+        self.__publisher.publish(run)
 
 
     def add(self, run):
@@ -382,6 +382,7 @@ class RunStore:
         self.update(run, timestamp)
 
 
+    # FIXME: Remove timestamp.
     def update(self, run, timestamp):
         """
         Called when `run` is changed.
@@ -398,7 +399,7 @@ class RunStore:
         if not run.expected:
             self.__run_db.upsert(run)
 
-        self.__send(timestamp, run)
+        self.__send(run)
 
 
     def remove(self, run_id, *, expected=True):
@@ -416,7 +417,7 @@ class RunStore:
         # Indicate deletion with none state.
         # FIXME: What a horrible hack.
         run.state = None
-        self.__send(now(), run)
+        self.__send(run)
         return run
 
 
@@ -483,6 +484,7 @@ class RunStore:
         return now(), [ r for r in runs if predicate(r) ]
 
 
+    # FIXME: Remove `when` from the result; I think we don't use it.
     def query(self, **filter_args):
         """
         :keywords:
@@ -498,13 +500,13 @@ class RunStore:
           See `_RunPredicate.__init__.
         """
         predicate = _RunPredicate(**filter_args)
-        msg_predicate = lambda m: (m[0], predicate(m[1]))
 
         # Subscribe to future runs.
-        with self.__publisher.subscription(predicate=msg_predicate) as sub:
+        with self.__publisher.subscription(predicate=predicate) as sub:
             # Publish current runs first.
-            when, runs = self._query_filter(predicate)
-            sub.publish((when, runs))
+            _, runs = self._query_filter(predicate)
+            for run in runs:
+                sub.publish(run)
 
             yield sub
 
