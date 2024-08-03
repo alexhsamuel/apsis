@@ -191,6 +191,11 @@ class Publisher:
 
 
         @property
+        def ended(self):
+            return self.__ended
+
+
+        @property
         def len_queue(self):
             return self.__msgs.qsize()
 

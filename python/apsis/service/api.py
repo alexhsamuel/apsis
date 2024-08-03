@@ -453,22 +453,23 @@ async def websocket_runs(request, ws):
     since, = request.args.pop("since", (None, ))
 
     log.info("live runs connect")
+    done = False
     with request.app.apsis.run_store.query_live(since=since) as sub:
-        while True:
-            # FIXME: If the socket closes, clean up instead of blocking until
-            # the next run is available.  Not sure how to do this.  ws.ping()
-            # with a timeout doesn't appear to work.
-            next_runs = [await anext(sub)]
-            # Sleep a short while to allow additional runs to enqueue, then
-            # drain them.  This avoids sending lots of short messages to the
-            # client.
-            await asyncio.sleep(0.5)
-            next_runs.extend(sub.drain())
-
-            if any( r is None for r in next_runs ):
-                # Signalled to shut down.
-                await ws.close()
-                break
+        while not done:
+            try:
+                # FIXME: If the socket closes, clean up instead of blocking until
+                # the next run is available.  Not sure how to do this.  ws.ping()
+                # with a timeout doesn't appear to work.
+                _, run = await anext(sub)
+            except StopAsyncIteration:
+                next_runs = []
+            else:
+                # Sleep a short while to allow additional runs to enqueue, then
+                # drain them.  This avoids sending lots of short messages to the
+                # client.
+                await asyncio.sleep(0.5)
+                next_runs = [run]
+                next_runs.extend( r for _, r in sub.drain() )
 
             when = next_runs[-1][0]
             assert all( w <= when for w, _ in next_runs )
@@ -476,23 +477,25 @@ async def websocket_runs(request, ws):
             runs = _filter_runs(runs, request.args)
 
             # Break large sets into chunks, to avoid block for too long.
-            chunks = list(apsis.lib.itr.chunks(runs, WS_RUN_CHUNK))
-            if len(chunks) == 0:
-                continue
+            for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
+                with Timer() as timer:
+                    jso = runs_to_jso(request.app, when, chunk, summary=True)
+                    # FIXME: JSOs are cached but ujson.dumps() still takes real
+                    # time.
+                    json = ujson.dumps(jso, escape_forward_slashes=False)
+                    try:
+                        log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
+                        await ws.send(json)
+                        await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
+                    except websockets.ConnectionClosed:
+                        log.info("websocket connection closed")
+                        done = True
+                        break
 
-            try:
-                for chunk in chunks:
-                    with Timer() as timer:
-                        jso = runs_to_jso(request.app, when, chunk, summary=True)
-                        # FIXME: JSOs are cached but ujson.dumps() still takes real
-                        # time.
-                        json = ujson.dumps(jso, escape_forward_slashes=False)
-                    log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
-                    await ws.send(json)
-                    await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
-            except websockets.ConnectionClosed:
-                log.info("websocket connection closed")
-                break
+            if sub.ended:
+                # Signalled to shut down.
+                await ws.close()
+                done = True
 
     log.info("live runs disconnect")
 

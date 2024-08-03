@@ -125,11 +125,9 @@ class Dependency(RunStoreCondition):
                         )
 
                 # Wait for something to happen.
-                _, runs = await anext(sub)
-                # Is there a run in any of the target states?
-                runs = ( r for r in runs if r.state in self.states )
-                run = next(runs, None)
-                if run is not None:
+                _, run = await anext(sub)
+                # Is the run in any of the target states?
+                if run.state in self.states:
                     assert run.inst.job_id == self.job_id
                     assert all( run.inst.args[k] == v for k, v in self.args.items() )
                     assert run.state in self.states

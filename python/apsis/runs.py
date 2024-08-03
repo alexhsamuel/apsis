@@ -279,19 +279,19 @@ def get_bind_args(run):
 
 #-------------------------------------------------------------------------------
 
-class _RunsFilter:
+class _RunPredicate:
     """
-    Filter predicate for an iterable of runs.
+    Filter predicate for a run.
     """
 
     def __init__(
             self, *,
-            run_ids=None,
-            job_id=None,
-            state=None,
-            since=None,
-            args=None,
-            with_args=None,
+            run_ids     =None,
+            job_id      =None,
+            state       =None,
+            since       =None,
+            args        =None,
+            with_args   =None,
     ):
         """
         :param state:
@@ -311,38 +311,18 @@ class _RunsFilter:
         self.with_args  = None if with_args is None else to_map(with_args)
 
 
-    def __call__(self, runs):
-        if self.run_ids is not None:
-            run_ids = self.run_ids
-            runs = ( r for r in runs if r.run_id in run_ids )
-
-        if self.job_id is not None:
-            job_id = self.job_id
-            runs = ( r for r in runs if r.inst.job_id == job_id )
-
-        if self.state is not None:
-            state = self.state
-            runs = ( r for r in runs if r.state in state )
-
-        if self.since is not None:
-            since = self.since
-            runs = ( r for r in runs if r.timestamp >= since )
-
-        if self.args is not None:
-            args = self.args
-            runs = ( r for r in runs if r.inst.args == args )
-
-        if self.with_args is not None:
-            with_args = self.with_args
-            runs = (
-                r for r in runs
-                if all(
-                        r.inst.args.get(k, None) == v
-                        for k, v in with_args.items()
-                )
-            )
-
-        return runs
+    def __call__(self, run):
+        return (
+                (self.run_ids   is None or run.run_id in self.run_ids)
+            and (self.job_id    is None or run.inst.job_id == self.job_id)
+            and (self.state     is None or run.state in self.state)
+            and (self.since     is None or run.timestamp >= self.since)
+            and (self.args      is None or run.inst.args == self.args)
+            and (self.with_args is None or all(
+                run.inst.args.get(k) == v
+                for k, v in self.with_args.items()
+            ))
+        )
 
 
 
@@ -482,45 +462,48 @@ class RunStore:
         return now(), run
 
 
-    def _query_filter(self, filter):
+    def _query_filter(self, predicate):
         """
-        Queries using a `_RunsFilter`.
+        Queries using a `_RunPredicate`.
         """
-        if filter.run_ids is not None:
+        if predicate.run_ids is not None:
             # Fast path if the query is by run IDs.
-            runs = ( self.__runs.get(i, None) for i in filter.run_ids )
-            runs = ( r for r in runs if r is not None )
-        elif filter.job_id is not None:
+            runs = (
+                r
+                for i in predicate.run_ids
+                if (r := self.__runs.get(i)) is not None
+            )
+        elif predicate.job_id is not None:
             # Fast path if the query is by job ID.
-            runs = iter(self.__runs_by_job.get(filter.job_id, ()))
+            runs = iter(self.__runs_by_job.get(predicate.job_id, ()))
         else:
             # Slow path: scan.
             runs = self.__runs.values()
 
-        return now(), list(filter(runs))
+        return now(), [ r for r in runs if predicate(r) ]
 
 
     def query(self, **filter_args):
         """
         :keywords:
-          See `_RunsFilter.__init__.
+          See `_RunPredicate.__init__.
         """
-        return self._query_filter(_RunsFilter(**filter_args))
+        return self._query_filter(_RunPredicate(**filter_args))
 
 
     @contextmanager
     def query_live(self, **filter_args):
         """
         :keywords:
-          See `_RunsFilter.__init__.
+          See `_RunPredicate.__init__.
         """
-        runs_filter = _RunsFilter(**filter_args)
-        predicate = lambda m: (m[0], list(runs_filter(m[1])))
+        predicate = _RunPredicate(**filter_args)
+        msg_predicate = lambda m: (m[0], predicate(m[1]))
 
         # Subscribe to future runs.
-        with self.__publisher.subscription(predicate=predicate) as sub:
+        with self.__publisher.subscription(predicate=msg_predicate) as sub:
             # Publish current runs first.
-            when, runs = self._query_filter(runs_filter)
+            when, runs = self._query_filter(predicate)
             sub.publish((when, runs))
 
             yield sub
