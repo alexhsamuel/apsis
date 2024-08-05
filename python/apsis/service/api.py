@@ -472,7 +472,7 @@ async def websocket_runs(request, ws):
                         done = True
                         break
 
-            if sub.ended:
+            if sub.closed:
                 # Signalled to shut down.
                 await ws.close()
                 done = True

@@ -163,7 +163,7 @@ class Publisher:
     Manages multiple filtered subscriptions to a publication stream.
     """
 
-    _END = object()
+    _CLOSE = object()
 
     def __init__(self):
         # Current subscriptions.
@@ -173,12 +173,14 @@ class Publisher:
     class Subscription:
         """
         Async iterable and iterator of events sent to one subscription.
+
+        Iteration continues until the publisher closes.
         """
 
         def __init__(self, predicate):
-            self.__predicate = predicate
-            self.__msgs = asyncio.Queue()
-            self.__ended = False
+            self.__predicate    = predicate
+            self.__msgs         = asyncio.Queue()
+            self.__closed       = False
 
 
         def publish(self, msg):
@@ -186,13 +188,13 @@ class Publisher:
                 self.__msgs.put_nowait(msg)
 
 
-        def _end(self):
-            self.__msgs.put_nowait(Publisher._END)
+        def _close(self):
+            self.__msgs.put_nowait(Publisher._CLOSE)
 
 
         @property
-        def ended(self):
-            return self.__ended
+        def closed(self):
+            return self.__closed
 
 
         @property
@@ -205,11 +207,11 @@ class Publisher:
 
 
         def __anext__(self):
-            if self.__ended:
+            if self.__closed:
                 raise StopAsyncIteration()
             msg = self.__msgs.get()
-            if msg is Publisher._END:
-                self.__ended = True
+            if msg is Publisher._CLOSE:
+                self.__closed = True
                 raise StopAsyncIteration()
             else:
                 return msg
@@ -220,14 +222,14 @@ class Publisher:
             Returns all available elements, without waiting.
             """
             msgs = []
-            while not self.__ended:
+            while not self.__closed:
                 try:
                     msg = self.__msgs.get_nowait()
                 except asyncio.QueueEmpty:
                     break
                 else:
-                    if msg is Publisher._END:
-                        self.__ended = True
+                    if msg is Publisher._CLOSE:
+                        self.__closed = True
                     else:
                         msgs.append(msg)
             return msgs
@@ -261,9 +263,14 @@ class Publisher:
             sub.publish(msg)
 
 
-    def end(self):
+    def close(self):
+        """
+        Closes the publisher.
+
+        Ends all subscriber iterations once exhausted.
+        """
         for sub in self.__subs:
-            sub._end()
+            sub._close()
 
 
     @property

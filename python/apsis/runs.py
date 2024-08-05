@@ -515,7 +515,7 @@ class RunStore:
         """
         Terminates any live queries.
         """
-        self.__publisher.end()
+        self.__publisher.close()
 
 
     def get_stats(self):
