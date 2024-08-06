@@ -168,6 +168,7 @@ class Publisher:
     def __init__(self):
         # Current subscriptions.
         self.__subs = set()
+        self.__closed = False
 
 
     class Subscription:
@@ -206,10 +207,10 @@ class Publisher:
             return self
 
 
-        def __anext__(self):
+        async def __anext__(self):
             if self.__closed:
                 raise StopAsyncIteration()
-            msg = self.__msgs.get()
+            msg = await self.__msgs.get()
             if msg is Publisher._CLOSE:
                 self.__closed = True
                 raise StopAsyncIteration()
@@ -251,6 +252,8 @@ class Publisher:
         subscription = self.Subscription(predicate)
         # Register the subscription.
         self.__subs.add(subscription)
+        if self.__closed:
+            subscription._close()
         try:
             yield subscription
         finally:
@@ -259,6 +262,8 @@ class Publisher:
 
 
     def publish(self, msg):
+        if self.__closed:
+            raise RuntimeError("publisher is closed")
         for sub in self.__subs:
             sub.publish(msg)
 
@@ -269,12 +274,14 @@ class Publisher:
 
         Ends all subscriber iterations once exhausted.
         """
-        for sub in self.__subs:
-            sub._close()
+        if not self.__closed:
+            for sub in self.__subs:
+                sub._close()
+            self.__closed = True
 
 
     @property
-    def num_queues(self):
+    def num_subs(self):
         return len(self.__subs)
 
 
