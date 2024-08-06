@@ -521,7 +521,7 @@ class RunStore:
     def get_stats(self):
         return {
             "num_runs"      : len(self.__runs),
-            "num_queues"    : self.__publisher.num_queues,
+            "num_queues"    : self.__publisher.num_subs,
             "len_queues"    : self.__publisher.len_queues,
         }
 
