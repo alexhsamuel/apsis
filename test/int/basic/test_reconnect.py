@@ -15,7 +15,7 @@ def test_reconnect(tmpdir):
         inst.wait_for_serve()
 
         run_ids = [
-            inst.client.schedule("sleep", {"time": 1})["run_id"]
+            inst.client.schedule("sleep", {"time": 2})["run_id"]
             for _ in range(8)
         ]
         for run_id in run_ids:

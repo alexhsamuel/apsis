@@ -7,6 +7,7 @@ from   ora import now, Time
 import shlex
 
 from   . import states
+from   .lib.asyn import Publisher
 from   .lib.calendar import get_calendar
 from   .lib.memo import memoize
 from   .lib.py import format_ctor, iterize
@@ -278,19 +279,19 @@ def get_bind_args(run):
 
 #-------------------------------------------------------------------------------
 
-class _RunsFilter:
+class _RunPredicate:
     """
-    Filter predicate for an iterable of runs.
+    Filter predicate for a run.
     """
 
     def __init__(
             self, *,
-            run_ids=None,
-            job_id=None,
-            state=None,
-            since=None,
-            args=None,
-            with_args=None,
+            run_ids     =None,
+            job_id      =None,
+            state       =None,
+            since       =None,
+            args        =None,
+            with_args   =None,
     ):
         """
         :param state:
@@ -310,38 +311,18 @@ class _RunsFilter:
         self.with_args  = None if with_args is None else to_map(with_args)
 
 
-    def __call__(self, runs):
-        if self.run_ids is not None:
-            run_ids = self.run_ids
-            runs = ( r for r in runs if r.run_id in run_ids )
-
-        if self.job_id is not None:
-            job_id = self.job_id
-            runs = ( r for r in runs if r.inst.job_id == job_id )
-
-        if self.state is not None:
-            state = self.state
-            runs = ( r for r in runs if r.state in state )
-
-        if self.since is not None:
-            since = self.since
-            runs = ( r for r in runs if r.timestamp >= since )
-
-        if self.args is not None:
-            args = self.args
-            runs = ( r for r in runs if r.inst.args == args )
-
-        if self.with_args is not None:
-            with_args = self.with_args
-            runs = (
-                r for r in runs
-                if all(
-                        r.inst.args.get(k, None) == v
-                        for k, v in with_args.items()
-                )
-            )
-
-        return runs
+    def __call__(self, run):
+        return (
+                (self.run_ids   is None or run.run_id in self.run_ids)
+            and (self.job_id    is None or run.inst.job_id == self.job_id)
+            and (self.state     is None or run.state in self.state)
+            and (self.since     is None or run.timestamp >= self.since)
+            and (self.args      is None or run.inst.args == self.args)
+            and (self.with_args is None or all(
+                run.inst.args.get(k) == v
+                for k, v in self.with_args.items()
+            ))
+        )
 
 
 
@@ -374,18 +355,15 @@ class RunStore:
         for run in self.__runs.values():
             self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
-        # For live notification.
-        self.__queues = set()
+        # For live notification.  Messages are runs that have transitioned.
+        self.__publisher = Publisher()
 
 
-    def __send(self, when, run):
+    def __send(self, run):
         """
         Sends live notification of changes to `run`.
         """
-        for filter, queue in self.__queues:
-            filtered_run = list(filter([run]))
-            if len(filtered_run) > 0:
-                queue.put_nowait((when, filtered_run))
+        self.__publisher.publish(run)
 
 
     def add(self, run):
@@ -404,6 +382,7 @@ class RunStore:
         self.update(run, timestamp)
 
 
+    # FIXME: Remove timestamp.
     def update(self, run, timestamp):
         """
         Called when `run` is changed.
@@ -420,7 +399,7 @@ class RunStore:
         if not run.expected:
             self.__run_db.upsert(run)
 
-        self.__send(timestamp, run)
+        self.__send(run)
 
 
     def remove(self, run_id, *, expected=True):
@@ -438,7 +417,7 @@ class RunStore:
         # Indicate deletion with none state.
         # FIXME: What a horrible hack.
         run.state = None
-        self.__send(now(), run)
+        self.__send(run)
         return run
 
 
@@ -484,76 +463,66 @@ class RunStore:
         return now(), run
 
 
-    def _query_filter(self, filter):
+    def _query_filter(self, predicate):
         """
-        Queries using a `_RunsFilter`.
+        Queries using a `_RunPredicate`.
         """
-        if filter.run_ids is not None:
+        if predicate.run_ids is not None:
             # Fast path if the query is by run IDs.
-            runs = ( self.__runs.get(i, None) for i in filter.run_ids )
-            runs = ( r for r in runs if r is not None )
-        elif filter.job_id is not None:
+            runs = (
+                r
+                for i in predicate.run_ids
+                if (r := self.__runs.get(i)) is not None
+            )
+        elif predicate.job_id is not None:
             # Fast path if the query is by job ID.
-            runs = iter(self.__runs_by_job.get(filter.job_id, ()))
+            runs = iter(self.__runs_by_job.get(predicate.job_id, ()))
         else:
             # Slow path: scan.
             runs = self.__runs.values()
 
-        return now(), list(filter(runs))
+        return now(), [ r for r in runs if predicate(r) ]
 
 
+    # FIXME: Remove `when` from the result; I think we don't use it.
     def query(self, **filter_args):
         """
         :keywords:
-          See `_RunsFilter.__init__.
+          See `_RunPredicate.__init__.
         """
-        return self._query_filter(_RunsFilter(**filter_args))
+        return self._query_filter(_RunPredicate(**filter_args))
 
 
     @contextmanager
     def query_live(self, **filter_args):
         """
         :keywords:
-          See `_RunsFilter.__init__.
+          See `_RunPredicate.__init__.
         """
-        filter = _RunsFilter(**filter_args)
+        predicate = _RunPredicate(**filter_args)
 
-        queue = asyncio.Queue()
-        self.__queues.add((filter, queue))
+        # Subscribe to future runs.
+        with self.__publisher.subscription(predicate=predicate) as sub:
+            # Publish current runs first.
+            _, runs = self._query_filter(predicate)
+            for run in runs:
+                sub.publish(run)
 
-        when, runs = self._query_filter(filter)
-        if len(runs) > 0:
-            queue.put_nowait((when, runs))
-
-        try:
-            yield queue
-        finally:
-            self.__queues.remove((filter, queue))
+            yield sub
 
 
     async def shut_down(self):
         """
         Terminates any live queries.
         """
-        while True:
-            try:
-                _, queue = next(iter(self.__queues))
-            except StopIteration:
-                break
-
-            # Indicate that this queue is shutting down.
-            queue.put_nowait(None)
-            # FIXME: Join doesn't seem to work.
-            # await queue.join()
-            await asyncio.sleep(0.5)
-            log.info("live query queue shut down")
+        self.__publisher.close()
 
 
     def get_stats(self):
         return {
             "num_runs"      : len(self.__runs),
-            "num_queues"    : len(self.__queues),
-            "len_queues"    : sum( q.qsize() for _, q in self.__queues ),
+            "num_queues"    : self.__publisher.num_subs,
+            "len_queues"    : self.__publisher.len_queues,
         }
 
 

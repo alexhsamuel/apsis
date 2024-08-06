@@ -397,27 +397,6 @@ async def run_mark(request, run_id, state):
     return response_json({})
 
 
-def _filter_runs(runs, args):
-    """
-    Constructs a filter for runs from query args.
-    """
-    try:
-        run_id, = args["run_id"]
-    except KeyError:
-        pass
-    else:
-        runs = ( r for r in runs if r.run_id == run_id )
-
-    try:
-        job_id, = args["job_id"]
-    except KeyError:
-        pass
-    else:
-        runs = ( r for r in runs if r.inst.job_id == job_id )
-
-    return runs
-
-
 @API.route("/runs")
 async def runs(request):
     apsis = request.app.apsis
@@ -450,53 +429,53 @@ async def runs(request):
 
 @API.websocket("/ws/runs")
 async def websocket_runs(request, ws):
-    since, = request.args.pop("since", (None, ))
-
     log.info("live runs connect")
-    with request.app.apsis.run_store.query_live(since=since) as queue:
-        while True:
-            # FIXME: If the socket closes, clean up instead of blocking until
-            # the next run is available.  Not sure how to do this.  ws.ping()
-            # with a timeout doesn't appear to work.
-            next_runs = [await queue.get()]
-            # Sleep a short while to allow additional runs to enqueue.  This
-            # avoids sending lots of short messages to the client.
-            await asyncio.sleep(0.5)
-            # Drain the queue.
-            while True:
-                try:
-                    next_runs.append(queue.get_nowait())
-                except asyncio.QueueEmpty:
-                    break
+    done = False
 
-            if any( r is None for r in next_runs ):
-                # Signalled to shut down.
-                await ws.close()
-                break
+    run_id  = request.args.get("run_id")
+    job_id  = request.args.get("job_id")
 
-            when = next_runs[-1][0]
-            assert all( w <= when for w, _ in next_runs )
-            runs = apsis.lib.itr.chain.from_iterable( r for _, r in next_runs )
-            runs = _filter_runs(runs, request.args)
+    with request.app.apsis.run_store.query_live(
+            run_ids=None if run_id is None else [run_id],
+            job_id=job_id,
+    ) as sub:
+        while not done:
+            try:
+                # FIXME: If the socket closes, clean up instead of blocking until
+                # the next run is available.  Not sure how to do this.  ws.ping()
+                # with a timeout doesn't appear to work.
+                run = await anext(sub)
+            except StopAsyncIteration:
+                runs = []
+            else:
+                # Sleep a short while to allow additional runs to enqueue, then
+                # drain them.  This avoids sending lots of short messages to the
+                # client.
+                await asyncio.sleep(0.5)
+                runs = [run]
+                runs.extend(sub.drain())
 
             # Break large sets into chunks, to avoid block for too long.
-            chunks = list(apsis.lib.itr.chunks(runs, WS_RUN_CHUNK))
-            if len(chunks) == 0:
-                continue
+            for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
+                with Timer() as timer:
+                    # FIXME: when=ora.now() is bogus, but we don't need it.
+                    jso = runs_to_jso(request.app, ora.now(), chunk, summary=True)
+                    # FIXME: JSOs are cached but ujson.dumps() still takes real
+                    # time.
+                    json = ujson.dumps(jso, escape_forward_slashes=False)
+                    try:
+                        log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
+                        await ws.send(json)
+                        await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
+                    except websockets.ConnectionClosed:
+                        log.info("websocket connection closed")
+                        done = True
+                        break
 
-            try:
-                for chunk in chunks:
-                    with Timer() as timer:
-                        jso = runs_to_jso(request.app, when, chunk, summary=True)
-                        # FIXME: JSOs are cached but ujson.dumps() still takes real
-                        # time.
-                        json = ujson.dumps(jso, escape_forward_slashes=False)
-                    log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
-                    await ws.send(json)
-                    await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
-            except websockets.ConnectionClosed:
-                log.info("websocket connection closed")
-                break
+            if sub.closed:
+                # Signalled to shut down.
+                await ws.close()
+                done = True
 
     log.info("live runs disconnect")
 

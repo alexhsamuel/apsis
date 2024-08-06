@@ -1,5 +1,5 @@
 import asyncio
-from   contextlib import suppress
+from   contextlib import contextmanager, suppress
 
 #-------------------------------------------------------------------------------
 
@@ -154,5 +154,140 @@ async def communicate(proc, timeout=None):
         raise
 
     return b"".join(out), b"".join(err)
+
+
+#-------------------------------------------------------------------------------
+
+class Publisher:
+    """
+    Manages multiple filtered subscriptions to a publication stream.
+    """
+
+    _CLOSE = object()
+
+    def __init__(self):
+        # Current subscriptions.
+        self.__subs = set()
+        self.__closed = False
+
+
+    class Subscription:
+        """
+        Async iterable and iterator of events sent to one subscription.
+
+        Iteration continues until the publisher closes.
+        """
+
+        def __init__(self, predicate):
+            self.__predicate    = predicate
+            self.__msgs         = asyncio.Queue()
+            self.__closed       = False
+
+
+        def publish(self, msg):
+            if self.__predicate is None or self.__predicate(msg):
+                self.__msgs.put_nowait(msg)
+
+
+        def _close(self):
+            self.__msgs.put_nowait(Publisher._CLOSE)
+
+
+        @property
+        def closed(self):
+            return self.__closed
+
+
+        @property
+        def len_queue(self):
+            return self.__msgs.qsize()
+
+
+        def __aiter__(self):
+            return self
+
+
+        async def __anext__(self):
+            if self.__closed:
+                raise StopAsyncIteration()
+            msg = await self.__msgs.get()
+            if msg is Publisher._CLOSE:
+                self.__closed = True
+                raise StopAsyncIteration()
+            else:
+                return msg
+
+
+        def drain(self):
+            """
+            Returns all available elements, without waiting.
+            """
+            msgs = []
+            while not self.__closed:
+                try:
+                    msg = self.__msgs.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+                else:
+                    if msg is Publisher._CLOSE:
+                        self.__closed = True
+                    else:
+                        msgs.append(msg)
+            return msgs
+
+
+
+    @contextmanager
+    def subscription(self, *, predicate=None):
+        """
+        Context manager for a subscription.
+
+        :param predicate:
+          Predicate function to apply to published messages for inclusion in
+          this subscription, or none for all messages.
+        """
+        if not (predicate is None or callable(predicate)):
+            raise TypeError("predicate must be none or callable")
+
+        subscription = self.Subscription(predicate)
+        # Register the subscription.
+        self.__subs.add(subscription)
+        if self.__closed:
+            subscription._close()
+        try:
+            yield subscription
+        finally:
+            # Unregister the subscription.
+            self.__subs.remove(subscription)
+
+
+    def publish(self, msg):
+        if self.__closed:
+            raise RuntimeError("publisher is closed")
+        for sub in self.__subs:
+            sub.publish(msg)
+
+
+    def close(self):
+        """
+        Closes the publisher.
+
+        Ends all subscriber iterations once exhausted.
+        """
+        if not self.__closed:
+            for sub in self.__subs:
+                sub._close()
+            self.__closed = True
+
+
+    @property
+    def num_subs(self):
+        return len(self.__subs)
+
+
+    @property
+    def len_queues(self):
+        return sum( s.len_queue for s in self.__subs )
+
 
 
