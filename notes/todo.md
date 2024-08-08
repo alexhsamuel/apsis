@@ -11,9 +11,23 @@ Persistent connection:
 - run changes (run summaries only)
 - job changes
 
-Transient connection:
-- run log updates (single run)
-- run data updates (single run)
+Transient connection (single run):
+- run log updates
+- run output data updates
+- run metadata updates
+
+
+### The Plan
+
+- [ ] change `/ws/runs` endpoint to transitions only
+- [ ] add `/ws/run/<run_id>` endpoint
+  - [ ] option to send initial values
+  - [ ] metadata updates
+  - [ ] run log updates
+  - [ ] program output updates
+
+- [ ] move run operations to UIs (web, CLUI)
+- [ ] remove `run.message` from JSON run summary
 
 
 # Cleanup
