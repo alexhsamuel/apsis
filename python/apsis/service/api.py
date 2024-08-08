@@ -417,10 +417,10 @@ async def runs(request):
     args = { n[1 :] if n.startswith("_") else n: a[-1] for n, a in args.items() }
 
     when, runs = apsis.run_store.query(
-        run_ids     =run_id, 
+        run_ids     =run_id,
         job_id      =job_id,
         state       =to_state(state),
-        since       =since, 
+        since       =since,
         with_args   =args,
     )
 
