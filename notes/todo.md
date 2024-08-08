@@ -27,6 +27,7 @@ Transient connection (single run):
   - [ ] metadata updates
   - [ ] run log updates
   - [ ] program output updates
+- [ ] retire `RunsSocket` in favor of `JsonSocket`
 
 - [ ] move run operations to UIs (web, CLUI)
 - [ ] remove `run.message` from JSON run summary
