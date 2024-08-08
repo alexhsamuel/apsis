@@ -43,14 +43,10 @@ export default class RunsSocket {
       this.websocket.close()
   }
 
-  static get_url(run_id, job_id) {
+  static get_url() {
     const url = new URL(location)
     url.protocol = 'ws'
     url.pathname = '/api/v1/ws/runs'
-    if (run_id !== undefined)
-      url.searchParams.set('run_id', run_id)
-    if (job_id !== undefined)
-      url.searchParams.set('job_id', job_id)
     return url
   }
 }
