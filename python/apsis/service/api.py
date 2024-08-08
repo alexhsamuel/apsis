@@ -7,6 +7,7 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
+from   apsis.lib import asyn
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
@@ -440,20 +441,13 @@ async def websocket_runs(request, ws):
             job_id=job_id,
     ) as sub:
         while not done:
-            try:
-                # FIXME: If the socket closes, clean up instead of blocking until
-                # the next run is available.  Not sure how to do this.  ws.ping()
-                # with a timeout doesn't appear to work.
-                run = await anext(sub)
-            except StopAsyncIteration:
-                runs = []
-            else:
-                # Sleep a short while to allow additional runs to enqueue, then
-                # drain them.  This avoids sending lots of short messages to the
-                # client.
-                await asyncio.sleep(0.5)
-                runs = [run]
-                runs.extend(sub.drain())
+            # FIXME: If the socket closes, clean up instead of blocking until
+            # the next run is available.  Not sure how to do this.  ws.ping()
+            # with a timeout doesn't appear to work.
+
+            # Wait for the next run, then grab all runs that show up in a short
+            # time.  This avoids sending lots of short messages.
+            runs = await asyn.anext_and_drain(sub, 0.5)
 
             # Break large sets into chunks, to avoid block for too long.
             for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
