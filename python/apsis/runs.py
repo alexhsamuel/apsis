@@ -355,15 +355,9 @@ class RunStore:
         for run in self.__runs.values():
             self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
+        # FIXME: Remove this after transitioning to Apsis.updates.
         # For live notification.  Messages are runs that have transitioned.
         self.__publisher = Publisher()
-
-
-    def __send(self, run):
-        """
-        Sends live notification of changes to `run`.
-        """
-        self.__publisher.publish(run)
 
 
     def add(self, run):
@@ -399,7 +393,7 @@ class RunStore:
         if not run.expected:
             self.__run_db.upsert(run)
 
-        self.__send(run)
+        self.__publisher.publish(run)
 
 
     def remove(self, run_id, *, expected=True):
@@ -417,7 +411,7 @@ class RunStore:
         # Indicate deletion with none state.
         # FIXME: What a horrible hack.
         run.state = None
-        self.__send(run)
+        self.__publisher.publish(run)
         return run
 
 
