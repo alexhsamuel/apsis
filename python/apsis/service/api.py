@@ -17,9 +17,12 @@ from   ..runs import Instance, Run, RunError
 
 log = logging.getLogger(__name__)
 
-# Max number of runs to send in one websocket message.
-WS_RUN_CHUNK = 4096
-WS_RUN_CHUNK_SLEEP = 0.001
+# Time to wait for new items to arrive when bundling a websocket message.
+WS_DRAIN_TIME = 0.5
+# Max number of items to send in one websocket message.
+WS_CHUNK = 4096
+# Time to sleep between websocket messages.
+WS_CHUNK_SLEEP = 0.001
 
 #-------------------------------------------------------------------------------
 
@@ -443,10 +446,11 @@ async def websocket_runs(request, ws):
 
             # Wait for the next run, then grab all runs that show up in a short
             # time.  This avoids sending lots of short messages.
-            runs = await asyn.anext_and_drain(sub, 0.5)
+            runs = await asyn.anext_and_drain(sub, WS_DRAIN_TIME)
+
 
             # Break large sets into chunks, to avoid block for too long.
-            for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
+            for chunk in apsis.lib.itr.chunks(runs, WS_CHUNK):
                 # FIXME: when=ora.now() is bogus, but we don't need it.
                 jso = runs_to_jso(request.app, ora.now(), chunk, summary=True)
                 json = ujson.dumps(jso, escape_forward_slashes=False)
@@ -454,7 +458,7 @@ async def websocket_runs(request, ws):
                     log.debug(f"{prefix} sending {len(chunk)} runs, {len(json)} bytes")
                     await ws.send(json)
                     # Take a break, let others go.
-                    await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
+                    await asyncio.sleep(WS_CHUNK_SLEEP)
                 except websockets.ConnectionClosed:
                     log.debug(f"{prefix} closed")
                     done = True
