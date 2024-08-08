@@ -1,37 +1,82 @@
 # API endpoints
 
+## Run schema
+
+Immutable:
+- run_id
+- job_id
+- args
+- labels (extracted from job metadata)
+
+Immutable but not part of summary:
+- program
+- conditions
+- actions
+
+Mutable on transition only:
+- state
+- times
+- expected
+
+Mutable anytime:
+- metadata
+- run log
+- output
+
+
 ## Messages
 
+A `run_summary` message is sent when a new run is created or when a run
+transitions.
 ```js
 {
-  "type": "transition",
+  "type": "run_summary",
   "run_summary": {
-    "run_id": ...,
+    # Immutable
     "job_id": ...,
     "args": [...],
+    "labels": [...],
+    # Mutable on transition
     "state": ...,
     "times": {...},
-    "labels": [...],
     "expected": true,  # optional; omitted if false
   }
 }
 ```
 
-
-
-A `metadata` message carries the entire latest metadata for a run.
 ```js
 {
-  "type": "metadata",
+  "type": "run",
+  "run": {
+    ..., # as per run_summary
+    "program": {...},
+    "conditions": {...},
+    "actions": {...},
+  }
+}
+```
+
+```js
+{
+  "type": "run_delete",
+  "run_id": ...
+}
+```
+
+
+A `run_metadata` message carries the entire latest metadata for a run.
+```js
+{
+  "type": "run_metadata",
   "run_id": ...,
   "metadata": {...},
 }
 ```
 
-An `output` messages carries partial or complete output data for a run.
+An `run_output` messages carries partial or complete output data for a run.
 ```js
 {
-  "type": "output",
+  "type": "run_output",
   "run_id": ...,
   "output_id": "output",
   ... # TBD

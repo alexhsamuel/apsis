@@ -19,6 +19,8 @@ Transient connection (single run):
 
 ### The Plan
 
+- [ ] design internal run publisher protocol
+  - use the same JSO sent from API endpoints
 - [ ] change `/ws/runs` endpoint to transitions only
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values
@@ -28,6 +30,11 @@ Transient connection (single run):
 
 - [ ] move run operations to UIs (web, CLUI)
 - [ ] remove `run.message` from JSON run summary
+- [ ] add live endpoints to `Client`
+- [ ] live updates in CLUI
+  - [ ] single run transition
+  - [ ] output
+  - [ ] run log
 
 
 # Cleanup

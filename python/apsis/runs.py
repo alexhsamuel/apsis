@@ -338,7 +338,7 @@ class RunStore:
 
     - Stores runs in all states.
     - Satisfyies run queries.
-    - Serves live queries of runs.
+    - Publishes updates to runs.
     """
 
     def __init__(self, db, *, min_timestamp):
