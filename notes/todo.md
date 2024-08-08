@@ -19,7 +19,7 @@ Transient connection (single run):
 
 ### The Plan
 
-- [ ] design internal run publisher protocol
+- [x] design internal run publisher protocol
   - use the same JSO sent from API endpoints
 - [ ] change `/ws/runs` endpoint to transitions only
 - [ ] add `/ws/run/<run_id>` endpoint

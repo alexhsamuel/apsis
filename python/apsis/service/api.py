@@ -430,17 +430,11 @@ async def runs(request):
 
 @API.websocket("/ws/runs")
 async def websocket_runs(request, ws):
-    run_id  = request.args.get("run_id")
-    job_id  = request.args.get("job_id")
-
     addr, port = request.socket
     prefix = f"/ws/runs {addr}:{port}:"
     log.debug(f"{prefix} connected")
 
-    with request.app.apsis.run_store.query_live(
-            run_ids=None if run_id is None else [run_id],
-            job_id=job_id,
-    ) as sub:
+    with request.app.apsis.run_store.query_live() as sub:
         done = False
         while not done:
             # FIXME: If the socket closes, clean up instead of blocking until
