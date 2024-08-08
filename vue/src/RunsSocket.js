@@ -12,16 +12,16 @@ export default class RunsSocket {
     if (this.websocket)
       return
 
-    console.log('run web socket: opening ' + this.url)
+    console.log('runs web socket: opening ' + this.url)
     this.websocket = new WebSocket(this.url)
 
     this.websocket.onopen = () => {
-      console.log('run web socket: connected')
+      console.log('runs web socket: connected')
       this.onConnect()
     }
 
     this.websocket.onerror = (event) => {
-      console.log('run web socket: error:', event)
+      console.log('runs web socket: error:', event)
       this.onErr(event)
       this.websocket.close()
     }
@@ -32,7 +32,7 @@ export default class RunsSocket {
     }
 
     this.websocket.onclose = () => {
-      console.log('run web socket: closed')
+      console.log('runs web socket: closed')
       this.websocket = null
       setTimeout(() => this.open(), 1000)
     }
