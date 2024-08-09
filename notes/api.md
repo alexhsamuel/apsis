@@ -47,6 +47,7 @@ transitions.
 ```js
 {
   "type": "run",
+  "run_id": ...,
   "run": {
     ..., # as per run_summary
     "program": {...},

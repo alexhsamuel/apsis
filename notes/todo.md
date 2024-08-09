@@ -21,16 +21,25 @@ Transient connection (single run):
 
 - [x] design internal run publisher protocol
   - use the same JSO sent from API endpoints
-- [ ] change `/ws/runs` endpoint to transitions only
+- [x] new `/summary` websocket endpoint for transitions only
+- [ ] add job updates to `/summary`
+- [ ] in web UI, put jobs in store and process updates
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values
   - [ ] metadata updates
   - [ ] run log updates
   - [ ] program output updates
-- [ ] retire `RunsSocket` in favor of `JsonSocket`
-
-- [ ] move run operations to UIs (web, CLUI)
-- [ ] remove `run.message` from JSON run summary
+- [ ] move run operations to UIs
+  - [x] web UI
+  - [ ] CLUI
+- [x] remove `run.message` from JSON run summary
+- [x] retire `RunsSocket` in favor of `JsonSocket`
+- [x] retire `/ws/runs/` endpoint
+- [x] retire `_jso_cache`
+- [ ] retire `RunStore.query_live`
+- [ ] retire `RunStore` publisher
+- [ ] roll in Procstar agent changes to `/summary`
+- [ ] roll in, or get rid of, log socket
 - [ ] add live endpoints to `Client`
 - [ ] live updates in CLUI
   - [ ] single run transition

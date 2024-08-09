@@ -158,7 +158,7 @@ class Run:
         "meta",
         "message",
         "run_state",
-        "_jso_cache",
+        "_summary_jso_cache",
         "_rowid",
     )
 
@@ -188,7 +188,7 @@ class Run:
         self.run_state  = None
 
         # Cached summary JSO object.
-        self._jso_cache = None
+        self._summary_jso_cache = None
 
 
     def __hash__(self):
@@ -243,7 +243,7 @@ class Run:
         self.state = state
 
         # Discard cached JSO.  Used by run_summary_to_json().
-        self._jso_cache = None
+        self._summary_jso_cache = None
 
 
 

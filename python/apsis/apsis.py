@@ -11,7 +11,8 @@ from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib.asyn import cancel_task, TaskGroup
+from   .lib import api
+from   .lib.asyn import cancel_task, TaskGroup, Publisher
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
@@ -77,6 +78,9 @@ class Apsis:
         else:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
+
+        # Publisher for updates.
+        self.publisher = Publisher()
 
         procstar_cfg = cfg.get("procstar", {}).get("agent", {})
         if procstar_cfg.get("enable", False):
@@ -547,6 +551,7 @@ class Apsis:
                 self.outputs.write(run.run_id, output_id, output)
 
         self.run_store.update(run, now())
+        # FIXME: Publish.
 
 
     def _transition(self, run, state, *, outputs={}, **kw_args):
@@ -566,9 +571,13 @@ class Apsis:
         # Persist outputs.
         for output_id, output in outputs.items():
             self.outputs.write_through(run.run_id, output_id, output)
+            # FIXME: Publish.
 
         # Persist the new state.
         self.run_store.update(run, time)
+
+        # Let subscribers know.
+        self.publisher.publish(api.make_run_summary(run))
 
         self.__start_actions(run)
 
@@ -838,6 +847,7 @@ def _unschedule_runs(apsis, job_id):
         log.info(f"removing: {run.run_id}")
         apsis.scheduled.unschedule(run)
         apsis.run_store.remove(run.run_id)
+        apsis.publisher.publish(api.make_run_delete(run))
 
 
 async def reschedule_runs(apsis, job_id):

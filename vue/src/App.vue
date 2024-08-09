@@ -6,10 +6,11 @@
 </template>
 
 <script>
+import * as api from '@/api'
 import ErrorToast from '@/components/ErrorToast'
 import navbar from '@/components/navbar'
+import JsonSocket from '@/JsonSocket.js'
 import LiveLog from '@/LiveLog.js'
-import RunsSocket from '@/RunsSocket'
 import store from '@/store.js'
 import { updateRuns } from '@/runs.js'
 
@@ -23,7 +24,7 @@ export default {
   data() {
     return {
       liveLog: null,
-      runsSocket: null,
+      summarySocket: null,
       store,
     }
   },
@@ -31,16 +32,20 @@ export default {
   created() {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
     const store = this.store
-    this.runsSocket = new RunsSocket(
+
+    console.log('creating summary socket', api.getSummaryUrl())
+    this.summarySocket = new JsonSocket(
+      api.getSummaryUrl(true),
       msg => updateRuns(msg, store.state),
       () => store.state.errors.pop('connection error'),
       this.showToastError,
     )
+    this.summarySocket.open()
   },
 
   destroyed() {
     this.liveLog.close()
-    this.runsSocket.close()
+    this.summarySocket.close()
   },
 
   methods: {

@@ -210,12 +210,12 @@ div
             td.col-elapsed
               RunElapsed(:run="run")
             td.col-operations
-              HamburgerMenu(v-if="run.operations.length > 0")
+              HamburgerMenu(v-if="OPERATIONS[run.state].length > 0")
                 OperationButton(
-                  v-for="operation in run.operations" 
+                  v-for="operation in OPERATIONS[run.state]"
                   :key="operation"
                   :run_id="run.run_id"
-                  :operation="operation" 
+                  :operation="operation"
                   :button="true"
                 )
 
@@ -232,7 +232,7 @@ div
 <script>
 import { entries, filter, flatten, groupBy, includes, isEqual, keys, map, sortBy, sortedIndexBy, uniq } from 'lodash'
 
-import { argsToArray, arrayToArgs, matchKeywords, includesAll } from '@/runs'
+import { argsToArray, arrayToArgs, matchKeywords, includesAll, OPERATIONS } from '@/runs'
 import { formatDuration, formatElapsed, formatTime } from '@/time'
 import DropList from '@/components/DropList'
 import HamburgerMenu from '@/components/HamburgerMenu'
@@ -282,11 +282,11 @@ function getArgPredicate(args) {
   }
 }
 
-export default { 
+export default {
   name: 'RunsList',
   props: {
     query: {type: Object, default: null},
-    
+
     // If true, show the job ID column.
     showJob: {type: Boolean, default: true},
 
@@ -328,11 +328,12 @@ export default {
   },
 
   data() {
-    return { 
+    return {
       store,
       // If true, show profiling on console.log.
       profile: false,
       COUNTS,
+      OPERATIONS,
 
       args: null,        // no arg filters
       asc: true,         // show time descending
