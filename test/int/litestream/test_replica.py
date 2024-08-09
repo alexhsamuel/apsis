@@ -195,16 +195,13 @@ def test_replica_killing_apsis_and_litestream_with_heavy_load():
 
             client = inst.client
             # populate apsis db with a large number of runs
-            with ThreadPoolExecutor() as exe:
-                runs_fut = [exe.submit(client.schedule, "sleep", {"duration": "9"}) for _ in range(num_jobs)]
-                sched_runs_fut = [exe.submit(client.schedule, "sleep", {"duration": "1"}, time=ora.now() + 14) for _ in range(num_jobs)]
-                runs_ids = [fut.result()["run_id"] for fut in as_completed(runs_fut)]
-                sched_runs_ids = [fut.result()["run_id"] for fut in as_completed(sched_runs_fut)]
+            runs_ids = [client.schedule("sleep", {"duration": "9"})["run_id"] for _ in range(num_jobs)]
+            sched_runs_ids = [client.schedule("sleep", {"duration": "1"}, time=ora.now() + 14)["run_id"] for _ in range(num_jobs)]
 
-                runs_states = [exe.submit(client.get_run, r) for r in runs_ids]
-                sched_runs_states = [exe.submit(client.get_run, r) for r in sched_runs_ids]
-                assert all(fut.result()["state"] == "running" for fut in as_completed(runs_states))
-                assert all(fut.result()["state"] == "scheduled" for fut in as_completed(sched_runs_states))
+            runs = [client.get_run(r) for r in runs_ids]
+            sched_runs = [client.get_run(r) for r in sched_runs_ids]
+            assert all(run["state"] == "running" for run in runs)
+            assert all(run["state"] == "scheduled" for run in sched_runs)
 
             # kill Apsis and Litestream
             sleep(1)
@@ -230,15 +227,14 @@ def test_replica_killing_apsis_and_litestream_with_heavy_load():
         assert any( restored_db_name in l for l in log )
         sleep(1)
 
-        with ThreadPoolExecutor() as exe:
-            # check runs are still in the right state after reconnecting to the new Apsis instance
-            runs_states = [exe.submit(client.get_run, r) for r in runs_ids]
-            sched_runs_states = [exe.submit(client.get_run, r) for r in sched_runs_ids]
-            assert all(fut.result()["state"] == "running" for fut in as_completed(runs_states))
-            assert all(fut.result()["state"] == "scheduled" for fut in as_completed(sched_runs_states))
+        # check runs are still in the right state after reconnecting to the new Apsis instance
+        runs = [client.get_run(r) for r in runs_ids]
+        sched_runs = [client.get_run(r) for r in sched_runs_ids]
+        assert all(run["state"] == "running" for run in runs)
+        assert all(run["state"] == "scheduled" for run in sched_runs)
 
-            # check all runs eventually complete successfully
-            all_runs_results = [exe.submit(inst.wait_run, r) for r in runs_ids + sched_runs_ids]
-            assert all(fut.result()["state"] == "success" for fut in as_completed(all_runs_results))
+        # check all runs eventually complete successfully
+        all_runs_results = [inst.wait_run(r) for r in runs_ids + sched_runs_ids]
+        assert all(run["state"] == "success" for run in all_runs_results)
 
         inst.stop_serve()
