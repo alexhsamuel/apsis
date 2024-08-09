@@ -300,7 +300,9 @@ class Apsis:
             run.run_id,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
-        self.__run_tasks.add(run.run_id, self.__do_program(run, aiter(updates)))
+        # Start a task to process updates from the program.
+        run_task = _process_updates(self, run, updates)
+        self.__run_tasks.add(run.run_id, run_task)
 
 
     def __reconnect(self, run):
@@ -318,106 +320,9 @@ class Apsis:
             run.run_state,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
-        self.__run_tasks.add(run.run_id, self.__do_program(run, aiter(updates)))
-
-
-    async def __do_program(self, run, updates):
-        """
-        Processes `updates` for `run` until the run is finished.
-        """
-        try:
-            if run.state == State.starting:
-                update = await anext(updates)
-                match update:
-                    case ProgramRunning() as running:
-                        self.run_log.record(run, "running")
-                        self._transition(
-                            run, State.running,
-                            run_state   =running.run_state,
-                            meta        =running.meta,
-                            times       =running.times,
-                        )
-
-                    case ProgramError() as error:
-                        self.run_log.info(run, f"error: {error.message}")
-                        self._transition(
-                            run, State.error,
-                            meta        =error.meta,
-                            times       =error.times,
-                            outputs     =error.outputs,
-                        )
-                        return
-
-                    case _ as update:
-                        assert False, f"unexpected update: {update}"
-
-            assert run.state == State.running
-
-            while run.state == State.running:
-                update = await anext(updates)
-                match update:
-                    case ProgramUpdate() as update:
-                        self._update(
-                            run,
-                            outputs     =update.outputs,
-                            meta        =update.meta,
-                        )
-
-                    case ProgramSuccess() as success:
-                        self.run_log.record(run, "success")
-                        self._transition(
-                            run, State.success,
-                            meta        =success.meta,
-                            times       =success.times,
-                            outputs     =success.outputs,
-                        )
-
-                    case ProgramFailure() as failure:
-                        # Program ran and failed.
-                        self.run_log.record(run, f"failure: {failure.message}")
-                        self._transition(
-                            run, State.failure,
-                            meta        =failure.meta,
-                            times       =failure.times,
-                            outputs     =failure.outputs,
-                        )
-
-                    case ProgramError() as error:
-                        self.run_log.info(run, f"error: {error.message}")
-                        self._transition(
-                            run, State.error,
-                            meta        =error.meta,
-                            times       =error.times,
-                            outputs     =error.outputs,
-                        )
-
-                    case _ as update:
-                        assert False, f"unexpected update: {update}"
-
-            else:
-                # Exhaust the async iterator, so that cleanup can run.
-                try:
-                    update = await anext(updates)
-                except StopAsyncIteration:
-                    # Expected.
-                    pass
-                else:
-                    assert False, f"unexpected update: {update}"
-
-        except (asyncio.CancelledError, StopAsyncIteration):
-            log.info(f"run task cancelled: {run.run_id}")
-            # We do not transition the run here.  The run can survive an Apsis
-            # restart and we can connect to it later.
-
-        except Exception:
-            # Program raised some other exception.
-            self.run_log.exc(run, "error: internal")
-            tb = traceback.format_exc().encode()
-            output = Output(OutputMetadata("traceback", length=len(tb)), tb)
-            self._transition(
-                run, State.error,
-                outputs ={"output": output}
-            )
+        # Start a task to process updates from the program.
+        run_task = _process_updates(self, run, updates)
+        self.__run_tasks.add(run.run_id, run_task)
 
 
     def __prepare_run(self, run):
@@ -835,6 +740,107 @@ class Apsis:
 
 
 #-------------------------------------------------------------------------------
+
+async def _process_updates(apsis, run, updates):
+    """
+    Processes program `updates` for `run` until the program is finished.
+    """
+    updates = aiter(updates)
+
+    try:
+        if run.state == State.starting:
+            update = await anext(updates)
+            match update:
+                case ProgramRunning() as running:
+                    apsis.run_log.record(run, "running")
+                    apsis._transition(
+                        run, State.running,
+                        run_state   =running.run_state,
+                        meta        =running.meta,
+                        times       =running.times,
+                    )
+
+                case ProgramError() as error:
+                    apsis.run_log.info(run, f"error: {error.message}")
+                    apsis._transition(
+                        run, State.error,
+                        meta        =error.meta,
+                        times       =error.times,
+                        outputs     =error.outputs,
+                    )
+                    return
+
+                case _ as update:
+                    assert False, f"unexpected update: {update}"
+
+        assert run.state == State.running
+
+        while run.state == State.running:
+            update = await anext(updates)
+            match update:
+                case ProgramUpdate() as update:
+                    apsis._update(
+                        run,
+                        outputs     =update.outputs,
+                        meta        =update.meta,
+                    )
+
+                case ProgramSuccess() as success:
+                    apsis.run_log.record(run, "success")
+                    apsis._transition(
+                        run, State.success,
+                        meta        =success.meta,
+                        times       =success.times,
+                        outputs     =success.outputs,
+                    )
+
+                case ProgramFailure() as failure:
+                    # Program ran and failed.
+                    apsis.run_log.record(run, f"failure: {failure.message}")
+                    apsis._transition(
+                        run, State.failure,
+                        meta        =failure.meta,
+                        times       =failure.times,
+                        outputs     =failure.outputs,
+                    )
+
+                case ProgramError() as error:
+                    apsis.run_log.info(run, f"error: {error.message}")
+                    apsis._transition(
+                        run, State.error,
+                        meta        =error.meta,
+                        times       =error.times,
+                        outputs     =error.outputs,
+                    )
+
+                case _ as update:
+                    assert False, f"unexpected update: {update}"
+
+        else:
+            # Exhaust the async iterator, so that cleanup can run.
+            try:
+                update = await anext(updates)
+            except StopAsyncIteration:
+                # Expected.
+                pass
+            else:
+                assert False, f"unexpected update: {update}"
+
+    except (asyncio.CancelledError, StopAsyncIteration):
+        log.info(f"run task cancelled: {run.run_id}")
+        # We do not transition the run here.  The run can survive an Apsis
+        # restart and we can connect to it later.
+
+    except Exception:
+        # Program raised some other exception.
+        apsis.run_log.exc(run, "error: internal")
+        tb = traceback.format_exc().encode()
+        output = Output(OutputMetadata("traceback", length=len(tb)), tb)
+        apsis._transition(
+            run, State.error,
+            outputs ={"output": output}
+        )
+
 
 def _unschedule_runs(apsis, job_id):
     """
