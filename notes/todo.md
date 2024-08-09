@@ -10,6 +10,8 @@ WebSocket API for web UI:
 Persistent connection:
 - run changes (run summaries only)
 - job changes
+- Procstar connection changes
+- Apsis log (if we keep this)
 
 Transient connection (single run):
 - run log updates
@@ -22,8 +24,11 @@ Transient connection (single run):
 - [x] design internal run publisher protocol
   - use the same JSO sent from API endpoints
 - [x] new `/summary` websocket endpoint for transitions only
-- [ ] add job updates to `/summary`
-- [ ] in web UI, put jobs in store and process updates
+- [x] add job updates to `/summary`
+- [x] in web UI, put jobs in store and process updates
+- [ ] merge processing of job and run messages
+- [ ] new job message
+- [ ] delete job message
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values
   - [ ] metadata updates

@@ -45,6 +45,8 @@ class Store {
     // User-selected time zone.
     timeZone: 'UTC',
 
+    // Array of jobs.  Update live.
+    jobs: new Map(),
     // Expand state in the job tree.
     jobsExpand: {},
   }

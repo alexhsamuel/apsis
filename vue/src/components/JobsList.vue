@@ -55,9 +55,6 @@ div
         th Description
 
     tbody
-      tr(v-if="loading")
-        td(class="loading") Loading jobs...
-
       tr.grid(
         v-for="[path, subpath, name, job] in jobRows"
         :key="subpath.concat([name]).join('/')"
@@ -184,8 +181,6 @@ export default {
   data() {
     return {
       store,
-      loading: true,
-      allJobs: [],
     }
   },
 
@@ -200,16 +195,6 @@ export default {
     WordsInput,
   },
 
-  created() {
-    const v = this
-    const url = '/api/v1/jobs'
-    this.loading = true
-    fetch(url)
-      .then((response) => response.json())
-      .then((response) => response.forEach((j) => v.allJobs.push(j)))
-      .then(() => { this.loading = false })
-  },
-
   computed: {
     expand() {
       return this.store.state.jobsExpand
@@ -217,7 +202,7 @@ export default {
 
     /** Jobs after applying the filter.  */
     visibleJobs() {
-      var jobs = filter(this.allJobs, job => !job.ad_hoc)
+      var jobs = Array.from(store.state.jobs.values())
       if (this.path) {
         const path = this.path
         const prefix = path + '/'
@@ -280,7 +265,7 @@ export default {
     expandAll(expanded) {
       let expand = {}
       if (expanded)
-        for (const job of this.allJobs) {
+        for (const job of store.state.jobs.values()) {
           const path = job.job_id.split('/')
           path.pop()
           while (path.length > 0) {
@@ -360,10 +345,6 @@ table {
 
   th {
     text-align: left;
-  }
-
-  .loading {
-    color: $apsis-status-color;
   }
 
   .icon {

@@ -12,7 +12,7 @@ import navbar from '@/components/navbar'
 import JsonSocket from '@/JsonSocket.js'
 import LiveLog from '@/LiveLog.js'
 import store from '@/store.js'
-import { updateRuns } from '@/runs.js'
+import { updateJobs, updateRuns } from '@/runs.js'
 
 export default {
   name: 'App',
@@ -36,7 +36,10 @@ export default {
     console.log('creating summary socket', api.getSummaryUrl())
     this.summarySocket = new JsonSocket(
       api.getSummaryUrl(true),
-      msg => updateRuns(msg, store.state),
+      msgs => {
+        updateJobs(msgs, store.state)
+        updateRuns(msgs, store.state)
+      },
       () => store.state.errors.pop('connection error'),
       this.showToastError,
     )

@@ -11,7 +11,6 @@ from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib import api
 from   .lib.asyn import cancel_task, TaskGroup, Publisher
 from   .lib.sys import to_signal
 from   .output import OutputStore
@@ -26,6 +25,7 @@ from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgument
 from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
+from   .service import messages
 from   .states import State
 
 log = logging.getLogger(__name__)
@@ -482,7 +482,7 @@ class Apsis:
         self.run_store.update(run, time)
 
         # Let subscribers know.
-        self.publisher.publish(api.make_run_summary(run))
+        self.publisher.publish(messages.make_run_summary(run))
 
         self.__start_actions(run)
 
@@ -853,7 +853,7 @@ def _unschedule_runs(apsis, job_id):
         log.info(f"removing: {run.run_id}")
         apsis.scheduled.unschedule(run)
         apsis.run_store.remove(run.run_id)
-        apsis.publisher.publish(api.make_run_delete(run))
+        apsis.publisher.publish(messages.make_run_delete(run))
 
 
 async def reschedule_runs(apsis, job_id):

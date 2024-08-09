@@ -4,6 +4,30 @@ export function joinArgs(args) {
   return toPairs(args).map(([n, v]) => n + '=' + v).join(', ')
 }
 
+// FIXME: Merge with updateRuns.
+export function updateJobs(msgs, state) {
+  // Map is not reactive in Vue2, so we create a new map including the updates.
+
+  let jobs = new Map(state.jobs)
+  let nadd = 0
+  let nchg = 0
+  let ndel = 0
+
+  for (const msg of msgs)
+    if (msg.type === 'job') {
+      const job = msg.job
+      if (jobs.has(job.job_id))
+        nchg++
+      else
+        nadd++
+      jobs.set(job.job_id, Object.freeze(job))
+    }
+
+  console.log('jobs messages:', nadd, 'add,', nchg, 'chg,', ndel, 'del')
+  // Set the new map to trigger reactivity updates.
+  state.jobs = jobs
+}
+
 const RUN_STATE_GROUPS = {
   'new': 'S',
   'scheduled': 'S',

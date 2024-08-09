@@ -32,9 +32,9 @@ div.component
 
       tr
         th schedule
-        td(v-if="job.schedules.length > 0")
+        td(v-if="job.schedule.length > 0")
           li(
-            v-for="schedule in job.schedules"
+            v-for="schedule in job.schedule"
             :key="schedule.str"
             :class="{ disabled: !schedule.enabled }"
           ) {{ schedule.str }} {{ schedule.enabled ? '' : '(disabled)' }}
@@ -53,8 +53,8 @@ div.component
 
       tr
         th actions
-        td.no-padding(v-if="job.actions.length > 0")
-          .action(v-for="action in job.actions"): table.fields
+        td.no-padding(v-if="job.action.length > 0")
+          .action(v-for="action in job.action"): table.fields
             tr(v-for="(value, key, i) in action" :key="i")
               th {{ key }}
               td {{ value }}
@@ -192,7 +192,7 @@ export default {
         : parseTime(this.scheduleTime, false, tz)
       )
       console.assert(time, 'can\'t parse time')
-      
+
       const url = api.getSubmitRunUrl()
       const body = api.getSubmitRunBody(this.job_id, this.scheduleArgs, time === 'now' ? 'now' : time.format())
 
