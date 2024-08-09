@@ -5,7 +5,7 @@ export function joinArgs(args) {
 }
 
 const RUN_STATE_GROUPS = {
-  'new': 'S',  
+  'new': 'S',
   'scheduled': 'S',
   'waiting': 'R',
   'starting': 'R',
@@ -37,25 +37,21 @@ function timeKey(run) {
 let nextSeq = 0
 
 /**
- * Updates store `state` with runs from a socket `msg`.
+ * Updates store `state` with runs from run summaries in `msgs`.
  */
-export function updateRuns(msg, state) {
+export function updateRuns(msgs, state) {
   const seq = nextSeq++
   const runs = new Map(state.runs)
   let nadd = 0
   let nchg = 0
   let ndel = 0
 
-  let msgRuns = Object.values(msg.runs)
   // Pre-sort by time, to keep future sorts quick.
-  msgRuns = sortBy(msgRuns, r => r.time_key)
+  msgs = sortBy(msgs, m => m.run_summary && timeKey(m.run_summary))
 
-  for (const run of msgRuns)
-    if (!run.state) {
-      runs.delete(run.run_id)
-      ndel++
-    }
-    else {
+  for (const msg of msgs)
+    if (msg.type === 'run_summary') {
+      let run = msg.run_summary
       // Add sort and group keys to runs in msg.
       run.group_key = groupKey(run)
       run.time_key = timeKey(run)
@@ -68,8 +64,12 @@ export function updateRuns(msg, state) {
       // We never change the runs, so freeze them to avoid reactivity.
       runs.set(run.run_id, Object.freeze(run))
     }
+    else if (msg.type === 'run_delete') {
+      runs.delete(msg.run_id)
+      ndel++
+    }
 
-  console.log('runs message:', nadd, 'add,', nchg, 'chg,', ndel, 'del')
+  console.log('runs messages:', nadd, 'add,', nchg, 'chg,', ndel, 'del')
   state.runs = runs
 }
 
@@ -84,6 +84,18 @@ export const STATES = [
   'skipped',
   'error',
 ]
+
+export const OPERATIONS = {
+  'new'         : [],
+  'scheduled'   : ['start', 'skip'],
+  'waiting'     : ['start', 'skip'],
+  'starting'    : [],
+  'running'     : ['terminate', 'kill'],
+  'success'     : ['rerun', 'mark failure', 'mark skipped', 'mark error'],
+  'failure'     : ['rerun', 'mark success', 'mark skipped', 'mark error'],
+  'skipped'     : ['rerun', 'mark success', 'mark failure', 'mark error'],
+  'error'       : ['rerun', 'mark success', 'mark failure', 'mark skipped'],
+}
 
 export function sortStates(states) {
   return sortBy(states, s => STATES.indexOf(s))

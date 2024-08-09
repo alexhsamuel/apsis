@@ -79,3 +79,42 @@ def encode_response(headers, data, compression):
     return {"Content-Encoding": encoding}, data
 
 
+#-------------------------------------------------------------------------------
+
+def run_to_summary_jso(run):
+    jso = run._summary_jso_cache
+    if jso is not None:
+        # Use the cached JSO.
+        return jso
+
+    jso = {
+        "job_id"        : run.inst.job_id,
+        "args"          : run.inst.args,
+        "run_id"        : run.run_id,
+        "state"         : run.state.name,
+        "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
+        "labels"        : run.meta.get("labels", []),
+    }
+    if run.expected:
+        jso["expected"] = run.expected
+
+    run._summary_jso_cache = jso
+    return jso
+
+
+#-------------------------------------------------------------------------------
+
+def make_run_delete(run):
+    return {
+        "type"          : "run_delete",
+        "run_id"        : run.run_id,
+    }
+
+
+def make_run_summary(run):
+    return {
+        "type"          : "run_summary",
+        "run_summary"   : run_to_summary_jso(run),
+    }
+
+

@@ -2,8 +2,10 @@
  * Apsis API client
  */
 
-function getUrl() {
-  return ['', 'api', 'v1'].concat(Array.from(arguments)).join('/')
+function getUrl(...path) {
+  const url = new URL(location)
+  url.pathname = '/api/v1/' + path.join('/')
+  return url
 }
 
 export function getMarkUrl(run_id, state) {
@@ -24,6 +26,14 @@ export function getRerunUrl(run_id) {
 
 export function getRunUrl(run_id) {
   return getUrl('runs', run_id)
+}
+
+export function getSummaryUrl(init) {
+  const url = getUrl('summary')
+  url.protocol = 'ws'
+  if (init)
+    url.search = '?init'
+  return url
 }
 
 export function getSignalUrl(run_id, signame) {

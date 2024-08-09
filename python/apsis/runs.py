@@ -158,7 +158,7 @@ class Run:
         "meta",
         "message",
         "run_state",
-        "_jso_cache",
+        "_summary_jso_cache",
         "_rowid",
     )
 
@@ -188,7 +188,7 @@ class Run:
         self.run_state  = None
 
         # Cached summary JSO object.
-        self._jso_cache = None
+        self._summary_jso_cache = None
 
 
     def __hash__(self):
@@ -243,7 +243,7 @@ class Run:
         self.state = state
 
         # Discard cached JSO.  Used by run_summary_to_json().
-        self._jso_cache = None
+        self._summary_jso_cache = None
 
 
 
@@ -338,7 +338,7 @@ class RunStore:
 
     - Stores runs in all states.
     - Satisfyies run queries.
-    - Serves live queries of runs.
+    - Publishes updates to runs.
     """
 
     def __init__(self, db, *, min_timestamp):
@@ -355,15 +355,9 @@ class RunStore:
         for run in self.__runs.values():
             self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
+        # FIXME: Remove this after transitioning to Apsis.updates.
         # For live notification.  Messages are runs that have transitioned.
         self.__publisher = Publisher()
-
-
-    def __send(self, run):
-        """
-        Sends live notification of changes to `run`.
-        """
-        self.__publisher.publish(run)
 
 
     def add(self, run):
@@ -399,7 +393,7 @@ class RunStore:
         if not run.expected:
             self.__run_db.upsert(run)
 
-        self.__send(run)
+        self.__publisher.publish(run)
 
 
     def remove(self, run_id, *, expected=True):
@@ -417,7 +411,7 @@ class RunStore:
         # Indicate deletion with none state.
         # FIXME: What a horrible hack.
         run.state = None
-        self.__send(run)
+        self.__publisher.publish(run)
         return run
 
 

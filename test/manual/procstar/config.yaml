@@ -7,7 +7,9 @@ procstar:
     connection:
       start_timeout: 1 min
       reconnect_timeout: 15
-      update_interval: 2
+    run:
+      update_interval: 10
+      output_interval: 5
 
 waiting:
   max_time: 30

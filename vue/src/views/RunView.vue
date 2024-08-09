@@ -9,7 +9,7 @@ div
     div.buttons.row-centered
       State.state(:state="run.state" name)
       OperationButton(
-        v-for="operation in run.operations"
+        v-for="operation in OPERATIONS[run.state]"
         :key="operation"
         :run_id="run_id"
         :operation="operation" 
@@ -106,7 +106,7 @@ import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import { joinArgs } from '@/runs'
+import { joinArgs, OPERATIONS } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunLog from '@/components/RunLog'
@@ -117,7 +117,7 @@ import Timestamp from '@/components/Timestamp'
 
 export default {
   props: ['run_id'],
-  components: { 
+  components: {
     OperationButton,
     Frame,
     Job,
@@ -137,6 +137,7 @@ export default {
       isCollapsed: {
         runs: this.$route.query.runs !== null,
       },
+      OPERATIONS,
       output: null,
       outputRequested: false,  // FIXME: Remove?
       outputData: null,
@@ -160,6 +161,7 @@ export default {
     joinArgs,
 
     fetchRun() {
+      // FIXME: Use store.state.runs?  These are only summaries, though.
       const url = api.getRunUrl(this.run_id)
       fetch(url)
         .then(async (response) => {
@@ -216,7 +218,7 @@ export default {
     format(key, value) {
       if (key === 'command')
         return '<code>' + value + '</code>'
-      else 
+      else
         return value
     },
 

@@ -7,7 +7,8 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
-from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response
+from   apsis.lib import asyn
+from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, run_to_summary_jso, make_run_summary
 import apsis.lib.itr
 from   apsis.lib.timing import Timer
 from   apsis.lib.sys import to_signal
@@ -16,9 +17,12 @@ from   ..runs import Instance, Run, RunError
 
 log = logging.getLogger(__name__)
 
-# Max number of runs to send in one websocket message.
-WS_RUN_CHUNK = 4096
-WS_RUN_CHUNK_SLEEP = 0.001
+# Time to wait for new items to arrive when bundling a websocket message.
+WS_DRAIN_TIME = 0.5
+# Max number of items to send in one websocket message.
+WS_CHUNK = 4096
+# Time to sleep between websocket messages.
+WS_CHUNK_SLEEP = 0.001
 
 #-------------------------------------------------------------------------------
 
@@ -57,65 +61,19 @@ def _to_jsos(objs):
     return [] if objs is None else [ _to_jso(o) for o in objs ]
 
 
-def _job_to_jso(app, job):
+def job_to_jso(app, job):
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
         "schedules"     : [ _to_jso(s) for s in job.schedules ],
         "program"       : _to_jso(job.program),
         "condition"     : [ _to_jso(c) for c in job.conds ],
+        # FIXME: actions!
         "actions"       : [ _to_jso(a) for a in job.actions ],
         "metadata"      : job.meta,
         "ad_hoc"        : job.ad_hoc,
         "url"           : app.url_for("v1.job", job_id=job.job_id),
     }
-
-
-# FIXME: Clean up, or put back caching.
-# No caching; jobs may change.
-job_to_jso = _job_to_jso
-
-
-def _run_summary_to_jso(app, run):
-    jso = run._jso_cache
-    if jso is not None:
-        # Use the cached JSO.
-        return jso
-
-    # Construct the set of valid operations for this run.
-    operations = set()
-    # Start now or skip a scheduled or waiting job.
-    if run.state in {run.STATE.scheduled, run.STATE.waiting}:
-        operations.add("start")
-        operations.add("skip")
-    # Retry is available if the run didn't succeed.
-    if run.state in run.FINISHED:
-        operations.add("rerun")
-    # Terminate and kill are available for a running run.
-    if run.state == run.STATE.running:
-        operations.add("terminate")
-        operations.add("kill")
-    # Mark actions are available among finished states
-    for state in Run.FINISHED:
-        if run.state != state and run.state in Run.FINISHED:
-            operations.add(f"mark {state.name}")
-
-    jso = {
-        "job_id"        : run.inst.job_id,
-        "args"          : run.inst.args,
-        "run_id"        : run.run_id,
-        "state"         : run.state.name,
-        "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
-        "labels"        : run.meta.get("labels", []),
-        "operations"    : sorted(operations),
-    }
-    if run.expected:
-        jso["expected"] = run.expected
-    if run.message is not None:
-        jso["message"] = run.message
-
-    run._jso_cache = jso
-    return jso
 
 
 def run_to_jso(app, run, summary=False):
@@ -124,7 +82,7 @@ def run_to_jso(app, run, summary=False):
         # FIXME: Hack.
         return {"run_id": run.run_id, "state": None}
 
-    jso = _run_summary_to_jso(app, run)
+    jso = run_to_summary_jso(run)
 
     if not summary:
         jso = {
@@ -417,67 +375,56 @@ async def runs(request):
     args = { n[1 :] if n.startswith("_") else n: a[-1] for n, a in args.items() }
 
     when, runs = apsis.run_store.query(
-        run_ids     =run_id, 
+        run_ids     =run_id,
         job_id      =job_id,
         state       =to_state(state),
-        since       =since, 
+        since       =since,
         with_args   =args,
     )
 
     return response_json(runs_to_jso(request.app, when, runs, summary=summary))
 
 
-@API.websocket("/ws/runs")
-async def websocket_runs(request, ws):
-    log.info("live runs connect")
-    done = False
+async def _send_chunked(msgs, ws, prefix):
+    # Break large sets into chunks, to avoid block for too long.
+    for chunk in apsis.lib.itr.chunks(msgs, WS_CHUNK):
+        json = ujson.dumps(chunk, escape_forward_slashes=False)
+        log.debug(f"{prefix} sending {len(chunk)} msgs, {len(json)} bytes")
+        await ws.send(json)
+        # Take a break, let others go.
+        await asyncio.sleep(WS_CHUNK_SLEEP)
 
-    run_id  = request.args.get("run_id")
-    job_id  = request.args.get("job_id")
 
-    with request.app.apsis.run_store.query_live(
-            run_ids=None if run_id is None else [run_id],
-            job_id=job_id,
-    ) as sub:
-        while not done:
-            try:
-                # FIXME: If the socket closes, clean up instead of blocking until
-                # the next run is available.  Not sure how to do this.  ws.ping()
-                # with a timeout doesn't appear to work.
-                run = await anext(sub)
-            except StopAsyncIteration:
-                runs = []
-            else:
-                # Sleep a short while to allow additional runs to enqueue, then
-                # drain them.  This avoids sending lots of short messages to the
-                # client.
-                await asyncio.sleep(0.5)
-                runs = [run]
-                runs.extend(sub.drain())
+@API.websocket("/summary")
+async def websocket_summary(request, ws):
+    # request.query_args doesn't work correctly for ws endpoints?
+    init = "init" in request.query_string.split("&")
 
-            # Break large sets into chunks, to avoid block for too long.
-            for chunk in apsis.lib.itr.chunks(runs, WS_RUN_CHUNK):
-                with Timer() as timer:
-                    # FIXME: when=ora.now() is bogus, but we don't need it.
-                    jso = runs_to_jso(request.app, ora.now(), chunk, summary=True)
-                    # FIXME: JSOs are cached but ujson.dumps() still takes real
-                    # time.
-                    json = ujson.dumps(jso, escape_forward_slashes=False)
-                    try:
-                        log.debug(f"sending {len(chunk)} runs, {len(json)} bytes {timer.elapsed:.3f} s: {request.socket}")
-                        await ws.send(json)
-                        await asyncio.sleep(WS_RUN_CHUNK_SLEEP)
-                    except websockets.ConnectionClosed:
-                        log.info("websocket connection closed")
-                        done = True
-                        break
+    addr, port = request.socket
+    prefix = f"/summary {addr}:{port}:"
+    log.debug(f"{prefix} connected init={init}")
 
-            if sub.closed:
-                # Signalled to shut down.
-                await ws.close()
-                done = True
+    predicate = lambda msg: msg["type"] in {"run_summary", "run_delete"}
+    with request.app.apsis.publisher.subscription(predicate=predicate) as sub:
+        try:
+            if init:
+                # Full initialization.  Send summaries of all runs.
+                _, runs = request.app.apsis.run_store.query()
+                msgs = [ make_run_summary(r) for r in runs ]
+                await _send_chunked(msgs, ws, prefix)
 
-    log.info("live runs disconnect")
+            while not sub.closed:
+                # Wait for the next msg, then grab all that show up in a short time.
+                # This avoids sending lots of short websocket traffic.
+                msgs = await asyn.anext_and_drain(sub, WS_DRAIN_TIME)
+                await _send_chunked(msgs, ws, prefix)
+
+            await ws.close()
+
+        except websockets.ConnectionClosed:
+            log.debug(f"{prefix} closed")
+
+    log.debug(f"{prefix} done")
 
 
 @API.route("/runs", methods={"POST"})

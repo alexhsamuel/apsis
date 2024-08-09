@@ -291,3 +291,19 @@ class Publisher:
 
 
 
+async def anext_and_drain(subscription, time):
+    """
+    Awaits the next message on `subscription`, then sleeps `time`,
+    drains the subscription, and returns all messages.
+    """
+    try:
+        msgs = [await anext(subscription)]
+    except StopAsyncIteration:
+        # Subscription has ended.
+        return []
+    else:
+        await asyncio.sleep(time)
+        msgs.extend(subscription.drain())
+        return msgs
+
+
