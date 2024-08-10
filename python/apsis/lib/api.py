@@ -155,7 +155,7 @@ def runs_to_jso(app, when, runs, summary=False):
     }
 
 
-def _output_metadata_to_jso(app, run_id, outputs):
+def output_metadata_to_jso(app, run_id, outputs):
     return [
         {
             "output_id": output_id,

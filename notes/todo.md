@@ -26,7 +26,7 @@ Transient connection (single run):
 - [x] new `/summary` websocket endpoint for transitions only
 - [x] add job updates to `/summary`
 - [x] in web UI, put jobs in store and process updates
-- [ ] merge processing of job and run messages
+- [x] merge processing of job and run messages
 - [ ] new job message
 - [ ] delete job message
 - [ ] add `/ws/run/<run_id>` endpoint
