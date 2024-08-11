@@ -52,13 +52,18 @@ export function processMsgs(msgs, state) {
   msgs = sortBy(msgs, m => m.run_summary && timeKey(m.run_summary))
 
   for (const msg of msgs)
-    if (msg.type === 'job') {
+    // Treat new and changed jobs the same.
+    if (msg.type === 'job' || msg.type === 'job_add') {
       const job = msg.job
       if (jobs.has(job.job_id))
         jobStats.chg++
       else
         jobStats.add++
       jobs.set(job.job_id, Object.freeze(job))
+    }
+    else if (msg.type === 'job_delete') {
+      jobs.delete(msg.job_id)
+      jobStats.del++
     }
     else if (msg.type === 'run_summary') {
       let run = msg.run_summary

@@ -913,12 +913,22 @@ async def reload_jobs(apsis, *, dry_run=False):
         apsis.jobs = Jobs(jobs1, job_db)
         apsis.scheduler.set_jobs(apsis.jobs)
 
+        # Reschedule runs.
         for job_id in add_ids:
             log.info(f"scheduling added job: {job_id}")
             await reschedule_runs(apsis, job_id)
         for job_id in sorted(chg_ids):
             log.info(f"scheduling changed: {job_id}")
             await reschedule_runs(apsis, job_id)
+
+        # Publish job changes.
+        publish = apsis.publisher.publish
+        for job_id in rem_ids:
+            publish(messages.make_job_delete(job_id))
+        for job_id in add_ids:
+            publish(messages.make_job_add(apsis.jobs.get_job(job_id)))
+        for job_id in chg_ids:
+            publish(messages.make_job(apsis.jobs.get_job(job_id)))
 
     return rem_ids, add_ids, chg_ids
 

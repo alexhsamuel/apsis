@@ -27,11 +27,13 @@ Transient connection (single run):
 - [x] add job updates to `/summary`
 - [x] in web UI, put jobs in store and process updates
 - [x] merge processing of job and run messages
-- [ ] new job message
-- [ ] delete job message
+- [x] new job message
+- [x] delete job message
+- [ ] run_add message
 - [ ] move run operations to UIs
   - [x] web UI
   - [ ] CLUI
+- [ ] clear store.state.{runs,jobs} on ws reconnect
 
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values

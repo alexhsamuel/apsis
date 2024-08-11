@@ -9,6 +9,20 @@ def make_job(job):
     }
 
 
+def make_job_add(job):
+    return {
+        "type"          : "job_add",
+        "job"           : job_to_jso(job),
+    }
+
+
+def make_job_delete(job_id):
+    return {
+        "type"          : "job_delete",
+        "job_id"        : job_id,
+    }
+
+
 def make_run_delete(run):
     return {
         "type"          : "run_delete",

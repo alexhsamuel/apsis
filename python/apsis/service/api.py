@@ -331,6 +331,15 @@ async def _send_chunked(msgs, ws, prefix):
         await asyncio.sleep(WS_CHUNK_SLEEP)
 
 
+# Message types (see apsis.api.messages) to include in summary.
+SUMMARY_MSG_TYPES = {
+    "job",
+    "job_add",
+    "job_delete",
+    "run_delete",
+    "run_summary",
+}
+
 @API.websocket("/summary")
 async def websocket_summary(request, ws):
     # request.query_args doesn't work correctly for ws endpoints?
@@ -342,7 +351,7 @@ async def websocket_summary(request, ws):
     prefix = f"/summary {addr}:{port}:"
     log.debug(f"{prefix} connected init={init}")
 
-    predicate = lambda msg: msg["type"] in {"run_summary", "run_delete"}
+    predicate = lambda msg: msg["type"] in SUMMARY_MSG_TYPES
     with apsis.publisher.subscription(predicate=predicate) as sub:
         try:
             if init:
