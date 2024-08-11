@@ -9,9 +9,8 @@ import websockets
 
 from   . import messages
 from   apsis.lib import asyn
-from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, run_to_summary_jso, runs_to_jso, job_to_jso, output_metadata_to_jso
+from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, runs_to_jso, job_to_jso, output_metadata_to_jso
 import apsis.lib.itr
-from   apsis.lib.timing import Timer
 from   apsis.lib.sys import to_signal
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
