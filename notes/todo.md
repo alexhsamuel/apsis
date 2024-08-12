@@ -29,10 +29,7 @@ Transient connection (single run):
 - [x] merge processing of job and run messages
 - [x] new job message
 - [x] delete job message
-- [ ] run_add message
-- [ ] move run operations to UIs
-  - [x] web UI
-  - [ ] CLUI
+- [x] move run operations to UIs
 - [ ] clear store.state.{runs,jobs} on ws reconnect
 
 - [ ] add `/ws/run/<run_id>` endpoint
