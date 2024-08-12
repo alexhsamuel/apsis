@@ -30,7 +30,7 @@ Transient connection (single run):
 - [x] new job message
 - [x] delete job message
 - [x] move run operations to UIs
-- [ ] clear store.state.{runs,jobs} on ws reconnect
+- [x] clear store.state.{runs,jobs} on ws reconnect
 
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values

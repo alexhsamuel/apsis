@@ -12,7 +12,7 @@ import navbar from '@/components/navbar'
 import JsonSocket from '@/JsonSocket.js'
 import LiveLog from '@/LiveLog.js'
 import store from '@/store.js'
-import { processMsgs } from '@/runs.js'
+import { processMsgs, clearRunState } from '@/runs.js'
 
 export default {
   name: 'App',
@@ -37,7 +37,11 @@ export default {
     this.summarySocket = new JsonSocket(
       api.getSummaryUrl(true),
       msgs => processMsgs(msgs, store.state),
-      () => store.state.errors.pop('connection error'),
+      () => {
+        // Clear state on connect; the server will send all runs and jobs.
+        clearRunState(store.state)
+        store.state.errors.pop('connection error')
+      },
       this.showToastError,
     )
     this.summarySocket.open()

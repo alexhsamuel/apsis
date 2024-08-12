@@ -36,6 +36,11 @@ function timeKey(run) {
 
 let nextSeq = 0
 
+export function clearRunState(state) {
+  state.runs = new Map()
+  state.jobs = new Map()
+}
+
 /**
  * Updates store `state` with runs from run summaries in `msgs`.
  */
