@@ -32,17 +32,19 @@ Transient connection (single run):
 - [x] move run operations to UIs
 - [x] clear store.state.{runs,jobs} on ws reconnect
 
-- [ ] add `/ws/run/<run_id>` endpoint
-  - [ ] option to send initial values
-  - [ ] metadata updates
-  - [ ] run log updates
-  - [ ] program output updates
 - [x] remove `run.message` from JSON run summary
 - [x] retire `RunsSocket` in favor of `JsonSocket`
 - [x] retire `/ws/runs/` endpoint
 - [x] retire `_jso_cache`
 - [ ] retire `RunStore.query_live`
 - [ ] retire `RunStore` publisher
+- [ ] add Procstar connection updates to summary endpoint
+
+- [ ] add `/ws/run/<run_id>` endpoint
+  - [ ] option to send initial values
+  - [ ] metadata updates
+  - [ ] run log updates
+  - [ ] program output updates
 - [ ] roll in Procstar agent changes to `/summary`
 - [ ] roll in, or get rid of, log socket
 - [ ] add live endpoints to `Client`
