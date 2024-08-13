@@ -17,7 +17,7 @@ from   .output import OutputStore
 from   .program.base import _InternalProgram
 from   .program.base import Output, OutputMetadata
 from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
-from   .program.procstar.agent import start_server
+from   .program.procstar import agent
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
@@ -85,10 +85,24 @@ class Apsis:
         procstar_cfg = cfg.get("procstar", {}).get("agent", {})
         if procstar_cfg.get("enable", False):
             log.info("starting procstar server")
-            server_coro = start_server(procstar_cfg)
-            self.__procstar_task = asyncio.ensure_future(server_coro)
+            server_coro = agent.start_server(procstar_cfg)
+
+            async def connection_messages():
+                with agent.SERVER.connections.subscription() as sub:
+                    async for (conn_id, conn) in sub:
+                        self.publisher.publish(
+                            messages.make_agent_conn_delete(conn_id)
+                            if conn is None
+                            else messages.make_agent_conn(conn)
+                        )
+
+            self.__procstar_conn_task = asyncio.ensure_future(
+                connection_messages())
+            self.__procstar_svc_task = asyncio.ensure_future(server_coro)
+
         else:
-            self.__procstar_task = None
+            self.__procstar_svc_task = None
+            self.__procstar_conn_task = None
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
@@ -660,8 +674,10 @@ class Apsis:
         await self.__run_tasks.cancel_all()
         await self.run_store.shut_down()
         await cancel_task(self.__check_async_task, "check async", log)
-        if self.__procstar_task is not None:
-            await cancel_task(self.__procstar_task, "procstar server", log)
+        if self.__procstar_svc_task is not None:
+            await cancel_task(self.__procstar_svc_task, "procstar server", log)
+        if self.__procstar_conn_task is not None:
+            await cancel_task(self.__procstar_conn_task, "procstar connections", log)
         log.info("Apsis shut down")
 
 
