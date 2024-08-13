@@ -1,12 +1,11 @@
 <template lang="pug">
 div
   div
-    div.controls
+    div.header
+      h1 Groups
       div
         input(type="checkbox" v-model="showDisconnected")
         label Show disconnected
-
-    h1 Groups
 
     div.groups
       div.group(v-for="(conns, group_id) in filteredGroups" :key="group_id")
@@ -82,12 +81,16 @@ export default {
 
 $gray: #e8e8e8;
 
-.controls {
+.header {
   margin-bottom: 32px;
 
   display: flex;
   align-items: center;
   column-gap: 24px;
+
+  h1 {
+    flex-grow: 1;
+  }
 
   button {
     height: 28px;
