@@ -39,6 +39,7 @@ let nextSeq = 0
 export function clearRunState(state) {
   state.runs = new Map()
   state.jobs = new Map()
+  state.agentConns = new Map()
 }
 
 /**
@@ -47,64 +48,80 @@ export function clearRunState(state) {
 export function processMsgs(msgs, state) {
   const seq = nextSeq++
 
-  const runs = new Map(state.runs)
-  const jobs = new Map(state.jobs)
+  let runs = null
+  let jobs = null
+  let agentConns = null
 
-  let runStats = {add: 0, chg: 0, del: 0}
-  let jobStats = {add: 0, chg: 0, del: 0}
+  let stats = {job: 0, agentConn: 0, run: 0}
 
   // Pre-sort by time, to keep future sorts quick.
   msgs = sortBy(msgs, m => m.run_summary && timeKey(m.run_summary))
 
   for (const msg of msgs)
-    // Treat new and changed jobs the same.
-    if (msg.type === 'job' || msg.type === 'job_add') {
-      const job = msg.job
-      if (jobs.has(job.job_id))
-        jobStats.chg++
-      else
-        jobStats.add++
-      jobs.set(job.job_id, Object.freeze(job))
-    }
-    else if (msg.type === 'job_delete') {
-      jobs.delete(msg.job_id)
-      jobStats.del++
-    }
-    else if (msg.type === 'run_summary') {
-      let run = msg.run_summary
-      // Add sort and group keys to runs in msg.
-      run.group_key = groupKey(run)
-      run.time_key = timeKey(run)
-      run.seq = seq
-      if (runs.has(run.run_id))
-        runStats.chg++
-      else
-        runStats.add++
-      // Build an instance key for quick determination of reruns.
-      // We never change the runs, so freeze them to avoid reactivity.
-      runs.set(run.run_id, Object.freeze(run))
-    }
-    else if (msg.type === 'run_delete') {
-      runs.delete(msg.run_id)
-      runStats.del++
+    switch (msg.type) {
+      case 'agent_conn':
+        if (agentConns === null)
+          agentConns = new Map(state.agentConns)
+        agentConns.set(msg.conn.info.conn.conn_id, msg.conn)
+        stats.agentConn++
+        break
+
+      case 'agent_conn_delete':
+        if (agentConns === null)
+          agentConns = new Map(state.agentConns)
+        agentConns.delete(msg.conn_id)
+        stats.agentConn++
+        break
+
+      // Treat new and changed jobs the same.
+      case 'job':
+      case 'job_add':
+        if (jobs === null)
+          jobs = new Map(state.jobs)
+        jobs.set(msg.job.job_id, Object.freeze(msg.job))
+        stats.job++
+        break
+
+      case 'job_delete':
+        if (jobs === null)
+          jobs = new Map(state.jobs)
+        jobs.delete(msg.job_id)
+        stats.job++
+        break
+
+      case 'run_summary':
+        if (runs === null)
+          runs = new Map(state.runs)
+        let run = msg.run_summary
+        // Add sort and group keys to runs in msg.
+        run.group_key = groupKey(run)
+        run.time_key = timeKey(run)
+        run.seq = seq
+        // Build an instance key for quick determination of reruns.
+        // We never change the runs, so freeze them to avoid reactivity.
+        runs.set(run.run_id, Object.freeze(run))
+        stats.run++
+        break
+
+      case 'run_delete':
+        if (runs === null)
+          runs = new Map(state.runs)
+        runs.delete(msg.run_id)
+        stats.run++
+        break
     }
 
-  if (runStats.add > 0 || runStats.chg > 0 || runStats.del > 0) {
-    console.log(
-      'runs messages:',
-      runStats.add, 'add,', runStats.chg, 'chg,', runStats.del, 'del'
-    )
-    // Set the new map to trigger reactivity updates.
-    state.runs = runs
-  }
-
-  if (jobStats.add > 0 || jobStats.chg > 0 || jobStats.del > 0) {
-      console.log(
-        'jobs messages:',
-        jobStats.add, 'add,', jobStats.chg, 'chg,', jobStats.del, 'del')
-    // Set the new map to trigger reactivity updates.
+  // Set new maps to trigger reactivity updates.
+  if (agentConns !== null)
+    state.agentConns = agentConns
+  if (jobs !== null)
     state.jobs = jobs
-  }
+  if (runs !== null)
+    state.runs = runs
+
+  console.log(
+    'messages:',
+    stats.agentConn, 'agentConn', stats.job, 'job', stats.run, 'run')
 }
 
 export const STATES = [
