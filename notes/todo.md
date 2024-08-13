@@ -38,7 +38,7 @@ Transient connection (single run):
 - [x] retire `_jso_cache`
 - [x] add Procstar connection updates to summary endpoint
   - [ ] move Procstar agent `SERVER` to `Apsis` object
-  - [ ] clean up `Apsis` object tasks
+  - [x] clean up `Apsis` object tasks
   - [ ] clean up message and variable names
 - [ ] retire `RunStore.query_live`
 - [ ] retire `RunStore` publisher
