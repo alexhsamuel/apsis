@@ -1,6 +1,8 @@
 # v0.24
 
-- Changes to jobs are updated live in the web UI.
+- Changes to jobs update live in the web UI.
+- Changes to Procstar agent connections update live in the web UI.
+
 
 # v0.23
 
