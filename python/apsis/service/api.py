@@ -12,7 +12,7 @@ from   apsis.lib import asyn
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, runs_to_jso, job_to_jso, output_metadata_to_jso
 import apsis.lib.itr
 from   apsis.lib.sys import to_signal
-from   apsis.program import procstar
+from   apsis import procstar
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
 
@@ -365,9 +365,10 @@ async def websocket_summary(request, ws):
                 msgs.extend( messages.make_job(j) for j in jobs )
 
                 # Send all procstar agent conns.
+                agent_server = procstar.get_agent_server()
                 msgs.extend(
                     messages.make_agent_conn(c)
-                    for c in procstar.agent.SERVER.connections.values()
+                    for c in agent_server.connections.values()
                 )
 
                 # Send summaries of all runs.

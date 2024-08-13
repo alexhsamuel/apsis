@@ -7,17 +7,17 @@ import resource
 import sys
 import traceback
 
+from   . import procstar
 from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib.asyn import cancel_task, TaskGroup, Publisher
+from   .lib.asyn import TaskGroup, Publisher
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
 from   .program.base import Output, OutputMetadata
 from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
-from   .program.procstar import agent
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
@@ -87,22 +87,9 @@ class Apsis:
         procstar_cfg = cfg.get("procstar", {}).get("agent", {})
         if procstar_cfg.get("enable", False):
             log.info("starting procstar server")
-            server_coro = agent.start_server(procstar_cfg)
-
-            async def agent_conn():
-                """
-                Subscribe to and republish agent connection messages.
-                """
-                with agent.SERVER.connections.subscription() as sub:
-                    async for (conn_id, conn) in sub:
-                        self.publisher.publish(
-                            messages.make_agent_conn_delete(conn_id)
-                            if conn is None
-                            else messages.make_agent_conn(conn)
-                        )
-
-            self.__tasks.add("agent_conn", agent_conn())
-            self.__tasks.add("agent_server", server_coro)
+            run_agent_server = procstar.start_agent_server(procstar_cfg)
+            self.__tasks.add("agent_conn", procstar.agent_conn(self))
+            self.__tasks.add("agent_server", run_agent_server)
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
