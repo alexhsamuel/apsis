@@ -36,9 +36,12 @@ Transient connection (single run):
 - [x] retire `RunsSocket` in favor of `JsonSocket`
 - [x] retire `/ws/runs/` endpoint
 - [x] retire `_jso_cache`
+- [x] add Procstar connection updates to summary endpoint
+  - [x] move Procstar agent `SERVER` to `Apsis` object
+  - [x] clean up `Apsis` object tasks
+  - [x] clean up message and variable names
 - [ ] retire `RunStore.query_live`
 - [ ] retire `RunStore` publisher
-- [ ] add Procstar connection updates to summary endpoint
 
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values

@@ -7,17 +7,17 @@ import resource
 import sys
 import traceback
 
+from   . import procstar
 from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib.asyn import cancel_task, TaskGroup, Publisher
+from   .lib.asyn import TaskGroup, Publisher
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
 from   .program.base import Output, OutputMetadata
 from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
-from   .program.procstar.agent import start_server
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
@@ -56,8 +56,10 @@ class Apsis:
         log.debug("creating Apsis instance")
         self.__start_time = now()
 
+        self.__tasks = TaskGroup()
+
         # Start a loop to monitor the async event loop.
-        self.__check_async_task = asyncio.ensure_future(self.__check_async())
+        self.__tasks.add("check_async", self.__check_async())
         self.__check_async_stats = {}
 
         self.cfg = cfg
@@ -85,10 +87,9 @@ class Apsis:
         procstar_cfg = cfg.get("procstar", {}).get("agent", {})
         if procstar_cfg.get("enable", False):
             log.info("starting procstar server")
-            server_coro = start_server(procstar_cfg)
-            self.__procstar_task = asyncio.ensure_future(server_coro)
-        else:
-            self.__procstar_task = None
+            run_agent_server = procstar.start_agent_server(procstar_cfg)
+            self.__tasks.add("agent_conn", procstar.agent_conn(self))
+            self.__tasks.add("agent_server", run_agent_server)
 
         log.info("scheduling runs")
         self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
@@ -104,8 +105,6 @@ class Apsis:
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
-
-        self.__retire_loop = asyncio.ensure_future(self.retire_loop())
 
 
     async def restore(self):
@@ -163,11 +162,13 @@ class Apsis:
     def start_loops(self):
         # Set up the scheduler.
         log.info("starting scheduler loop")
-        self.__scheduler_task = asyncio.ensure_future(self.scheduler.loop())
+        self.__tasks.add("scheduler_loop", self.scheduler.loop())
 
         # Set up the manager for scheduled tasks.
         log.info("starting scheduled loop")
-        self.__scheduled_task = asyncio.ensure_future(self.scheduled.loop())
+        self.__tasks.add("scheduled_loop", self.scheduled.loop())
+
+        self.__tasks.add("retire_loop", self.retire_loop())
 
 
     def __wait(self, run):
@@ -653,15 +654,11 @@ class Apsis:
 
     async def shut_down(self):
         log.info("shutting down Apsis")
-        await cancel_task(self.__scheduler_task, "scheduler", log)
-        await cancel_task(self.__scheduled_task, "scheduled", log)
         await self.__action_tasks.cancel_all()
         await self.__wait_tasks.cancel_all()
         await self.__run_tasks.cancel_all()
+        await self.__tasks.cancel_all()
         await self.run_store.shut_down()
-        await cancel_task(self.__check_async_task, "check async", log)
-        if self.__procstar_task is not None:
-            await cancel_task(self.__procstar_task, "procstar server", log)
         log.info("Apsis shut down")
 
 

@@ -2,6 +2,20 @@ from   apsis.lib.api import job_to_jso, run_to_summary_jso
 
 #-------------------------------------------------------------------------------
 
+def make_agent_conn(conn):
+    return {
+        "type"          : "agent_conn",
+        "conn"          : conn.to_jso(),
+    }
+
+
+def make_agent_conn_delete(conn_id):
+    return {
+        "type"          : "agent_conn_delete",
+        "conn_id"       : conn_id,
+    }
+
+
 def make_job(job):
     return {
         "type"          : "job",

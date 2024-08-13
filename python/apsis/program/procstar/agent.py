@@ -3,7 +3,6 @@ import logging
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError, NoOpenConnectionInGroup
 from   procstar.agent.proc import FdData, Interval, Result
-import procstar.agent.server
 import traceback
 import uuid
 
@@ -13,14 +12,11 @@ from   apsis.lib.json import check_schema
 from   apsis.lib.parse import nparse_duration
 from   apsis.lib.py import or_none, get_cfg
 from   apsis.lib.sys import to_signal
+from   apsis.procstar import get_agent_server
 from   apsis.program import base
 from   apsis.runs import join_args, template_expand
 
 log = logging.getLogger(__name__)
-
-# The websockets library is too chatty at DEBUG (but remove this for debugging
-# low-level WS or TLS problems).
-logging.getLogger("websockets.server").setLevel(logging.INFO)
 
 #-------------------------------------------------------------------------------
 
@@ -114,44 +110,6 @@ async def _make_outputs(fd_data, *, final=False):
 
 #-------------------------------------------------------------------------------
 
-SERVER = None
-
-def start_server(cfg):
-    """
-    Creates and configures the global agent server.
-
-    :return:
-      Awaitable that runs the server.
-    """
-    global SERVER
-    assert SERVER is None, "server already created"
-
-    # Network/auth stuff.
-    FROM_ENV    = procstar.agent.server.FROM_ENV
-    server_cfg  = cfg.get("server", {})
-    host        = server_cfg.get("host", FROM_ENV)
-    port        = server_cfg.get("port", FROM_ENV)
-    access_token= server_cfg.get("access_token", FROM_ENV)
-    tls_cfg     = server_cfg.get("tls", {})
-    cert_path   = tls_cfg.get("cert_path", FROM_ENV)
-    key_path    = tls_cfg.get("key_path", FROM_ENV)
-    tls_cert    = FROM_ENV if cert_path is FROM_ENV else (cert_path, key_path)
-
-    conn_cfg    = cfg.get("connection", {})
-    reconnect_timeout = nparse_duration(conn_cfg.get("reconnect_timeout", None))
-
-    SERVER = procstar.agent.server.Server()
-    return SERVER.run_forever(
-        host                =host,
-        port                =port,
-        tls_cert            =tls_cert,
-        access_token        =access_token,
-        reconnect_timeout   =reconnect_timeout,
-    )
-
-
-#-------------------------------------------------------------------------------
-
 class BoundProcstarProgram(base.Program):
 
     def __init__(self, argv, *, group_id):
@@ -219,7 +177,7 @@ class BoundProcstarProgram(base.Program):
 
         Returns an async iterator of program updates.
         """
-        assert SERVER is not None
+        server = get_agent_server()
         agent_cfg       = get_cfg(cfg, "procstar.agent", {})
         run_cfg         = get_cfg(agent_cfg, "run", {})
         conn_timeout    = get_cfg(agent_cfg, "connection.start_timeout", None)
@@ -230,7 +188,7 @@ class BoundProcstarProgram(base.Program):
 
         try:
             # Start the proc.
-            proc, res = await SERVER.start(
+            proc, res = await server.start(
                 proc_id     =proc_id,
                 group_id    =self.__group_id,
                 spec        =self.spec,
@@ -261,7 +219,7 @@ class BoundProcstarProgram(base.Program):
 
 
     async def connect(self, run_id, run_state, cfg):
-        assert SERVER is not None
+        server = get_agent_server()
         agent_cfg = get_cfg(cfg, "procstar.agent", {})
         run_cfg = get_cfg(agent_cfg, "run", {})
 
@@ -273,7 +231,7 @@ class BoundProcstarProgram(base.Program):
                 get_cfg(agent_cfg, "connection.reconnect_timeout", None))
 
             log.info(f"reconnecting: {proc_id} on conn {conn_id}")
-            proc = await SERVER.reconnect(
+            proc = await server.reconnect(
                 conn_id     =conn_id,
                 proc_id     =proc_id,
                 conn_timeout=conn_timeout,
@@ -422,12 +380,14 @@ class BoundProcstarProgram(base.Program):
 
 
     async def signal(self, run_id, run_state, signal):
+        server = get_agent_server()
+
         signal = to_signal(signal)
         log.info(f"sending signal: {run_id}: {signal}")
 
         proc_id = run_state["proc_id"]
         try:
-            proc = SERVER.processes[proc_id]
+            proc = server.processes[proc_id]
         except KeyError:
             raise ValueError(f"no process: {proc_id}")
         await proc.send_signal(int(signal))

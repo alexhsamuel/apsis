@@ -49,6 +49,9 @@ class Store {
     jobs: new Map(),
     // Expand state in the job tree.
     jobsExpand: {},
+
+    // Array of Procstar agent connections.
+    agentConns: new Map(),
   }
 
   setTime(time) {

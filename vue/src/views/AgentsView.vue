@@ -1,14 +1,11 @@
 <template lang="pug">
 div
-  div(v-if="groups")
-    div.controls
-      button(@click="fetchGroups()") Refresh
-
+  div
+    div.header
+      h1 Groups
       div
         input(type="checkbox" v-model="showDisconnected")
         label Show disconnected
-
-    h1 Groups
 
     div.groups
       div.group(v-for="(conns, group_id) in filteredGroups" :key="group_id")
@@ -51,43 +48,28 @@ export default {
   data() {
     return {
       store,
-      groups: undefined,
       timerId: undefined,
       showDisconnected: true,
     }
   },
 
-  mounted() {
-    this.fetchGroups()
-  },
-
-  methods: {
-    fetchGroups() {
-      if (self.timerId)
-        clearTimeout(self.timerId)
-
-      const url = '/api/procstar/groups'
-      fetch(url).then(async (rsp) => {
-          if (rsp.ok)
-            this.groups = await rsp.json()
-          // FIXME: Handle error, e.g. no procstar server.
-      })
-
-      // Load again in a minute.
-      self.timerId = setTimeout(this.fetchGroups, 60 * 1000)
-    },
-  },
-
   computed: {
     filteredGroups() {
-      let groups = this.groups
-      if (groups) {
-        if (!this.showDisconnected)
-          // Hide disconnected connections.
-          groups = mapValues(groups, g => filter(g, c => c.info.stats.connected))
-        // Sort connections in each group by hostname.
-        mapValues(groups, g => g.sort(c => c.info.proc.hostname))
+      let conns = store.state.agentConns.values()
+      if (!this.showDisconnected)
+        // Hide disconnected connections.
+        conns = filter(conns, c => c.info.stats.connected)
+      const groups = {}
+      for (let conn of conns) {
+        const group_id = conn.info.conn.group_id
+        const group = groups[group_id]
+        if (group)
+          group.push(conn)
+        else
+          groups[group_id] = [conn]
       }
+      // Sort connections in each group by hostname.
+      mapValues(groups, g => g.sort(c => c.info.proc.hostname))
       return groups
     },
   },
@@ -99,12 +81,16 @@ export default {
 
 $gray: #e8e8e8;
 
-.controls {
+.header {
   margin-bottom: 32px;
 
   display: flex;
   align-items: center;
   column-gap: 24px;
+
+  h1 {
+    flex-grow: 1;
+  }
 
   button {
     height: 28px;
