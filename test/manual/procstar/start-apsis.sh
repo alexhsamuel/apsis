@@ -6,4 +6,5 @@ if [[ ! -f apsis.db ]]; then
     apsisctl create apsis.db
 fi
 
-exec apsisctl --log DEBUG serve --config config.yaml 2>&1 | tee -a apsis.log
+exec apsisctl --log DEBUG serve --config config.yaml
+
