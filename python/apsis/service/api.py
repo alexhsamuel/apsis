@@ -7,10 +7,10 @@ import ujson
 from   urllib.parse import unquote
 import websockets
 
+from   . import messages
 from   apsis.lib import asyn
-from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, run_to_summary_jso, make_run_summary
+from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, runs_to_jso, job_to_jso, output_metadata_to_jso
 import apsis.lib.itr
-from   apsis.lib.timing import Timer
 from   apsis.lib.sys import to_signal
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
@@ -45,75 +45,6 @@ async def stats(request):
 
 
 #-------------------------------------------------------------------------------
-
-def to_state(state):
-    return None if state is None else Run.STATE[state]
-
-
-def _to_jso(obj):
-    return None if obj is None else {
-        **obj.to_jso(),
-        "str": str(obj),
-    }
-
-
-def _to_jsos(objs):
-    return [] if objs is None else [ _to_jso(o) for o in objs ]
-
-
-def job_to_jso(app, job):
-    return {
-        "job_id"        : job.job_id,
-        "params"        : list(sorted(job.params)),
-        "schedules"     : [ _to_jso(s) for s in job.schedules ],
-        "program"       : _to_jso(job.program),
-        "condition"     : [ _to_jso(c) for c in job.conds ],
-        # FIXME: actions!
-        "actions"       : [ _to_jso(a) for a in job.actions ],
-        "metadata"      : job.meta,
-        "ad_hoc"        : job.ad_hoc,
-        "url"           : app.url_for("v1.job", job_id=job.job_id),
-    }
-
-
-def run_to_jso(app, run, summary=False):
-    if run.state is None:
-        # This run is being deleted.
-        # FIXME: Hack.
-        return {"run_id": run.run_id, "state": None}
-
-    jso = run_to_summary_jso(run)
-
-    if not summary:
-        jso = {
-            **jso,
-            "conds": _to_jsos(run.conds),
-            # FIXME: Rename to metadata.
-            "meta": run.meta,
-            "program": _to_jso(run.program),
-        }
-
-    return jso
-
-
-def runs_to_jso(app, when, runs, summary=False):
-    return {
-        "when": time_to_jso(when),
-        "runs": { r.run_id: run_to_jso(app, r, summary) for r in runs },
-    }
-
-
-def _output_metadata_to_jso(app, run_id, outputs):
-    return [
-        {
-            "output_id": output_id,
-            "output_len": output.length,
-        }
-        for output_id, output in outputs.items()
-    ]
-
-
-#-------------------------------------------------------------------------------
 # Jobs
 
 class JobLookupError(LookupError):
@@ -132,6 +63,10 @@ class AmbiguousJobError(ValueError):
 @API.exception(AmbiguousJobError)
 def ambiguous_job_error(request, exception):
     return error(exception, status=400)
+
+
+def to_state(state):
+    return None if state is None else Run.STATE[state]
 
 
 def match(choices, target):
@@ -198,7 +133,7 @@ async def job(request, job_id):
     except LookupError:
         return error(f"no job_id {job_id}", status=404)
     job = jobs.get_job(job_id)
-    return response_json(job_to_jso(request.app, job))
+    return response_json(job_to_jso(job))
 
 
 @API.route("/jobs/<job_id:path>/runs")
@@ -220,8 +155,8 @@ async def jobs(request):
     except KeyError:
         label = None
 
-    jso = [ 
-        job_to_jso(request.app, j) 
+    jso = [
+        job_to_jso(j)
         for j in request.app.apsis.jobs.get_jobs(ad_hoc=False)
         if label is None or label in j.meta.get("labels")
     ]
@@ -269,7 +204,7 @@ async def run_output_meta(request, run_id):
         log.error(f"unknown run {run_id}", exc_info=True)
         return error(f"unknown run {run_id}", 404)
 
-    jso = _output_metadata_to_jso(request.app, run_id, outputs)
+    jso = output_metadata_to_jso(request.app, run_id, outputs)
     return response_json(jso)
 
 
@@ -395,22 +330,41 @@ async def _send_chunked(msgs, ws, prefix):
         await asyncio.sleep(WS_CHUNK_SLEEP)
 
 
+# Message types (see apsis.api.messages) to include in summary.
+SUMMARY_MSG_TYPES = {
+    "job",
+    "job_add",
+    "job_delete",
+    "run_delete",
+    "run_summary",
+}
+
 @API.websocket("/summary")
 async def websocket_summary(request, ws):
     # request.query_args doesn't work correctly for ws endpoints?
     init = "init" in request.query_string.split("&")
 
+    apsis = request.app.apsis
+
     addr, port = request.socket
     prefix = f"/summary {addr}:{port}:"
     log.debug(f"{prefix} connected init={init}")
 
-    predicate = lambda msg: msg["type"] in {"run_summary", "run_delete"}
-    with request.app.apsis.publisher.subscription(predicate=predicate) as sub:
+    predicate = lambda msg: msg["type"] in SUMMARY_MSG_TYPES
+    with apsis.publisher.subscription(predicate=predicate) as sub:
         try:
             if init:
-                # Full initialization.  Send summaries of all runs.
-                _, runs = request.app.apsis.run_store.query()
-                msgs = [ make_run_summary(r) for r in runs ]
+                # Full initialization.
+                msgs = []
+
+                # Send all jobs.
+                jobs = apsis.jobs.get_jobs(ad_hoc=False)
+                msgs.extend( messages.make_job(j) for j in jobs )
+
+                # Send summaries of all runs.
+                _, runs = apsis.run_store.query()
+                msgs.extend( messages.make_run_summary(r) for r in runs )
+
                 await _send_chunked(msgs, ws, prefix)
 
             while not sub.closed:

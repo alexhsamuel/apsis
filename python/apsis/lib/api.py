@@ -81,6 +81,30 @@ def encode_response(headers, data, compression):
 
 #-------------------------------------------------------------------------------
 
+def _to_jso(obj):
+    return None if obj is None else {
+        **obj.to_jso(),
+        "str": str(obj),
+    }
+
+
+def _to_jsos(objs):
+    return [] if objs is None else [ _to_jso(o) for o in objs ]
+
+
+def job_to_jso(job):
+    return {
+        "job_id"        : job.job_id,
+        "params"        : list(sorted(job.params)),
+        "schedule"      : [ _to_jso(s) for s in job.schedules ],
+        "program"       : _to_jso(job.program),
+        "condition"     : [ _to_jso(c) for c in job.conds ],
+        "action"        : [ _to_jso(a) for a in job.actions ],
+        "metadata"      : job.meta,
+        "ad_hoc"        : job.ad_hoc,
+    }
+
+
 def run_to_summary_jso(run):
     jso = run._summary_jso_cache
     if jso is not None:
@@ -102,19 +126,42 @@ def run_to_summary_jso(run):
     return jso
 
 
-#-------------------------------------------------------------------------------
+def run_to_jso(app, run, summary=False):
+    if run.state is None:
+        # This run is being deleted.
+        # FIXME: Hack.
+        return {"run_id": run.run_id, "state": None}
 
-def make_run_delete(run):
+    jso = run_to_summary_jso(run)
+
+    if not summary:
+        jso = {
+            **jso,
+            "conds": _to_jsos(run.conds),
+            # FIXME: Rename to metadata.
+            # FIXME: Actions.
+            "meta": run.meta,
+            "program": _to_jso(run.program),
+        }
+
+    return jso
+
+
+# FIXME: Remove when.
+def runs_to_jso(app, when, runs, summary=False):
     return {
-        "type"          : "run_delete",
-        "run_id"        : run.run_id,
+        "when": time_to_jso(when),
+        "runs": { r.run_id: run_to_jso(app, r, summary) for r in runs },
     }
 
 
-def make_run_summary(run):
-    return {
-        "type"          : "run_summary",
-        "run_summary"   : run_to_summary_jso(run),
-    }
+def output_metadata_to_jso(app, run_id, outputs):
+    return [
+        {
+            "output_id": output_id,
+            "output_len": output.length,
+        }
+        for output_id, output in outputs.items()
+    ]
 
 

@@ -32,9 +32,9 @@ div.component
 
       tr
         th schedule
-        td(v-if="job.schedules.length > 0")
+        td(v-if="job.schedule.length > 0")
           li(
-            v-for="schedule in job.schedules"
+            v-for="schedule in job.schedule"
             :key="schedule.str"
             :class="{ disabled: !schedule.enabled }"
           ) {{ schedule.str }} {{ schedule.enabled ? '' : '(disabled)' }}
@@ -53,8 +53,8 @@ div.component
 
       tr
         th actions
-        td.no-padding(v-if="job.actions.length > 0")
-          .action(v-for="action in job.actions"): table.fields
+        td.no-padding(v-if="job.action.length > 0")
+          .action(v-for="action in job.action"): table.fields
             tr(v-for="(value, key, i) in action" :key="i")
               th {{ key }}
               td {{ value }}
@@ -85,7 +85,7 @@ div.component
         input(
           v-model="scheduleTime"
           placeholder="time"
-        )          
+        )
       tr.submit
         td
         td
@@ -127,8 +127,6 @@ export default {
 
   data() {
     return {
-      // Undefined before the job has loaded; null if the job doesn't exist.
-      job: undefined,
       // Form fields for schedule pane.
       scheduleArgs: {},
       scheduleTime: 'now',
@@ -138,6 +136,10 @@ export default {
   },
 
   computed: {
+    job() {
+      return store.state.jobs.get(this.job_id)
+    },
+
     params() {
       return this.job.params ? join(this.job.params, ', ') : []
     },
@@ -160,24 +162,7 @@ export default {
     },
   },
 
-  created() {
-    this.fetchJob(this.job_id)
-  },
-
   methods: {
-    fetchJob(job_id) {
-      const url = '/api/v1/jobs/' + job_id  // FIXME
-      fetch(url)
-        .then(async (response) => {
-          if (response.ok)
-            this.job = await response.json()
-          else if (response.status === 404)
-            this.job = null
-          else
-            store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
-        })
-    },
-
     markdown(src) { return src.trim() === '' ? '' : (new showdown.Converter()).makeHtml(src) },
 
     setScheduleArg(param, ev) {
@@ -192,7 +177,7 @@ export default {
         : parseTime(this.scheduleTime, false, tz)
       )
       console.assert(time, 'can\'t parse time')
-      
+
       const url = api.getSubmitRunUrl()
       const body = api.getSubmitRunBody(this.job_id, this.scheduleArgs, time === 'now' ? 'now' : time.format())
 
@@ -229,15 +214,6 @@ export default {
 
     join,
   },
-
-  watch: {
-    // Navigating to another job through the router doesn't recreate the view; the job_id just changes.
-    job_id: function (job_id) {
-      this.job = undefined
-      this.fetchJob(job_id)
-    }
-  },
-
 }
 </script>
 

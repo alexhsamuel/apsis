@@ -1,3 +1,7 @@
+# v0.24
+
+- Changes to jobs are updated live in the web UI.
+
 # v0.23
 
 - Requires [Procstar](https://github.com/alexhsamuel/procstar) v0.3.

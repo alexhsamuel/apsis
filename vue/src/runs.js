@@ -36,41 +36,75 @@ function timeKey(run) {
 
 let nextSeq = 0
 
+export function clearRunState(state) {
+  state.runs = new Map()
+  state.jobs = new Map()
+}
+
 /**
  * Updates store `state` with runs from run summaries in `msgs`.
  */
-export function updateRuns(msgs, state) {
+export function processMsgs(msgs, state) {
   const seq = nextSeq++
+
   const runs = new Map(state.runs)
-  let nadd = 0
-  let nchg = 0
-  let ndel = 0
+  const jobs = new Map(state.jobs)
+
+  let runStats = {add: 0, chg: 0, del: 0}
+  let jobStats = {add: 0, chg: 0, del: 0}
 
   // Pre-sort by time, to keep future sorts quick.
   msgs = sortBy(msgs, m => m.run_summary && timeKey(m.run_summary))
 
   for (const msg of msgs)
-    if (msg.type === 'run_summary') {
+    // Treat new and changed jobs the same.
+    if (msg.type === 'job' || msg.type === 'job_add') {
+      const job = msg.job
+      if (jobs.has(job.job_id))
+        jobStats.chg++
+      else
+        jobStats.add++
+      jobs.set(job.job_id, Object.freeze(job))
+    }
+    else if (msg.type === 'job_delete') {
+      jobs.delete(msg.job_id)
+      jobStats.del++
+    }
+    else if (msg.type === 'run_summary') {
       let run = msg.run_summary
       // Add sort and group keys to runs in msg.
       run.group_key = groupKey(run)
       run.time_key = timeKey(run)
       run.seq = seq
       if (runs.has(run.run_id))
-        nchg++
+        runStats.chg++
       else
-        nadd++
+        runStats.add++
       // Build an instance key for quick determination of reruns.
       // We never change the runs, so freeze them to avoid reactivity.
       runs.set(run.run_id, Object.freeze(run))
     }
     else if (msg.type === 'run_delete') {
       runs.delete(msg.run_id)
-      ndel++
+      runStats.del++
     }
 
-  console.log('runs messages:', nadd, 'add,', nchg, 'chg,', ndel, 'del')
-  state.runs = runs
+  if (runStats.add > 0 || runStats.chg > 0 || runStats.del > 0) {
+    console.log(
+      'runs messages:',
+      runStats.add, 'add,', runStats.chg, 'chg,', runStats.del, 'del'
+    )
+    // Set the new map to trigger reactivity updates.
+    state.runs = runs
+  }
+
+  if (jobStats.add > 0 || jobStats.chg > 0 || jobStats.del > 0) {
+      console.log(
+        'jobs messages:',
+        jobStats.add, 'add,', jobStats.chg, 'chg,', jobStats.del, 'del')
+    // Set the new map to trigger reactivity updates.
+    state.jobs = jobs
+  }
 }
 
 export const STATES = [

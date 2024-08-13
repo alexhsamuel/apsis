@@ -26,6 +26,15 @@ Mutable anytime:
 
 ## Messages
 
+```js
+{
+  "type": "job",
+  "job": {
+    ...
+  }
+}
+```
+
 A `run_summary` message is sent when a new run is created or when a run
 transitions.
 ```js
