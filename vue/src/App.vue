@@ -33,7 +33,6 @@ export default {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
     const store = this.store
 
-    console.log('creating summary socket', api.getSummaryUrl())
     this.summarySocket = new JsonSocket(
       api.getSummaryUrl(true),
       msgs => processMsgs(msgs, store.state),
