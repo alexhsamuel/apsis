@@ -90,6 +90,7 @@ export function processMsgs(msgs, state) {
         break
 
       case 'run_summary':
+      case 'run_transition':
         if (runs === null)
           runs = new Map(state.runs)
         let run = msg.run_summary

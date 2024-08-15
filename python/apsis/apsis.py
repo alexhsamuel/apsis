@@ -483,7 +483,7 @@ class Apsis:
         self.run_store.update(run, time)
 
         # Let subscribers know.
-        self.publisher.publish(messages.make_run_summary(run))
+        self.publisher.publish(messages.make_run_transition(run))
 
         self.__start_actions(run)
 
