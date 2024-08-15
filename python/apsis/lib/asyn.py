@@ -290,6 +290,13 @@ class Publisher:
         return sum( s.len_queue for s in self.__subs )
 
 
+    def get_stats(self):
+        return {
+            "num_subs"  : self.num_subs,
+            "len_queues": self.len_queues,
+        }
+
+
 
 async def anext_and_drain(subscription, time):
     """

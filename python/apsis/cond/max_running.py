@@ -119,15 +119,14 @@ class BoundMaxRunning(NonmonotonicRunStoreCondition):
 
 
     async def wait(self, run_store):
-        # Set up a live query for any changes to a run with the relevant job ID
-        # and args.
-        with run_store.query_live(
-                job_id  =self.__job_id,
-                args    =self.__args,
+        # Set up a subscription to run transitions matching the job ID and args.
+        with run_store.publisher.subscription(predicate=lambda m:
+                m.job_id == self.__job_id
+                and m.args == self.__args
         ) as sub:
             while (result := self.check(run_store)) is False:
                 # Wait until a relevant run transitions, then check again.
-                _ = await anext(sub)
+                await anext(sub)
         return result
 
 

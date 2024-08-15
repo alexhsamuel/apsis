@@ -212,6 +212,7 @@ class Apsis:
             return asyncio.wait_for(cond_wait, waiting_timeout)
 
 
+        # FIXME: Break out into function.
         async def loop():
             """
             The wait loop for a single run.
@@ -658,7 +659,6 @@ class Apsis:
         await self.__wait_tasks.cancel_all()
         await self.__run_tasks.cancel_all()
         await self.__tasks.cancel_all()
-        await self.run_store.shut_down()
         log.info("Apsis shut down")
 
 
@@ -697,6 +697,7 @@ class Apsis:
             "scheduled"             : self.scheduled.get_stats(),
             "run_store"             : self.run_store.get_stats(),
             "outputs"               : self.outputs.get_stats(),
+            "publisher"             : self.publisher.get_stats(),
         }
 
         try:

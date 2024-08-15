@@ -27,11 +27,13 @@ class Dependency(RunStoreCondition):
             states  =DEFAULT_STATE,
             exist   =None,
     ):
+        args = { str(k): str(v) for k, v in args.items() }
         states = frozenset(iterize(states))
         assert all( isinstance(s, State) for s in states )
         if exist is not None:
+            exist = frozenset(iterize(exist))
             assert all( isinstance(s, State) for s in exist )
-            assert len(set(states) - set(exist)) == 0
+            assert len(states - exist) == 0
 
         self.job_id = job_id
         self.args   = args
@@ -64,7 +66,7 @@ class Dependency(RunStoreCondition):
             "job_id": self.job_id,
             "args"  : self.args,
             "states": [ s.name for s in self.states ],
-            "exist" : 
+            "exist" :
                 None if self.exist is None
                 else [ s.name for s in self.exist ],
         }
@@ -102,38 +104,33 @@ class Dependency(RunStoreCondition):
 
 
     async def wait(self, run_store):
-        with run_store.query_live(
-                job_id  =self.job_id,
-                args    =self.args,
+        # Wait for a matching run to transition into a matching state.
+        with run_store.publisher.subscription(predicate=lambda m:
+                m.job_id == self.job_id
+                and m.args == self.args
         ) as sub:
             while True:
-                if self.exist is not None:
-                    # First check whether a valid dependency run exists, in one
-                    # of the exist states.
-                    _, exist_runs = run_store.query(
-                        job_id  =self.job_id,
-                        args    =self.args,
-                        state   =self.exist,
-                    )
-                    if len(exist_runs) == 0:
-                        # No dependency run exists in a valid starting state.
-                        inst = Instance(self.job_id, self.args)
-                        exst = join_states(self.exist)
-                        return self.Transition(
-                            State.error,
-                            f"no dependency {inst} exists in {exst}"
-                        )
+                # Look for matching runs.
+                _, runs = run_store.query(job_id=self.job_id, args=self.args)
 
-                # Wait for something to happen.
-                run = await anext(sub)
-                # Is the run in any of the target states?
-                if run.state in self.states:
-                    assert run.inst.job_id == self.job_id
-                    assert all( run.inst.args[k] == v for k, v in self.args.items() )
-                    assert run.state in self.states
-
-                    log.debug(f"dependency satisfied: {run}")
+                # Is the dependency satisfied?
+                if any( r.state in self.states for r in runs ):
                     return True
+
+                # Check for runs in exist states, if indicated.
+                if (
+                        self.exist is not None
+                        and not any( r.state in self.exist for r in runs )
+                ):
+                    # No dependency run exists in a valid starting state.
+                    inst = Instance(self.job_id, self.args)
+                    return self.Transition(
+                        State.error,
+                        f"no dependency {inst} exists in {join_states(self.exist)}"
+                    )
+
+                # Wait for a matching run to transition.
+                await anext(sub)
 
 
 
