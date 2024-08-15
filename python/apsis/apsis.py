@@ -172,7 +172,7 @@ class Apsis:
             self.__tasks.add("agent_server", run_agent_server)
 
         # Start a task to retire old runs.
-        self.__tasks.add("retire_loop", self.retire_loop())
+        self.__tasks.add("retire_loop", _retire_loop(self))
 
 
     def _wait(self, run):
@@ -621,28 +621,6 @@ class Apsis:
         return stats
 
 
-    async def retire_loop(self):
-        """
-        Periodically retires runs older than `runs.lookback`.
-        """
-        log.info("starting retire loop")
-        runs_cfg = self.cfg.get("runs", {})
-        retire_lookback = runs_cfg.get("lookback", None)
-        if retire_lookback is None:
-            log.info("no runs.lookback in config; no retire loop")
-            return
-
-        while True:
-            try:
-                min_timestamp = now() - retire_lookback
-                self.run_store.retire_old(min_timestamp)
-            except Exception:
-                log.error("retire failed", exc_info=True)
-                return
-
-            await asyncio.sleep(60)
-
-
 
 #-------------------------------------------------------------------------------
 
@@ -927,5 +905,28 @@ async def reload_jobs(apsis, *, dry_run=False):
             publish(messages.make_job(apsis.jobs.get_job(job_id)))
 
     return rem_ids, add_ids, chg_ids
+
+
+async def _retire_loop(apsis):
+    """
+    Periodically retires runs older than `runs.lookback`.
+    """
+    log.info("starting retire loop")
+    runs_cfg = apsis.cfg.get("runs", {})
+    retire_lookback = runs_cfg.get("lookback", None)
+    if retire_lookback is None:
+        log.info("no runs.lookback in config; no retire loop")
+        return
+
+    while True:
+        try:
+            min_timestamp = now() - retire_lookback
+            apsis.run_store.retire_old(min_timestamp)
+        except Exception:
+            log.error("retire failed", exc_info=True)
+            return
+
+        await asyncio.sleep(60)
+
 
 
