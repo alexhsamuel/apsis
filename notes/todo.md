@@ -43,7 +43,7 @@ Transient connection (single run):
 - [x] retire `RunStore.query_live`
 - [x] add publisher stats to `Apsis.get_stats`
 - [x] clean up `RunStore`, merge `_query_filter`, remove `shutdown`
-- [ ] break out wait loop into fn
+- [x] break out wait loop into fn
 
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values
