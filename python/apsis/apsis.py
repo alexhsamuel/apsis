@@ -53,14 +53,16 @@ class Apsis:
     """
 
     def __init__(self, cfg, jobs, db):
-        log.debug("creating Apsis instance")
         self.__start_time = now()
 
-        self.__tasks = TaskGroup()
-
-        # Start a loop to monitor the async event loop.
-        self.__tasks.add("check_async", self.__check_async())
-        self.__check_async_stats = {}
+        # Set up groups of tasks, starting with the general group.
+        self.__tasks = TaskGroup(log)
+        # One task for each waiting run.
+        self.__wait_tasks = TaskGroup(log)
+        # One task for each starting/running run.
+        self.__run_tasks = TaskGroup(log)
+        # One task for each running action.
+        self.__action_tasks = TaskGroup(log)
 
         self.cfg = cfg
         # FIXME: This should go in `apsis.config.config_globals` or similar.
@@ -73,6 +75,7 @@ class Apsis:
         # Actions applied to all runs.
         self.__actions = [ Action.from_jso(o) for o in cfg["actions"] ]
 
+        # Calculate how far back we should load runs into the run store.
         try:
             lookback = cfg["runs"]["lookback"]
         except KeyError:
@@ -84,27 +87,16 @@ class Apsis:
         # Publisher for updates.
         self.publisher = Publisher()
 
-        procstar_cfg = cfg.get("procstar", {}).get("agent", {})
-        if procstar_cfg.get("enable", False):
-            log.info("starting procstar server")
-            run_agent_server = procstar.start_agent_server(procstar_cfg)
-            self.__tasks.add("agent_conn", procstar.agent_conn(self))
-            self.__tasks.add("agent_server", run_agent_server)
-
-        log.info("scheduling runs")
-        self.scheduled = ScheduledRuns(db.clock_db, self.__wait)
+        self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
-        # Tasks for waiting runs.
-        self.__wait_tasks = TaskGroup(log)
-        # Tasks for starting/running runs.
-        self.__run_tasks = TaskGroup(log)
-        # Tasks for running actions.
-        self.__action_tasks = TaskGroup(log)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
+
+        # Stats from the async check loop.
+        self.__check_async_stats = {}
 
 
     async def restore(self):
@@ -133,7 +125,7 @@ class Apsis:
                 if not self.__prepare_run(run):
                     continue
                 self.run_log.record(run, "restored")
-                self.__wait(run)
+                self._wait(run)
 
             # If a run is starting in the DB, we can't know if it actually
             # started or not, so mark it as error.
@@ -160,6 +152,9 @@ class Apsis:
 
 
     def start_loops(self):
+        # Start a loop to monitor the async event loop.
+        self.__tasks.add("check_async", self.__check_async())
+
         # Set up the scheduler.
         log.info("starting scheduler loop")
         self.__tasks.add("scheduler_loop", self.scheduler.loop())
@@ -168,16 +163,25 @@ class Apsis:
         log.info("starting scheduled loop")
         self.__tasks.add("scheduled_loop", self.scheduled.loop())
 
+        # Start the Procstar agent server, if enabled.
+        procstar_cfg = self.cfg.get("procstar", {}).get("agent", {})
+        if procstar_cfg.get("enable", False):
+            log.info("starting procstar server")
+            run_agent_server = procstar.start_agent_server(procstar_cfg)
+            self.__tasks.add("agent_conn", procstar.agent_conn(self))
+            self.__tasks.add("agent_server", run_agent_server)
+
+        # Start a task to retire old runs.
         self.__tasks.add("retire_loop", self.retire_loop())
 
 
-    def __wait(self, run):
+    def _wait(self, run):
         """
         Starts waiting for `run`.
         """
         if len(run.conds) == 0:
             # No conditions to wait for.  Start immediately.
-            self.__start(run)
+            self._start(run)
             return
 
         # Make sure the run is waiting.
@@ -185,110 +189,13 @@ class Apsis:
             self.run_log.record(run, "waiting")
             self._transition(run, run.STATE.waiting)
 
-        # If a max waiting time is configured, compute the timeout for this run.
-        cfg = self.cfg.get("waiting", {})
-        timeout = cfg.get("max_time", None)
-
-        def wait_with_timeout(cond_wait):
-            """
-            Timeout wrapper.
-
-            :param cond_wait:
-              The cond's wait coro.
-            """
-            if timeout is None:
-                waiting_timeout = None
-            else:
-                # Adjust timeout to be relative to the time the run started waiting.
-                try:
-                    waiting_time = run.times["waiting"]
-                except KeyError:
-                    log.error(f"no waiting time in run: {run}")
-                    waiting_timeout = timeout
-                else:
-                    # Subtract time we have already waited from the timeout.
-                    waiting_timeout = timeout - (now() - waiting_time)
-
-            return asyncio.wait_for(cond_wait, waiting_timeout)
-
-
-        # FIXME: Break out into function.
-        async def loop():
-            """
-            The wait loop for a single run.
-            """
-            conds = list(run.conds)
-
-            if len(conds) > 0:
-                self.run_log.record(run, f"waiting until: {conds[0]}")
-
-            while len(conds) > 0:
-                cond = conds[0]
-                try:
-                    match cond:
-                        case PolledCondition():
-                            result = await wait_with_timeout(cond.wait())
-
-                        # Special handling for nonmonotonic conditions involving
-                        # other runs.  After async waiting the condition, check
-                        # one more time synchronously before continuing
-                        # (synchronously) to transition.
-                        case NonmonotonicRunStoreCondition():
-                            while True:
-                                result = await wait_with_timeout(cond.wait(self.run_store))
-                                # Last check, synchronously.
-                                result = cond.check(self.run_store)
-                                if result is not False:
-                                    break
-
-                        case RunStoreCondition():
-                            result = await wait_with_timeout(cond.wait(self.run_store))
-
-                        case _:
-                            assert False, f"not implemented: {cond!r}"
-
-                except asyncio.CancelledError:
-                    raise
-
-                except asyncio.TimeoutError:
-                    msg = f"waiting for {cond}: timeout after {timeout} s"
-                    self.run_log.info(run, msg)
-                    self._transition(run, Run.STATE.error)
-                    return
-
-                except Exception:
-                    msg = f"waiting for {cond}: failed"
-                    log.error(msg, exc_info=True)
-                    self._run_exc(run, message=msg)
-                    return
-
-                match result:
-                    case True:
-                        # The condition is satisfied.  Proceed to the next.
-                        conds.pop(0)
-                        if len(conds) > 0:
-                            self.run_log.record(run, f"waiting until: {conds[0]}")
-
-                    case cond.Transition(state):
-                        # Force a transition.
-                        self.run_log.info(
-                            run, result.reason or f"{state}: {cond}")
-                        self._transition(run, state)
-                        # Don't wait for further conds.
-                        return
-
-                    case _:
-                        assert False, f"invalid condition wait result: {result!r}"
-
-            else:
-                # Start the run.
-                self.__start(run)
+        timeout = self.cfg.get("waiting", {}).get("max_time", None)
 
         # Start the waiting task.
-        self.__wait_tasks.add(run.run_id, loop())
+        self.__wait_tasks.add(run.run_id, _wait_loop(self, run, timeout))
 
 
-    def __start(self, run):
+    def _start(self, run):
         """
         Starts a run.
 
@@ -539,7 +446,7 @@ class Apsis:
         if time is None:
             self.run_log.record(run, "scheduled: now")
             self._transition(run, run.STATE.scheduled, times={"schedule": now()})
-            self.__wait(run)
+            self._wait(run)
             return run
         else:
             self.run_log.record(run, f"scheduled: {time}")
@@ -575,14 +482,14 @@ class Apsis:
         if run.state == run.STATE.scheduled:
             self.scheduled.unschedule(run)
             self.run_log.info(run, "scheduled run started by override")
-            self.__wait(run)
+            self._wait(run)
 
         elif run.state == run.STATE.waiting:
             # Cancel the waiting task.  It will remove itself when done.
             await self.__wait_tasks.cancel(run.run_id)
             self.run_log.info(run, "waiting run started by override")
             # Start the run.
-            self.__start(run)
+            self._start(run)
 
         else:
             raise RunError(f"can't start {run.run_id} in state {run.state.name}")
@@ -739,6 +646,97 @@ class Apsis:
 
 #-------------------------------------------------------------------------------
 
+async def _wait_loop(apsis, run, timeout):
+    """
+    The wait loop for a single run.
+    """
+    conds = list(run.conds)
+
+    def wait_with_timeout(cond_wait):
+        """
+        :param cond_wait:
+          The cond's wait coro.
+        """
+        if timeout is None:
+            waiting_timeout = None
+        else:
+            # Adjust timeout to be relative to the time the run started waiting.
+            try:
+                waiting_time = run.times["waiting"]
+            except KeyError:
+                log.error(f"no waiting time in run: {run}")
+                waiting_timeout = timeout
+            else:
+                # Subtract time we have already waited from the timeout.
+                waiting_timeout = timeout - (now() - waiting_time)
+        return asyncio.wait_for(cond_wait, waiting_timeout)
+
+
+    if len(conds) > 0:
+        apsis.run_log.record(run, f"waiting until: {conds[0]}")
+
+    while len(conds) > 0:
+        cond = conds[0]
+        try:
+            match cond:
+                case PolledCondition():
+                    result = await wait_with_timeout(cond.wait())
+
+                # Special handling for nonmonotonic conditions involving
+                # other runs.  After async waiting the condition, check
+                # one more time synchronously before continuing
+                # (synchronously) to transition.
+                case NonmonotonicRunStoreCondition():
+                    while True:
+                        result = await wait_with_timeout(cond.wait(apsis.run_store))
+                        # Last check, synchronously.
+                        result = cond.check(apsis.run_store)
+                        if result is not False:
+                            break
+
+                case RunStoreCondition():
+                    result = await wait_with_timeout(cond.wait(apsis.run_store))
+
+                case _:
+                    assert False, f"not implemented: {cond!r}"
+
+        except asyncio.CancelledError:
+            raise
+
+        except asyncio.TimeoutError:
+            msg = f"waiting for {cond}: timeout after {timeout} s"
+            apsis.run_log.info(run, msg)
+            apsis._transition(run, Run.STATE.error)
+            return
+
+        except Exception:
+            msg = f"waiting for {cond}: failed"
+            log.error(msg, exc_info=True)
+            apsis._run_exc(run, message=msg)
+            return
+
+        match result:
+            case True:
+                # The condition is satisfied.  Proceed to the next.
+                conds.pop(0)
+                if len(conds) > 0:
+                    apsis.run_log.record(run, f"waiting until: {conds[0]}")
+
+            case cond.Transition(state):
+                # Force a transition.
+                apsis.run_log.info(run, result.reason or f"{state}: {cond}")
+                apsis._transition(run, state)
+                # Don't wait for further conds.
+                return
+
+            case _:
+                assert False, f"invalid condition wait result: {result!r}"
+
+    else:
+        # Start the run.
+        apsis._start(run)
+
+
 async def _process_updates(apsis, run, updates):
     """
     Processes program `updates` for `run` until the program is finished.
@@ -825,9 +823,9 @@ async def _process_updates(apsis, run, updates):
                 assert False, f"unexpected update: {update}"
 
     except (asyncio.CancelledError, StopAsyncIteration):
-        log.info(f"run task cancelled: {run.run_id}")
         # We do not transition the run here.  The run can survive an Apsis
         # restart and we can connect to it later.
+        pass
 
     except Exception:
         # Program raised some other exception.

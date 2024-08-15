@@ -53,13 +53,17 @@ async def cancel_task(task, name=None, log=None):
         task.cancel()
 
     try:
-        return await task
+        await task
     except asyncio.CancelledError:
         if log is not None:
-            log.info(f"task cancelled: {name}")
+            log.info(f"task cancelled with CancelledError: {name}")
     except Exception:
         if log is not None:
             log.error(f"task cancelled with exc: {name}", exc_info=True)
+    else:
+        # Task was complete, or handeled CancelledError and returned.
+        if log is not None:
+            log.info(f"task cancelled with return: {name}")
 
 
 async def poll(fn, interval, immediate=False):

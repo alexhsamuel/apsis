@@ -22,9 +22,9 @@ def get_runs_to_schedule(job, start, stop):
 
         for sched_time, args in times:
             args = {**args, "schedule_time": sched_time}
-            args = { 
-                a: str(v) 
-                for a, v in args.items() 
+            args = {
+                a: str(v)
+                for a, v in args.items()
                 if a in job.params
             }
             # FIXME: Check that all params are satisfied by args.  If not...?
@@ -67,7 +67,7 @@ class Scheduler:
             since = now() if since == "now" else Time(since)
             stop = max(stop, since)
 
-        log.info(f"scheduling runs since {stop}")
+        log.info(f"scheduler starts from {stop}")
 
         self.__jobs = jobs
         self.__stop = stop
@@ -127,7 +127,7 @@ class Scheduler:
                 await asyncio.sleep(60)
 
         except asyncio.CancelledError:
-            log.info("scheduler loop cancelled")
+            pass
 
         except Exception:
             log.critical("scheduler loop failed", exc_info=True)
