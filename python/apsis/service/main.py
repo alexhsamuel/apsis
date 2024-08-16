@@ -122,7 +122,6 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
             log.error(f"{err.job_id}: {err}")
         raise
 
-    log.info("creating scheduler instance")
     apsis = Apsis(cfg, jobs, db)
 
     app.apsis = apsis
@@ -134,7 +133,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     loop.set_debug(True)
 
     # Set up the HTTP server.
-    log.info("creating HTTP service")
+    log.info("starting HTTP service")
     server = app.create_server(
         host        =host,
         port        =port,
@@ -144,9 +143,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     server_task = asyncio.ensure_future(server)
 
     # Get Apsis running.
-    log.info("scheduling restore")
     restore_task = asyncio.ensure_future(apsis.restore())
-    log.info("starting loops")
     apsis.start_loops()
 
     # Shut down on signals; this is the correct way to request shutdown.

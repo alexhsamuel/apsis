@@ -340,6 +340,7 @@ SUMMARY_MSG_TYPES = {
     "job_delete",
     "run_delete",
     "run_summary",
+    "run_transition",
 }
 
 @API.websocket("/summary")

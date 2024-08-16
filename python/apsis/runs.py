@@ -1,5 +1,4 @@
-import asyncio
-from   contextlib import contextmanager
+from   collections import namedtuple
 import jinja2
 import logging
 import ora
@@ -338,8 +337,9 @@ class RunStore:
 
     - Stores runs in all states.
     - Satisfyies run queries.
-    - Publishes updates to runs.
     """
+
+    Message = namedtuple("Message", ("run_id", "job_id", "args", "state"))
 
     def __init__(self, db, *, min_timestamp):
         self.__run_db = db.run_db
@@ -355,9 +355,9 @@ class RunStore:
         for run in self.__runs.values():
             self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
 
-        # FIXME: Remove this after transitioning to Apsis.updates.
-        # For live notification.  Messages are runs that have transitioned.
-        self.__publisher = Publisher()
+        # Publisher for run transitions.  Messages are `Message` objects;
+        # `state` is none if the run is removed.
+        self.publisher = Publisher()
 
 
     def add(self, run):
@@ -374,6 +374,8 @@ class RunStore:
         self.__runs[run.run_id] = run
         self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)
         self.update(run, timestamp)
+        self.publisher.publish(
+            self.Message(run.run_id, run.inst.job_id, run.inst.args, run.state))
 
 
     # FIXME: Remove timestamp.
@@ -381,10 +383,7 @@ class RunStore:
         """
         Called when `run` is changed.
 
-        Persists the run if necessary, and sends live update notifications.
-
-        :param insert:
-          If true, this is a new run.
+        Persists the run if necessary.
         """
         # Make sure we know about this run.
         assert self.__runs[run.run_id] is run
@@ -393,7 +392,9 @@ class RunStore:
         if not run.expected:
             self.__run_db.upsert(run)
 
-        self.__publisher.publish(run)
+        # FIXME: Separate transition() so we don't send this on updates.
+        self.publisher.publish(
+            self.Message(run.run_id, run.inst.job_id, run.inst.args, run.state))
 
 
     def remove(self, run_id, *, expected=True):
@@ -408,10 +409,8 @@ class RunStore:
 
         del self.__runs[run_id]
         self.__runs_by_job[run.inst.job_id].remove(run)
-        # Indicate deletion with none state.
-        # FIXME: What a horrible hack.
-        run.state = None
-        self.__publisher.publish(run)
+        self.publisher.publish(
+            self.Message(run.run_id, run.inst.job_id, run.inst.args, None))
         return run
 
 
@@ -457,6 +456,7 @@ class RunStore:
         return now(), run
 
 
+    # FIXME: Merge down.
     def _query_filter(self, predicate):
         """
         Queries using a `_RunPredicate`.
@@ -487,36 +487,10 @@ class RunStore:
         return self._query_filter(_RunPredicate(**filter_args))
 
 
-    @contextmanager
-    def query_live(self, **filter_args):
-        """
-        :keywords:
-          See `_RunPredicate.__init__.
-        """
-        predicate = _RunPredicate(**filter_args)
-
-        # Subscribe to future runs.
-        with self.__publisher.subscription(predicate=predicate) as sub:
-            # Publish current runs first.
-            _, runs = self._query_filter(predicate)
-            for run in runs:
-                sub.publish(run)
-
-            yield sub
-
-
-    async def shut_down(self):
-        """
-        Terminates any live queries.
-        """
-        self.__publisher.close()
-
-
     def get_stats(self):
         return {
             "num_runs"      : len(self.__runs),
-            "num_queues"    : self.__publisher.num_subs,
-            "len_queues"    : self.__publisher.len_queues,
+            "publisher"     : self.publisher.get_stats(),
         }
 
 

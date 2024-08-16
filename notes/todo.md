@@ -40,8 +40,10 @@ Transient connection (single run):
   - [x] move Procstar agent `SERVER` to `Apsis` object
   - [x] clean up `Apsis` object tasks
   - [x] clean up message and variable names
-- [ ] retire `RunStore.query_live`
-- [ ] retire `RunStore` publisher
+- [x] retire `RunStore.query_live`
+- [x] add publisher stats to `Apsis.get_stats`
+- [x] clean up `RunStore`, merge `_query_filter`, remove `shutdown`
+- [x] break out wait loop into fn
 
 - [ ] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values

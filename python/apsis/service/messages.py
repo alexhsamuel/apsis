@@ -51,3 +51,10 @@ def make_run_summary(run):
     }
 
 
+def make_run_transition(run):
+    return {
+        "type"          : "run_transition",
+        "run_summary"   : run_to_summary_jso(run),
+    }
+
+
