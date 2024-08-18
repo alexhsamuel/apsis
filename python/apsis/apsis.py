@@ -98,6 +98,9 @@ class Apsis:
         # Stats from the async check loop.
         self.__check_async_stats = {}
 
+        # False while starting, set to true once up and running.
+        self.running_flag = asyncio.Event()
+
 
     async def restore(self):
         """
@@ -151,6 +154,7 @@ class Apsis:
             raise SystemExit(1)
 
 
+    # FIXME: Rename to start?
     def start_loops(self):
         # Start a loop to monitor the async event loop.
         self.__tasks.add("check_async", self.__check_async())
@@ -173,6 +177,9 @@ class Apsis:
 
         # Start a task to retire old runs.
         self.__tasks.add("retire_loop", _retire_loop(self))
+
+        # We're running now.
+        self.running_flag.set()
 
 
     def _wait(self, run):

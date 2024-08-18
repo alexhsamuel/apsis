@@ -3,6 +3,7 @@ from   ora import Time
 import os
 from   collections import namedtuple
 import requests
+import time
 from   urllib.parse import quote, urlunparse
 
 import apsis.service
@@ -103,7 +104,29 @@ class Client:
         :param timeout:
           Timeout in sec.
         """
-        _ = self.__get("/api/v1/alive", timeout=timeout)
+        _ = self.__get("/api/v1/alive")
+
+
+    def wait_running(self, timeout):
+        """
+        Blocks until the service is running.
+
+        :param timeout:
+          Tiemout in sec.
+        """
+        INTERVAL = 0.05
+
+        deadline = time.time() + timeout
+        while True:
+            get_timeout = deadline - time.time()
+            if get_timeout < 0:
+                raise TimeoutError(f"service not running after {timeout}")
+            try:
+                _ = self.__get("/api/v1/running", timeout=get_timeout)
+            except requests.exceptions.ConnectionError:
+                time.sleep(INTERVAL)
+            else:
+                return True
 
 
     def stats(self):

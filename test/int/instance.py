@@ -80,13 +80,7 @@ class ApsisService:
 
 
     def wait_for_serve(self):
-        # FIXME: This is horrible.
-        while True:
-            assert self.is_running()
-            with self.get_log() as log:
-                if any( "service ready to run" in l for l in log ):
-                    return True
-            time.sleep(1)
+        self.client.wait_running(1)
 
 
     def is_running(self):
@@ -136,10 +130,15 @@ class ApsisService:
 
 
     def __enter__(self):
-        self.create_db()
-        self.write_cfg()
-        self.start_serve()
-        self.wait_for_serve()
+        try:
+            self.create_db()
+            self.write_cfg()
+            self.start_serve()
+            self.wait_for_serve()
+        except Exception:
+            # Dump the log file.
+            with open(self.log_path) as file:
+                sys.stderr.write(file.read())
         return self
 
 

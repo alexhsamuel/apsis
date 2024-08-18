@@ -39,6 +39,14 @@ async def live(request):
     return response_json({})
 
 
+@API.route("/running")
+async def running(request):
+    # Block until running.
+    apsis = request.app.apsis
+    await apsis.running_flag.wait()
+    return response_json({})
+
+
 @API.route("/stats")
 async def stats(request):
     stats = request.app.apsis.get_stats()
