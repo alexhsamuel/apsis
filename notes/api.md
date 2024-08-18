@@ -2,6 +2,28 @@
 
 ## Run schema
 
+Summary:
+  Immutable:
+  - run_id
+  - job_id
+  - args
+  - labels
+  Mutable on transition:
+  - state
+  - times
+  - expected
+
+Balance (not summary):
+  Immutable:
+  - program
+  - conditions
+  - actions
+  Mutable anytime:
+  - metadata
+  - run log
+  - output
+
+
 Immutable:
 - run_id
 - job_id
