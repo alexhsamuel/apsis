@@ -1,6 +1,8 @@
 import asyncio
 from   contextlib import contextmanager, suppress
 
+import logging
+
 #-------------------------------------------------------------------------------
 
 def _install():
@@ -100,7 +102,18 @@ class TaskGroup:
         task = asyncio.get_event_loop().create_task(coro)
         task.key = key
         self.__tasks[key] = task
-        task.add_done_callback(lambda _, key=key: self.__tasks.pop(key))
+
+        def done(task):
+            try:
+                _ = task.result()
+            except asyncio.CancelledError:
+                pass
+            except:
+                logging.warning(f"task: {key}", exc_info=True)
+            finally:
+                self.__tasks.pop(key)
+
+        task.add_done_callback(done)
 
 
     async def cancel(self, key):
