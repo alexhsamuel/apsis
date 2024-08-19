@@ -1,0 +1,7 @@
+params: {duration, group_id}
+
+program:
+  type: procstar
+  group_id: "{{ group_id }}"
+  argv: ["/usr/bin/sleep", "{{ duration }}"]
+
