@@ -23,7 +23,7 @@ dependencies = [
     "httpx",
     "jinja2",
     "ora",
-    "procstar >=0.3",
+    "procstar >=0.4",
     "pyyaml",
     "requests",
     "rich",

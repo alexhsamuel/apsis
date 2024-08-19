@@ -3,6 +3,8 @@ from   contextlib import contextmanager, suppress
 
 import logging
 
+import logging
+
 #-------------------------------------------------------------------------------
 
 def _install():
