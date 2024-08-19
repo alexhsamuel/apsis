@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import procstar.spec
-from   procstar.agent.exc import NoConnectionError, NoOpenConnectionInGroup
+from   procstar.agent.exc import NoConnectionError, NoOpenConnectionInGroup, ProcessUnknownError
 from   procstar.agent.proc import FdData, Interval, Result
 import traceback
 import uuid
@@ -260,6 +260,7 @@ class BoundProcstarProgram(base.Program):
           The most recent `Result`, if any.
         """
         proc_id = proc.proc_id
+        tasks = asyn.TaskGroup()
 
         try:
             # Output collected so far.
@@ -268,7 +269,6 @@ class BoundProcstarProgram(base.Program):
             # Start tasks to request periodic updates of results and output.
             update_interval = nparse_duration(run_cfg.get("update_interval", None))
             output_interval = nparse_duration(run_cfg.get("output_interval", None))
-            tasks = asyn.TaskGroup()
 
             if update_interval is not None:
                 # Start a task that periodically requests the current result.
@@ -285,10 +285,7 @@ class BoundProcstarProgram(base.Program):
                     interval = Interval(start, None)
                     return proc.request_fd_data("stdout", interval=interval)
 
-                tasks.add(
-                    "poll output",
-                    asyn.poll(more_output, output_interval)
-                )
+                tasks.add("poll output", asyn.poll(more_output, output_interval))
 
             # Process further updates, until the process terminates.
             async for update in proc.updates:
@@ -361,6 +358,10 @@ class BoundProcstarProgram(base.Program):
             # Don't clean up the proc; we can reconnect.
             proc = None
 
+        except ProcessUnknownError:
+            # Don't ask to clean it up; it's already gone.
+            proc = None
+
         except Exception as exc:
             log.error(f"procstar: {traceback.format_exc()}")
 
@@ -374,8 +375,10 @@ class BoundProcstarProgram(base.Program):
             )
 
         finally:
+            # Cancel our helper tasks.
             await tasks.cancel_all()
             if proc is not None:
+                # Giving up on this proc; ask the agent to delete it.
                 await self.__delete(proc)
 
 
