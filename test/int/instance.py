@@ -80,7 +80,7 @@ class ApsisService:
 
 
     def wait_for_serve(self):
-        self.client.wait_running(1)
+        self.client.wait_running(2)
 
 
     def is_running(self):

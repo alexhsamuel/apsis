@@ -93,6 +93,18 @@ class Agent:
             self.proc = None
 
 
+    def restart(self, *, signum=signal.SIGTERM, keep_conn_id=False):
+        logging.info("killing Procstar agent")
+        self.proc.send_signal(signum)
+        self.proc.wait()
+        self.proc = None
+
+        if not keep_conn_id:
+            self.conn_id = str(uuid.uuid4())
+
+        self.start()
+
+
     def __enter__(self):
         self.start()
         return self
