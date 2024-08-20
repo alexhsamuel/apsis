@@ -12,7 +12,7 @@ from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib.asyn import TaskGroup, Publisher
+from   .lib.asyn import TaskGroup, Publisher, KeyPublisher
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
@@ -86,6 +86,8 @@ class Apsis:
 
         # Publisher for summary updates.
         self.summary_publisher = Publisher()
+        # Publisher for per-run updates.
+        self.run_update_publisher = KeyPublisher()
 
         self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
@@ -365,17 +367,20 @@ class Apsis:
         """
         assert run.state in {State.starting, State.running}
 
+        msg = {}
         if meta is not None:
             run._update(meta=meta)
+            msg["meta"] = meta
         if outputs is not None:
             for output_id, output in outputs.items():
                 self.outputs.write(run.run_id, output_id, output)
 
         self.run_store.update(run, now())
-        # FIXME: Publish.
+        if len(msg) > 0:
+            self.run_update_publisher.publish(run.run_id, msg)
 
 
-    def _transition(self, run, state, *, outputs={}, **kw_args):
+    def _transition(self, run, state, *, outputs={}, meta={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
         """
@@ -387,7 +392,7 @@ class Apsis:
             run.expected = False
 
         # Transition the run object.
-        run._transition(time, state, **kw_args)
+        run._transition(time, state, meta=meta, **kw_args)
 
         # Persist outputs.
         for output_id, output in outputs.items():
@@ -397,8 +402,15 @@ class Apsis:
         # Persist the new state.
         self.run_store.update(run, time)
 
-        # Let subscribers know.
+        # Let summary subscribers know.
         self.summary_publisher.publish(messages.make_run_transition(run))
+
+        # Let run update subscribers know.
+        msg = {}
+        if len(meta) > 0:
+            msg["meta"] = meta
+        if len(msg) > 0:
+            self.run_update_publisher.publish(run.run_id, msg)
 
         self.__start_actions(run)
 

@@ -202,6 +202,19 @@ async def run_log(request, run_id):
     })
 
 
+@API.websocket("/runs/<run_id>/updates")
+async def websocket_run_updates(request, ws, run_id):
+    apsis = request.app.apsis
+    with apsis.run_update_publisher.subscription(run_id) as subscription:
+        _, run = apsis.run_store.get(run_id)
+        await ws.send(ujson.dumps({
+            "meta": run.meta,
+        }))
+
+        async for msg in subscription:
+            await ws.send(ujson.dumps(msg))
+
+
 @API.route("/runs/<run_id>/outputs", methods={"GET"})
 async def run_output_meta(request, run_id):
     try:
