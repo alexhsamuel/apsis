@@ -66,10 +66,10 @@ div
               th log
               td.no-padding: RunLog(:run_id="run_id")
 
-    Frame(v-if="run.meta && Object.keys(run.meta).length" title="Metadata" closed)
+    Frame(title="Metadata" closed)
       table.fields
         tbody
-          tr(v-for="(value, key) in run.meta" :key="key")
+          tr(v-for="(value, key) in meta" :key="key")
             th {{ key }}
             td
               tt(v-if="typeof value === 'object'")
@@ -103,6 +103,7 @@ import * as api from '@/api'
 import Frame from '@/components/Frame'
 import Job from '@/components/Job'
 import JobWithArgs from '@/components/JobWithArgs'
+import JsonSocket from '@/JsonSocket.js'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
@@ -143,6 +144,8 @@ export default {
       outputData: null,
       // Start with the run summary from the run state.
       run: store.state.runs.get(this.run_id),
+      // Run metadata.
+      meta: null,
       store,
     }
   },
@@ -229,6 +232,18 @@ export default {
   mounted() {
     // Fetch full run info.
     this.fetchRun()
+
+    const url = api.getRunUpdatesUrl(this.run_id)
+    this.updates = new JsonSocket(
+      url,
+      msg => {
+        if ('meta' in msg)
+          this.meta = msg.meta
+      },
+      () => {},
+      err => { console.log(err) },
+    )
+    this.updates.open()
   },
 
   watch: {
