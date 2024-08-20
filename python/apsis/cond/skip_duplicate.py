@@ -2,7 +2,8 @@ import logging
 
 from   apsis.lib import py
 from   apsis.lib.json import check_schema
-from   apsis.runs import Instance, Run, to_state
+from   apsis.runs import Instance, Run
+from   apsis.states import to_state
 from   .base import Condition, NonmonotonicRunStoreCondition
 
 log = logging.getLogger(__name__)

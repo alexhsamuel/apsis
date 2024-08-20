@@ -8,11 +8,12 @@ from   urllib.parse import unquote
 import websockets
 
 from   . import messages
+from   apsis import procstar
 from   apsis.lib import asyn
 from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, runs_to_jso, job_to_jso, output_metadata_to_jso
 import apsis.lib.itr
 from   apsis.lib.sys import to_signal
-from   apsis import procstar
+from   apsis.states import to_state
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
 
@@ -72,10 +73,6 @@ class AmbiguousJobError(ValueError):
 @API.exception(AmbiguousJobError)
 def ambiguous_job_error(request, exception):
     return error(exception, status=400)
-
-
-def to_state(state):
-    return None if state is None else Run.STATE[state]
 
 
 def match(choices, target):
@@ -321,7 +318,7 @@ async def runs(request):
     when, runs = apsis.run_store.query(
         run_ids     =run_id,
         job_id      =job_id,
-        state       =to_state(state),
+        state       =None if state is None else to_state(state),
         since       =since,
         with_args   =args,
     )

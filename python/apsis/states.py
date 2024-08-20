@@ -19,6 +19,16 @@ State = enum.Enum(
     )
 )
 
+def to_state(state):
+    if isinstance(state, State):
+        return state
+    try:
+        return State[state]
+    except KeyError:
+        pass
+    raise ValueError(f"not a state: {state!r}")
+
+
 ALL_STATES = frozenset(State)
 FINISHED = frozenset((State.success, State.failure, State.error, State.skipped))
 

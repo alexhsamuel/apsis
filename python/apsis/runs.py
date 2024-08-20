@@ -495,15 +495,3 @@ class RunStore:
 
 
 
-#-------------------------------------------------------------------------------
-
-def to_state(state):
-    if isinstance(state, Run.STATE):
-        return state
-    try:
-        return Run.STATE[state]
-    except KeyError:
-        pass
-    raise ValueError(f"not a state: {state!r}")
-
-
