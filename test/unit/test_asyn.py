@@ -98,4 +98,36 @@ async def test_publisher():
             await anext(sub_late)
 
 
+@pytest.mark.asyncio
+async def test_task_group():
+    val = 0
+
+    async def good():
+        nonlocal val
+        val += 1
+
+    async def slow():
+        nonlocal val
+        await asyncio.sleep(1)
+        val += 10
+
+    async def bad():
+        await asyncio.sleep(0.25)
+        raise RuntimeError("oops")
+
+    group = apsis.lib.asyn.TaskGroup()
+    assert len(group) == 0
+    group.add("good0", good())
+    group.add("slow0", slow())
+    group.add("bad0", bad())
+    group.add("bad1", bad())
+    group.add("good1", good())
+    group.add("slow1", slow())
+
+    await asyncio.sleep(0.5)
+    assert val == 2
+    assert len(group) == 2
+    await group.cancel_all()
+    assert len(group) == 0
+
 
