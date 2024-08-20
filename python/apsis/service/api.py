@@ -360,7 +360,7 @@ async def websocket_summary(request, ws):
     log.debug(f"{prefix} connected init={init}")
 
     predicate = lambda msg: msg["type"] in SUMMARY_MSG_TYPES
-    with apsis.publisher.subscription(predicate=predicate) as sub:
+    with apsis.summary_publisher.subscription(predicate=predicate) as sub:
         try:
             if init:
                 # Full initialization.

@@ -84,8 +84,8 @@ class Apsis:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
-        # Publisher for updates.
-        self.publisher = Publisher()
+        # Publisher for summary updates.
+        self.summary_publisher = Publisher()
 
         self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
@@ -398,7 +398,7 @@ class Apsis:
         self.run_store.update(run, time)
 
         # Let subscribers know.
-        self.publisher.publish(messages.make_run_transition(run))
+        self.summary_publisher.publish(messages.make_run_transition(run))
 
         self.__start_actions(run)
 
@@ -611,7 +611,7 @@ class Apsis:
             "scheduled"             : self.scheduled.get_stats(),
             "run_store"             : self.run_store.get_stats(),
             "outputs"               : self.outputs.get_stats(),
-            "publisher"             : self.publisher.get_stats(),
+            "summary_publisher"     : self.summary_publisher.get_stats(),
         }
 
         try:
@@ -834,7 +834,7 @@ def _unschedule_runs(apsis, job_id):
         log.info(f"removing: {run.run_id}")
         apsis.scheduled.unschedule(run)
         apsis.run_store.remove(run.run_id)
-        apsis.publisher.publish(messages.make_run_delete(run))
+        apsis.summary_publisher.publish(messages.make_run_delete(run))
 
 
 async def reschedule_runs(apsis, job_id):
@@ -903,7 +903,7 @@ async def reload_jobs(apsis, *, dry_run=False):
             await reschedule_runs(apsis, job_id)
 
         # Publish job changes.
-        publish = apsis.publisher.publish
+        publish = apsis.summary_publisher.publish
         for job_id in rem_ids:
             publish(messages.make_job_delete(job_id))
         for job_id in add_ids:
