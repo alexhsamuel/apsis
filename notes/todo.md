@@ -45,12 +45,12 @@ Transient connection (single run):
 - [x] clean up `RunStore`, merge `_query_filter`, remove `shutdown`
 - [x] break out wait loop into fn
 
-- [ ] add `/ws/run/<run_id>` endpoint
+- [x] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values
-  - [ ] metadata updates
+  - [x] metadata updates
   - [ ] run log updates
   - [ ] program output updates
-- [ ] roll in Procstar agent changes to `/summary`
+- [x] roll in Procstar agent changes to `/summary`
 - [ ] roll in, or get rid of, log socket
 - [ ] add live endpoints to `Client`
 - [ ] live updates in CLUI
