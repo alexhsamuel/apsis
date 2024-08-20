@@ -1,7 +1,10 @@
 import asyncio
 from   contextlib import contextmanager, suppress
+import weakref
 
 import logging
+
+logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -109,7 +112,7 @@ class TaskGroup:
             except asyncio.CancelledError:
                 pass
             except:
-                logging.warning(f"task: {key}", exc_info=True)
+                logger.warning(f"task: {key}", exc_info=True)
             finally:
                 self.__tasks.pop(key)
 
@@ -329,5 +332,54 @@ async def anext_and_drain(subscription, time):
         await asyncio.sleep(time)
         msgs.extend(subscription.drain())
         return msgs
+
+
+class KeyPublisher:
+    """
+    A mapping of publishers referenced by key.
+
+    Holds each publishers weakly, and keeps it only as long as at least one
+    subscription exists.  A message published to a key without subscriptions is
+    ignored.
+    """
+
+    def __init__(self):
+        self.__publishers = weakref.WeakValueDictionary()
+
+
+    def subscription(self, key):
+        """
+        Returns a subscription to `key`.
+        """
+        try:
+            publisher = self.__publishers[key]
+        except KeyError:
+            publisher = self.__publishers[key] = Publisher()
+        subscription = publisher.subscription()
+        # Attach a strong ref to the publisher, to prevent destroying it while
+        # (at least) this subscription exists.
+        subscription.__publisher = publisher
+        return subscription
+
+
+    def __contains__(self, key):
+        """
+        True if at least one subscription for `key` exists.
+        """
+        return self.__publishers.__contains__(key)
+
+
+    def publish(self, key, msg):
+        """
+        Publishes `msg` to `key` if any subscriptions exist.
+        """
+        try:
+            publisher = self.__publishers[key]
+        except KeyError:
+            # No subscriptions.
+            pass
+        else:
+            publisher.publish(msg)
+
 
 
