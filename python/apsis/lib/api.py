@@ -155,6 +155,17 @@ def runs_to_jso(app, when, runs, summary=False):
     }
 
 
+def run_log_record_to_jso(rec):
+    return {
+        "timestamp" : time_to_jso(rec["timestamp"]),
+        "message"   : rec["message"],
+    }
+
+
+def run_log_to_jso(recs):
+    return [ run_log_record_to_jso(r) for r in recs ]
+
+
 # FIXME: Get rid of this and the whole endpoint, which is silly.
 def output_metadata_to_jso(app, run_id, outputs):
     return [

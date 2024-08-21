@@ -69,7 +69,12 @@ class Apsis:
         config_host_groups(cfg)
         self.__db = db
 
-        self.run_log = RunLog(self.__db.run_log_db)
+        # Publisher for summary updates.
+        self.summary_publisher = Publisher()
+        # Publisher for per-run updates.
+        self.run_update_publisher = KeyPublisher()
+
+        self.run_log = RunLog(self.__db.run_log_db, self.run_update_publisher)
         self.jobs = Jobs(jobs, db.job_db)
 
         # Actions applied to all runs.
@@ -83,11 +88,6 @@ class Apsis:
         else:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
-
-        # Publisher for summary updates.
-        self.summary_publisher = Publisher()
-        # Publisher for per-run updates.
-        self.run_update_publisher = KeyPublisher()
 
         self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
