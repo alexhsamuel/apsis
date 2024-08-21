@@ -50,6 +50,7 @@ Transient connection (single run):
   - [x] metadata updates
   - [ ] run log updates
   - [ ] program output updates
+  - [ ] clean up API endpoints we don't need anymore
 - [x] roll in Procstar agent changes to `/summary`
 - [ ] roll in, or get rid of, log socket
 - [ ] add live endpoints to `Client`
@@ -61,36 +62,32 @@ Transient connection (single run):
 
 # Cleanup
 
+### Schema
+
 - Remove `message` from run JSON and `runs` table.
+
+- Move metadata out of `runs` into its own table, along with any other column
+  that isn't part of the run summary.
+
+- Clean up `rerun` column as well.
+
+- Rename `run_history` to `run_log`.
+
+### Other
 
 - To finish `check-job`, we need to remove the program, schedule, action, cond
   aliases from `config.yaml` and move them to a config file specific to the job
   dir.
 
-- Remove run_history from `Waiter`.
-
 - Factor loop watchers (`log.critical`) into a common pattern.
+
 - Clean up the restore task.
-
-
-# Performance
-
-- Move `meta` out of the `runs` table into its own table, along with any other
-  column that's not required in the run summary.
-
-- Clean up `rerun` column as well.
 
 
 # Idle thoughts
 
-It might be better for the scheduler, scheduled, and waiter loops to be managed
-by the Apsis instance, so that it can split workloads (i.e. run some runs before
-scheduling others).  This might also make the components more functional.  They
-might not have to reach back and call Apsis methods to transition runs; instead
-they would just return instructions and Apsis would do the work.
-
-Maybe we should just bite our tounges and attach the apsis object to each run
-instance.  The run objects would become much more active.
+Change scheduler, scheduled, wait loops into async iters that return
+instructions to Apsis, who then applies them, rather than applying them directly.
 
 
 # Tools
@@ -159,17 +156,11 @@ instance.  The run objects would become much more active.
 
 - label for ad-hoc jobs
 
-- make web UI reload runs on reconnect (at long last)
-
 - attach job to run when scheduling, rather than loading jobs later
-
-- get rid of runs collapser in runs view (too many runs!)
 
 - job label search
 
 - schedule time jitter
-
-- shut down agent cleanly, including canceling shutdown task
 
 - runs filter
   - remove time, state filter from query args
@@ -178,9 +169,6 @@ instance.  The run objects would become much more active.
 - path navigation
   - proper programmatic API in runFilter, to build query?
   - handle "/path" terms in search box specially
-
-- get rid of UIKit
-  - something like [Tailwind](https://tailwindcss.com/)? [Tachyons](http://tachyons.io)?
 
 - better env vars in running programs, ala `APSIS_RUN_ID`.
 
@@ -191,18 +179,12 @@ instance.  The run objects would become much more active.
   - shut down agent cleanly, including canceling shutdown task
 
 - send debug log to file, from config
-- "now" indicator (horizontal stripe?) in runs view
 
 - handle more runs
-  - retire old runs from memory
   - query db for older runs instead of holding them in memory (not possible?)
   - in job view, include time limitation
 
-- remove actions from run summary?
-
 - check out: FastAPI, uvicorn, Starlett
-
-- click on args in run list to add an arg query term
 
 - clean up command line UI
   - implement `apsis runs --times`
@@ -212,8 +194,6 @@ instance.  The run objects would become much more active.
 - convert `run.times` to log, with schema (timestamp, message, state)
   - retire run/transition message
   - retire times in run?  or hide from UI
-
-- `apsisctl check-job` for a directory
 
 - configuration
   - provide a way to add functions to jinja2 eval namespace
@@ -227,22 +207,7 @@ instance.  The run objects would become much more active.
   - watch runs live in CLUI
   - connection indicator in web UI
 
-- watch jobs for changes
-
-- gzip output
-  - in agent
-
-- release
-  - update web UI
-  - conda recipe
-  - intro docs in README
-  - job docs
-
-- sudo support in programs
-
 - normalize environment for another user, locally and by ssh
-
-- use token to authenticate with agent
 
 - SSL for Apsis
 
