@@ -62,9 +62,13 @@ div
               td
                 RunElapsed(:run="run")
 
-            tr
-              th log
-              td.no-padding: RunLog(:run_id="run_id")
+    Frame(title="Run Log")
+      div
+        table.fields.run-log
+          tbody
+            tr(v-for="rec of runLog" :key="rec.timestamp + rec.message")
+              th {{ rec.timestamp }}
+              td {{ rec.message }}
 
     Frame(title="Metadata" closed)
       table.fields
@@ -115,7 +119,6 @@ import Run from '@/components/Run'
 import { joinArgs, OPERATIONS } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
-import RunLog from '@/components/RunLog'
 import RunsList from '@/components/RunsList'
 import State from '@/components/State'
 import store from '@/store'
@@ -132,7 +135,6 @@ export default {
     Run,
     RunArgs,
     RunElapsed,
-    RunLog,
     RunsList,
     State,
     Timestamp,
@@ -144,9 +146,10 @@ export default {
         runs: this.$route.query.runs !== null,
       },
       OPERATIONS,
-      outputMetadata: null,
       // Start with the run summary from the run state.
       run: store.state.runs.get(this.run_id),
+      runLog: null,
+      outputMetadata: null,
       // Run metadata.
       meta: null,
       store,
@@ -205,6 +208,10 @@ export default {
         console.log('msg', msg)
         if (msg.meta)
           this.meta = msg.meta
+        if (msg.run_log)
+          this.runLog = msg.run_log
+        if (msg.run_log_append)
+          this.runLog.push(msg.run_log_append)
         if (msg.outputs && msg.outputs['output'])
           this.outputMetadata = msg.outputs['output']
       },
@@ -288,6 +295,16 @@ export default {
     line-height: 1.1rem;
     padding-top: 0;
     padding-bottom: 0;
+  }
+}
+
+.run-log {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  th, td {
+    line-height: 1.5rem;
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
   }
 }
 </style>

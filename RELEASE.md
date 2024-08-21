@@ -2,6 +2,7 @@
 
 - Changes to jobs update live in the web UI.
 - Changes to Procstar agent connections update live in the web UI.
+- The run log updates live in the web UI.
 
 
 # v0.23

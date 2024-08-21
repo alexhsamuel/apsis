@@ -48,7 +48,7 @@ Transient connection (single run):
 - [x] add `/ws/run/<run_id>` endpoint
   - [ ] option to send initial values
   - [x] metadata updates
-  - [ ] run log updates
+  - [x] run log updates
   - [ ] program output updates
   - [ ] clean up API endpoints we don't need anymore
 - [x] roll in Procstar agent changes to `/summary`
