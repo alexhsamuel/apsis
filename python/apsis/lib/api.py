@@ -155,6 +155,7 @@ def runs_to_jso(app, when, runs, summary=False):
     }
 
 
+# FIXME: Get rid of this and the whole endpoint, which is silly.
 def output_metadata_to_jso(app, run_id, outputs):
     return [
         {
