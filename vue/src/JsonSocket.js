@@ -8,17 +8,18 @@ export default class JsonSocket {
     this.onMessage  = onMessage
     this.onConnect  = onConnect
     this.onErr      = onErr
+    this.isOpen     = false
   }
 
   open() {
-    if (this.websocket)
+    if (this.websocket !== null)
+      // Already have a websocket.
       return
 
     console.log('websocket connecting:', this.url.toString())
     this.websocket = new WebSocket(this.url)
 
     this.websocket.onopen = () => {
-      console.log('websocket connected')
       this.onConnect()
     }
 
@@ -34,15 +35,20 @@ export default class JsonSocket {
     }
 
     this.websocket.onclose = () => {
-      console.log('websocket: closed')
       this.websocket = null
       // Retry the connection after a second.
-      setTimeout(() => this.open(), 1000)
+      if (this.isOpen)
+        setTimeout(() => this.open(), 1000)
     }
+
+    this.isOpen = true
   }
 
   close() {
-    if (this.websocket !== null)
-      this.websocket.close()
+    if (this.isOpen) {
+      if (this.websocket !== null)
+        this.websocket.close()
+      this.isOpen = false
+    }
   }
 }
