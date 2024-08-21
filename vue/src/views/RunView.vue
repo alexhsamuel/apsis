@@ -12,7 +12,7 @@ div
         v-for="operation in OPERATIONS[run.state]"
         :key="operation"
         :run_id="run_id"
-        :operation="operation" 
+        :operation="operation"
         :button="true"
       )
 
@@ -52,7 +52,7 @@ div
                 tr(v-for="cond in run.conds" :key="cond.str")
                   td(style="padding-left: 0")
                     span(v-if="cond.type === 'dependency'")
-                      span dependency: 
+                      span dependency:
                       JobWithArgs(:job-id="cond.job_id" :args="cond.args")
                       span  is {{ join(cond.states, '|') }}
                     span(v-else) {{ cond.str }}
@@ -81,23 +81,28 @@ div
               tt(v-else) {{ value }}
 
     Frame(title="Output")
-      button(
-        v-if="output && output.output_len && !outputData"
-        v-on:click="fetchOutputData()"
-      ) load {{ output.output_len }} bytes
-      pre.output.pad(v-if="outputData !== null") {{ outputData }}
+      <!-- button( -->
+      <!--   v-if="output && output.output_len && !outputData" -->
+      <!--   v-on:click="fetchOutputData()" -->
+      <!-- ) load {{ output.output_len }} bytes -->
+      div.output(v-if="outputMetadata")
+        div.head
+          span.name {{ outputMetadata.name }}
+          span ({{ outputMetadata.content_type }})
+          span {{ outputMetadata.length }} bytes
+      <!-- pre.output.text.pad(v-if="outputData !== null") {{ outputData }} -->
 
   div.error-message(v-else)
     div.title
       | {{ run_id }}
 
-    | This run does not currently exist. 
+    | This run does not currently exist.
     | This may be a run that was previously scheduled but never run.
 
 </template>
 
 <script>
-import { forEach, join } from 'lodash'
+import { join } from 'lodash'
 
 import * as api from '@/api'
 import Frame from '@/components/Frame'
@@ -139,9 +144,7 @@ export default {
         runs: this.$route.query.runs !== null,
       },
       OPERATIONS,
-      output: null,
-      outputRequested: false,  // FIXME: Remove?
-      outputData: null,
+      outputMetadata: null,
       // Start with the run summary from the run state.
       run: store.state.runs.get(this.run_id),
       // Run metadata.
@@ -171,51 +174,12 @@ export default {
           if (response.ok) {
             const run = (await response.json()).runs[this.run_id]
             this.run = Object.freeze(run)
-            this.fetchOutputMetadata()
           }
           else if (response.status === 404)
             this.run = null
           else
             store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
         })
-    },
-
-    fetchOutputMetadata() {
-      if (this.run)
-        fetch(api.getOutputUrl(this.run.run_id))
-          .then(async rsp => {
-            const outputs = await rsp.json()
-
-            // FIXME: For now we only show output_id = 'output'.
-            forEach(outputs, output => {
-              if (output.output_id === 'output')
-                this.output = output
-
-                // If the output isn't too big, fetch it immediately.
-                if (this.output.output_len <= 65536 || this.outputData)
-                  this.fetchOutputData()
-            })
-          })
-          // FIXME: Handle error.
-          .catch(err => { console.log(err) })
-    },
-
-    fetchOutputData() {
-      const url = api.getOutputDataUrl(this.run.run_id, this.output.output_id)
-
-      // Don't request output more than once.
-      if (this.outputRequested)
-        return
-      this.outputRequested = true
-
-      fetch(url)
-        // FIXME: Might not be text!
-        // FIXME: Don't murder the browser with huge output or long lines.
-        .then(async rsp => {
-          this.outputData = await rsp.text()
-        })
-        // FIXME: Handle error.
-        .catch(err => { console.log(err) })
     },
 
     format(key, value) {
@@ -229,21 +193,30 @@ export default {
 
   },
 
-  mounted() {
+  beforeMount() {
     // Fetch full run info.
     this.fetchRun()
 
+    // Connect to live run updates.
     const url = api.getRunUpdatesUrl(this.run_id)
     this.updates = new JsonSocket(
       url,
       msg => {
-        if ('meta' in msg)
+        console.log('msg', msg)
+        if (msg.meta)
           this.meta = msg.meta
+        if (msg.outputs && msg.outputs['output'])
+          this.outputMetadata = msg.outputs['output']
       },
       () => {},
       err => { console.log(err) },
     )
     this.updates.open()
+  },
+
+  beforeDestroy() {
+    // Disconnect live run updates.
+    this.updates.close()
   },
 
   watch: {
@@ -286,7 +259,16 @@ export default {
 }
 
 .output {
-  font-family: "Roboto mono", monospaced;
+  .head span {
+    display: inline-block;
+    padding-right: 0.5em;
+    &.name {
+      font-weight: bold;
+    }
+  }
+  &.text {
+    font-family: "Roboto mono", monospaced;
+  }
 }
 
 .state {

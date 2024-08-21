@@ -206,9 +206,19 @@ async def run_log(request, run_id):
 async def websocket_run_updates(request, ws, run_id):
     apsis = request.app.apsis
     with apsis.run_update_publisher.subscription(run_id) as subscription:
-        _, run = apsis.run_store.get(run_id)
+        # Initialize run metadata.
+        try:
+            _, run = apsis.run_store.get(run_id)
+        except KeyError:
+            return error(f"unknown run {run_id}", 404)
+        # Initialize output metadata.
+        try:
+            outputs = apsis.outputs.get_metadata(run_id)
+        except KeyError:
+            outputs = {}
         await ws.send(ujson.dumps({
             "meta": run.meta,
+            "outputs": { n: o.to_jso() for n, o in outputs.items() },
         }))
 
         async for msg in subscription:

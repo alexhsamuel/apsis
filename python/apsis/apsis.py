@@ -367,15 +367,21 @@ class Apsis:
         """
         assert run.state in {State.starting, State.running}
 
+        # Build up a message for run update subscriptions.
         msg = {}
+
         if meta is not None:
             run._update(meta=meta)
             msg["meta"] = meta
+
         if outputs is not None:
+            msg_outputs = msg["outputs"] = {}
             for output_id, output in outputs.items():
                 self.outputs.write(run.run_id, output_id, output)
+                msg_outputs[output_id] = output.metadata.to_jso()
 
         self.run_store.update(run, now())
+
         if len(msg) > 0:
             self.run_update_publisher.publish(run.run_id, msg)
 
