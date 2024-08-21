@@ -9,6 +9,7 @@ import yaml
 
 import apsis.lib.itr
 import apsis.lib.memo
+import apsis.lib.parse
 import apsis.lib.py
 import apsis.lib.string
 
@@ -292,6 +293,9 @@ def parse_at_time(string):
     """
     if string == "now":
         return "now"
+
+    if string.startswith("+"):
+        return now() + apsis.lib.parse.parse_duration(string[1 :])
 
     try:
         return Time(string)
