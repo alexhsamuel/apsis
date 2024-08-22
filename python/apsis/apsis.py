@@ -370,19 +370,22 @@ class Apsis:
         # Build up a message for run update subscriptions.
         msg = {}
 
+        # Persist metadata.
         if meta is not None:
             run._update(meta=meta)
             msg["meta"] = meta
 
         if outputs is not None:
-            msg_outputs = msg["outputs"] = {}
+            # Persist outputs.
             for output_id, output in outputs.items():
                 self.outputs.write(run.run_id, output_id, output)
-                msg_outputs[output_id] = output.metadata.to_jso()
+                msg.setdefault("outputs", {})[output_id] = output.metadata.to_jso()
 
+        # Persist the new state.
         self.run_store.update(run, now())
 
         if len(msg) > 0:
+            # Publish to run update subscribers.
             self.run_update_publisher.publish(run.run_id, msg)
 
 
@@ -397,25 +400,27 @@ class Apsis:
             self.__db.run_log_db.flush(run.run_id)
             run.expected = False
 
-        # Transition the run object.
+        # Build up a message for run update subscriptions.
+        msg = {}
+
+        # Transition the run object.  This persists metadata too.
         run._transition(time, state, meta=meta, **kw_args)
+        if len(meta) > 0:
+            msg["meta"] = meta
 
         # Persist outputs.
         for output_id, output in outputs.items():
             self.outputs.write_through(run.run_id, output_id, output)
-            # FIXME: Publish.
+            msg.setdefault("outputs", {})[output_id] = output.metadata.to_jso()
 
         # Persist the new state.
         self.run_store.update(run, time)
 
-        # Let summary subscribers know.
+        # Publish to summary subscribers.
         self.summary_publisher.publish(messages.make_run_transition(run))
 
-        # Let run update subscribers know.
-        msg = {}
-        if len(meta) > 0:
-            msg["meta"] = meta
         if len(msg) > 0:
+            # Publish to run update subscribers.
             self.run_update_publisher.publish(run.run_id, msg)
 
         self.__start_actions(run)
