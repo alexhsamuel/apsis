@@ -116,7 +116,7 @@ import JsonSocket from '@/JsonSocket.js'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import { joinArgs, OPERATIONS } from '@/runs'
+import { OPERATIONS } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunsList from '@/components/RunsList'
@@ -153,6 +153,7 @@ export default {
       // Run metadata.
       meta: null,
       store,
+      runUpdateSocket: null,
     }
   },
 
@@ -167,10 +168,9 @@ export default {
   },
 
   methods: {
-    joinArgs,
+    join,
 
     fetchRun() {
-      // FIXME: Use store.state.runs?  These are only summaries, though.
       const url = api.getRunUrl(this.run_id)
       fetch(url)
         .then(async (response) => {
@@ -185,66 +185,61 @@ export default {
         })
     },
 
-    format(key, value) {
-      if (key === 'command')
-        return '<code>' + value + '</code>'
-      else
-        return value
+    getRunUpdates() {
+      if (this.runUpdateSocket) {
+        this.runUpdateSocket.close()
+        this.runUpdateSocket = null
+      }
+
+      // Connect to live run updates.
+      const url = api.getRunUpdatesUrl(this.run_id)
+      this.runUpdateSocket = new JsonSocket(
+        url,
+        msg => {
+          console.log('run msg:', Object.keys(msg).join(' '))
+          if (msg.meta)
+            this.meta = msg.meta
+          if (msg.run_log)
+            this.runLog = msg.run_log
+          if (msg.run_log_append)
+            this.runLog.push(msg.run_log_append)
+          if (msg.outputs && msg.outputs['output'])
+            this.outputMetadata = msg.outputs['output']
+        },
+        () => {},
+        err => { console.log(err) },
+      )
+      this.runUpdateSocket.open()
     },
 
-    join,
-
+    initRun() {
+      this.run = store.state.runs.get(this.run_id)
+      this.fetchRun()
+      this.getRunUpdates()
+    },
   },
 
   beforeMount() {
-    // Fetch full run info.
-    this.fetchRun()
-
-    // Connect to live run updates.
-    const url = api.getRunUpdatesUrl(this.run_id)
-    this.updates = new JsonSocket(
-      url,
-      msg => {
-        console.log('run msg:', Object.keys(msg).join(' '))
-        if (msg.meta)
-          this.meta = msg.meta
-        if (msg.run_log)
-          this.runLog = msg.run_log
-        if (msg.run_log_append)
-          this.runLog.push(msg.run_log_append)
-        if (msg.outputs && msg.outputs['output'])
-          this.outputMetadata = msg.outputs['output']
-      },
-      () => {},
-      err => { console.log(err) },
-    )
-    this.updates.open()
+    this.initRun()
   },
 
   beforeDestroy() {
     // Disconnect live run updates.
-    this.updates.close()
+    this.runUpdateSocket.close()
+    this.runUpdateSocket = null
   },
 
   watch: {
     // Reset state on nav from one run to another.
     '$route'(to, from) {
       this.run = store.state.runs.get(this.run_id)
-      this.output = null
-      this.outputData = null
-      this.outputRequested = false
-      this.fetchRun()
+      this.initRun()
     },
 
     // When the update sequence number changes, reload the whole run.
     updateSeq(seq, previous) {
-      if (!this.run || this.run.seq !== seq) {
+      if (!this.run || this.run.seq !== seq)
         this.fetchRun()
-        if (this.output) {
-          this.outputRequested = false
-          this.fetchOutputMetadata()
-        }
-      }
     }
   },
 
