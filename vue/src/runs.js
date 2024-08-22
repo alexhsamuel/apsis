@@ -121,7 +121,7 @@ export function processMsgs(msgs, state) {
     state.runs = runs
 
   console.log(
-    'messages:',
+    'summary msgs:',
     stats.agentConn, 'agentConn', stats.job, 'job', stats.run, 'run')
 }
 

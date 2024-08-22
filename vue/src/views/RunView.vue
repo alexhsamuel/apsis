@@ -205,7 +205,7 @@ export default {
     this.updates = new JsonSocket(
       url,
       msg => {
-        console.log('msg', msg)
+        console.log('run msg:', Object.keys(msg).join(' '))
         if (msg.meta)
           this.meta = msg.meta
         if (msg.run_log)
