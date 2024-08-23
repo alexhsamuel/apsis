@@ -340,7 +340,6 @@ class Apsis:
         """
         self.run_log.exc(run, message)
 
-        outputs = {}
         exc_type, exc, _ = sys.exc_info()
         if exc_type is not None:
             # Attach the exception traceback as run output.
@@ -348,18 +347,18 @@ class Apsis:
                 msg = str(exc).encode()
             else:
                 msg = traceback.format_exc().encode()
-            # FIXME: For now, use the name "output" as this is the only one
-            # the UIs render.  In the future, change to "traceback".
-            outputs["output"] = Output(
+            output = Output(
                 OutputMetadata("output", len(msg), content_type="text/plain"),
                 msg
             )
+            # FIXME: For now, use the name "output" as this is the only one
+            # the UIs render.  In the future, change to "traceback".
+            self._update_output_data(run, {"output": output}, persist=True)
 
         self._transition(
             run, run.STATE.error,
             times={"error": now()},
             message=message,
-            outputs=outputs,
         )
 
 
@@ -389,7 +388,7 @@ class Apsis:
         assert run.state in {State.starting, State.running}
 
         # Persist outputs.
-        write = self.outputs.write_through if persist else self.outputs
+        write = self.outputs.write_through if persist else self.outputs.write
         for output_id, output in outputs.items():
             write(run.run_id, output_id, output)
 
@@ -404,9 +403,8 @@ class Apsis:
                 self.output_update_publisher.publish(output)
 
 
-    # FIXME: Remove outputs.
     # FIXME: Remove meta.
-    def _transition(self, run, state, *, outputs={}, meta={}, **kw_args):
+    def _transition(self, run, state, *, meta={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
         """
@@ -421,10 +419,6 @@ class Apsis:
         # FIXME: Separate out metadata from Run and clean this up.
         if meta:
             self._update_metadata(run, meta, persist=False)
-        # Update output data.
-        if outputs:
-            self._update_output_data(run, outputs, True)
-
         # Transition the run object.
         run._transition(time, state, meta=meta, **kw_args)
         # Persist the new state.
@@ -777,11 +771,11 @@ async def _process_updates(apsis, run, updates):
 
                 case ProgramError() as error:
                     apsis.run_log.info(run, f"error: {error.message}")
+                    apsis._update_output_data(run, error.outputs, persist=True)
                     apsis._transition(
                         run, State.error,
                         meta        =error.meta,
                         times       =error.times,
-                        outputs     =error.outputs,
                     )
                     return
 
@@ -801,30 +795,30 @@ async def _process_updates(apsis, run, updates):
 
                 case ProgramSuccess() as success:
                     apsis.run_log.record(run, "success")
+                    apsis._update_output_data(run, success.outputs, True)
                     apsis._transition(
                         run, State.success,
                         meta        =success.meta,
                         times       =success.times,
-                        outputs     =success.outputs,
                     )
 
                 case ProgramFailure() as failure:
                     # Program ran and failed.
                     apsis.run_log.record(run, f"failure: {failure.message}")
+                    apsis._update_output_data(run, failure.outputs, True)
                     apsis._transition(
                         run, State.failure,
                         meta        =failure.meta,
                         times       =failure.times,
-                        outputs     =failure.outputs,
                     )
 
                 case ProgramError() as error:
                     apsis.run_log.info(run, f"error: {error.message}")
+                    apsis._update_output_data(run, error.outputs, True)
                     apsis._transition(
                         run, State.error,
                         meta        =error.meta,
                         times       =error.times,
-                        outputs     =error.outputs,
                     )
 
                 case _ as update:
@@ -850,10 +844,8 @@ async def _process_updates(apsis, run, updates):
         apsis.run_log.exc(run, "error: internal")
         tb = traceback.format_exc().encode()
         output = Output(OutputMetadata("traceback", length=len(tb)), tb)
-        apsis._transition(
-            run, State.error,
-            outputs ={"output": output}
-        )
+        apsis._update_output_data(run, {"outputs": output}, True)
+        apsis._transition(run, State.error)
 
 
 def _unschedule_runs(apsis, job_id):
