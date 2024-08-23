@@ -73,6 +73,8 @@ class Apsis:
         self.summary_publisher = Publisher()
         # Publisher for per-run updates.
         self.run_update_publisher = KeyPublisher()
+        # Publisher for output data updates.
+        self.output_update_publisher = KeyPublisher()
 
         self.run_log = RunLog(self.__db.run_log_db, self.run_update_publisher)
         self.jobs = Jobs(jobs, db.job_db)
@@ -361,34 +363,49 @@ class Apsis:
         )
 
 
-    def _update(self, run, *, outputs=None, meta=None):
+    # FIXME: persist is a hack.
+    def _update_metadata(self, run, meta, *, persist=True):
         """
-        Updates run state without transitioning.
+        Updates run metadata, without transitioning.
         """
         assert run.state in {State.starting, State.running}
 
-        # Build up a message for run update subscriptions.
-        msg = {}
-
-        # Persist metadata.
-        if meta is not None:
-            run._update(meta=meta)
-            msg["meta"] = meta
-
-        if outputs is not None:
-            # Persist outputs.
-            for output_id, output in outputs.items():
-                self.outputs.write(run.run_id, output_id, output)
-                msg.setdefault("outputs", {})[output_id] = output.metadata.to_jso()
-
+        run._update(meta=meta)
         # Persist the new state.
-        self.run_store.update(run, now())
+        if persist:
+            self.run_store.update(run, now())
 
-        if len(msg) > 0:
-            # Publish to run update subscribers.
-            self.run_update_publisher.publish(run.run_id, msg)
+        # Publish to run update subscribers.
+        self.run_update_publisher.publish(run.run_id, {"meta": meta})
 
 
+    def _update_output_data(self, run, outputs, persist):
+        """
+        Updates output data, without transitioning.
+
+        :param persist:
+          If true, write through to database; else cache in memory.
+        """
+        assert run.state in {State.starting, State.running}
+
+        # Persist outputs.
+        write = self.outputs.write_through if persist else self.outputs
+        for output_id, output in outputs.items():
+            write(run.run_id, output_id, output)
+
+        # Publish to run update subscribers.
+        if run.run_id in self.run_update_publisher:
+            msg = { i: o.metadata.to_jso() for i, o in outputs.items() }
+            self.run_update_publisher.publish(run.run_id, {"outputs": msg})
+
+        # Publish to output update subscribers.
+        if run.run_id in self.output_update_publisher:
+            for output_id, output in outputs.items():
+                self.output_update_publisher.publish(output)
+
+
+    # FIXME: Remove outputs.
+    # FIXME: Remove meta.
     def _transition(self, run, state, *, outputs={}, meta={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
@@ -400,28 +417,21 @@ class Apsis:
             self.__db.run_log_db.flush(run.run_id)
             run.expected = False
 
-        # Build up a message for run update subscriptions.
-        msg = {}
+        # Update metadata.  Don't persist; will persist with the run.
+        # FIXME: Separate out metadata from Run and clean this up.
+        if meta:
+            self._update_metadata(run, meta, persist=False)
+        # Update output data.
+        if outputs:
+            self._update_output_data(run, outputs, True)
 
-        # Transition the run object.  This persists metadata too.
+        # Transition the run object.
         run._transition(time, state, meta=meta, **kw_args)
-        if len(meta) > 0:
-            msg["meta"] = meta
-
-        # Persist outputs.
-        for output_id, output in outputs.items():
-            self.outputs.write_through(run.run_id, output_id, output)
-            msg.setdefault("outputs", {})[output_id] = output.metadata.to_jso()
-
         # Persist the new state.
         self.run_store.update(run, time)
 
         # Publish to summary subscribers.
         self.summary_publisher.publish(messages.make_run_transition(run))
-
-        if len(msg) > 0:
-            # Publish to run update subscribers.
-            self.run_update_publisher.publish(run.run_id, msg)
 
         self.__start_actions(run)
 
@@ -784,11 +794,10 @@ async def _process_updates(apsis, run, updates):
             update = await anext(updates)
             match update:
                 case ProgramUpdate() as update:
-                    apsis._update(
-                        run,
-                        outputs     =update.outputs,
-                        meta        =update.meta,
-                    )
+                    if update.outputs is not None:
+                        apsis._update_output_data(run, update.outputs, False)
+                    if update.meta is not None:
+                        apsis._update_metadata(run, update.meta)
 
                 case ProgramSuccess() as success:
                     apsis.run_log.record(run, "success")
