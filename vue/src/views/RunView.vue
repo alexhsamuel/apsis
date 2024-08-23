@@ -85,16 +85,18 @@ div
               tt(v-else) {{ value }}
 
     Frame(title="Output")
-      <!-- button( -->
-      <!--   v-if="output && output.output_len && !outputData" -->
-      <!--   v-on:click="fetchOutputData()" -->
-      <!-- ) load {{ output.output_len }} bytes -->
       div.output(v-if="outputMetadata")
         div.head
           span.name {{ outputMetadata.name }}
           span ({{ outputMetadata.content_type }})
           span {{ outputMetadata.length }} bytes
-      <!-- pre.output.text.pad(v-if="outputData !== null") {{ outputData }} -->
+          button(v-on:click="scrollTo('top')" :disabled="outputData === null")
+            TriangleIcon(:direction="'up'")
+          button(v-on:click="scrollTo('end')" :disabled="outputData === null")
+            TriangleIcon(:direction="'down'")
+        div.data(v-if="outputData !== null" ref="outputData")
+          pre.pad {{ outputData }}
+          div#anchor  <!-- to pin bottom scrolling -->
 
   div.error-message(v-else)
     div.title
@@ -110,9 +112,9 @@ import { join } from 'lodash'
 
 import * as api from '@/api'
 import Frame from '@/components/Frame'
+import TriangleIcon from '@/components/icons/TriangleIcon'
 import Job from '@/components/Job'
 import JobWithArgs from '@/components/JobWithArgs'
-import JsonSocket from '@/JsonSocket.js'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
@@ -121,8 +123,9 @@ import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunsList from '@/components/RunsList'
 import State from '@/components/State'
-import store from '@/store'
 import Timestamp from '@/components/Timestamp'
+import store from '@/store'
+import { Socket, parseHttp } from '@/websocket.js'
 
 export default {
   props: ['run_id'],
@@ -138,6 +141,7 @@ export default {
     RunsList,
     State,
     Timestamp,
+    TriangleIcon,
   },
 
   data() {
@@ -150,10 +154,12 @@ export default {
       run: store.state.runs.get(this.run_id),
       runLog: null,
       outputMetadata: null,
+      outputData: null,
       // Run metadata.
       meta: null,
       store,
       runUpdateSocket: null,
+      outputDataUpdateSocket: null,
     }
   },
 
@@ -193,9 +199,10 @@ export default {
 
       // Connect to live run updates.
       const url = api.getRunUpdatesUrl(this.run_id, true)
-      this.runUpdateSocket = new JsonSocket(
+      this.runUpdateSocket = new Socket(
         url,
         msg => {
+          msg = JSON.parse(msg.data)
           console.log('run msg:', Object.keys(msg).join(' '))
           if (msg.meta)
             this.meta = msg.meta
@@ -212,10 +219,47 @@ export default {
       this.runUpdateSocket.open()
     },
 
+    getOutputDataUpdates(outputName) {
+      if (this.outputDataUpdateSocket) {
+        this.outputDataUpdateSocket.close()
+        this.outputDataUpdateSocket = null
+      }
+
+      const url = api.getOutputDataUpdatesUrl(this.run_id, outputName, 0)
+      this.outputDataUpdateSocket = new Socket(
+        url,
+        msg => {
+          const decoder = new TextDecoder()
+          msg.data.bytes().then(b => {
+            let [headers, body] = parseHttp(b)
+            let [ , start, , ] = headers['content-range'].match(/bytes=(\d+)-(\d+)\/(\d+)/)
+            start = parseInt(start)
+            body = decoder.decode(body)
+            if (this.outputData === null)
+              this.outputData = body
+            else {
+              if (start !== this.outputData.length)
+                console.error('output data fragmentation:', this.outputData.length, start)
+              this.outputData += body
+            }
+          })
+        },
+        () => {},
+        err => { console.log(err) },
+      )
+      this.outputDataUpdateSocket.open()
+    },
+
     initRun() {
       this.run = store.state.runs.get(this.run_id)
       this.fetchRun()
       this.getRunUpdates()
+      this.getOutputDataUpdates('output')  // FIXME
+    },
+
+    scrollTo(where) {
+      const el = this.$refs.outputData
+      el.scrollTo(0, where === 'top' ? 0 : el.scrollHeight)
     },
   },
 
@@ -227,6 +271,9 @@ export default {
     // Disconnect live run updates.
     this.runUpdateSocket.close()
     this.runUpdateSocket = null
+
+    this.outputDataUpdateSocket.close()
+    this.outputDataUpdateSocket = null
   },
 
   watch: {
@@ -261,15 +308,40 @@ export default {
 }
 
 .output {
-  .head span {
-    display: inline-block;
-    padding-right: 0.5em;
-    &.name {
-      font-weight: bold;
+  .head {
+    padding-bottom: 1em;
+
+    span {
+      display: inline-block;
+      padding-right: 0.5em;
+      &.name {
+        font-weight: bold;
+      }
+    }
+
+    button {
+      margin: 0 0.2em;
+      padding: 0.2em 0.5em 0 0.5em;
     }
   }
-  &.text {
-    font-family: "Roboto mono", monospaced;
+
+  .data {
+    height: 50vh;
+
+    overflow-y: scroll;
+    * {
+      overflow-anchor: none;
+    }
+
+    pre {
+      padding: 0;
+      font-family: "Roboto mono", monospaced;
+    }
+
+    #anchor {
+      overflow-anchor: auto;
+      height: 1px;
+    }
   }
 }
 
