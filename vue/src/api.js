@@ -24,9 +24,11 @@ export function getRerunUrl(run_id) {
   return getUrl('runs', run_id, 'rerun')
 }
 
-export function getRunUpdatesUrl(run_id) {
+export function getRunUpdatesUrl(run_id, init) {
   const url = getUrl('runs', run_id, 'updates')
   url.protocol = 'ws'
+  if (init)
+    url.search = '?init'
   return url
 }
 

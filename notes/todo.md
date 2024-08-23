@@ -46,7 +46,7 @@ Transient connection (single run):
 - [x] break out wait loop into fn
 
 - [x] add `/ws/run/<run_id>` endpoint
-  - [ ] option to send initial values
+  - [x] option to send initial values
   - [x] metadata updates
   - [x] run log updates
   - [ ] program output updates

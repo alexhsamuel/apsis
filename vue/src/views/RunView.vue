@@ -192,7 +192,7 @@ export default {
       }
 
       // Connect to live run updates.
-      const url = api.getRunUpdatesUrl(this.run_id)
+      const url = api.getRunUpdatesUrl(this.run_id, true)
       this.runUpdateSocket = new JsonSocket(
         url,
         msg => {

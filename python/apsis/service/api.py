@@ -207,29 +207,34 @@ async def run_log(request, run_id):
 
 @API.websocket("/runs/<run_id>/updates")
 async def websocket_run_updates(request, ws, run_id):
-    with request.app.apsis.run_update_publisher.subscription(run_id) as subscription:
-        # Initialize run metadata.
-        try:
-            _, run = request.app.apsis.run_store.get(run_id)
-        except KeyError:
-            return error(f"unknown run {run_id}", 404)
+    # request.query_args doesn't work correctly for ws endpoints?
+    init = "init" in request.query_string.split("&")
 
-        # Initialize run log.
-        try:
-            run_log = await request.app.apsis.get_run_log(run_id)
-        except KeyError:
-            run_log = []
+    apsis = request.app.apsis
+    with apsis.run_update_publisher.subscription(run_id) as subscription:
+        if init:
+            # Initialize run metadata.
+            try:
+                _, run = apsis.run_store.get(run_id)
+            except KeyError:
+                return error(f"unknown run {run_id}", 404)
 
-        # Initialize output metadata.
-        try:
-            outputs = request.app.apsis.outputs.get_metadata(run_id)
-        except KeyError:
-            outputs = {}
-        await ws.send(ujson.dumps({
-            "meta"      : run.meta,
-            "run_log"   : run_log_to_jso(run_log),
-            "outputs"   : { n: o.to_jso() for n, o in outputs.items() },
-        }))
+            # Initialize run log.
+            try:
+                run_log = await apsis.get_run_log(run_id)
+            except KeyError:
+                run_log = []
+
+            # Initialize output metadata.
+            try:
+                outputs = apsis.outputs.get_metadata(run_id)
+            except KeyError:
+                outputs = {}
+            await ws.send(ujson.dumps({
+                "meta"      : run.meta,
+                "run_log"   : run_log_to_jso(run_log),
+                "outputs"   : { n: o.to_jso() for n, o in outputs.items() },
+            }))
 
         async for msg in subscription:
             await ws.send(ujson.dumps(msg))
