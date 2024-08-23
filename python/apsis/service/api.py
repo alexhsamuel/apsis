@@ -4,7 +4,7 @@ import ora
 import re
 import sanic
 import ujson
-from   urllib.parse import unquote
+from   urllib.parse import unquote, parse_qs
 import websockets
 
 from   . import messages
@@ -12,7 +12,8 @@ from   apsis import procstar
 from   apsis.lib import asyn
 from   apsis.lib.api import (
     response_json, error, time_to_jso, to_bool, encode_response,
-    runs_to_jso, job_to_jso, output_metadata_to_jso, run_log_to_jso
+    runs_to_jso, job_to_jso, output_metadata_to_jso, run_log_to_jso,
+    output_to_http_message
 )
 import apsis.lib.itr
 from   apsis.lib.sys import to_signal
@@ -30,6 +31,11 @@ WS_CHUNK = 4096
 WS_CHUNK_SLEEP = 0.001
 
 #-------------------------------------------------------------------------------
+
+def parse_query(query):
+    parts = parse_qs(query, keep_blank_values=True)
+    return { n: v[0] for n, v in parts.items() }
+
 
 API = sanic.Blueprint("v1")
 
@@ -263,6 +269,29 @@ async def run_output(request, run_id, output_id):
             request.headers, output.data, output.compression)
         headers["Content-Type"] = output.metadata.content_type
         return sanic.response.raw(data, headers=headers)
+
+
+@API.websocket("/runs/<run_id>/output/<output_id>/updates")
+async def websocket_output_updates(request, ws, run_id, output_id):
+    query = parse_query(request.query_string)
+    try:
+        start = int(query["start"])
+    except (KeyError, ValueError):
+        start = None
+
+    apsis = request.app.apsis
+    logging.info(f"output updates start={start}")
+    with apsis.output_update_publisher.subscription(run_id) as subscription:
+        output = apsis.outputs.get_output(run_id, output_id)
+        if start is not None:
+            msg = output_to_http_message(output, interval=(start, None))
+            await ws.send(msg)
+        cur = output.metadata.length
+
+        async for output in subscription:
+            msg = output_to_http_message(output, interval=(cur, None))
+            await ws.send(msg)
+            cur = output.metadata.length
 
 
 @API.route("/runs/<run_id>/state", methods={"GET"})

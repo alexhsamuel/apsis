@@ -177,3 +177,22 @@ def output_metadata_to_jso(app, run_id, outputs):
     ]
 
 
+def output_to_http_message(output, *, interval=(0, None)) -> bytes:
+    length = output.metadata.length
+    start, stop = interval
+    if stop is None:
+        stop = length
+    if not (start <= stop):
+        raise ValueError("stop before start")
+    if output.compression is not None:
+        raise ValueError("output is compressed")
+
+    return "\r\n".join([
+        f"Content-Type: {output.metadata.content_type}",
+        # f"Content-Encoding: {output.compression}",
+        f"Content-Range: bytes={start}-{stop - 1}/{length}",
+        f"Content-Length: {str(stop - start)}",
+        "", ""
+    ]).encode("ascii") + output.data[start : stop]
+
+
