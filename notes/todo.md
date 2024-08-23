@@ -59,6 +59,8 @@ Transient connection (single run):
   - [ ] output
   - [ ] run log
 
+- [ ] if `send_signal` raises, error the run
+
 
 # Cleanup
 
