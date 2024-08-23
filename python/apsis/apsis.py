@@ -387,20 +387,22 @@ class Apsis:
         """
         assert run.state in {State.starting, State.running}
 
+        run_id = run.run_id
+
         # Persist outputs.
         write = self.outputs.write_through if persist else self.outputs.write
         for output_id, output in outputs.items():
-            write(run.run_id, output_id, output)
+            write(run_id, output_id, output)
 
         # Publish to run update subscribers.
-        if run.run_id in self.run_update_publisher:
+        if run_id in self.run_update_publisher:
             msg = { i: o.metadata.to_jso() for i, o in outputs.items() }
-            self.run_update_publisher.publish(run.run_id, {"outputs": msg})
+            self.run_update_publisher.publish(run_id, {"outputs": msg})
 
         # Publish to output update subscribers.
-        if run.run_id in self.output_update_publisher:
+        if run_id in self.output_update_publisher:
             for output_id, output in outputs.items():
-                self.output_update_publisher.publish(output)
+                self.output_update_publisher.publish(run_id, output)
 
 
     # FIXME: Remove meta.
@@ -959,6 +961,5 @@ async def _retire_loop(apsis):
             return
 
         await asyncio.sleep(60)
-
 
 
