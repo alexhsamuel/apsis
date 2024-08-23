@@ -189,7 +189,7 @@ async def run(request, run_id):
 @API.route("/runs/<run_id>/log", methods={"GET"})
 async def run_log(request, run_id):
     try:
-        run_log = await request.app.apsis.get_run_log(run_id)
+        run_log = request.app.apsis.get_run_log(run_id)
     except KeyError:
         return error(f"unknown run {run_id}", 404)
 
@@ -221,7 +221,7 @@ async def websocket_run_updates(request, ws, run_id):
 
             # Initialize run log.
             try:
-                run_log = await apsis.get_run_log(run_id)
+                run_log = apsis.get_run_log(run_id)
             except KeyError:
                 run_log = []
 

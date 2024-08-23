@@ -550,7 +550,7 @@ class Apsis:
             self.run_log.info(run, f"marked as {state.name}")
 
 
-    async def get_run_log(self, run_id):
+    def get_run_log(self, run_id):
         """
         Returns the run log for a run.
         """
