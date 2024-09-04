@@ -16,6 +16,10 @@ const RUN_STATE_GROUPS = {
   'skipped': 'C',
 }
 
+export function isComplete(state) {
+  return RUN_STATE_GROUPS[state] === 'C'
+}
+
 function groupKey(run) {
   const sgrp = RUN_STATE_GROUPS[run.state]
   return sgrp + (

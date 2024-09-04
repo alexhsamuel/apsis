@@ -118,7 +118,7 @@ import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import { OPERATIONS } from '@/runs'
+import { OPERATIONS, isComplete } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunsList from '@/components/RunsList'
@@ -155,6 +155,7 @@ export default {
       runLog: null,
       outputMetadata: null,
       outputData: null,
+      outputDataRequested: false,
       // Run metadata.
       meta: null,
       store,
@@ -170,6 +171,10 @@ export default {
     updateSeq() {
       const run = store.state.runs.get(this.run_id)
       return run ? run.seq : undefined
+    },
+
+    runState() {
+      return this.run ? this.run.state : null
     },
   },
 
@@ -219,13 +224,38 @@ export default {
       this.runUpdateSocket.open()
     },
 
-    getOutputDataUpdates(outputName) {
+    /**
+     * Fetches output data from the HTTP endpoint.
+     */
+    getOutputData() {
+      const url = api.getOutputDataUrl(this.run.run_id, 'output')
+
+      // Don't request output more than once.
+      if (this.outputDataRequested)
+        return
+      this.outputDataRequested = true
+
+      fetch(url)
+        // FIXME: Might not be text!
+        // FIXME: Don't murder the browser with huge output or long lines.
+        .then(async rsp => {
+          this.outputData = await rsp.text()
+        })
+        // FIXME: Handle error.
+        .catch(err => { console.log(err) })
+    },
+
+    stopOutputDataUpdates() {
       if (this.outputDataUpdateSocket) {
         this.outputDataUpdateSocket.close()
         this.outputDataUpdateSocket = null
       }
+    },
 
-      const url = api.getOutputDataUpdatesUrl(this.run_id, outputName, 0)
+    startOutputDataUpdates() {
+      this.stopOutputDataUpdates()
+
+      const url = api.getOutputDataUpdatesUrl(this.run_id, 'output', 0)
       this.outputDataUpdateSocket = new Socket(
         url,
         msg => {
@@ -254,7 +284,6 @@ export default {
       this.run = store.state.runs.get(this.run_id)
       this.fetchRun()
       this.getRunUpdates()
-      this.getOutputDataUpdates('output')  // FIXME
     },
 
     scrollTo(where) {
@@ -272,8 +301,7 @@ export default {
     this.runUpdateSocket.close()
     this.runUpdateSocket = null
 
-    this.outputDataUpdateSocket.close()
-    this.outputDataUpdateSocket = null
+    this.stopOutputDataUpdates()
   },
 
   watch: {
@@ -287,7 +315,20 @@ export default {
     updateSeq(seq, previous) {
       if (!this.run || this.run.seq !== seq)
         this.fetchRun()
-    }
+    },
+
+    runState(to, from) {
+      console.log('run state changed', from, '→', to)
+      if (to === 'running')
+        // Connect for live output data.
+        this.startOutputDataUpdates()
+      else
+        this.stopOutputDataUpdates()
+
+      if (isComplete(to) && (this.outputData === null || this.outputData.length < this.outputMetadata.length))
+        // Fetch output data.
+        this.getOutputData('output')
+    },
   },
 
 }
