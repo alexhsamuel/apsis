@@ -282,12 +282,18 @@ async def websocket_output_updates(request, ws, run_id, output_id):
     apsis = request.app.apsis
     logging.info(f"output updates start={start}")
     with apsis.output_update_publisher.subscription(run_id) as subscription:
-        output = apsis.outputs.get_output(run_id, output_id)
-        if start is not None:
-            msg = output_to_http_message(output, interval=(start, None))
-            await ws.send(msg)
-        cur = output.metadata.length
+        try:
+            output = apsis.outputs.get_output(run_id, output_id)
+            if start is not None:
+                # Send the output data up to now.
+                msg = output_to_http_message(output, interval=(start, None))
+                await ws.send(msg)
+            cur = output.metadata.length
+        except LookupError:
+            # No output yet.
+            cur = 0
 
+        # Send subsequent output data updates.
         async for output in subscription:
             msg = output_to_http_message(output, interval=(cur, None))
             await ws.send(msg)
