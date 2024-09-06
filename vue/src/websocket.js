@@ -11,7 +11,10 @@ export class Socket {
     this.isOpen     = false
   }
 
-  open() {
+  _connect() {
+    if (!this.isOpen)
+      return
+
     if (this.websocket !== null)
       // Already have a websocket.
       return
@@ -35,10 +38,13 @@ export class Socket {
       this.websocket = null
       // Retry the connection after a second.
       if (this.isOpen)
-        setTimeout(() => this.open(), 1000)
+        setTimeout(() => this._connect(), 1000)
     }
+  }
 
+  open() {
     this.isOpen = true
+    this._connect()
   }
 
   close() {
