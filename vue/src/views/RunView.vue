@@ -84,11 +84,10 @@ div
                       td {{ sv }}
               tt(v-else) {{ value }}
 
-    Frame(title="Output")
+    Frame(title="Output" v-if="hasOutput")
       div.output(v-if="outputMetadata")
         div.head
           span.name {{ outputMetadata.name }}
-          span ({{ outputMetadata.content_type }})
           span {{ outputMetadata.length }} bytes
           button(v-on:click="scrollTo('top')" :disabled="outputData === null")
             TriangleIcon(:direction="'up'")
@@ -150,8 +149,7 @@ export default {
         runs: this.$route.query.runs !== null,
       },
       OPERATIONS,
-      // Start with the run summary from the run state.
-      run: store.state.runs.get(this.run_id),
+      run: null,
       runLog: null,
       outputMetadata: null,
       outputData: null,
@@ -175,6 +173,11 @@ export default {
 
     runState() {
       return this.run ? this.run.state : null
+    },
+
+    hasOutput() {
+      const state = this.runState
+      return state === 'running' || isComplete(state)
     },
   },
 
@@ -318,7 +321,6 @@ export default {
     },
 
     runState(to, from) {
-      console.log('run state changed', from, '→', to)
       if (to === 'running')
         // Connect for live output data.
         this.startOutputDataUpdates()
