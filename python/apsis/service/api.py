@@ -216,6 +216,13 @@ async def websocket_run_updates(request, ws, run_id):
     # request.query_args doesn't work correctly for ws endpoints?
     init = "init" in request.query_string.split("&")
 
+    # Make sure the run exists.
+    try:
+        _ = request.app.apsis.run_store.get(run_id)
+    except LookupError:
+        await ws.close()
+        return
+
     apsis = request.app.apsis
     with apsis.run_update_publisher.subscription(run_id) as subscription:
         if init:
