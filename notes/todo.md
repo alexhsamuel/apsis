@@ -50,7 +50,7 @@ Transient connection (single run):
   - [x] metadata updates
   - [x] run log updates
   - [x] program output updates
-  - [ ] different output data code path for completed runs (w/compression)
+  - [x] different output data code path for completed runs (w/compression)
   - [ ] clean up API endpoints we don't need anymore
 - [x] roll in Procstar agent changes to `/summary`
 - [ ] roll in, or get rid of, log socket
