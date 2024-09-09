@@ -263,7 +263,7 @@ export default {
         url,
         msg => {
           const decoder = new TextDecoder()
-          msg.data.bytes().then(b => {
+          msg.data.arrayBuffer().then(b => {
             let [headers, body] = parseHttp(b)
             let [ , start, , ] = headers['content-range'].match(/bytes=(\d+)-(\d+)\/(\d+)/)
             start = parseInt(start)

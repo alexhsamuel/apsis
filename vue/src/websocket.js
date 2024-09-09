@@ -57,10 +57,14 @@ export class Socket {
 }
 
 /*
- * Parses `data` in the style of an HTTP request or response, without a request
- * or status line.
+ * Parses `arr` in the style of an HTTP request or response, without a request
+ * or status line, i.e. headers, a blank line, and payload.
+ *
+ * @param {ArrayBuffer} the request or response
+ * @return a header object and a `Uint8Array` payload
  */
 export function parseHttp(arr) {
+  arr = new Uint8Array(arr)
   let start = 0
   let header = {}
   const decoder = new TextDecoder('ascii')
