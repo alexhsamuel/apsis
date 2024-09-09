@@ -302,9 +302,11 @@ async def websocket_output_updates(request, ws, run_id, output_id):
 
         # Send subsequent output data updates.
         async for output in subscription:
-            msg = output_to_http_message(output, interval=(cur, None))
-            await ws.send(msg)
-            cur = output.metadata.length
+            # Send output, as long as it's not compressed.
+            if output.compression is None:
+                msg = output_to_http_message(output, interval=(cur, None))
+                await ws.send(msg)
+                cur = output.metadata.length
 
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
