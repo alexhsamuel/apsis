@@ -67,7 +67,7 @@ div
         table.fields.run-log
           tbody
             tr(v-for="rec of runLog" :key="rec.timestamp + rec.message")
-              th {{ rec.timestamp }}
+              th: Timestamp(:time="rec.timestamp")
               td {{ rec.message }}
 
     Frame(title="Metadata" closed)
@@ -89,10 +89,10 @@ div
         div.head
           span.name {{ outputMetadata.name }}
           span {{ outputMetadata.length }} bytes
-          button(v-on:click="scrollTo('top')" :disabled="outputData === null")
-            TriangleIcon(:direction="'up'")
-          button(v-on:click="scrollTo('end')" :disabled="outputData === null")
-            TriangleIcon(:direction="'down'")
+          button.scroll(v-on:click="scrollTo('top')" :disabled="outputData === null")
+            DoubleChevronIcon(:direction="'up'")
+          button.scroll(v-on:click="scrollTo('end')" :disabled="outputData === null")
+            DoubleChevronIcon(:direction="'down'")
         div.data(v-if="outputData !== null" ref="outputData")
           pre.pad {{ outputData }}
           div#anchor  <!-- to pin bottom scrolling -->
@@ -111,7 +111,7 @@ import { join } from 'lodash'
 
 import * as api from '@/api'
 import Frame from '@/components/Frame'
-import TriangleIcon from '@/components/icons/TriangleIcon'
+import DoubleChevronIcon from '@/components/icons/DoubleChevronIcon'
 import Job from '@/components/Job'
 import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
@@ -140,7 +140,7 @@ export default {
     RunsList,
     State,
     Timestamp,
-    TriangleIcon,
+    DoubleChevronIcon,
   },
 
   data() {
@@ -337,6 +337,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/index.scss';
+
 .title {
   margin-bottom: 0.5rem;
 }
@@ -365,6 +367,12 @@ export default {
     button {
       margin: 0 0.2em;
       padding: 0.2em 0.5em 0 0.5em;
+      background: none;
+      border: 1px solid transparent;
+
+      &:hover {
+        border: 1px solid $global-button-color;
+      }
     }
   }
 
@@ -413,8 +421,8 @@ export default {
   margin-bottom: 0.75rem;
   th, td {
     line-height: 1.5rem;
-    padding-top: 0.1rem;
-    padding-bottom: 0.1rem;
+    padding-top: 0.0rem;
+    padding-bottom: 0.0rem;
   }
 }
 </style>
