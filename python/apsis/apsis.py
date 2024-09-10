@@ -26,7 +26,7 @@ from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
 from   .service import messages
-from   .states import State
+from   .states import State, FINISHED
 
 log = logging.getLogger(__name__)
 
@@ -428,6 +428,9 @@ class Apsis:
 
         # Publish to summary subscribers.
         self.summary_publisher.publish(messages.make_run_transition(run))
+        # If the run is finished, close the output update publisher.
+        if state in FINISHED:
+            self.output_update_publisher.close(run.run_id)
 
         self.__start_actions(run)
 

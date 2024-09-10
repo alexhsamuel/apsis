@@ -382,4 +382,17 @@ class KeyPublisher:
             publisher.publish(msg)
 
 
+    def close(self, key):
+        """
+        Closes the publisher for `key`, if any.
+        """
+        try:
+            publisher = self.__publishers[key]
+        except KeyError:
+            # No subscriptions.
+            pass
+        else:
+            publisher.close()
+
+
 
