@@ -2,6 +2,7 @@
 Main user CLI.
 """
 
+import asyncio
 import json
 import logging
 from   ora import now
@@ -146,9 +147,20 @@ def main():
     #--- command: output ---------------------------------------------
 
     def cmd_output(client, args):
-        # FIXME: For now, expose output_id=output only.
-        output = client.get_output(args.run_id, "output")
-        sys.stdout.buffer.write(output)
+        if args.follow or args.tail:
+            async def follow():
+                async for data in client.get_output_data_updates(
+                        args.run_id, "output",
+                        start=0 if args.follow else None,
+                ):
+                    sys.stdout.buffer.write(data)
+                    sys.stdout.buffer.flush()
+
+            asyncio.run(follow())
+
+        else:
+            output = client.get_output(args.run_id, "output")
+            sys.stdout.buffer.write(output)
 
 
     cmd = parser.add_command(
@@ -156,6 +168,13 @@ def main():
         description="Dumps the output of a run.")
     cmd.add_argument(
         "run_id", metavar="RUN-ID")
+    grp = cmd.add_mutually_exclusive_group()
+    grp.add_argument(
+        "--follow", "-f", default=False, action="store_true",
+        help="Dump output so far and follow further output.")
+    grp.add_argument(
+        "--tail", "-F", default=False, action="store_true",
+        help="Follow further output only.")
 
     #--- command: rerun ----------------------------------------------
 

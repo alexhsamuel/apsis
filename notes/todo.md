@@ -51,13 +51,15 @@ Transient connection (single run):
   - [x] run log updates
   - [x] program output updates
   - [x] different output data code path for completed runs (w/compression)
+  - [ ] make sure last output data update is complete, before compressing
+    - move compression out of programs?
   - [ ] clean up API endpoints we don't need anymore
 - [x] roll in Procstar agent changes to `/summary`
 - [ ] roll in, or get rid of, log socket
 - [ ] add live endpoints to `Client`
 - [ ] live updates in CLUI
   - [ ] single run transition
-  - [ ] output
+  - [x] output
   - [ ] run log
 
 - [ ] if `send_signal` raises, error the run

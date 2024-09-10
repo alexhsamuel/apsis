@@ -1,10 +1,14 @@
+from   collections import namedtuple
+import http.client
+import io
 import logging
 from   ora import Time
 import os
-from   collections import namedtuple
+import re
 import requests
 import time
 from   urllib.parse import quote, urlunparse
+import websockets.client
 
 import apsis.service
 
@@ -32,6 +36,12 @@ def get_address() -> Address:
 
 
 
+def parse_content_range(header):
+    match = re.match(r"(\w+)=(\d+)-(\d+)/(\d+)", header)
+    typ, start, stop, length = match.groups()
+    return typ, int(start), int(stop), int(length)
+
+
 class APIError(RuntimeError):
 
     def __init__(self, status, error, jso):
@@ -53,14 +63,14 @@ class Client:
         self.__addr = get_address() if address is None else Address(*address)
 
 
-    def __url(self, *path, **query):
+    def __url(self, *path, scheme="http", **query):
         query = "&".join(
             str(k) if v is NO_ARG else f"{k}={quote(str(v))}"
             for k, v in query.items()
             if v is not None
         )
         return urlunparse((
-            "http",
+            scheme,
             f"{self.__addr.host}:{self.__addr.port}",
             "/".join(path),
             "",
@@ -178,6 +188,47 @@ class Client:
         resp = requests.get(url)
         resp.raise_for_status()
         return resp.content
+
+
+    async def get_output_data_updates(self, run_id, output_id, start=None):
+        """
+        Async iterator of `bytes` containing output data updates.
+
+        :param start:
+          If not none, yields output from this position until current, before 
+          yielding subsequent output updates.
+        """
+        url = self.__url(
+            "/api/v1/runs", run_id, "output", output_id, "updates",
+            scheme="ws",
+            **({} if start is None else {"start": start})
+        )
+        pos = None if start is None else start
+
+        conn = await websockets.client.connect(url, max_size=None)
+        try:
+            while True:
+                try:
+                    msg = await conn.recv()
+                except websockets.ConnectionClosedOK:
+                    break
+                msg = io.BytesIO(msg)
+                header = http.client.parse_headers(msg)
+                content_range = header["Content-Range"]
+                typ, start, stop, _ = parse_content_range(content_range)
+                assert typ == "bytes"
+                if pos is None:
+                    pos = start
+                else:
+                    assert pos == start
+
+                body = msg.read()
+                assert len(body) == stop - start + 1
+                pos += len(body)
+                yield body
+
+        finally:
+            await conn.close()
 
 
     def signal(self, run_id, signal):

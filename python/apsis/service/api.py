@@ -287,7 +287,7 @@ async def websocket_output_updates(request, ws, run_id, output_id):
         start = None
 
     apsis = request.app.apsis
-    logging.info(f"output updates start={start}")
+ 
     with apsis.output_update_publisher.subscription(run_id) as subscription:
         try:
             output = apsis.outputs.get_output(run_id, output_id)
@@ -300,13 +300,16 @@ async def websocket_output_updates(request, ws, run_id, output_id):
             # No output yet.
             cur = 0
 
-        # Send subsequent output data updates.
         async for output in subscription:
-            # Send output, as long as it's not compressed.
-            if output.compression is None:
-                msg = output_to_http_message(output, interval=(cur, None))
-                await ws.send(msg)
-                cur = output.metadata.length
+            if output.compression is not None:
+                # Compressed output means the run is finished.
+                break
+
+            msg = output_to_http_message(output, interval=(cur, None))
+            await ws.send(msg)
+            cur = output.metadata.length
+
+        await ws.close()
 
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
