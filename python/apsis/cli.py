@@ -66,7 +66,7 @@ def main():
 
     cmd = parser.add_command(
         "adhoc", cmd_adhoc,
-        description="Creates and schedules an ad hoc run.")
+        description="Schedules an ad hoc run.")
     cmd.add_argument(
         "time", metavar="TIME",
         help="time to run [time, daytime, 'now']")
@@ -279,7 +279,7 @@ def main():
 
     cmd = parser.add_command(
         "schedule", cmd_schedule,
-        description="Creates and schedules a run.")
+        description="Schedules a new run.")
     cmd.add_argument(
         "--count", metavar="NUM", type=int, default=1,
         help="schedule NUM runs [def: 1]")

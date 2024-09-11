@@ -162,7 +162,7 @@ def print_jobs(jobs, con):
     for job in sorted(jobs, key=lambda j: j["job_id"]):
         table.add_row(
             job["job_id"],
-            format_params(job["params"]),
+            "(" + format_params(job["params"]) + ")",
             " ".join(job.get("metadata", {}).get("labels", [])),
         )
     con.print(table)

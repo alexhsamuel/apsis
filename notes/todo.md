@@ -63,6 +63,7 @@ Transient connection (single run):
   - [ ] run log
 
 - [ ] if `send_signal` raises, error the run
+- [ ] improve `apsis job` output style
 
 
 # Cleanup
