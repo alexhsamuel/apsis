@@ -7,6 +7,7 @@ import os
 import re
 import requests
 import time
+import ujson
 from   urllib.parse import quote, urlunparse
 import websockets.client
 
@@ -124,6 +125,7 @@ class Client:
         :param timeout:
           Tiemout in sec.
         """
+        # FIXME: Use live updates instead.
         INTERVAL = 0.05
 
         deadline = time.time() + timeout
@@ -263,6 +265,22 @@ class Client:
 
     def get_run(self, run_id):
         return self.__get("/api/v1/runs", run_id)["runs"][run_id]
+
+
+    async def get_run_updates(self, run_id, *, init=False):
+        url = self.__url(
+            "/api/v1/runs", run_id, "updates",
+            scheme="ws",
+            **({"init": NO_ARG} if init else {})
+        )
+        async with websockets.client.connect(url, max_size=None) as conn:
+            while True:
+                try:
+                    msg = await conn.recv()
+                except websockets.ConnectionClosedOK:
+                    break
+                yield ujson.loads(msg)
+
 
 
     def rerun(self, run_id):

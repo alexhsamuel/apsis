@@ -322,6 +322,23 @@ def main():
     cmd.add_argument(
         "run_id", metavar="RUN-ID ...", nargs="+")
 
+    #--- command: watch ----------------------------------------------
+
+    def cmd_watch(client, args):
+        async def loop():
+            async for msg in client.get_run_updates(args.run_id):
+                print(msg)
+                sys.stdout.flush()
+
+        asyncio.run(loop())
+
+
+    cmd = parser.add_command(
+        "watch", cmd_watch,
+        description="Watches a run for changes.")
+    cmd.add_argument(
+        "run_id", metavar="RUN-ID")
+
     #--- test commands -----------------------------------------------
 
     def cmd_test0(client, args):

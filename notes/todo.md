@@ -66,6 +66,15 @@ Transient connection (single run):
 - [ ] improve `apsis job` output style
 
 
+# Exantium tasks?
+
+- internals presentation
+- update Python deps, especially Sanic
+- update JS deps, especially Vue3
+- database schema cleanup
+- code cleanup, reorg, documentation
+
+
 # Cleanup
 
 ### Schema
