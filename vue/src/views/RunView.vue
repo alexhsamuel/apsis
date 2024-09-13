@@ -354,6 +354,7 @@ export default {
 
 .output {
   .head {
+    padding-top: 0.5em;
     padding-bottom: 1em;
 
     span {
@@ -366,7 +367,7 @@ export default {
 
     button {
       margin: 0 0.2em;
-      padding: 0.2em 0.5em 0 0.5em;
+      padding: 0 0.2em;
       background: none;
       border: 1px solid transparent;
 
