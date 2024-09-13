@@ -377,7 +377,8 @@ export default {
   }
 
   .data {
-    height: 50vh;
+    max-height: 50vh;
+    margin-bottom: 0.5em;
 
     overflow-y: scroll;
     * {
