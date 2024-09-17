@@ -4,16 +4,20 @@ import ora
 import re
 import sanic
 import ujson
-from   urllib.parse import unquote
+from   urllib.parse import unquote, parse_qs
 import websockets
 
 from   . import messages
 from   apsis import procstar
 from   apsis.lib import asyn
-from   apsis.lib.api import response_json, error, time_to_jso, to_bool, encode_response, runs_to_jso, job_to_jso, output_metadata_to_jso
+from   apsis.lib.api import (
+    response_json, error, time_to_jso, to_bool, encode_response,
+    runs_to_jso, run_to_summary_jso, job_to_jso,
+    output_metadata_to_jso, run_log_to_jso, output_to_http_message
+)
 import apsis.lib.itr
 from   apsis.lib.sys import to_signal
-from   apsis.states import to_state
+from   apsis.states import to_state, FINISHED
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
 
@@ -27,6 +31,11 @@ WS_CHUNK = 4096
 WS_CHUNK_SLEEP = 0.001
 
 #-------------------------------------------------------------------------------
+
+def parse_query(query):
+    parts = parse_qs(query, keep_blank_values=True)
+    return { n: v[0] for n, v in parts.items() }
+
 
 API = sanic.Blueprint("v1")
 
@@ -186,7 +195,7 @@ async def run(request, run_id):
 @API.route("/runs/<run_id>/log", methods={"GET"})
 async def run_log(request, run_id):
     try:
-        run_log = await request.app.apsis.get_run_log(run_id)
+        run_log = request.app.apsis.get_run_log(run_id)
     except KeyError:
         return error(f"unknown run {run_id}", 404)
 
@@ -200,6 +209,49 @@ async def run_log(request, run_id):
             for r in sorted(run_log, key=lambda r: r["timestamp"])
         ]
     })
+
+
+@API.websocket("/runs/<run_id>/updates")
+async def websocket_run_updates(request, ws, run_id):
+    # request.query_args doesn't work correctly for ws endpoints?
+    init = "init" in request.query_string.split("&")
+
+    # Make sure the run exists.
+    try:
+        _ = request.app.apsis.run_store.get(run_id)
+    except LookupError:
+        await ws.close()
+        return
+
+    apsis = request.app.apsis
+    with apsis.run_update_publisher.subscription(run_id) as subscription:
+        if init:
+            # Initialize run metadata.
+            try:
+                _, run = apsis.run_store.get(run_id)
+            except KeyError:
+                return error(f"unknown run {run_id}", 404)
+
+            # Initialize run log.
+            try:
+                run_log = apsis.get_run_log(run_id)
+            except KeyError:
+                run_log = []
+
+            # Initialize output metadata.
+            try:
+                outputs = apsis.outputs.get_metadata(run_id)
+            except KeyError:
+                outputs = {}
+            await ws.send(ujson.dumps({
+                "run"       : run_to_summary_jso(run),
+                "meta"      : run.meta,
+                "run_log"   : run_log_to_jso(run_log),
+                "outputs"   : { n: o.to_jso() for n, o in outputs.items() },
+            }))
+
+        async for msg in subscription:
+            await ws.send(ujson.dumps(msg))
 
 
 @API.route("/runs/<run_id>/outputs", methods={"GET"})
@@ -225,6 +277,60 @@ async def run_output(request, run_id, output_id):
             request.headers, output.data, output.compression)
         headers["Content-Type"] = output.metadata.content_type
         return sanic.response.raw(data, headers=headers)
+
+
+@API.websocket("/runs/<run_id>/output/<output_id>/updates")
+async def websocket_output_updates(request, ws, run_id, output_id):
+    query = parse_query(request.query_string)
+    try:
+        start = int(query["start"])
+    except (KeyError, ValueError):
+        start = None
+
+    apsis = request.app.apsis
+    # Make sure the run exists.
+    try:
+        _, run = request.app.apsis.run_store.get(run_id)
+    except LookupError:
+        await ws.close()
+        return
+
+    if run.state in FINISHED:
+        # The run is finished; there won't be any future output.
+        if start is not None:
+            # Send existing outputs.
+            try:
+                output = apsis.outputs.get_output(run_id, output_id)
+            except LookupError:
+                log.warning(f"no output: {run_id} {output_id}")
+            else:
+                msg = output_to_http_message(output, interval=(start, None))
+                await ws.send(msg)
+
+    else:
+        # The run is not finished, so subscribe for live updates.
+        with apsis.output_update_publisher.subscription(run_id) as sub:
+            try:
+                output = apsis.outputs.get_output(run_id, output_id)
+                if start is not None:
+                    # Send the output data up to now.
+                    msg = output_to_http_message(output, interval=(start, None))
+                    await ws.send(msg)
+                cur = output.metadata.length
+            except LookupError:
+                # No output yet.
+                cur = 0
+
+            async for output in sub:
+                if output.compression is not None:
+                    # Compressed output means the run is finished.
+                    break
+
+                msg = output_to_http_message(output, interval=(cur, None))
+                await ws.send(msg)
+                cur = output.metadata.length
+
+    await ws.close()
 
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
@@ -360,7 +466,7 @@ async def websocket_summary(request, ws):
     log.debug(f"{prefix} connected init={init}")
 
     predicate = lambda msg: msg["type"] in SUMMARY_MSG_TYPES
-    with apsis.publisher.subscription(predicate=predicate) as sub:
+    with apsis.summary_publisher.subscription(predicate=predicate) as sub:
         try:
             if init:
                 # Full initialization.

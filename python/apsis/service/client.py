@@ -1,10 +1,16 @@
+from   collections import namedtuple
+from   contextlib import asynccontextmanager
+import http.client
+import io
 import logging
 from   ora import Time
 import os
-from   collections import namedtuple
+import re
 import requests
 import time
+import ujson
 from   urllib.parse import quote, urlunparse
+import websockets.client
 
 import apsis.service
 
@@ -32,6 +38,30 @@ def get_address() -> Address:
 
 
 
+@asynccontextmanager
+async def get_ws_msgs(url):
+    """
+    Async context manager of async iterator of messages read from websocket
+    at `url`.
+    """
+    async with websockets.client.connect(url, max_size=None) as conn:
+        async def get_msgs():
+            while True:
+                try:
+                    msg = await conn.recv()
+                except websockets.ConnectionClosedOK:
+                    break
+                yield msg
+
+        yield get_msgs()
+
+
+def parse_content_range(header):
+    match = re.match(r"(\w+)=(\d+)-(\d+)/(\d+)", header)
+    typ, start, stop, length = match.groups()
+    return typ, int(start), int(stop), int(length)
+
+
 class APIError(RuntimeError):
 
     def __init__(self, status, error, jso):
@@ -53,14 +83,14 @@ class Client:
         self.__addr = get_address() if address is None else Address(*address)
 
 
-    def __url(self, *path, **query):
+    def __url(self, *path, scheme="http", **query):
         query = "&".join(
             str(k) if v is NO_ARG else f"{k}={quote(str(v))}"
             for k, v in query.items()
             if v is not None
         )
         return urlunparse((
-            "http",
+            scheme,
             f"{self.__addr.host}:{self.__addr.port}",
             "/".join(path),
             "",
@@ -114,6 +144,7 @@ class Client:
         :param timeout:
           Tiemout in sec.
         """
+        # FIXME: Use live updates instead.
         INTERVAL = 0.05
 
         deadline = time.time() + timeout
@@ -180,6 +211,46 @@ class Client:
         return resp.content
 
 
+    @asynccontextmanager
+    async def get_output_data_updates(self, run_id, output_id, start=None):
+        """
+        Async context manager of async iterator of `bytes` containing output
+        data updates for output `output_id` of run `run_id`.
+
+        :param start:
+          If not none, yields output from this position until current, before
+          yielding subsequent output updates.
+        """
+        url = self.__url(
+            "/api/v1/runs", run_id, "output", output_id, "updates",
+            scheme="ws",
+            **({} if start is None else {"start": start})
+        )
+
+        async with get_ws_msgs(url) as msgs:
+            pos = None if start is None else start
+
+            def conv(msg):
+                nonlocal pos
+                msg = io.BytesIO(msg)
+                header = http.client.parse_headers(msg)
+                content_range = header["Content-Range"]
+                typ, start, stop, _ = parse_content_range(content_range)
+                assert typ == "bytes"
+                if pos is None:
+                    pos = start
+                else:
+                    assert pos == start
+
+                body = msg.read()
+                assert len(body) == stop - start + 1
+                pos += len(body)
+
+                return body
+
+            yield ( conv(m) async for m in msgs )
+
+
     def signal(self, run_id, signal):
         """
         Sends `signal` to a running processes.
@@ -212,6 +283,24 @@ class Client:
 
     def get_run(self, run_id):
         return self.__get("/api/v1/runs", run_id)["runs"][run_id]
+
+
+    @asynccontextmanager
+    async def get_run_updates(self, run_id, *, init=False):
+        """
+        Async context manager of async iterator of JSO run update messages
+        for `run_id`.
+
+        @param init:
+          If true, request current run state at the start of the stream.
+        """
+        url = self.__url(
+            "/api/v1/runs", run_id, "updates",
+            scheme="ws",
+            **({"init": NO_ARG} if init else {})
+        )
+        async with get_ws_msgs(url) as msgs:
+            yield ( ujson.loads(m) async for m in msgs )
 
 
     def rerun(self, run_id):

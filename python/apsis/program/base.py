@@ -26,6 +26,14 @@ class OutputMetadata:
         self.content_type   = str(content_type)
 
 
+    def to_jso(self):
+        return {
+            "name"          : self.name,
+            "length"        : self.length,
+            "content_type"  : self.content_type,
+        }
+
+
 
 class Output:
 

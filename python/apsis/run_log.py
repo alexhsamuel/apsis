@@ -2,6 +2,8 @@ import logging
 from   ora import now
 import sys
 
+from   apsis.lib.api import run_log_record_to_jso
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -11,8 +13,9 @@ class RunLog:
     Log of a run's activity, for human consumption.
     """
 
-    def __init__(self, run_log_db):
+    def __init__(self, run_log_db, publisher):
         self.__run_log_db = run_log_db
+        self.__publisher = publisher
 
 
     def record(self, run, message, *, timestamp=None, level=logging.DEBUG):
@@ -33,6 +36,14 @@ class RunLog:
             db.cache(run.run_id, timestamp, message)
         else:
             db.insert(run.run_id, timestamp, message)
+
+        if run.run_id in self.__publisher:
+            rec = {
+                "message"   : message,
+                "timestamp" : timestamp
+            }
+            msg = {"run_log_append": run_log_record_to_jso(rec)}
+            self.__publisher.publish(run.run_id, msg)
 
 
     def info(self, run, message, *, timestamp=None):

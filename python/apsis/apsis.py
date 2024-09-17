@@ -12,7 +12,9 @@ from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
-from   .lib.asyn import TaskGroup, Publisher
+from   .lib.api import run_to_summary_jso
+from   .lib.asyn import TaskGroup, Publisher, KeyPublisher
+from   .lib.cmpr import compress_async
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
@@ -26,7 +28,7 @@ from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
 from   .service import messages
-from   .states import State
+from   .states import State, FINISHED
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +71,14 @@ class Apsis:
         config_host_groups(cfg)
         self.__db = db
 
-        self.run_log = RunLog(self.__db.run_log_db)
+        # Publisher for summary updates.
+        self.summary_publisher = Publisher()
+        # Publisher for per-run updates.
+        self.run_update_publisher = KeyPublisher()
+        # Publisher for output data updates.
+        self.output_update_publisher = KeyPublisher()
+
+        self.run_log = RunLog(self.__db.run_log_db, self.run_update_publisher)
         self.jobs = Jobs(jobs, db.job_db)
 
         # Actions applied to all runs.
@@ -83,9 +92,6 @@ class Apsis:
         else:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
-
-        # Publisher for updates.
-        self.publisher = Publisher()
 
         self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
@@ -336,7 +342,6 @@ class Apsis:
         """
         self.run_log.exc(run, message)
 
-        outputs = {}
         exc_type, exc, _ = sys.exc_info()
         if exc_type is not None:
             # Attach the exception traceback as run output.
@@ -344,61 +349,95 @@ class Apsis:
                 msg = str(exc).encode()
             else:
                 msg = traceback.format_exc().encode()
-            # FIXME: For now, use the name "output" as this is the only one
-            # the UIs render.  In the future, change to "traceback".
-            outputs["output"] = Output(
+            output = Output(
                 OutputMetadata("output", len(msg), content_type="text/plain"),
                 msg
             )
+            # FIXME: For now, use the name "output" as this is the only one
+            # the UIs render.  In the future, change to "traceback".
+            self._update_output_data(run, {"output": output}, persist=True)
 
         self._transition(
             run, run.STATE.error,
             times={"error": now()},
             message=message,
-            outputs=outputs,
         )
 
 
-    def _update(self, run, *, outputs=None, meta=None):
+    # FIXME: persist is a hack.
+    def _update_metadata(self, run, meta, *, persist=True):
         """
-        Updates run state without transitioning.
+        Updates run metadata, without transitioning.
         """
         assert run.state in {State.starting, State.running}
 
-        if meta is not None:
-            run._update(meta=meta)
-        if outputs is not None:
+        run._update(meta=meta)
+        # Persist the new state.
+        if persist:
+            self.run_store.update(run, now())
+
+        # Publish to run update subscribers.
+        self.run_update_publisher.publish(run.run_id, {"meta": meta})
+
+
+    def _update_output_data(self, run, outputs, persist):
+        """
+        Updates output data, without transitioning.
+
+        :param persist:
+          If true, write through to database; else cache in memory.
+        """
+        assert run.state in {State.starting, State.running}
+
+        run_id = run.run_id
+
+        # Persist outputs.
+        write = self.outputs.write_through if persist else self.outputs.write
+        for output_id, output in outputs.items():
+            write(run_id, output_id, output)
+
+        # Publish to run update subscribers.
+        if run_id in self.run_update_publisher:
+            msg = { i: o.metadata.to_jso() for i, o in outputs.items() }
+            self.run_update_publisher.publish(run_id, {"outputs": msg})
+
+        # Publish to output update subscribers.
+        if run_id in self.output_update_publisher:
             for output_id, output in outputs.items():
-                self.outputs.write(run.run_id, output_id, output)
-
-        self.run_store.update(run, now())
-        # FIXME: Publish.
+                self.output_update_publisher.publish(run_id, output)
 
 
-    def _transition(self, run, state, *, outputs={}, **kw_args):
+    # FIXME: Remove meta.
+    def _transition(self, run, state, *, meta={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
         """
         time = now()
+        run_id = run.run_id
 
         # A run is no longer expected once it is no longer scheduled.
         if run.expected and state not in {State.new, State.scheduled}:
             self.__db.run_log_db.flush(run.run_id)
             run.expected = False
 
+        # Update metadata.  Don't persist; will persist with the run.
+        # FIXME: Separate out metadata from Run and clean this up.
+        if meta:
+            self._update_metadata(run, meta, persist=False)
         # Transition the run object.
-        run._transition(time, state, **kw_args)
-
-        # Persist outputs.
-        for output_id, output in outputs.items():
-            self.outputs.write_through(run.run_id, output_id, output)
-            # FIXME: Publish.
-
+        run._transition(time, state, meta=meta, **kw_args)
         # Persist the new state.
         self.run_store.update(run, time)
 
-        # Let subscribers know.
-        self.publisher.publish(messages.make_run_transition(run))
+        # Publish to run update subscribers.
+        if run_id in self.run_update_publisher:
+            msg = {"run": run_to_summary_jso(run)}
+            self.run_update_publisher.publish(run_id, msg)
+        # Publish to summary subscribers.
+        self.summary_publisher.publish(messages.make_run_transition(run))
+        # If the run is finished, close the output update publisher.
+        if state in FINISHED:
+            self.output_update_publisher.close(run_id)
 
         self.__start_actions(run)
 
@@ -422,6 +461,7 @@ class Apsis:
         return job
 
 
+    # FIXME: Why is this here?
     def _propagate_args(self, old_args, inst):
         job = self.jobs.get_job(inst.job_id)
         args = runs.propagate_args(old_args, job, inst.args)
@@ -522,7 +562,7 @@ class Apsis:
             self.run_log.info(run, f"marked as {state.name}")
 
 
-    async def get_run_log(self, run_id):
+    def get_run_log(self, run_id):
         """
         Returns the run log for a run.
         """
@@ -611,7 +651,7 @@ class Apsis:
             "scheduled"             : self.scheduled.get_stats(),
             "run_store"             : self.run_store.get_stats(),
             "outputs"               : self.outputs.get_stats(),
-            "publisher"             : self.publisher.get_stats(),
+            "summary_publisher"     : self.summary_publisher.get_stats(),
         }
 
         try:
@@ -722,6 +762,27 @@ async def _wait_loop(apsis, run, timeout):
         apsis._start(run)
 
 
+async def _maybe_compress(outputs, *, compression="br", min_size=16384):
+    """
+    Compresses final outputs, if needed.
+    """
+    async def _cmpr(output):
+        if output.compression is None and output.metadata.length >= min_size:
+            # Compress the output.
+            try:
+                compressed = await compress_async(output.data, compression)
+            except RuntimeError as exc:
+                log.error(f"{exc}; not compressiong")
+                return output
+            else:
+                return Output(output.metadata, compressed, compression)
+        else:
+            return output
+
+    o = await asyncio.gather(*( _cmpr(o) for o in outputs.values() ))
+    return dict(zip(outputs.keys(), o))
+
+
 async def _process_updates(apsis, run, updates):
     """
     Processes program `updates` for `run` until the program is finished.
@@ -743,11 +804,11 @@ async def _process_updates(apsis, run, updates):
 
                 case ProgramError() as error:
                     apsis.run_log.info(run, f"error: {error.message}")
+                    apsis._update_output_data(run, error.outputs, persist=True)
                     apsis._transition(
                         run, State.error,
                         meta        =error.meta,
                         times       =error.times,
-                        outputs     =error.outputs,
                     )
                     return
 
@@ -760,38 +821,49 @@ async def _process_updates(apsis, run, updates):
             update = await anext(updates)
             match update:
                 case ProgramUpdate() as update:
-                    apsis._update(
-                        run,
-                        outputs     =update.outputs,
-                        meta        =update.meta,
-                    )
+                    if update.outputs is not None:
+                        apsis._update_output_data(run, update.outputs, False)
+                    if update.meta is not None:
+                        apsis._update_metadata(run, update.meta)
 
                 case ProgramSuccess() as success:
                     apsis.run_log.record(run, "success")
+                    apsis._update_output_data(
+                        run,
+                        await _maybe_compress(success.outputs),
+                        True
+                    )
                     apsis._transition(
                         run, State.success,
                         meta        =success.meta,
                         times       =success.times,
-                        outputs     =success.outputs,
                     )
 
                 case ProgramFailure() as failure:
                     # Program ran and failed.
                     apsis.run_log.record(run, f"failure: {failure.message}")
+                    apsis._update_output_data(
+                        run,
+                        await _maybe_compress(failure.outputs),
+                        True
+                    )
                     apsis._transition(
                         run, State.failure,
                         meta        =failure.meta,
                         times       =failure.times,
-                        outputs     =failure.outputs,
                     )
 
                 case ProgramError() as error:
                     apsis.run_log.info(run, f"error: {error.message}")
+                    apsis._update_output_data(
+                        run,
+                        await _maybe_compress(error.outputs),
+                        True
+                    )
                     apsis._transition(
                         run, State.error,
                         meta        =error.meta,
                         times       =error.times,
-                        outputs     =error.outputs,
                     )
 
                 case _ as update:
@@ -817,10 +889,8 @@ async def _process_updates(apsis, run, updates):
         apsis.run_log.exc(run, "error: internal")
         tb = traceback.format_exc().encode()
         output = Output(OutputMetadata("traceback", length=len(tb)), tb)
-        apsis._transition(
-            run, State.error,
-            outputs ={"output": output}
-        )
+        apsis._update_output_data(run, {"outputs": output}, True)
+        apsis._transition(run, State.error)
 
 
 def _unschedule_runs(apsis, job_id):
@@ -834,7 +904,7 @@ def _unschedule_runs(apsis, job_id):
         log.info(f"removing: {run.run_id}")
         apsis.scheduled.unschedule(run)
         apsis.run_store.remove(run.run_id)
-        apsis.publisher.publish(messages.make_run_delete(run))
+        apsis.summary_publisher.publish(messages.make_run_delete(run))
 
 
 async def reschedule_runs(apsis, job_id):
@@ -903,7 +973,7 @@ async def reload_jobs(apsis, *, dry_run=False):
             await reschedule_runs(apsis, job_id)
 
         # Publish job changes.
-        publish = apsis.publisher.publish
+        publish = apsis.summary_publisher.publish
         for job_id in rem_ids:
             publish(messages.make_job_delete(job_id))
         for job_id in add_ids:
@@ -934,6 +1004,5 @@ async def _retire_loop(apsis):
             return
 
         await asyncio.sleep(60)
-
 
 

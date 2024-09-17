@@ -77,7 +77,7 @@ async def agent_conn(apsis):
     server = get_agent_server()
     with server.connections.subscription() as sub:
         async for (conn_id, conn) in sub:
-            apsis.publisher.publish(
+            apsis.summary_publisher.publish(
                 messages.make_agent_conn_delete(conn_id)
                 if conn is None
                 else messages.make_agent_conn(conn)

@@ -12,7 +12,7 @@ div
         v-for="operation in OPERATIONS[run.state]"
         :key="operation"
         :run_id="run_id"
-        :operation="operation" 
+        :operation="operation"
         :button="true"
       )
 
@@ -52,7 +52,7 @@ div
                 tr(v-for="cond in run.conds" :key="cond.str")
                   td(style="padding-left: 0")
                     span(v-if="cond.type === 'dependency'")
-                      span dependency: 
+                      span dependency:
                       JobWithArgs(:job-id="cond.job_id" :args="cond.args")
                       span  is {{ join(cond.states, '|') }}
                     span(v-else) {{ cond.str }}
@@ -62,14 +62,18 @@ div
               td
                 RunElapsed(:run="run")
 
-            tr
-              th log
-              td.no-padding: RunLog(:run_id="run_id")
+    Frame(title="Run Log")
+      div
+        table.fields.run-log
+          tbody
+            tr(v-for="rec of runLog" :key="rec.timestamp + rec.message")
+              th: Timestamp(:time="rec.timestamp")
+              td {{ rec.message }}
 
-    Frame(v-if="run.meta && Object.keys(run.meta).length" title="Metadata" closed)
+    Frame(title="Metadata" closed)
       table.fields
         tbody
-          tr(v-for="(value, key) in run.meta" :key="key")
+          tr(v-for="(value, key) in meta" :key="key")
             th {{ key }}
             td
               tt(v-if="typeof value === 'object'")
@@ -80,40 +84,47 @@ div
                       td {{ sv }}
               tt(v-else) {{ value }}
 
-    Frame(title="Output")
-      button(
-        v-if="output && output.output_len && !outputData"
-        v-on:click="fetchOutputData()"
-      ) load {{ output.output_len }} bytes
-      pre.output.pad(v-if="outputData !== null") {{ outputData }}
+    Frame(title="Output" v-if="hasOutput")
+      div.output(v-if="outputMetadata")
+        div.head
+          span.name {{ outputMetadata.name }}
+          span {{ outputMetadata.length }} bytes
+          button.scroll(v-on:click="scrollTo('top')" :disabled="outputData === null")
+            DoubleChevronIcon(:direction="'up'")
+          button.scroll(v-on:click="scrollTo('end')" :disabled="outputData === null")
+            DoubleChevronIcon(:direction="'down'")
+        div.data(v-if="outputData !== null" ref="outputData")
+          pre.pad {{ outputData }}
+          div#anchor  <!-- to pin bottom scrolling -->
 
   div.error-message(v-else)
     div.title
       | {{ run_id }}
 
-    | This run does not currently exist. 
+    | This run does not currently exist.
     | This may be a run that was previously scheduled but never run.
 
 </template>
 
 <script>
-import { forEach, join } from 'lodash'
+import { join } from 'lodash'
 
 import * as api from '@/api'
 import Frame from '@/components/Frame'
+import DoubleChevronIcon from '@/components/icons/DoubleChevronIcon'
 import Job from '@/components/Job'
 import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import { joinArgs, OPERATIONS } from '@/runs'
+import { OPERATIONS, isComplete } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
-import RunLog from '@/components/RunLog'
 import RunsList from '@/components/RunsList'
 import State from '@/components/State'
-import store from '@/store'
 import Timestamp from '@/components/Timestamp'
+import store from '@/store'
+import { Socket, parseHttp } from '@/websocket.js'
 
 export default {
   props: ['run_id'],
@@ -126,10 +137,10 @@ export default {
     Run,
     RunArgs,
     RunElapsed,
-    RunLog,
     RunsList,
     State,
     Timestamp,
+    DoubleChevronIcon,
   },
 
   data() {
@@ -138,12 +149,16 @@ export default {
         runs: this.$route.query.runs !== null,
       },
       OPERATIONS,
-      output: null,
-      outputRequested: false,  // FIXME: Remove?
+      run: null,
+      runLog: null,
+      outputMetadata: null,
       outputData: null,
-      // Start with the run summary from the run state.
-      run: store.state.runs.get(this.run_id),
+      outputDataRequested: false,
+      // Run metadata.
+      meta: null,
       store,
+      runUpdateSocket: null,
+      outputDataUpdateSocket: null,
     }
   },
 
@@ -155,20 +170,27 @@ export default {
       const run = store.state.runs.get(this.run_id)
       return run ? run.seq : undefined
     },
+
+    runState() {
+      return this.run ? this.run.state : null
+    },
+
+    hasOutput() {
+      const state = this.runState
+      return state === 'running' || isComplete(state)
+    },
   },
 
   methods: {
-    joinArgs,
+    join,
 
     fetchRun() {
-      // FIXME: Use store.state.runs?  These are only summaries, though.
       const url = api.getRunUrl(this.run_id)
       fetch(url)
         .then(async (response) => {
           if (response.ok) {
             const run = (await response.json()).runs[this.run_id]
             this.run = Object.freeze(run)
-            this.fetchOutputMetadata()
           }
           else if (response.status === 404)
             this.run = null
@@ -177,33 +199,44 @@ export default {
         })
     },
 
-    fetchOutputMetadata() {
-      if (this.run)
-        fetch(api.getOutputUrl(this.run.run_id))
-          .then(async rsp => {
-            const outputs = await rsp.json()
+    getRunUpdates() {
+      if (this.runUpdateSocket) {
+        this.runUpdateSocket.close()
+        this.runUpdateSocket = null
+      }
 
-            // FIXME: For now we only show output_id = 'output'.
-            forEach(outputs, output => {
-              if (output.output_id === 'output')
-                this.output = output
-
-                // If the output isn't too big, fetch it immediately.
-                if (this.output.output_len <= 65536 || this.outputData)
-                  this.fetchOutputData()
-            })
-          })
-          // FIXME: Handle error.
-          .catch(err => { console.log(err) })
+      // Connect to live run updates.
+      const url = api.getRunUpdatesUrl(this.run_id, true)
+      this.runUpdateSocket = new Socket(
+        url,
+        msg => {
+          msg = JSON.parse(msg.data)
+          console.log('run msg:', Object.keys(msg).join(' '))
+          if (msg.meta)
+            this.meta = msg.meta
+          if (msg.run_log)
+            this.runLog = msg.run_log
+          if (msg.run_log_append)
+            this.runLog.push(msg.run_log_append)
+          if (msg.outputs && msg.outputs['output'])
+            this.outputMetadata = msg.outputs['output']
+        },
+        () => {},
+        err => { console.log(err) },
+      )
+      this.runUpdateSocket.open()
     },
 
-    fetchOutputData() {
-      const url = api.getOutputDataUrl(this.run.run_id, this.output.output_id)
+    /**
+     * Fetches output data from the HTTP endpoint.
+     */
+    getOutputData() {
+      const url = api.getOutputDataUrl(this.run.run_id, 'output')
 
       // Don't request output more than once.
-      if (this.outputRequested)
+      if (this.outputDataRequested)
         return
-      this.outputRequested = true
+      this.outputDataRequested = true
 
       fetch(url)
         // FIXME: Might not be text!
@@ -215,48 +248,97 @@ export default {
         .catch(err => { console.log(err) })
     },
 
-    format(key, value) {
-      if (key === 'command')
-        return '<code>' + value + '</code>'
-      else
-        return value
+    stopOutputDataUpdates() {
+      if (this.outputDataUpdateSocket) {
+        this.outputDataUpdateSocket.close()
+        this.outputDataUpdateSocket = null
+      }
     },
 
-    join,
+    startOutputDataUpdates() {
+      this.stopOutputDataUpdates()
 
+      const url = api.getOutputDataUpdatesUrl(this.run_id, 'output', 0)
+      this.outputDataUpdateSocket = new Socket(
+        url,
+        msg => {
+          const decoder = new TextDecoder()
+          msg.data.arrayBuffer().then(b => {
+            let [headers, body] = parseHttp(b)
+            let [ , start, , ] = headers['content-range'].match(/bytes=(\d+)-(\d+)\/(\d+)/)
+            start = parseInt(start)
+            body = decoder.decode(body)
+            if (this.outputData === null)
+              this.outputData = body
+            else {
+              if (start !== this.outputData.length)
+                console.error('output data fragmentation:', this.outputData.length, start)
+              this.outputData += body
+            }
+          })
+        },
+        () => {},
+        err => { console.log(err) },
+      )
+      this.outputDataUpdateSocket.open()
+    },
+
+    initRun() {
+      this.run = store.state.runs.get(this.run_id)
+      this.fetchRun()
+      this.getRunUpdates()
+    },
+
+    scrollTo(where) {
+      const el = this.$refs.outputData
+      el.scrollTo(0, where === 'top' ? 0 : el.scrollHeight)
+    },
   },
 
-  mounted() {
-    // Fetch full run info.
-    this.fetchRun()
+  beforeMount() {
+    this.initRun()
+  },
+
+  beforeDestroy() {
+    // Disconnect live run updates.
+    this.runUpdateSocket.close()
+    this.runUpdateSocket = null
+
+    this.stopOutputDataUpdates()
   },
 
   watch: {
     // Reset state on nav from one run to another.
     '$route'(to, from) {
       this.run = store.state.runs.get(this.run_id)
-      this.output = null
-      this.outputData = null
-      this.outputRequested = false
-      this.fetchRun()
+      this.initRun()
     },
 
     // When the update sequence number changes, reload the whole run.
     updateSeq(seq, previous) {
-      if (!this.run || this.run.seq !== seq) {
+      if (!this.run || this.run.seq !== seq)
         this.fetchRun()
-        if (this.output) {
-          this.outputRequested = false
-          this.fetchOutputMetadata()
-        }
-      }
-    }
+    },
+
+    runState(to, from) {
+      if (to === 'running')
+        // Connect for live output data.
+        this.startOutputDataUpdates()
+      else
+        this.stopOutputDataUpdates()
+
+      if (isComplete(to) && (this.outputData === null || this.outputData.length < this.outputMetadata.length))
+        // Fetch output data.
+        this.getOutputData('output')
+    },
   },
 
 }
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/index.scss';
+
 .title {
   margin-bottom: 0.5rem;
 }
@@ -271,7 +353,49 @@ export default {
 }
 
 .output {
-  font-family: "Roboto mono", monospaced;
+  .head {
+    padding-top: 0.5em;
+    padding-bottom: 1em;
+
+    span {
+      display: inline-block;
+      padding-right: 0.5em;
+      &.name {
+        font-weight: bold;
+      }
+    }
+
+    button {
+      margin: 0 0.2em;
+      padding: 0 0.2em;
+      background: none;
+      border: 1px solid transparent;
+
+      &:hover {
+        border: 1px solid $global-button-color;
+      }
+    }
+  }
+
+  .data {
+    max-height: 50vh;
+    margin-bottom: 0.5em;
+
+    overflow-y: scroll;
+    * {
+      overflow-anchor: none;
+    }
+
+    pre {
+      padding: 0;
+      font-family: "Roboto mono", monospaced;
+    }
+
+    #anchor {
+      overflow-anchor: auto;
+      height: 1px;
+    }
+  }
 }
 
 .state {
@@ -291,6 +415,16 @@ export default {
     line-height: 1.1rem;
     padding-top: 0;
     padding-bottom: 0;
+  }
+}
+
+.run-log {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  th, td {
+    line-height: 1.5rem;
+    padding-top: 0.0rem;
+    padding-bottom: 0.0rem;
   }
 }
 </style>

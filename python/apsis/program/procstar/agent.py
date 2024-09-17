@@ -7,7 +7,6 @@ import traceback
 import uuid
 
 from   apsis.lib import asyn
-from   apsis.lib.cmpr import compress_async
 from   apsis.lib.json import check_schema
 from   apsis.lib.parse import nparse_duration
 from   apsis.lib.py import or_none, get_cfg
@@ -80,32 +79,20 @@ def _combine_fd_data(old, new):
     )
 
 
-async def _make_outputs(fd_data, *, final=False):
+async def _make_outputs(fd_data):
     """
     Constructs program outputs from combined output fd data.
-
-    :param compression:
-      If not none, compresses output accordingly.
     """
     if fd_data is None:
         return {}
 
     assert fd_data.fd == "stdout"
-    assert fd_data.interval.start == 0  # FIXME: For now.
+    assert fd_data.interval.start == 0
     assert fd_data.encoding is None
 
     output = fd_data.data
     length = fd_data.interval.stop
-    compression = None
-
-    if final and length > 16384:
-        # Compress the output.
-        try:
-            output, compression = await compress_async(output, "br"), "br"
-        except RuntimeError as exc:
-            log.error(f"{exc}; not compressiong")
-
-    return base.program_outputs(output, length=length, compression=compression)
+    return base.program_outputs(output, length=length, compression=None)
 
 
 #-------------------------------------------------------------------------------
@@ -339,7 +326,7 @@ class BoundProcstarProgram(base.Program):
                         case _:
                             log.debug("expected final FdData")
 
-            outputs = await _make_outputs(fd_data, final=True)
+            outputs = await _make_outputs(fd_data)
 
             if res.status.exit_code == 0:
                 # The process terminated successfully.

@@ -16,6 +16,10 @@ const RUN_STATE_GROUPS = {
   'skipped': 'C',
 }
 
+export function isComplete(state) {
+  return RUN_STATE_GROUPS[state] === 'C'
+}
+
 function groupKey(run) {
   const sgrp = RUN_STATE_GROUPS[run.state]
   return sgrp + (
@@ -121,7 +125,7 @@ export function processMsgs(msgs, state) {
     state.runs = runs
 
   console.log(
-    'messages:',
+    'summary msgs:',
     stats.agentConn, 'agentConn', stats.job, 'job', stats.run, 'run')
 }
 

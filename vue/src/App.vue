@@ -9,7 +9,7 @@
 import * as api from '@/api'
 import ErrorToast from '@/components/ErrorToast'
 import navbar from '@/components/navbar'
-import JsonSocket from '@/JsonSocket.js'
+import { Socket } from '@/websocket.js'
 import LiveLog from '@/LiveLog.js'
 import store from '@/store.js'
 import { processMsgs, clearRunState } from '@/runs.js'
@@ -33,9 +33,9 @@ export default {
     this.liveLog = new LiveLog(this.store.state.logLines, 1000)
     const store = this.store
 
-    this.summarySocket = new JsonSocket(
+    this.summarySocket = new Socket(
       api.getSummaryUrl(true),
-      msgs => processMsgs(msgs, store.state),
+      msg => processMsgs(JSON.parse(msg.data), store.state),
       () => {
         // Clear state on connect; the server will send all runs and jobs.
         clearRunState(store.state)

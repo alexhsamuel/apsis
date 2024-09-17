@@ -2,11 +2,12 @@
 Main user CLI.
 """
 
-import json
+import asyncio
 import logging
-from   ora import now
+from   ora import now, Time
 import random
 import sys
+import ujson
 import yaml
 
 import apsis.cmdline
@@ -15,6 +16,7 @@ import apsis.lib.argparse
 import apsis.lib.itr
 import apsis.lib.logging
 from   apsis.runs import Run
+from   apsis.states import State, FINISHED
 import apsis.service.client
 
 log = logging.getLogger(__name__)
@@ -34,7 +36,7 @@ def main():
 
     def dump_format(obj, format):
         if format == "json":
-            json.dump(obj, sys.stdout, indent=2)
+            ujson.dump(obj, sys.stdout, indent=2)
         elif format == "yaml":
             yaml.dump(obj, sys.stdout)
 
@@ -65,7 +67,7 @@ def main():
 
     cmd = parser.add_command(
         "adhoc", cmd_adhoc,
-        description="Creates and schedules an ad hoc run.")
+        description="Schedules an ad hoc run.")
     cmd.add_argument(
         "time", metavar="TIME",
         help="time to run [time, daytime, 'now']")
@@ -146,9 +148,21 @@ def main():
     #--- command: output ---------------------------------------------
 
     def cmd_output(client, args):
-        # FIXME: For now, expose output_id=output only.
-        output = client.get_output(args.run_id, "output")
-        sys.stdout.buffer.write(output)
+        if args.follow or args.tail:
+            async def follow():
+                async with client.get_output_data_updates(
+                        args.run_id, "output",
+                        start=0 if args.follow else None,
+                ) as updates:
+                    async for data in updates:
+                        sys.stdout.buffer.write(data)
+                        sys.stdout.buffer.flush()
+
+            asyncio.run(follow())
+
+        else:
+            output = client.get_output(args.run_id, "output")
+            sys.stdout.buffer.write(output)
 
 
     cmd = parser.add_command(
@@ -156,6 +170,13 @@ def main():
         description="Dumps the output of a run.")
     cmd.add_argument(
         "run_id", metavar="RUN-ID")
+    grp = cmd.add_mutually_exclusive_group()
+    grp.add_argument(
+        "--follow", "-f", default=False, action="store_true",
+        help="Dump output so far and follow further output.")
+    grp.add_argument(
+        "--tail", "-F", default=False, action="store_true",
+        help="Follow further output only.")
 
     #--- command: rerun ----------------------------------------------
 
@@ -260,7 +281,7 @@ def main():
 
     cmd = parser.add_command(
         "schedule", cmd_schedule,
-        description="Creates and schedules a run.")
+        description="Schedules a new run.")
     cmd.add_argument(
         "--count", metavar="NUM", type=int, default=1,
         help="schedule NUM runs [def: 1]")
@@ -303,6 +324,63 @@ def main():
     cmd.add_argument(
         "run_id", metavar="RUN-ID ...", nargs="+")
 
+    #--- command: watch ----------------------------------------------
+
+    def cmd_watch(client, args):
+        async def loop():
+            async with client.get_run_updates(args.run_id, init=True) as msgs:
+                async for msg in msgs:
+                    finished = None
+                    for type, val in msg.items():
+                        match args.output:
+                            case "silent":
+                                pass
+
+                            case "json":
+                                print(ujson.dumps({type: val}))
+
+                            case _:
+                                if type == "run_log_append":
+                                    time = Time(val["timestamp"])
+                                    print(f"{time:@display}: {val['message']}")
+                                else:
+                                    # FIXME: Show run or output metadata?
+                                    pass
+
+                        if (
+                                args.finish
+                                and type == "run"
+                                and (state := State[val["state"]]) in FINISHED
+                        ):
+                            finished = state
+
+                    sys.stdout.flush()
+                    if finished is not None:
+                        raise SystemExit(0 if finished == State.success else 1)
+
+        asyncio.run(loop())
+
+
+    cmd = parser.add_command(
+        "watch", cmd_watch,
+        description="Watches a run for run log updates.")
+    cmd.add_argument(
+        "run_id", metavar="RUN-ID")
+    cmd.add_argument(
+        "--finish", action="store_true", default=True,
+        help="exit when the run finishes [def]")
+    cmd.add_argument(
+        "--no-finish", action="store_false", dest="finish",
+        help="don't exit when the run finishes")
+    grp = cmd.add_mutually_exclusive_group()
+    grp.add_argument(
+        "--silent", "-s",
+        action="store_const", const="silent", dest="output",
+        help="produce no output")
+    grp.add_argument(
+        "--json", action="store_const", const="json", dest="output",
+        help="dump run update messages in JSON")
+
     #--- test commands -----------------------------------------------
 
     def cmd_test0(client, args):
@@ -315,7 +393,7 @@ def main():
             log.info(f"scheduled: {run['run_id']}")
 
     cmd = parser.add_command(
-        "test0", cmd_test0, 
+        "test0", cmd_test0,
         description="[TEST] Schedule reruntest.")
     cmd.add_argument("num", metavar="NUM", type=int, nargs="?", default=1)
     cmd.add_argument("fut", metavar="SECS", type=float, nargs="?", default=60)

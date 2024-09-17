@@ -155,6 +155,18 @@ def runs_to_jso(app, when, runs, summary=False):
     }
 
 
+def run_log_record_to_jso(rec):
+    return {
+        "timestamp" : time_to_jso(rec["timestamp"]),
+        "message"   : rec["message"],
+    }
+
+
+def run_log_to_jso(recs):
+    return [ run_log_record_to_jso(r) for r in recs ]
+
+
+# FIXME: Get rid of this and the whole endpoint, which is silly.
 def output_metadata_to_jso(app, run_id, outputs):
     return [
         {
@@ -163,5 +175,24 @@ def output_metadata_to_jso(app, run_id, outputs):
         }
         for output_id, output in outputs.items()
     ]
+
+
+def output_to_http_message(output, *, interval=(0, None)) -> bytes:
+    length = output.metadata.length
+    start, stop = interval
+    if stop is None:
+        stop = length
+    if not (start <= stop):
+        raise ValueError("stop before start")
+    if output.compression is not None:
+        raise ValueError("output is compressed")
+
+    return "\r\n".join([
+        f"Content-Type: {output.metadata.content_type}",
+        # f"Content-Encoding: {output.compression}",
+        f"Content-Range: bytes={start}-{stop - 1}/{length}",
+        f"Content-Length: {str(stop - start)}",
+        "", ""
+    ]).encode("ascii") + output.data[start : stop]
 
 
