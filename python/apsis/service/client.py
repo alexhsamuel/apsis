@@ -40,20 +40,20 @@ def get_address() -> Address:
 
 @asynccontextmanager
 async def get_ws_msgs(url):
+    """
+    Async context manager of async iterator of messages read from websocket
+    at `url`.
+    """
     async with websockets.client.connect(url, max_size=None) as conn:
-        try:
-            async def get_msgs():
-                while True:
-                    try:
-                        msg = await conn.recv()
-                    except websockets.ConnectionClosedOK:
-                        break
-                    yield msg
+        async def get_msgs():
+            while True:
+                try:
+                    msg = await conn.recv()
+                except websockets.ConnectionClosedOK:
+                    break
+                yield msg
 
-            yield get_msgs()
-
-        finally:
-            await conn.close()
+        yield get_msgs()
 
 
 def parse_content_range(header):
@@ -214,8 +214,8 @@ class Client:
     @asynccontextmanager
     async def get_output_data_updates(self, run_id, output_id, start=None):
         """
-        Async context manager that produces an async iterator of `bytes`
-        containing output data updates for output `output_id` of run `run_id`.
+        Async context manager of async iterator of `bytes` containing output
+        data updates for output `output_id` of run `run_id`.
 
         :param start:
           If not none, yields output from this position until current, before
@@ -288,8 +288,8 @@ class Client:
     @asynccontextmanager
     async def get_run_updates(self, run_id, *, init=False):
         """
-        Async context manager that produces an async iterator of JSO run
-        update messages for `run_id`.
+        Async context manager of async iterator of JSO run update messages
+        for `run_id`.
 
         @param init:
           If true, request current run state at the start of the stream.

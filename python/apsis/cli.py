@@ -327,10 +327,6 @@ def main():
     #--- command: watch ----------------------------------------------
 
     def cmd_watch(client, args):
-        def print_run_log(rec):
-            time = Time(rec["timestamp"])
-            print(f"{time:@display}: {rec['message']}")
-
         async def loop():
             async with client.get_run_updates(args.run_id, init=True) as msgs:
                 async for msg in msgs:
@@ -343,12 +339,12 @@ def main():
                                 # FIXME: Option to show some metadata?
                                 pass
                             case "run_log":
-                                for rec in val:
-                                    print_run_log(rec)
+                                # Don't show old run log.
+                                pass
                             case "run_log_append":
-                                print_run_log(val)
+                                time = Time(val["timestamp"])
+                                print(f"{time:@display}: {val['message']}")
                             case "run":
-                                log.warning(f"finish={args.finish} state={val['state']}")
                                 if args.finish:
                                     state = State[val["state"]]
                                     if state in FINISHED:
@@ -361,10 +357,7 @@ def main():
                     if done:
                         break
 
-            log.warning("done")
-
         asyncio.run(loop())
-        log.warning("really done")
 
 
     cmd = parser.add_command(
