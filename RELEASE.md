@@ -6,6 +6,7 @@
 - Output data updates live in the web UI.
 - `apsis output --follow` and `apsis output --tail` for live output in CLUI.
 - `apsis watch` for live run changes in CLUI.
+- Apsis sets the `APSIS_RUN_ID` env var in procstar programs.
 
 
 # v0.23

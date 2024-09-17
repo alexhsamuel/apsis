@@ -123,14 +123,16 @@ class BoundProcstarProgram(base.Program):
         return cls(argv, group_id=group_id)
 
 
-    @property
-    def spec(self):
+    def get_spec(self, *, run_id):
         """
-        The procstar proc spec for the program.
+        Returns the procstar proc spec for the program.
         """
         return procstar.spec.Proc(
             self.__argv,
             env=procstar.spec.Proc.Env(
+                vars={
+                    "APSIS_RUN_ID": run_id,
+                },
                 # Inherit the entire environment from procstar, since it probably
                 # includes important configuration.
                 inherit=True,
@@ -178,7 +180,7 @@ class BoundProcstarProgram(base.Program):
             proc, res = await server.start(
                 proc_id     =proc_id,
                 group_id    =self.__group_id,
-                spec        =self.spec,
+                spec        =self.get_spec(run_id=run_id),
                 conn_timeout=conn_timeout,
             )
 
