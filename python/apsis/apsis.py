@@ -407,7 +407,6 @@ class Apsis:
                 self.output_update_publisher.publish(run_id, output)
 
 
-    # FIXME: Remove meta.
     def _transition(self, run, state, *, meta={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
