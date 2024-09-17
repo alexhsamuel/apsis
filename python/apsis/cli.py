@@ -363,7 +363,7 @@ def main():
 
     cmd = parser.add_command(
         "watch", cmd_watch,
-        description="Watches a run for changes.")
+        description="Watches a run for run log updates.")
     cmd.add_argument(
         "run_id", metavar="RUN-ID")
     cmd.add_argument(

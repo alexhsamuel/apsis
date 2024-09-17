@@ -61,6 +61,7 @@ Transient connection (single run):
   - [ ] single run transition
   - [x] output
   - [ ] run log
+- [ ] split `meta` out of `Apsis._transition()`
 
 - [ ] if `send_signal` raises, error the run
 - [ ] improve `apsis job` output style

@@ -5,6 +5,7 @@
 - The run log updates live in the web UI.
 - Output data updates live in the web UI.
 - `apsis output --follow` and `apsis output --tail` for live output in CLUI.
+- `apsis watch` for live run changes in CLUI.
 
 
 # v0.23
