@@ -16,7 +16,7 @@ import apsis.lib.argparse
 import apsis.lib.itr
 import apsis.lib.logging
 from   apsis.runs import Run
-from   apsis.states import State, FINISHED
+from   apsis.states import State
 import apsis.service.client
 
 log = logging.getLogger(__name__)
@@ -254,7 +254,7 @@ def main():
         help="show only runs of job JOB-ID")
     cmd.add_argument(
         "--state", "-s", metavar="STATE", default=None,
-        choices=[ r.name for r in Run.STATE ],
+        choices=[ r.name for r in State ],
         help="show only runs in STATE")
     cmd.add_argument(
         "--times", "-t", metavar="TIMESPAN", default=None,
@@ -350,7 +350,7 @@ def main():
                         if (
                                 args.finish
                                 and type == "run"
-                                and (state := State[val["state"]]) in FINISHED
+                                and (state := State[val["state"]]).finished
                         ):
                             finished = state
 

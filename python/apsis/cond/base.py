@@ -6,7 +6,8 @@ import logging
 from   apsis.lib import py
 from   apsis.lib.json import TypedJso, check_schema
 from   apsis.lib.timing import LogSlow
-from   apsis.runs import Run, template_expand
+from   apsis.runs import template_expand
+from   apsis.states import State
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class Condition(TypedJso):
         """
         The run should transition to `state`.
         """
-        state: Run.STATE
+        state: State
         reason: str = None
 
 

@@ -1,6 +1,6 @@
 from   apsis.lib.json import check_schema
 from   apsis.lib import py
-from   apsis.states import ALL_STATES, FINISHED, states_from_jso, states_to_jso
+from   apsis.states import State, states_from_jso, states_to_jso
 
 #-------------------------------------------------------------------------------
 
@@ -23,7 +23,7 @@ class Condition:
         if jso is None:
             return None
         with check_schema(jso) as pop:
-            states = pop("states", states_from_jso, default=ALL_STATES)
+            states = pop("states", states_from_jso, default=list(State))
         return cls(states=states)
 
 
@@ -34,5 +34,5 @@ class Condition:
 
 
 
-Condition.DEFAULT = Condition(states=FINISHED)
+Condition.DEFAULT = Condition(states=list( s for s in State if s.finished ))
 

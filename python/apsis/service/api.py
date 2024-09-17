@@ -17,7 +17,7 @@ from   apsis.lib.api import (
 )
 import apsis.lib.itr
 from   apsis.lib.sys import to_signal
-from   apsis.states import to_state, FINISHED
+from   apsis.states import to_state
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
 
@@ -295,7 +295,7 @@ async def websocket_output_updates(request, ws, run_id, output_id):
         await ws.close()
         return
 
-    if run.state in FINISHED:
+    if run.state.finished:
         # The run is finished; there won't be any future output.
         if start is not None:
             # Send existing outputs.
@@ -391,9 +391,9 @@ async def run_mark(request, run_id, state):
         apsis = request.app.apsis
         _, run = apsis.run_store.get(run_id)
         try:
-            state = Run.STATE[state]
-        except KeyError:
-            return error(f"invalid state: {state}", status=400)
+            state = to_state(state)
+        except ValueError as err:
+            return error(str(err), status=400)
 
         await apsis.mark(run, state)
     except Exception:

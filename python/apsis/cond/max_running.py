@@ -1,7 +1,8 @@
 import logging
 
 from   apsis.lib.py import format_ctor
-from   apsis.runs import Instance, Run, get_bind_args, template_expand
+from   apsis.runs import Instance, get_bind_args, template_expand
+from   apsis.states import State
 from   .base import Condition, NonmonotonicRunStoreCondition
 
 log = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ class BoundMaxRunning(NonmonotonicRunStoreCondition):
         _, running = run_store.query(
             job_id  =self.__job_id,
             args    =self.__args,
-            state   =(Run.STATE.starting, Run.STATE.running),
+            state   =(State.starting, State.running),
         )
         count = len(list(running))
         log.debug(f"found {count} running")

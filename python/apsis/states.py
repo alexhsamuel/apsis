@@ -4,20 +4,22 @@ from   apsis.lib import py
 
 #-------------------------------------------------------------------------------
 
-State = enum.Enum(
-    "State",
-    (
-        "new",
-        "scheduled",
-        "waiting",
-        "starting",
-        "running",
-        "success",
-        "failure",
-        "error",
-        "skipped",
-    )
-)
+class State(enum.Enum):
+    new         = enum.auto()
+    scheduled   = enum.auto()
+    waiting     = enum.auto()
+    starting    = enum.auto()
+    running     = enum.auto()
+    success     = enum.auto()
+    failure     = enum.auto()
+    error       = enum.auto()
+    skipped     = enum.auto()
+
+    @property
+    def finished(self):
+        return self in {State.success, State.failure, State.error, State.skipped}
+
+
 
 def to_state(state):
     if isinstance(state, State):
@@ -28,9 +30,6 @@ def to_state(state):
         pass
     raise ValueError(f"not a state: {state!r}")
 
-
-ALL_STATES = frozenset(State)
-FINISHED = frozenset((State.success, State.failure, State.error, State.skipped))
 
 # State model.  Allowed transitions _to_ each state.
 TRANSITIONS = {
@@ -52,7 +51,7 @@ def states_from_jso(jso):
 def states_to_jso(states):
     states = frozenset(states)
     return (
-        None if states == ALL_STATES
+        None if states == frozenset(State)
         else [ s.name for s in states ]
     )
 

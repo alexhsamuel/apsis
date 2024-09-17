@@ -5,6 +5,7 @@ from   .cond import Condition
 from   .jobs import Job
 from   .program import Program, Output
 from   .runs import Instance, Run
+from   .states import State
 from   apsis.lib import py
 
 #-------------------------------------------------------------------------------
@@ -17,7 +18,7 @@ class RunSnapshot:
 
     run_id: str
     inst: Instance
-    state: Run.STATE
+    state: State
     job: Job
     conds: Sequence[Condition]
     program: Program
