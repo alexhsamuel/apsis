@@ -3,11 +3,11 @@ Main user CLI.
 """
 
 import asyncio
-import json
 import logging
 from   ora import now, Time
 import random
 import sys
+import ujson
 import yaml
 
 import apsis.cmdline
@@ -36,7 +36,7 @@ def main():
 
     def dump_format(obj, format):
         if format == "json":
-            json.dump(obj, sys.stdout, indent=2)
+            ujson.dump(obj, sys.stdout, indent=2)
         elif format == "yaml":
             yaml.dump(obj, sys.stdout)
 
@@ -330,32 +330,33 @@ def main():
         async def loop():
             async with client.get_run_updates(args.run_id, init=True) as msgs:
                 async for msg in msgs:
-                    done = False
+                    finished = None
                     for type, val in msg.items():
-                        match type:
-                            case "outputs":
+                        match args.output:
+                            case "silent":
                                 pass
-                            case "meta":
-                                # FIXME: Option to show some metadata?
-                                pass
-                            case "run_log":
-                                # Don't show old run log.
-                                pass
-                            case "run_log_append":
-                                time = Time(val["timestamp"])
-                                print(f"{time:@display}: {val['message']}")
-                            case "run":
-                                if args.finish:
-                                    state = State[val["state"]]
-                                    if state in FINISHED:
-                                        done = True
+
+                            case "json":
+                                print(ujson.dumps({type: val}))
+
                             case _:
-                                log.warning(f"unknown msg type: {type}")
+                                if type == "run_log_append":
+                                    time = Time(val["timestamp"])
+                                    print(f"{time:@display}: {val['message']}")
+                                else:
+                                    # FIXME: Show run or output metadata?
+                                    pass
+
+                        if (
+                                args.finish
+                                and type == "run"
+                                and (state := State[val["state"]]) in FINISHED
+                        ):
+                            finished = state
 
                     sys.stdout.flush()
-
-                    if done:
-                        break
+                    if finished is not None:
+                        raise SystemExit(0 if finished == State.success else 1)
 
         asyncio.run(loop())
 
@@ -371,6 +372,14 @@ def main():
     cmd.add_argument(
         "--no-finish", action="store_false", dest="finish",
         help="don't exit when the run finishes")
+    grp = cmd.add_mutually_exclusive_group()
+    grp.add_argument(
+        "--silent", "-s",
+        action="store_const", const="silent", dest="output",
+        help="produce no output")
+    grp.add_argument(
+        "--json", action="store_const", const="json", dest="output",
+        help="dump run update messages in JSON")
 
     #--- test commands -----------------------------------------------
 
