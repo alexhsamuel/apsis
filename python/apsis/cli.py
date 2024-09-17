@@ -5,7 +5,7 @@ Main user CLI.
 import asyncio
 import json
 import logging
-from   ora import now
+from   ora import now, Time
 import random
 import sys
 import yaml
@@ -16,6 +16,7 @@ import apsis.lib.argparse
 import apsis.lib.itr
 import apsis.lib.logging
 from   apsis.runs import Run
+from   apsis.states import State, FINISHED
 import apsis.service.client
 
 log = logging.getLogger(__name__)
@@ -149,12 +150,13 @@ def main():
     def cmd_output(client, args):
         if args.follow or args.tail:
             async def follow():
-                async for data in client.get_output_data_updates(
+                async with client.get_output_data_updates(
                         args.run_id, "output",
                         start=0 if args.follow else None,
-                ):
-                    sys.stdout.buffer.write(data)
-                    sys.stdout.buffer.flush()
+                ) as updates:
+                    async for data in updates:
+                        sys.stdout.buffer.write(data)
+                        sys.stdout.buffer.flush()
 
             asyncio.run(follow())
 
@@ -325,12 +327,45 @@ def main():
     #--- command: watch ----------------------------------------------
 
     def cmd_watch(client, args):
+        def print_run_log(rec):
+            time = Time(rec["timestamp"])
+            print(f"{time:@display}: {rec['message']}")
+
         async def loop():
-            async for msg in client.get_run_updates(args.run_id):
-                print(msg)
-                sys.stdout.flush()
+            async with client.get_run_updates(args.run_id, init=True) as msgs:
+                async for msg in msgs:
+                    done = False
+                    for type, val in msg.items():
+                        match type:
+                            case "outputs":
+                                pass
+                            case "meta":
+                                # FIXME: Option to show some metadata?
+                                pass
+                            case "run_log":
+                                for rec in val:
+                                    print_run_log(rec)
+                            case "run_log_append":
+                                print_run_log(val)
+                            case "run":
+                                log.warning(f"finish={args.finish} state={val['state']}")
+                                if args.finish:
+                                    state = State[val["state"]]
+                                    if state in FINISHED:
+                                        done = True
+                            case _:
+                                log.warning(f"unknown msg type: {type}")
+
+                    sys.stdout.flush()
+
+                    log.warning(f"done={done}")
+                    if done:
+                        break
+
+            log.warning("done")
 
         asyncio.run(loop())
+        log.warning("really done")
 
 
     cmd = parser.add_command(
@@ -338,6 +373,12 @@ def main():
         description="Watches a run for changes.")
     cmd.add_argument(
         "run_id", metavar="RUN-ID")
+    cmd.add_argument(
+        "--finish", action="store_true", default=True,
+        help="exit when the run finishes [def]")
+    cmd.add_argument(
+        "--no-finish", action="store_false", dest="finish",
+        help="don't exit when the run finishes")
 
     #--- test commands -----------------------------------------------
 
@@ -351,7 +392,7 @@ def main():
             log.info(f"scheduled: {run['run_id']}")
 
     cmd = parser.add_command(
-        "test0", cmd_test0, 
+        "test0", cmd_test0,
         description="[TEST] Schedule reruntest.")
     cmd.add_argument("num", metavar="NUM", type=int, nargs="?", default=1)
     cmd.add_argument("fut", metavar="SECS", type=float, nargs="?", default=60)

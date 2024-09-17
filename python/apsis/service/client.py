@@ -1,4 +1,5 @@
 from   collections import namedtuple
+from   contextlib import asynccontextmanager
 import http.client
 import io
 import logging
@@ -192,12 +193,14 @@ class Client:
         return resp.content
 
 
+    @asynccontextmanager
     async def get_output_data_updates(self, run_id, output_id, start=None):
         """
-        Async iterator of `bytes` containing output data updates.
+        Async context manager that produces an async iterator of `bytes`
+        containing output data updates for output `output_id` of run `run_id`.
 
         :param start:
-          If not none, yields output from this position until current, before 
+          If not none, yields output from this position until current, before
           yielding subsequent output updates.
         """
         url = self.__url(
@@ -205,32 +208,35 @@ class Client:
             scheme="ws",
             **({} if start is None else {"start": start})
         )
-        pos = None if start is None else start
 
-        conn = await websockets.client.connect(url, max_size=None)
-        try:
-            while True:
-                try:
-                    msg = await conn.recv()
-                except websockets.ConnectionClosedOK:
-                    break
-                msg = io.BytesIO(msg)
-                header = http.client.parse_headers(msg)
-                content_range = header["Content-Range"]
-                typ, start, stop, _ = parse_content_range(content_range)
-                assert typ == "bytes"
-                if pos is None:
-                    pos = start
-                else:
-                    assert pos == start
+        async with websockets.client.connect(url, max_size=None) as conn:
+            try:
+                async def gen(start):
+                    pos = None if start is None else start
+                    while True:
+                        try:
+                            msg = await conn.recv()
+                        except websockets.ConnectionClosedOK:
+                            break
+                        msg = io.BytesIO(msg)
+                        header = http.client.parse_headers(msg)
+                        content_range = header["Content-Range"]
+                        typ, start, stop, _ = parse_content_range(content_range)
+                        assert typ == "bytes"
+                        if pos is None:
+                            pos = start
+                        else:
+                            assert pos == start
 
-                body = msg.read()
-                assert len(body) == stop - start + 1
-                pos += len(body)
-                yield body
+                        body = msg.read()
+                        assert len(body) == stop - start + 1
+                        pos += len(body)
+                        yield body
 
-        finally:
-            await conn.close()
+                yield gen(start)
+
+            finally:
+                await conn.close()
 
 
     def signal(self, run_id, signal):
@@ -267,20 +273,34 @@ class Client:
         return self.__get("/api/v1/runs", run_id)["runs"][run_id]
 
 
+    @asynccontextmanager
     async def get_run_updates(self, run_id, *, init=False):
+        """
+        Async context manager that produces an async iterator of JSO run
+        update messages for `run_id`.
+
+        @param init:
+          If true, request current run state at the start of the stream.
+        """
         url = self.__url(
             "/api/v1/runs", run_id, "updates",
             scheme="ws",
             **({"init": NO_ARG} if init else {})
         )
         async with websockets.client.connect(url, max_size=None) as conn:
-            while True:
-                try:
-                    msg = await conn.recv()
-                except websockets.ConnectionClosedOK:
-                    break
-                yield ujson.loads(msg)
+            try:
+                async def gen():
+                    while True:
+                        try:
+                            msg = await conn.recv()
+                        except websockets.ConnectionClosedOK:
+                            break
+                        yield ujson.loads(msg)
 
+                yield gen()
+
+            finally:
+                await conn.close()
 
 
     def rerun(self, run_id):

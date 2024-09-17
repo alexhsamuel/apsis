@@ -12,8 +12,8 @@ from   apsis import procstar
 from   apsis.lib import asyn
 from   apsis.lib.api import (
     response_json, error, time_to_jso, to_bool, encode_response,
-    runs_to_jso, job_to_jso, output_metadata_to_jso, run_log_to_jso,
-    output_to_http_message
+    runs_to_jso, run_to_summary_jso, job_to_jso,
+    output_metadata_to_jso, run_log_to_jso, output_to_http_message
 )
 import apsis.lib.itr
 from   apsis.lib.sys import to_signal
@@ -244,6 +244,7 @@ async def websocket_run_updates(request, ws, run_id):
             except KeyError:
                 outputs = {}
             await ws.send(ujson.dumps({
+                "run"       : run_to_summary_jso(run),
                 "meta"      : run.meta,
                 "run_log"   : run_log_to_jso(run_log),
                 "outputs"   : { n: o.to_jso() for n, o in outputs.items() },

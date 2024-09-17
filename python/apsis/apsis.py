@@ -12,6 +12,7 @@ from   .actions import Action
 from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStoreCondition
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
+from   .lib.api import run_to_summary_jso
 from   .lib.asyn import TaskGroup, Publisher, KeyPublisher
 from   .lib.cmpr import compress_async
 from   .lib.sys import to_signal
@@ -412,6 +413,7 @@ class Apsis:
         Transitions `run` to `state`, updating it with `kw_args`.
         """
         time = now()
+        run_id = run.run_id
 
         # A run is no longer expected once it is no longer scheduled.
         if run.expected and state not in {State.new, State.scheduled}:
@@ -427,11 +429,15 @@ class Apsis:
         # Persist the new state.
         self.run_store.update(run, time)
 
+        # Publish to run update subscribers.
+        if run_id in self.run_update_publisher:
+            msg = {"run": run_to_summary_jso(run)}
+            self.run_update_publisher.publish(run_id, msg)
         # Publish to summary subscribers.
         self.summary_publisher.publish(messages.make_run_transition(run))
         # If the run is finished, close the output update publisher.
         if state in FINISHED:
-            self.output_update_publisher.close(run.run_id)
+            self.output_update_publisher.close(run_id)
 
         self.__start_actions(run)
 
