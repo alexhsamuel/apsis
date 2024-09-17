@@ -358,7 +358,6 @@ def main():
 
                     sys.stdout.flush()
 
-                    log.warning(f"done={done}")
                     if done:
                         break
 
