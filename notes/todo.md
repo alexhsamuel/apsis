@@ -60,7 +60,6 @@ Transient connection (single run):
   - [x] output
   - [x] run log
 - [x] improve and clean up `State` enum
-- [ ] split `meta` out of `Apsis._transition()`
 
 - [ ] if `send_signal` raises, error the run
 - [ ] improve `apsis job` output style
@@ -69,9 +68,11 @@ Transient connection (single run):
 # Exantium tasks?
 
 - internals presentation
+- reliable integration tests
 - update Python deps, especially Sanic
 - update JS deps, especially Vue3
 - database schema cleanup
+  - move metadata into its own table; remove `meta` from `Apsis._transition()`
 - code cleanup, reorg, documentation
 
 
