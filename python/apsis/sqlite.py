@@ -13,6 +13,7 @@ from   .jobs import jso_to_job, job_to_jso
 from   .lib import itr
 from   .lib.timing import Timer
 from   .runs import Instance, Run
+from   .states import State
 from   .program import Program, Output, OutputMetadata
 
 log = logging.getLogger(__name__)
@@ -294,7 +295,7 @@ class RunDB:
 
             run.run_id      = run_id
             run.timestamp   = load_time(timestamp)
-            run.state       = Run.STATE[state]
+            run.state       = State[state]
             run.program     = program
             run.times       = times
             run.meta        = ujson.loads(meta)
@@ -703,7 +704,7 @@ class SqliteDB:
           A sequence of run IDs.
         """
         # Only finished runs are eligible for archiving.
-        FINISHED_STATES = [ s.name for s in Run.FINISHED ]
+        FINISHED_STATES = [ s.name for s in State if s.finished ]
 
         with (
                 Timer() as timer,

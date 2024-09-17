@@ -28,7 +28,7 @@ from   .runs import get_bind_args
 from   .scheduled import ScheduledRuns
 from   .scheduler import Scheduler, get_runs_to_schedule
 from   .service import messages
-from   .states import State, FINISHED
+from   .states import State
 
 log = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class Apsis:
             for run in starting_runs:
                 self.run_log.record(run, "restored starting: might have started")
                 self._transition(
-                    run, run.STATE.error,
+                    run, State.error,
                     message="restored starting: might have started"
                 )
 
@@ -198,9 +198,9 @@ class Apsis:
             return
 
         # Make sure the run is waiting.
-        if run.state != run.STATE.waiting:
+        if run.state != State.waiting:
             self.run_log.record(run, "waiting")
-            self._transition(run, run.STATE.waiting)
+            self._transition(run, State.waiting)
 
         timeout = self.cfg.get("waiting", {}).get("max_time", None)
 
@@ -358,7 +358,7 @@ class Apsis:
             self._update_output_data(run, {"output": output}, persist=True)
 
         self._transition(
-            run, run.STATE.error,
+            run, State.error,
             times={"error": now()},
             message=message,
         )
@@ -436,7 +436,7 @@ class Apsis:
         # Publish to summary subscribers.
         self.summary_publisher.publish(messages.make_run_transition(run))
         # If the run is finished, close the output update publisher.
-        if state in FINISHED:
+        if state.finished:
             self.output_update_publisher.close(run_id)
 
         self.__start_actions(run)
@@ -492,12 +492,12 @@ class Apsis:
 
         if time is None:
             self.run_log.record(run, "scheduled: now")
-            self._transition(run, run.STATE.scheduled, times={"schedule": now()})
+            self._transition(run, State.scheduled, times={"schedule": now()})
             self._wait(run)
             return run
         else:
             self.run_log.record(run, f"scheduled: {time}")
-            self._transition(run, run.STATE.scheduled, times={"schedule": time})
+            self._transition(run, State.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
             return run
 
@@ -508,10 +508,10 @@ class Apsis:
 
         Unschedules the run and sets it to the skipped state.
         """
-        if run.state == run.STATE.scheduled:
+        if run.state == State.scheduled:
             self.scheduled.unschedule(run)
 
-        elif run.state == run.STATE.waiting:
+        elif run.state == State.waiting:
             # Cancel the waiting task.
             await self.__wait_tasks.cancel(run.run_id)
 
@@ -519,19 +519,19 @@ class Apsis:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
 
         self.run_log.info(run, "skipped")
-        self._transition(run, run.STATE.skipped, message="skipped")
+        self._transition(run, State.skipped, message="skipped")
 
 
     async def start(self, run):
         """
         Immediately starts a scheduled or waiting run.
         """
-        if run.state == run.STATE.scheduled:
+        if run.state == State.scheduled:
             self.scheduled.unschedule(run)
             self.run_log.info(run, "scheduled run started by override")
             self._wait(run)
 
-        elif run.state == run.STATE.waiting:
+        elif run.state == State.waiting:
             # Cancel the waiting task.  It will remove itself when done.
             await self.__wait_tasks.cancel(run.run_id)
             self.run_log.info(run, "waiting run started by override")
@@ -551,9 +551,9 @@ class Apsis:
         :param state:
           A different finished state.
         """
-        if state not in Run.FINISHED:
+        if not state.finished:
             raise RunError(f"can't mark {run.run_id} to state {state.name}")
-        elif run.state not in Run.FINISHED:
+        elif not run.state.finished:
             raise RunError(f"can't mark {run.run_id} in state {run.state.name}")
         elif state == run.state:
             raise RunError(f"run {run.run_id} already in state {state.name}")
@@ -731,7 +731,7 @@ async def _wait_loop(apsis, run, timeout):
         except asyncio.TimeoutError:
             msg = f"waiting for {cond}: timeout after {timeout} s"
             apsis.run_log.info(run, msg)
-            apsis._transition(run, Run.STATE.error)
+            apsis._transition(run, State.error)
             return
 
         except Exception:
@@ -897,7 +897,7 @@ def _unschedule_runs(apsis, job_id):
     """
     Deletes all scheduled expected runs of `job_id`.
     """
-    _, runs = apsis.run_store.query(job_id=job_id, state=Run.STATE.scheduled)
+    _, runs = apsis.run_store.query(job_id=job_id, state=State.scheduled)
     runs = [ r for r in runs if r.expected ]
 
     for run in runs:

@@ -33,7 +33,7 @@ class SkipDuplicate(Condition):
         """
         self.__check_states = [ to_state(s) for s in py.iterize(check_states) ]
         self.__target_state = to_state(target_state)
-        if self.__target_state not in Run.FINISHED:
+        if not self.__target_state.finished:
             raise ValueError(f"invalid targat state: {self.__target_state.name}")
 
 

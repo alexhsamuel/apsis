@@ -5,7 +5,7 @@ import ora
 from   ora import now, Time
 import shlex
 
-from   . import states
+from   .states import State, TRANSITIONS
 from   .lib.asyn import Publisher
 from   .lib.calendar import get_calendar
 from   .lib.memo import memoize
@@ -139,11 +139,6 @@ def propagate_args(old_args, job, new_args):
 
 class Run:
 
-    # For backward compatibility.
-    STATE = states.State
-    FINISHED = states.FINISHED
-    TRANSITIONS = states.TRANSITIONS
-
     # FIXME: Make the attributes read-only.
     __slots__ = (
         "inst",
@@ -173,7 +168,7 @@ class Run:
         self.run_id     = None
         self.timestamp  = None
 
-        self.state      = Run.STATE.new
+        self.state      = State.new
         self.expected   = bool(expected)
         self.conds      = None
         self.program    = None
@@ -218,7 +213,7 @@ class Run:
           Transition outside of the state model.
         """
         # Check that this is a valid transition.
-        if not force and self.state not in self.TRANSITIONS[state]:
+        if not force and self.state not in TRANSITIONS[state]:
             raise TransitionError(self.state, state)
 
         assert all( isinstance(t, Time) and t.valid for t in times.values() )
@@ -361,7 +356,7 @@ class RunStore:
 
 
     def add(self, run):
-        assert run.state == Run.STATE.new
+        assert run.state == State.new
 
         timestamp = now()
         run_id = self.__next_run_id_db.get_next_run_id()
@@ -425,7 +420,7 @@ class RunStore:
         except KeyError:
             return True
         else:
-            if run.state in Run.FINISHED:
+            if run.state.finished:
                 self.remove(run_id, expected=False)
                 return True
             else:

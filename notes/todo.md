@@ -59,7 +59,7 @@ Transient connection (single run):
 - [x] live updates in CLUI
   - [x] output
   - [x] run log
-- [ ] improve `State` enum
+- [x] improve and clean up `State` enum
 - [ ] split `meta` out of `Apsis._transition()`
 
 - [ ] if `send_signal` raises, error the run
