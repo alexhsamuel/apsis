@@ -51,16 +51,15 @@ Transient connection (single run):
   - [x] run log updates
   - [x] program output updates
   - [x] different output data code path for completed runs (w/compression)
-  - [ ] make sure last output data update is complete, before compressing
-    - move compression out of programs?
-  - [ ] clean up API endpoints we don't need anymore
+  - [x] move compression out of programs
 - [x] roll in Procstar agent changes to `/summary`
+- [ ] clean up API endpoints we don't need anymore
 - [ ] roll in, or get rid of, log socket
-- [ ] add live endpoints to `Client`
-- [ ] live updates in CLUI
-  - [ ] single run transition
+- [x] add live endpoints to `Client`
+- [x] live updates in CLUI
   - [x] output
-  - [ ] run log
+  - [x] run log
+- [ ] improve `State` enum
 - [ ] split `meta` out of `Apsis._transition()`
 
 - [ ] if `send_signal` raises, error the run
