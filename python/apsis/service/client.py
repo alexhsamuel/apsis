@@ -38,6 +38,24 @@ def get_address() -> Address:
 
 
 
+@asynccontextmanager
+async def get_ws_msgs(url):
+    async with websockets.client.connect(url, max_size=None) as conn:
+        try:
+            async def get_msgs():
+                while True:
+                    try:
+                        msg = await conn.recv()
+                    except websockets.ConnectionClosedOK:
+                        break
+                    yield msg
+
+            yield get_msgs()
+
+        finally:
+            await conn.close()
+
+
 def parse_content_range(header):
     match = re.match(r"(\w+)=(\d+)-(\d+)/(\d+)", header)
     typ, start, stop, length = match.groups()
@@ -209,34 +227,28 @@ class Client:
             **({} if start is None else {"start": start})
         )
 
-        async with websockets.client.connect(url, max_size=None) as conn:
-            try:
-                async def gen(start):
-                    pos = None if start is None else start
-                    while True:
-                        try:
-                            msg = await conn.recv()
-                        except websockets.ConnectionClosedOK:
-                            break
-                        msg = io.BytesIO(msg)
-                        header = http.client.parse_headers(msg)
-                        content_range = header["Content-Range"]
-                        typ, start, stop, _ = parse_content_range(content_range)
-                        assert typ == "bytes"
-                        if pos is None:
-                            pos = start
-                        else:
-                            assert pos == start
+        async with get_ws_msgs(url) as msgs:
+            pos = None if start is None else start
 
-                        body = msg.read()
-                        assert len(body) == stop - start + 1
-                        pos += len(body)
-                        yield body
+            def conv(msg):
+                nonlocal pos
+                msg = io.BytesIO(msg)
+                header = http.client.parse_headers(msg)
+                content_range = header["Content-Range"]
+                typ, start, stop, _ = parse_content_range(content_range)
+                assert typ == "bytes"
+                if pos is None:
+                    pos = start
+                else:
+                    assert pos == start
 
-                yield gen(start)
+                body = msg.read()
+                assert len(body) == stop - start + 1
+                pos += len(body)
 
-            finally:
-                await conn.close()
+                return body
+
+            yield ( conv(m) async for m in msgs )
 
 
     def signal(self, run_id, signal):
@@ -287,20 +299,8 @@ class Client:
             scheme="ws",
             **({"init": NO_ARG} if init else {})
         )
-        async with websockets.client.connect(url, max_size=None) as conn:
-            try:
-                async def gen():
-                    while True:
-                        try:
-                            msg = await conn.recv()
-                        except websockets.ConnectionClosedOK:
-                            break
-                        yield ujson.loads(msg)
-
-                yield gen()
-
-            finally:
-                await conn.close()
+        async with get_ws_msgs(url) as msgs:
+            yield ( ujson.loads(m) async for m in msgs )
 
 
     def rerun(self, run_id):
