@@ -13,6 +13,7 @@ from   .cond.base import PolledCondition, RunStoreCondition, NonmonotonicRunStor
 from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.asyn import TaskGroup, Publisher, KeyPublisher
+from   .lib.cmpr import compress_async
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
@@ -755,6 +756,27 @@ async def _wait_loop(apsis, run, timeout):
         apsis._start(run)
 
 
+async def _maybe_compress(outputs, *, compression="br", min_size=16384):
+    """
+    Compresses final outputs, if needed.
+    """
+    async def _cmpr(output):
+        if output.compression is None and output.metadata.length >= min_size:
+            # Compress the output.
+            try:
+                compressed = await compress_async(output.data, compression)
+            except RuntimeError as exc:
+                log.error(f"{exc}; not compressiong")
+                return output
+            else:
+                return Output(output.metadata, compressed, compression)
+        else:
+            return output
+
+    o = await asyncio.gather(*( _cmpr(o) for o in outputs.values() ))
+    return dict(zip(outputs.keys(), o))
+
+
 async def _process_updates(apsis, run, updates):
     """
     Processes program `updates` for `run` until the program is finished.
@@ -800,7 +822,11 @@ async def _process_updates(apsis, run, updates):
 
                 case ProgramSuccess() as success:
                     apsis.run_log.record(run, "success")
-                    apsis._update_output_data(run, success.outputs, True)
+                    apsis._update_output_data(
+                        run,
+                        await _maybe_compress(success.outputs),
+                        True
+                    )
                     apsis._transition(
                         run, State.success,
                         meta        =success.meta,
@@ -810,7 +836,11 @@ async def _process_updates(apsis, run, updates):
                 case ProgramFailure() as failure:
                     # Program ran and failed.
                     apsis.run_log.record(run, f"failure: {failure.message}")
-                    apsis._update_output_data(run, failure.outputs, True)
+                    apsis._update_output_data(
+                        run,
+                        await _maybe_compress(failure.outputs),
+                        True
+                    )
                     apsis._transition(
                         run, State.failure,
                         meta        =failure.meta,
@@ -819,7 +849,11 @@ async def _process_updates(apsis, run, updates):
 
                 case ProgramError() as error:
                     apsis.run_log.info(run, f"error: {error.message}")
-                    apsis._update_output_data(run, error.outputs, True)
+                    apsis._update_output_data(
+                        run,
+                        await _maybe_compress(error.outputs),
+                        True
+                    )
                     apsis._transition(
                         run, State.error,
                         meta        =error.meta,
