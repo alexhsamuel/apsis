@@ -17,7 +17,7 @@ from   apsis.lib.api import (
 )
 import apsis.lib.itr
 from   apsis.lib.sys import to_signal
-from   apsis.states import to_state
+from   apsis.states import to_state, FINISHED
 from   ..jobs import jso_to_job
 from   ..runs import Instance, Run, RunError
 
@@ -287,29 +287,49 @@ async def websocket_output_updates(request, ws, run_id, output_id):
         start = None
 
     apsis = request.app.apsis
- 
-    with apsis.output_update_publisher.subscription(run_id) as subscription:
-        try:
-            output = apsis.outputs.get_output(run_id, output_id)
-            if start is not None:
-                # Send the output data up to now.
+    # Make sure the run exists.
+    try:
+        _, run = request.app.apsis.run_store.get(run_id)
+    except LookupError:
+        await ws.close()
+        return
+
+    if run.state in FINISHED:
+        # The run is finished; there won't be any future output.
+        if start is not None:
+            # Send existing outputs.
+            try:
+                output = apsis.outputs.get_output(run_id, output_id)
+            except LookupError:
+                log.warning(f"no output: {run_id} {output_id}")
+            else:
                 msg = output_to_http_message(output, interval=(start, None))
                 await ws.send(msg)
-            cur = output.metadata.length
-        except LookupError:
-            # No output yet.
-            cur = 0
 
-        async for output in subscription:
-            if output.compression is not None:
-                # Compressed output means the run is finished.
-                break
+    else:
+        # The run is not finished, so subscribe for live updates.
+        with apsis.output_update_publisher.subscription(run_id) as sub:
+            try:
+                output = apsis.outputs.get_output(run_id, output_id)
+                if start is not None:
+                    # Send the output data up to now.
+                    msg = output_to_http_message(output, interval=(start, None))
+                    await ws.send(msg)
+                cur = output.metadata.length
+            except LookupError:
+                # No output yet.
+                cur = 0
 
-            msg = output_to_http_message(output, interval=(cur, None))
-            await ws.send(msg)
-            cur = output.metadata.length
+            async for output in sub:
+                if output.compression is not None:
+                    # Compressed output means the run is finished.
+                    break
 
-        await ws.close()
+                msg = output_to_http_message(output, interval=(cur, None))
+                await ws.send(msg)
+                cur = output.metadata.length
+
+    await ws.close()
 
 
 @API.route("/runs/<run_id>/state", methods={"GET"})
