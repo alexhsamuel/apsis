@@ -173,10 +173,10 @@ def main():
     grp = cmd.add_mutually_exclusive_group()
     grp.add_argument(
         "--follow", "-f", default=False, action="store_true",
-        help="Dump output so far and follow further output.")
+        help="dump current output and follow further output")
     grp.add_argument(
-        "--tail", "-F", default=False, action="store_true",
-        help="Follow further output only.")
+        "--follow-new", "-F", default=False, action="store_true",
+        help="don't dump current output but follow further output")
 
     #--- command: rerun ----------------------------------------------
 
