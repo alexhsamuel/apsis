@@ -6,7 +6,6 @@ apsis.log
 archive*.db
 *-journal
 doc
-env
 work/
 python/apsis.egg-info
 .cache/
