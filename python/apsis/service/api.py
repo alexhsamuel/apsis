@@ -505,6 +505,11 @@ async def websocket_summary(request, ws):
 
 @API.route("/runs", methods={"POST"})
 async def run_post(request):
+    query = parse_query(request.query_string)
+    try:
+        count = int(query["count"])
+    except KeyError:
+        count = 1
     apsis = request.app.apsis
 
     # The run may either contain a job ID, or a complete job.
@@ -523,13 +528,18 @@ async def run_post(request):
     else:
         return error("missing job_id or job")
 
-    run = Run(Instance(job_id, jso.get("args", {})))
-    request.app.apsis._validate_run(run)
-
     time = jso.get("times", {}).get("schedule", "now")
     time = None if time == "now" else ora.Time(time)
-    await apsis.schedule(time, run)
-    jso = runs_to_jso(request.app, ora.now(), [run])
+
+    runs = [
+        Run(Instance(job_id, jso.get("args", {})))
+        for _ in range(count)
+    ]
+    for run in runs:
+        request.app.apsis._validate_run(run)
+
+    await asyncio.gather(*( apsis.schedule(time, r) for r in runs ))
+    jso = runs_to_jso(request.app, ora.now(), runs)
     return response_json(jso)
 
 

@@ -269,8 +269,13 @@ def main():
     #--- command: schedule -------------------------------------------
 
     def cmd_schedule(client, args):
-        for _ in range(args.count):
-            run = client.schedule(args.job_id, dict(args.args), args.time)
+        runs = client.schedule(
+            args.job_id,
+            dict(args.args),
+            args.time,
+            count=args.count,
+        )
+        for run in runs:
             apsis.cmdline.print_run(run, con)
 
 
