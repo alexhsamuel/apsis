@@ -308,7 +308,7 @@ class Client:
         return run
 
 
-    def schedule(self, job_id, args, time="now"):
+    def schedule(self, job_id, args, time="now", *, count=None):
         """
         Creates and schedules a new run.
         """
@@ -323,8 +323,9 @@ class Client:
                 "schedule": time,
             }
         }
-        runs = self.__post("/api/v1/runs", data=data)["runs"]
-        return next(iter(runs.values()))
+        runs = self.__post("/api/v1/runs", data=data, count=count)["runs"]
+        # FIXME: Hacky.
+        return next(iter(runs.values())) if count is None else runs.values()
 
 
     def __schedule(self, time, job):
