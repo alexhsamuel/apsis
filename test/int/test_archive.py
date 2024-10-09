@@ -50,8 +50,8 @@ def test_archive(tmp_path):
         })
         res = inst.wait_run(res["run_id"])
         # The first run has been archived.
-        assert res["meta"]["run count"] == 1
-        assert res["meta"]["run_ids"] == [run_id0]
+        assert res["meta"]["program"]["run count"] == 1
+        assert res["meta"]["program"]["run_ids"] == [run_id0]
 
         # The first run is no longer be available; the other two are.
         with pytest.raises(APIError):
@@ -71,8 +71,8 @@ def test_archive(tmp_path):
         })
         # The second run was archived, but the third isn't old enough yet.
         res = inst.wait_run(res["run_id"])
-        assert res["meta"]["run count"] == 1
-        assert res["meta"]["run_ids"] == [run_id1]
+        assert res["meta"]["program"]["run count"] == 1
+        assert res["meta"]["program"]["run_ids"] == [run_id1]
 
         # The second run is no longer available.
         with pytest.raises(APIError):
