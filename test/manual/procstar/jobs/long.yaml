@@ -1,5 +1,9 @@
 params: [time]
 
+metadata:
+  labels:
+    - foo
+
 program:
   type: procstar
   argv:
