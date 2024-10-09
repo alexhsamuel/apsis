@@ -115,6 +115,7 @@ import * as api from '@/api'
 import Frame from '@/components/Frame'
 import DoubleChevronIcon from '@/components/icons/DoubleChevronIcon'
 import Job from '@/components/Job'
+import JobLabel from '@/components/JobLabel'
 import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
@@ -134,6 +135,7 @@ export default {
     OperationButton,
     Frame,
     Job,
+    JobLabel,
     JobWithArgs,
     Program,
     Run,
@@ -348,6 +350,10 @@ export default {
 .subhead {
   margin-bottom: 1rem;
   font-size: 130%;
+
+  .label {
+    font-size: 80%;
+  }
 }
 
 .buttons {
