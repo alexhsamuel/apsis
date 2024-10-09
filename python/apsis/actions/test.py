@@ -111,3 +111,36 @@ class LogThreadAction(ThreadAction):
 
 
 
+class CheckLabelAction(BaseAction):
+    """
+    Action that raises an exception if a run doesn't have a certain label.
+    """
+
+    def __init__(self, label, *, condition=None):
+        super().__init__(condition=condition)
+        self.__label = str(label)
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            label       = pop("label", str, None)
+            condition   = pop("if", Condition.from_jso, None)
+        return cls(label, condition=condition)
+
+
+    def to_jso(self):
+        jso = super().to_jso()
+        jso["label"] = self.__label
+        return jso
+
+
+    def __call__(self, apsis, run):
+        if self.condition is not None and not self.condition(run):
+            return
+        labels = run.meta.get("job", {}).get("labels", [])
+        if self.__label not in labels:
+            raise RuntimeError(f"run missing label: {self.__label}")
+
+
+
