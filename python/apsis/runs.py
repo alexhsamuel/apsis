@@ -201,16 +201,14 @@ class Run:
         return f"{self.run_id} {self.state.name} {self.inst}"
 
 
-    def _update(self, *, meta=None):
-        if meta is not None:
-            self.meta = meta
-
-
     def _transition(self, timestamp, state, *, meta={}, times={},
                     message=None, run_state=None, force=False):
         """
         :param force:
           Transition outside of the state model.
+        :param meta:
+          Metadata updates.  Sets or replaces run metadata keys from this
+          mapping.
         """
         # Check that this is a valid transition.
         if not force and self.state not in TRANSITIONS[state]:

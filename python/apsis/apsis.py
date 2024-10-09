@@ -276,8 +276,9 @@ class Apsis:
                 return False
 
         # Attach job labels to the run.
-        if run.meta.get("labels") is None:
-            run.meta["labels"] = job.meta.get("labels", [])
+        run.meta["job"] = {
+            "labels": job.meta.get("labels", []),
+        }
 
         return True
 
@@ -365,19 +366,20 @@ class Apsis:
 
 
     # FIXME: persist is a hack.
-    def _update_metadata(self, run, meta, *, persist=True):
+    def _update_metadata(self, run, meta):
         """
         Updates run metadata, without transitioning.
         """
         assert run.state in {State.starting, State.running}
 
-        run._update(meta=meta)
-        # Persist the new state.
-        if persist:
-            self.run_store.update(run, now())
+        if meta is None or len(meta) == 0:
+            return
 
+        run.meta.update(meta)
+        # Persist the new state.
+        self.run_store.update(run, now())
         # Publish to run update subscribers.
-        self.run_update_publisher.publish(run.run_id, {"meta": meta})
+        self.run_update_publisher.publish(run.run_id, {"meta": run.meta})
 
 
     def _update_output_data(self, run, outputs, persist):
@@ -410,6 +412,10 @@ class Apsis:
     def _transition(self, run, state, *, meta={}, **kw_args):
         """
         Transitions `run` to `state`, updating it with `kw_args`.
+
+        :param meta:
+          Metadata updates.  Sets or replaces run metadata keys from this
+          mapping.
         """
         time = now()
         run_id = run.run_id
@@ -419,10 +425,6 @@ class Apsis:
             self.__db.run_log_db.flush(run.run_id)
             run.expected = False
 
-        # Update metadata.  Don't persist; will persist with the run.
-        # FIXME: Separate out metadata from Run and clean this up.
-        if meta:
-            self._update_metadata(run, meta, persist=False)
         # Transition the run object.
         run._transition(time, state, meta=meta, **kw_args)
         # Persist the new state.
@@ -431,6 +433,8 @@ class Apsis:
         # Publish to run update subscribers.
         if run_id in self.run_update_publisher:
             msg = {"run": run_to_summary_jso(run)}
+            if len(meta) > 0:
+                msg["meta"] = run.meta
             self.run_update_publisher.publish(run_id, msg)
         # Publish to summary subscribers.
         self.summary_publisher.publish(messages.make_run_transition(run))
@@ -797,7 +801,7 @@ async def _process_updates(apsis, run, updates):
                     apsis._transition(
                         run, State.running,
                         run_state   =running.run_state,
-                        meta        =running.meta,
+                        meta        ={"program": running.meta},
                         times       =running.times,
                     )
 
@@ -806,7 +810,7 @@ async def _process_updates(apsis, run, updates):
                     apsis._update_output_data(run, error.outputs, persist=True)
                     apsis._transition(
                         run, State.error,
-                        meta        =error.meta,
+                        meta        ={"program": error.meta},
                         times       =error.times,
                     )
                     return
@@ -823,7 +827,7 @@ async def _process_updates(apsis, run, updates):
                     if update.outputs is not None:
                         apsis._update_output_data(run, update.outputs, False)
                     if update.meta is not None:
-                        apsis._update_metadata(run, update.meta)
+                        apsis._update_metadata(run, {"program": update.meta})
 
                 case ProgramSuccess() as success:
                     apsis.run_log.record(run, "success")
@@ -834,7 +838,7 @@ async def _process_updates(apsis, run, updates):
                     )
                     apsis._transition(
                         run, State.success,
-                        meta        =success.meta,
+                        meta        ={"program": success.meta},
                         times       =success.times,
                     )
 
@@ -848,7 +852,7 @@ async def _process_updates(apsis, run, updates):
                     )
                     apsis._transition(
                         run, State.failure,
-                        meta        =failure.meta,
+                        meta        ={"program": failure.meta},
                         times       =failure.times,
                     )
 
@@ -861,7 +865,7 @@ async def _process_updates(apsis, run, updates):
                     )
                     apsis._transition(
                         run, State.error,
-                        meta        =error.meta,
+                        meta        ={"program": error.meta},
                         times       =error.times,
                     )
 

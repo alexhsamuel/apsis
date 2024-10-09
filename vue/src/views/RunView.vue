@@ -5,6 +5,8 @@ div
       | Run {{ run_id }}
     div.subhead
       JobWithArgs(:job-id="run.job_id" :args="run.args")
+      span(v-if="run && run.meta.job && run.meta.job.labels")
+        JobLabel.label(v-for="label in run.meta.job.labels" :key="label" :label="label")
 
     div.buttons.row-centered
       State.state(:state="run.state" name)
@@ -73,7 +75,7 @@ div
     Frame(title="Metadata" closed)
       table.fields
         tbody
-          tr(v-for="(value, key) in meta" :key="key")
+          tr(v-for="(value, key) in (meta.program || {})" :key="key")
             th {{ key }}
             td
               tt(v-if="typeof value === 'object'")
