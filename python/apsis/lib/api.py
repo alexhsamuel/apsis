@@ -117,7 +117,7 @@ def run_to_summary_jso(run):
         "run_id"        : run.run_id,
         "state"         : run.state.name,
         "times"         : { n: time_to_jso(t) for n, t in run.times.items() },
-        "labels"        : run.meta.get("labels", []),
+        "labels"        : run.meta.get("job", {}).get("labels", []),
     }
     if run.expected:
         jso["expected"] = run.expected

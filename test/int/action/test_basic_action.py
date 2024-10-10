@@ -31,4 +31,23 @@ def test_run_action(inst):
     assert any( "output: Hello, world!" in l for l in log )
 
 
+def test_check_label_action(inst):
+    run_id = inst.client.schedule("check label", {})["run_id"]
+    inst.wait_run(run_id)
+
+    # Logs should show that the action started and raised.
+    with inst.get_log() as log:
+        log = list(log)
+    assert not any( "RuntimeError: run missing label" in l for l in log )
+
+
+def test_check_label_error_action(inst):
+    run_id = inst.client.schedule("check label error", {})["run_id"]
+    inst.wait_run(run_id)
+
+    # Logs should show that the action started and raised.
+    with inst.get_log() as log:
+        log = list(log)
+    assert any( "RuntimeError: run missing label: foo" in l for l in log )
+
 

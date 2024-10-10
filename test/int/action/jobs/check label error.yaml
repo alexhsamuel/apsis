@@ -1,0 +1,10 @@
+metadata:
+  labels: [bar]
+
+program:
+  type: no-op
+
+action:
+  type: apsis.actions.test.CheckLabelAction
+  label: foo
+

@@ -91,7 +91,7 @@ def test_signal():
         for sig, run_id in zip(SIGNALS, run_ids):
             res = svc.wait_run(run_id)
             assert res["state"] == "failure"
-            assert res["meta"]["status"]["signal"] == sig.name
+            assert res["meta"]["program"]["status"]["signal"] == sig.name
         # The last run didn't get a signal.
         res = svc.wait_run(run_ids[-1])
         assert res["state"] == "success"

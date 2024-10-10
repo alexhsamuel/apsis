@@ -1,5 +1,8 @@
 params: [count, time, size]
 
+metadata:
+  labels: [foo, bar]
+
 program:
   type: procstar
   argv:

@@ -58,12 +58,12 @@ def test_signal(inst):
 
     res = inst.wait_run(r0)
     assert res["state"] == "failure"
-    assert res["meta"]["signal"] == "SIGTERM"
+    assert res["meta"]["program"]["signal"] == "SIGTERM"
     res = inst.wait_run(r1)
     assert res["state"] == "failure"
-    assert res["meta"]["signal"] == "SIGKILL"
+    assert res["meta"]["program"]["signal"] == "SIGKILL"
     res = inst.wait_run(r2)
     assert res["state"] == "failure"
-    assert res["meta"]["signal"] == "SIGUSR2"
+    assert res["meta"]["program"]["signal"] == "SIGUSR2"
 
 

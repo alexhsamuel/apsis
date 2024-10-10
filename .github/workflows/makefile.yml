@@ -17,6 +17,10 @@ jobs:
     - name: Install Litestream
       run: wget --quiet https://github.com/benbjohnson/litestream/releases/download/v0.3.13/litestream-v0.3.13-linux-amd64.deb && sudo dpkg -i litestream-v0.3.13-linux-amd64.deb
 
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
     - name: Upgrade pip
       run: pip3 install --upgrade pip 'setuptools>=61'
 
