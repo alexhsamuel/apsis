@@ -138,8 +138,7 @@ class CheckLabelAction(BaseAction):
     def __call__(self, apsis, run):
         if self.condition is not None and not self.condition(run):
             return
-        labels = run.meta.get("job", {}).get("labels", [])
-        if self.__label not in labels:
+        if self.__label not in run.labels:
             raise RuntimeError(f"run missing label: {self.__label}")
 
 

@@ -4,7 +4,7 @@ from   dataclasses import dataclass
 from   .cond import Condition
 from   .jobs import Job
 from   .program import Program, Output
-from   .runs import Instance, Run
+from   .runs import Instance
 from   .states import State
 from   apsis.lib import py
 
@@ -27,6 +27,11 @@ class RunSnapshot:
 
     def __repr__(self):
         return py.format_ctor(self, self.run_id, self.inst, state=self.state)
+
+
+    @property
+    def labels(self):
+        return self.meta.get("job", {}).get("labels", [])
 
 
 
