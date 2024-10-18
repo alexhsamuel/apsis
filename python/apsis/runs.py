@@ -103,9 +103,38 @@ class Instance:
 
 #-------------------------------------------------------------------------------
 
-_get_template = memoize(jinja2.Template)
+class _Undefined(jinja2.StrictUndefined):
+    """
+    Custom Jinja2 undefined type that throws `NameError`.
+    """
+
+    def __init__(self, *args, **kw_args):
+        super().__init__(*args, **kw_args)
+        self._undefined_exception = NameError
+
+
+
+_JINJA_ENV = jinja2.Environment(
+    undefined   =_Undefined,
+)
+
+@memoize
+def _get_template(template):
+    try:
+        return _JINJA_ENV.from_string(template)
+    except jinja2.TemplateSyntaxError as exc:
+        raise SyntaxError(str(exc))
+
 
 def template_expand(template, args):
+    """
+    Expands Jinja2-style `template` with names from `args`.
+
+    :raise SyntaxError:
+      The template doesn't conform to Jinja2 syntax.
+    :raise NameError:
+      The template references a name not in `args`.
+    """
     template = _get_template(str(template))
     return template.render(args)
 
