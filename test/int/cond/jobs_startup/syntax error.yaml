@@ -1,0 +1,15 @@
+params: [date]
+
+program:
+  type: no-op
+
+condition:
+- type: dependency
+  job_id: dependency
+  args:
+    flavor: "{{ foo bar !&^ }}"
+
+schedule:
+  type: interval
+  interval: 1
+

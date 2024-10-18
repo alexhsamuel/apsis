@@ -278,3 +278,69 @@ def test_alarm_success(inst):
     assert res["state"] == "success"
 
 
+def test_bad_name_schedule(inst):
+    client = inst.client
+
+    res = client.schedule("bad name", args={"date": "2024-10-18"})
+    # Should get back an error run with a run ID.
+    run_id = res["run_id"]
+    assert run_id is not None
+    assert res["state"] == "error"
+
+
+def test_syntax_error_schedule(inst):
+    client = inst.client
+
+    res = client.schedule("syntax error", args={"date": "2024-10-18"})
+    # Should get back an error run with a run ID.
+    run_id = res["run_id"]
+    assert run_id is not None
+    assert res["state"] == "error"
+
+
+def test_bad_name_startup():
+    # The job dir contains a job with name error, scheduled once per second.
+    job_dir = Path(__file__).absolute().parent / "jobs_startup"
+
+    # Run Apsis with a 10 sec schedule horizon.
+    with closing(ApsisService(
+            job_dir=job_dir,
+            cfg={"schedule": {"horizon": 10}},
+    )) as inst:
+        inst.create_db(clock=ora.now() + 1)
+        inst.write_cfg()
+        inst.start_serve()
+        inst.wait_for_serve()
+
+        client = inst.client
+        # Some runs should have been scheduled.
+        runs = client.get_runs(job_id="bad name")
+        # They should all have errored immediately from the bad name.
+        for run_id in runs:
+            res = inst.wait_run(run_id)
+            assert res["state"] == "error"
+
+
+def test_syntax_error_startup():
+    # The job dir contains a job with name error, scheduled once per second.
+    job_dir = Path(__file__).absolute().parent / "jobs_startup"
+
+    # Run Apsis with a 10 sec schedule horizon.
+    with closing(ApsisService(
+            job_dir=job_dir,
+            cfg={"schedule": {"horizon": 10}},
+    )) as inst:
+        inst.create_db(clock=ora.now() + 1)
+        inst.write_cfg()
+        inst.start_serve()
+        inst.wait_for_serve()
+
+        client = inst.client
+        # Some runs should have been scheduled.
+        runs = client.get_runs(job_id="syntax error")
+        # They should all have errored immediately from the bad name.
+        for run_id in runs:
+            res = inst.wait_run(run_id)
+            assert res["state"] == "error"
+
+
