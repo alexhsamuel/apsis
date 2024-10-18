@@ -46,8 +46,8 @@ class ApsisService:
         self.env        = dict(env)
 
 
-    def create_db(self):
-        SqliteDB.create(self.db_path)
+    def create_db(self, *, clock=None):
+        SqliteDB.create(self.db_path, clock=clock)
 
 
     def write_cfg(self):

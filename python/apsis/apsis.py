@@ -389,8 +389,6 @@ class Apsis:
         :param persist:
           If true, write through to database; else cache in memory.
         """
-        assert run.state in {State.starting, State.running}
-
         run_id = run.run_id
 
         # Persist outputs.
