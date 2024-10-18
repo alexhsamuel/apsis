@@ -38,7 +38,7 @@ def test_timeout(inst):
     assert res["state"] == "failure"
     res = inst.wait_run(r4)
     assert res["state"] == "success"
-    assert client.get_run(r2)["state"] == "failure"
+    assert inst.wait_run(r2)["state"] == "failure"
     res = inst.wait_run(r5)
     assert res["state"] == "success"
 
