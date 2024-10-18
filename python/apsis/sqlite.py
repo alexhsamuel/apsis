@@ -630,7 +630,7 @@ class SqliteDB:
 
 
     @classmethod
-    def create(cls, path):
+    def create(cls, path, *, clock=None):
         """
         Creates a new database.
 
@@ -648,6 +648,8 @@ class SqliteDB:
         METADATA.create_all(engine)
         log.info("initializing next run ID")
         RunIDDB.initialize(engine)
+        if clock is not None:
+            ClockDB(engine).set_time(clock)
 
 
     @classmethod
