@@ -98,3 +98,61 @@ def test_archive(tmp_path):
             assert rows[0] == (run_id1, "combined stdout & stderr", 14)
 
 
+def test_clean_up_jobs(tmp_path):
+    path = tmp_path / "archive.db"
+
+    with closing(ApsisService(cfg={"schedule": {"horizon": 1}})) as inst:
+        inst.create_db()
+        inst.write_cfg()
+        inst.start_serve()
+        inst.wait_for_serve()
+
+        client = inst.client
+
+        # Run two runs, wait 2 s, then run another.
+
+        res = client.schedule_adhoc("now", {"program": {"type": "no-op"}})
+        run_id0 = res["run_id"]
+        job_id0 = res["job_id"]
+        res = client.schedule_adhoc("now", {"program": {"type": "no-op"}})
+        run_id1 = res["run_id"]
+        job_id1 = res["job_id"]
+
+        time.sleep(2.5)
+
+        res = client.schedule_adhoc("now", {"program": {"type": "no-op"}})
+        run_id2 = res["run_id"]
+        job_id2 = res["job_id"]
+
+        inst.stop_serve()
+
+        # Check the DB.
+        with closing(sqlite3.connect(inst.db_path)) as db:
+            job_ids = { j for j, in db.execute("SELECT job_id FROM jobs") }
+        assert job_ids == {job_id0, job_id1, job_id2}
+
+        inst.start_serve()
+        inst.wait_for_serve()
+
+        # Archive with a max age of 2 s.
+        res = client.schedule_adhoc("now", {
+            "program": {
+                "type": "apsis.program.internal.archive.ArchiveProgram",
+                "age": 2,
+                "count": 10,
+                "path": str(path),
+            },
+        })
+        res = inst.wait_run(res["run_id"])
+        archive_job_id = res["job_id"]
+        # The first two runs have been archived.
+        assert res["meta"]["program"]["run count"] == 2
+        assert set(res["meta"]["program"]["run_ids"]) == {run_id0, run_id1}
+
+    # Check the DB.  Only the third job ID should remain, plus the job ID from
+    # the archive job.
+    with closing(sqlite3.connect(inst.db_path)) as db:
+        job_ids = { j for j, in db.execute("SELECT job_id FROM jobs") }
+    assert job_ids == {job_id2, archive_job_id}
+
+
