@@ -3,6 +3,7 @@ import logging
 import os
 from   procstar.testing.agent import get_procstar_path, TLS_CERT_PATH
 import procstar.http.client
+import random
 import secrets
 import signal
 import subprocess
@@ -15,8 +16,9 @@ logger = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-# Default agent port for testing, distinct from the usual default.
-DEFAULT_AGENT_PORT = 59790
+# Default agent port for testing, distinct from the usual default.  Choose at
+# random, to reduce the risk of collisions on a test host.
+DEFAULT_AGENT_PORT = random.randint(50000, 60000)
 
 # Environment containing auth info for testing.
 AUTH_ENV = {
