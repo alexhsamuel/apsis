@@ -289,6 +289,11 @@ export default {
 
     initRun() {
       this.run = store.state.runs.get(this.run_id)
+
+      this.outputMetadata = null
+      this.outputData = null
+      this.outputDataRequested = false
+
       this.fetchRun()
       this.getRunUpdates()
     },
