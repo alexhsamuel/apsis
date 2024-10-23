@@ -1,0 +1,6 @@
+params: [time]
+
+program:
+  type: procstar-shell
+  command: "echo this is $APSIS_RUN_ID"
+
