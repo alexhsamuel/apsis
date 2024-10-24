@@ -106,6 +106,8 @@ def job_to_jso(job):
 
 
 def run_to_summary_jso(run):
+    from apsis.cond.dependency import Dependency
+
     jso = run._summary_jso_cache
     if jso is not None:
         # Use the cached JSO.
@@ -121,6 +123,15 @@ def run_to_summary_jso(run):
     }
     if run.expected:
         jso["expected"] = run.expected
+
+    if run.conds is not None:
+        deps = [
+            [c.job_id, c.args]
+            for c in run.conds
+            if isinstance(c, Dependency)
+        ]
+        if len(deps) > 0:
+            jso["dependencies"] = deps
 
     run._summary_jso_cache = jso
     return jso

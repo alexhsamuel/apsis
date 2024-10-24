@@ -199,42 +199,45 @@ export function includesAll(arr0, arr1) {
   return true
 }
 
+/**
+ * Collects dependencies for `run`.
+ *
+ * @returns an array of dependency objects each including `job_id`, `args`, and
+ * array of `runs`
+ */
 export function getDependencies(run, store) {
-  return run.conds
-    .filter(c => c.type === 'dependency')
-    .map(c => ({
-      job_id: c.job_id,
-      args: c.args,
-      // states: c.states,
-      runs: store.getRunsForInstance(c.job_id, c.args),
+  return (run.dependencies || [])
+    .map(([j, a]) => ({
+      job_id: j,
+      args: a,
+      runs: store.getRunsForInstance(j, a),
     }))
 }
 
+/**
+ * Collects dependents for `run`.
+ *
+ * @returns an array of runs for which `run` matches a dependency.
+ */
 export function getDependents(run, store) {
   let deps = new Map()
 
+  let j, a
   for (let dep of store.state.runs.values())
-    if (dep.conds && dep.conds.filter(c =>
-      c.type === 'dependency'
-      && c.job_id === run.job_id
-      && isEqual(c.args, run.args)
-    ).length > 0) {
-      const key = dep.job_id + '(' + joinArgs(dep.args) + ')'
-      console.log('key', key)
-      const dep_runs = deps.get(key)
-      if (dep_runs !== null)
-        dep_runs.push(run)
-      else
-        deps.set(key, [run])
-    }
+    for (([j, a]) of (dep.dependencies || []))
+      if (j === run.job_id && isEqual(a, run.args)) {
+        const key = dep.job_id + '(' + joinArgs(dep.args) + ')'
+        const dep_runs = deps.get(key)
+        if (dep_runs)
+          dep_runs.push(dep)
+        else
+          deps.set(key, [dep])
+      }
 
-  let ret = Array.from(deps.values().map(runs => ({
+  return Array.from(deps.values().map(runs => ({
     job_id: runs[0].job_id,
     args: runs[0].args,
     runs: runs,
   })))
-
-  console.log('getDependents', ret)
-  return ret
 }
 

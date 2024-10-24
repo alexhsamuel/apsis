@@ -372,7 +372,7 @@ class RunStore:
             r.run_id: r
             for r in self.__run_db.query(min_timestamp=min_timestamp)
         }
-        # Also keep a lookup of runs by job ID.
+        # Keep a lookup of runs by job ID.
         self.__runs_by_job = {}
         for run in self.__runs.values():
             self.__runs_by_job.setdefault(run.inst.job_id, set()).add(run)

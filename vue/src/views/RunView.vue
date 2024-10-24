@@ -47,17 +47,11 @@ div
               th program
               td.no-padding: Program(:program="run.program")
 
-            //- FIXME: Do better here.
             tr
               th conditions
               td.no-padding: table.fields: tbody
                 tr(v-for="cond in run.conds" :key="cond.str")
-                  td(style="padding-left: 0")
-                    span(v-if="cond.type === 'dependency'")
-                      span dependency:
-                      JobWithArgs(:job-id="cond.job_id" :args="cond.args")
-                      span  is {{ join(cond.states, '|') }}
-                    span(v-else) {{ cond.str }}
+                  td(style="padding-left: 0") {{ cond.str }}
 
             tr
               th elapsed
@@ -252,11 +246,11 @@ export default {
     },
 
     dependencies() {
-      return this.run && this.run.conds ? getDependencies(this.run, this.store) : null
+      return this.run ? getDependencies(this.run, this.store) : null
     },
 
     dependents() {
-      return this.run && this.run.conds ? getDependents(this.run, this.store) : null
+      return this.run ? getDependents(this.run, this.store) : null
     },
   },
 
@@ -270,7 +264,6 @@ export default {
           if (response.ok) {
             const run = (await response.json()).runs[this.run_id]
             this.run = Object.freeze(run)
-            console.log(this.run)
           }
           else if (response.status === 404)
             this.run = null
@@ -445,6 +438,8 @@ export default {
   display: grid;
   grid-template-columns: repeat(7, max-content);
   column-gap: 8px;
+  row-gap: 2px;
+  padding: 16px 0;
 
   > div {
     margin: 4px 4px;
