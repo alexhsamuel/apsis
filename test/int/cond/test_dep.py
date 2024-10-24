@@ -344,3 +344,62 @@ def test_syntax_error_startup():
             assert res["state"] == "error"
 
 
+def test_api_dependencies():
+    with closing(ApsisService(job_dir=job_dir)) as inst:
+        inst.create_db(clock=ora.now() + 1)
+        inst.write_cfg()
+        inst.start_serve()
+        inst.wait_for_serve()
+        client = inst.client
+
+        res = client.schedule(
+            "dependent", {"date": "2024-10-22", "color": "blue"})
+        run_id = res["run_id"]
+
+        deps = client.get_run_dependencies(run_id)
+        assert len(deps) == 2
+        assert deps[0] == {
+            "job_id": "dependency",
+            "args": {
+                "date": "2024-10-22",
+                "flavor": "vanilla",
+            },
+            "run_ids": [],
+        }
+        assert deps[1] == {
+            "job_id": "dependency",
+            "args": {
+                "date": "2024-10-22",
+                "flavor": "chocolate",
+            },
+            "run_ids": [],
+        }
+
+        res = client.schedule(
+            "dependency", {"date": "2024-10-22", "flavor": "chocolate"})
+        dep_run_id0 = res["run_id"]
+        res = inst.wait_run(dep_run_id0)
+        assert res["state"] == "success"
+
+        deps = client.get_run_dependencies(run_id)
+        assert len(deps) == 2
+        assert deps[0]["run_ids"] == []
+        assert deps[1]["run_ids"] == [dep_run_id0]
+
+        res = client.schedule(
+            "dependency", {"date": "2024-10-22", "flavor": "vanilla"})
+        dep_run_id1 = res["run_id"]
+        res = client.schedule(
+            "dependency", {"date": "2024-10-22", "flavor": "chocolate"})
+        dep_run_id2 = res["run_id"]
+        res = inst.wait_run(dep_run_id1)
+        assert res["state"] == "success"
+        res = inst.wait_run(dep_run_id2)
+        assert res["state"] == "success"
+
+        deps = client.get_run_dependencies(run_id)
+        assert len(deps) == 2
+        assert deps[0]["run_ids"] == [dep_run_id1]
+        assert deps[1]["run_ids"] == [dep_run_id0, dep_run_id2]
+
+
