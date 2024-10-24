@@ -1,4 +1,4 @@
-import { sortBy, toPairs } from 'lodash'
+import { isEqual, sortBy, toPairs } from 'lodash'
 
 export function joinArgs(args) {
   return toPairs(args).map(([n, v]) => n + '=' + v).join(', ')
@@ -205,7 +205,36 @@ export function getDependencies(run, store) {
     .map(c => ({
       job_id: c.job_id,
       args: c.args,
-      states: c.states,
+      // states: c.states,
       runs: store.getRunsForInstance(c.job_id, c.args),
     }))
 }
+
+export function getDependents(run, store) {
+  let deps = new Map()
+
+  for (let dep of store.state.runs.values())
+    if (dep.conds && dep.conds.filter(c =>
+      c.type === 'dependency'
+      && c.job_id === run.job_id
+      && isEqual(c.args, run.args)
+    ).length > 0) {
+      const key = dep.job_id + '(' + joinArgs(dep.args) + ')'
+      console.log('key', key)
+      const dep_runs = deps.get(key)
+      if (dep_runs !== null)
+        dep_runs.push(run)
+      else
+        deps.set(key, [run])
+    }
+
+  let ret = Array.from(deps.values().map(runs => ({
+    job_id: runs[0].job_id,
+    args: runs[0].args,
+    runs: runs,
+  })))
+
+  console.log('getDependents', ret)
+  return ret
+}
+

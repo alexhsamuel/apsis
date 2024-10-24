@@ -115,6 +115,25 @@ div
 
         div.underline1(style="grid-column-end: span 7")
 
+        template(v-if="dependents !== null")
+          div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependents.reduce((s, d) => s + Math.max(d.runs.length, 1), 1) }") Dependents
+          template(v-for="dep, d of dependents")
+            div.l.col-job(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
+              div.v: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
+            template(v-for="r, i of dep.runs")
+              div.c.col-run: Run(:run-id="r.run_id")
+              div.c.col-state: State(:state="r.state")
+              div.r.col-schedule-time: Timestamp(:time="r.times.schedule")
+              div.r.col-start-time: Timestamp(v-if="r.times.running" :time="r.times.running")
+              div.r.col-elapsed: RunElapsed(:run="r")
+            div(v-if="dep.runs.length == 0")
+              div.c.col-run(style="grid-column-end: span 6") (no runs)
+              div
+              div
+              div
+              div
+            div(v-if="d < dependents.length - 1" style="grid-column-end: span 6; border-bottom: 2px dotted #ccc;")
+          div(v-if="dependents.length == 0" style="grid-column-end: span 6") (no dependents)
 
     Frame(title="Metadata" closed)
       table.fields
@@ -164,7 +183,7 @@ import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import { getDependencies, isComplete, OPERATIONS } from '@/runs'
+import { getDependencies, getDependents, isComplete, OPERATIONS } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunsList from '@/components/RunsList'
@@ -234,6 +253,10 @@ export default {
 
     dependencies() {
       return this.run && this.run.conds ? getDependencies(this.run, this.store) : null
+    },
+
+    dependents() {
+      return this.run && this.run.conds ? getDependents(this.run, this.store) : null
     },
   },
 
