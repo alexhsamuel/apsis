@@ -801,6 +801,20 @@ class SqliteDB:
                     # Keep count of how many rows we archived from each table.
                     row_counts[table.name] = len(rows)
 
+                # Clean up any jobs that no longer have associated runs.
+                src_tx.execute(
+                    """
+                    DELETE FROM jobs
+                    WHERE job_id IN (
+                        SELECT jobs.job_id
+                        FROM jobs
+                        LEFT OUTER JOIN runs
+                        ON runs.job_id = jobs.job_id
+                        WHERE runs.run_id IS NULL
+                    )
+                    """
+                )
+
         log.info(f"archived in {timer.elapsed:.3f} s")
         return row_counts
 

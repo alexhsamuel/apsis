@@ -1,4 +1,3 @@
-from   concurrent.futures import ThreadPoolExecutor, as_completed
 from   contextlib import closing, contextmanager
 import ora
 import os
@@ -195,7 +194,7 @@ def test_replica_killing_apsis_and_litestream_with_heavy_load():
 
             client = inst.client
             # populate apsis db with a large number of runs
-            runs_ids = [client.schedule("sleep", {"duration": "9"})["run_id"] for _ in range(num_jobs)]
+            runs_ids = [client.schedule("sleep", {"duration": "12"})["run_id"] for _ in range(num_jobs)]
             sched_runs_ids = [client.schedule("sleep", {"duration": "1"}, time=ora.now() + 14)["run_id"] for _ in range(num_jobs)]
 
             runs = [client.get_run(r) for r in runs_ids]
@@ -238,3 +237,5 @@ def test_replica_killing_apsis_and_litestream_with_heavy_load():
         assert all(run["state"] == "success" for run in all_runs_results)
 
         inst.stop_serve()
+
+
