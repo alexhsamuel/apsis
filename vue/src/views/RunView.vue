@@ -73,38 +73,47 @@ div
               td {{ rec.message }}
 
     Frame(title="Dependencies")
-      table.dependencies.widetable
-        thead: tr
-          td.no-underline
-          td.col-job Job
-          td.col-run Run
-          td.col-state State
-          td.col-schedule-time Schedule
-          td.col-start-time Start
-          td.col-elapsed Elapsed
-        tbody
-          template(v-if="dependencies" v-for="dep, j of dependencies")
-            tr(v-for="r, i of dep.runs")
-              td: span(v-if="i == 0 && j == 0") Dependencies
-              td.col-job(v-if="i == 0" :rowspan="dep.runs.length" style="display: flex, align-items: stretch"): div.right-bar: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
-              td.col-run: Run(:run-id="r.run_id")
-              td.col-state: State(:state="r.state")
-              td.col-schedule-time: Timestamp(:time="r.times.schedule")
-              td.col-start-time: Timestamp(v-if="r.times.running" :time="r.times.running")
-              td.col-elapsed: RunElapsed(:run="r")
-            tr(v-if="dep.runs.length == 0")
-              td: span(v-if="j == 0") Dependencies
-              td.col-job: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
-              td.col-run no runs
+      div.dependencies
+        div
+        div.l Job
+        div.c Run
+        div.c State
+        div.r Schedule
+        div.r Start
+        div.r Elapsed
+        div.underline1(style="grid-column-end: span 7")
 
-          tr
-            td: span This run
-            td.col-job: JobWithArgs(:job-id="run.job_id" :args="run.args")
-            td.col-run: Run(:run-id="run_id")
-            td.col-state: State(:state="run.state")
-            td.col-schedule-time: Timestamp(:time="run.times.schedule")
-            td.col-start-time: Timestamp(v-if="run.times.running" :time="run.times.running")
-            td.col-elapsed: RunElapsed(:run="run")
+        template(v-if="dependencies !== null")
+          div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependencies.reduce((s, d) => s + Math.max(d.runs.length, 1), 1) }") Dependencies
+          template(v-for="dep, d of dependencies")
+            div.l.col-job(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
+              div.v: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
+            template(v-for="r, i of dep.runs")
+              div.c.col-run: Run(:run-id="r.run_id")
+              div.c.col-state: State(:state="r.state")
+              div.r.col-schedule-time: Timestamp(:time="r.times.schedule")
+              div.r.col-start-time: Timestamp(v-if="r.times.running" :time="r.times.running")
+              div.r.col-elapsed: RunElapsed(:run="r")
+            div(v-if="dep.runs.length == 0")
+              div.c.col-run(style="grid-column-end: span 6") (no runs)
+              div
+              div
+              div
+              div
+            div(v-if="d < dependencies.length - 1" style="grid-column-end: span 6; border-bottom: 2px dotted #ccc;")
+          div(v-if="dependencies.length == 0" style="grid-column-end: span 6") (no dependencies)
+
+        div.underline1(style="grid-column-end: span 7")
+
+        div.colhead.v: span This run
+        div.l.col-job: JobWithArgs(:job-id="run.job_id" :args="run.args")
+        div.c.col-run: Run(:run-id="run_id")
+        div.c.col-state: State(:state="run.state")
+        div.r.col-schedule-time: Timestamp(:time="run.times.schedule")
+        div.r.col-start-time: Timestamp(v-if="run.times.running" :time="run.times.running")
+        div.r.col-elapsed: RunElapsed(:run="run")
+
+        div.underline1(style="grid-column-end: span 7")
 
 
     Frame(title="Metadata" closed)
@@ -410,40 +419,50 @@ export default {
 }
 
 .dependencies {
-  .no-underline {
-    border-bottom: 1px solid transparent;
+  display: grid;
+  grid-template-columns: repeat(7, max-content);
+  column-gap: 8px;
+
+  > div {
+    margin: 4px 4px;
   }
 
-  .right-bar {
+  > .l { text-align: left; }
+  > .c { text-align: center; }
+  > .r { justify-self: end; }
+
+  .v {
     height: 100%;
-    display: inline-block;
-    border-right: 1px solid #aaa;
+    display: flex;
+    align-items: center;
+  }
+
+  .colhead {
+    margin-top: 0;
+    margin-right: 0;
+    padding-right: 16px;
+    border-right: 2px dotted #ccc;
+  }
+
+  .underline1 {
+    border-bottom: 2px solid #ccc;
   }
 
   .col-job {
-    height: 100%;
-    text-align: left;
-    vertical-align: center;
   }
 
   .col-run {
-    text-align: center;
   }
 
   .col-state {
-    text-align: center;
-    vertical-align: bottom;
   }
 
   .col-schedule-time, .col-start-time {
     font-size: 90%;
     color: $global-light-color;
-    text-align: right;
   }
 
   .col-elapsed {
-    padding-right: 1em;
-    text-align: right;
     white-space: nowrap;
   }
 }
