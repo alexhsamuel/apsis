@@ -5,7 +5,7 @@ div
       | Run {{ run_id }}
     div.subhead
       JobWithArgs(:job-id="run.job_id" :args="run.args")
-      span(v-if="run && run.meta.job && run.meta.job.labels")
+      span(v-if="run && run.meta && run.meta.job && run.meta.job.labels")
         JobLabel.label(v-for="label in run.meta.job.labels" :key="label" :label="label")
 
     div.buttons.row-centered
@@ -72,10 +72,45 @@ div
               th: Timestamp(:time="rec.timestamp")
               td {{ rec.message }}
 
+    Frame(title="Dependencies")
+      table.dependencies.widetable
+        thead: tr
+          td.no-underline
+          td.col-job Job
+          td.col-run Run
+          td.col-state State
+          td.col-schedule-time Schedule
+          td.col-start-time Start
+          td.col-elapsed Elapsed
+        tbody
+          template(v-if="dependencies" v-for="dep, j of dependencies")
+            tr(v-for="r, i of dep.runs")
+              td: span(v-if="i == 0 && j == 0") Dependencies
+              td.col-job: JobWithArgs(v-if="i == 0" :job-id="dep.job_id" :args="dep.args")
+              td.col-run: Run(:run-id="r.run_id")
+              td.col-state: State(:state="r.state")
+              td.col-schedule-time: Timestamp(:time="r.times.schedule")
+              td.col-start-time: Timestamp(v-if="r.times.running" :time="r.times.running")
+              td.col-elapsed: RunElapsed(:run="r")
+            tr(v-if="dep.runs.length == 0")
+              td: span(v-if="j == 0") Dependencies
+              td.col-job: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
+              td.col-run no runs
+
+          tr
+            td: span This run
+            td.col-job: JobWithArgs(:job-id="run.job_id" :args="run.args")
+            td.col-run: Run(:run-id="run_id")
+            td.col-state: State(:state="run.state")
+            td.col-schedule-time: Timestamp(:time="run.times.schedule")
+            td.col-start-time: Timestamp(v-if="run.times.running" :time="run.times.running")
+            td.col-elapsed: RunElapsed(:run="run")
+
+
     Frame(title="Metadata" closed)
       table.fields
         tbody
-          tr(v-for="(value, key) in (meta.program || {})" :key="key")
+          tr(v-for="(value, key) in meta && meta.program || {}" :key="key")
             th {{ key }}
             td
               tt(v-if="typeof value === 'object'")
@@ -183,6 +218,10 @@ export default {
       const state = this.runState
       return state === 'running' || isComplete(state)
     },
+
+    metadata() {
+      return this.metadata ? this.metadata.program || {} : {}
+    },
   },
 
   methods: {
@@ -195,9 +234,25 @@ export default {
           if (response.ok) {
             const run = (await response.json()).runs[this.run_id]
             this.run = Object.freeze(run)
+            console.log(this.run)
           }
           else if (response.status === 404)
             this.run = null
+          else
+            store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
+        })
+    },
+
+    fetchDependencies() {
+      const url = api.getDependenciesUrl(this.run_id)
+      fetch(url)
+        .then(async (response) => {
+          if (response.ok) {
+            const dependencies = (await response.json())[this.run_id]
+            for (let dep of dependencies)
+              dep.runs = dep.run_ids.map(r => store.state.runs.get(r))
+            this.dependencies = dependencies
+          }
           else
             store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
         })
@@ -290,11 +345,14 @@ export default {
     initRun() {
       this.run = store.state.runs.get(this.run_id)
 
+      this.dependencies = null
+
       this.outputMetadata = null
       this.outputData = null
       this.outputDataRequested = false
 
       this.fetchRun()
+      this.fetchDependencies()
       this.getRunUpdates()
     },
 
@@ -363,6 +421,37 @@ export default {
 
 .buttons {
   margin-bottom: 1.5rem;
+}
+
+.dependencies {
+  .no-underline {
+    border-bottom: 1px solid transparent;
+  }
+
+  .col-job {
+    text-align: left;
+  }
+
+  .col-run {
+    text-align: center;
+  }
+
+  .col-state {
+    text-align: center;
+    vertical-align: bottom;
+  }
+
+  .col-schedule-time, .col-start-time {
+    font-size: 90%;
+    color: $global-light-color;
+    text-align: right;
+  }
+
+  .col-elapsed {
+    padding-right: 1em;
+    text-align: right;
+    white-space: nowrap;
+  }
 }
 
 .output {

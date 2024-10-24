@@ -8,6 +8,10 @@ function getUrl(...path) {
   return url
 }
 
+export function getDependenciesUrl(run_id) {
+  return getUrl('runs', run_id, 'dependencies')
+}
+
 export function getMarkUrl(run_id, state) {
   return getUrl('runs', run_id, 'mark', state)
 }
