@@ -199,3 +199,13 @@ export function includesAll(arr0, arr1) {
   return true
 }
 
+export function getDependencies(run, store) {
+  return run.conds
+    .filter(c => c.type === 'dependency')
+    .map(c => ({
+      job_id: c.job_id,
+      args: c.args,
+      states: c.states,
+      runs: store.getRunsForInstance(c.job_id, c.args),
+    }))
+}

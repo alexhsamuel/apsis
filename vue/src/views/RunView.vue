@@ -86,7 +86,7 @@ div
           template(v-if="dependencies" v-for="dep, j of dependencies")
             tr(v-for="r, i of dep.runs")
               td: span(v-if="i == 0 && j == 0") Dependencies
-              td.col-job: JobWithArgs(v-if="i == 0" :job-id="dep.job_id" :args="dep.args")
+              td.col-job(v-if="i == 0" :rowspan="dep.runs.length" style="display: flex, align-items: stretch"): div.right-bar: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
               td.col-run: Run(:run-id="r.run_id")
               td.col-state: State(:state="r.state")
               td.col-schedule-time: Timestamp(:time="r.times.schedule")
@@ -155,7 +155,7 @@ import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import { OPERATIONS, isComplete } from '@/runs'
+import { getDependencies, isComplete, OPERATIONS } from '@/runs'
 import RunArgs from '@/components/RunArgs'
 import RunElapsed from '@/components/RunElapsed'
 import RunsList from '@/components/RunsList'
@@ -222,6 +222,10 @@ export default {
     metadata() {
       return this.metadata ? this.metadata.program || {} : {}
     },
+
+    dependencies() {
+      return this.run && this.run.conds ? getDependencies(this.run, this.store) : null
+    },
   },
 
   methods: {
@@ -238,21 +242,6 @@ export default {
           }
           else if (response.status === 404)
             this.run = null
-          else
-            store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
-        })
-    },
-
-    fetchDependencies() {
-      const url = api.getDependenciesUrl(this.run_id)
-      fetch(url)
-        .then(async (response) => {
-          if (response.ok) {
-            const dependencies = (await response.json())[this.run_id]
-            for (let dep of dependencies)
-              dep.runs = dep.run_ids.map(r => store.state.runs.get(r))
-            this.dependencies = dependencies
-          }
           else
             store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
         })
@@ -345,14 +334,11 @@ export default {
     initRun() {
       this.run = store.state.runs.get(this.run_id)
 
-      this.dependencies = null
-
       this.outputMetadata = null
       this.outputData = null
       this.outputDataRequested = false
 
       this.fetchRun()
-      this.fetchDependencies()
       this.getRunUpdates()
     },
 
@@ -428,8 +414,16 @@ export default {
     border-bottom: 1px solid transparent;
   }
 
+  .right-bar {
+    height: 100%;
+    display: inline-block;
+    border-right: 1px solid #aaa;
+  }
+
   .col-job {
+    height: 100%;
     text-align: left;
+    vertical-align: center;
   }
 
   .col-run {
