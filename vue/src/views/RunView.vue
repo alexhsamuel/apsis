@@ -99,7 +99,7 @@ div
 
         div.underline1(style="grid-column-end: span 7")
 
-        div.colhead.v: span This run
+        div.colhead.v: span: b This run
         div.l.col-job: JobWithArgs(:job-id="run.job_id" :args="run.args")
         div.c.col-run: Run(:run-id="run_id")
         div.c.col-state: State(:state="run.state")
