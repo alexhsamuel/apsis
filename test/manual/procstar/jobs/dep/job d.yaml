@@ -1,0 +1,9 @@
+params: [x, y]
+
+condition:
+- type: dependency
+  job_id: "dep/job c"
+
+program:
+  type: no-op
+
