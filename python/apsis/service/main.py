@@ -5,12 +5,8 @@ import sanic
 import sanic.response
 import sanic.router
 import signal
-import ujson as json
-import websockets
 
 from   apsis import __version__
-import apsis.agent.client
-import apsis.lib.logging
 from   . import api, control, procstar
 from   . import DEFAULT_PORT
 from   ..apsis import Apsis
@@ -21,15 +17,6 @@ from   ..sqlite import SqliteDB
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
-
-# Logging handler that queues up log messages for serving to clients.
-WS_HANDLER = apsis.lib.logging.QueueHandler(
-    4096,
-    logging.Formatter(
-        fmt="%(asctime)s.%(msecs)03d %(name)-24s [%(levelname)-7s] %(message)s",
-        datefmt="%H:%M:%S",
-    )
-)
 
 SANIC_LOG_CONFIG = {
     **sanic.log.LOGGING_CONFIG_DEFAULTS,
@@ -74,26 +61,6 @@ app.static("/index.html", str(vue_dir / "index.html"))
 # Web assets.
 app.static("/static", str(vue_dir / "static"))
 
-@app.websocket("/api/log")
-async def websocket_log(request, ws):
-    queue = WS_HANDLER.register()
-    try:
-        while True:
-            lines = await queue.get()
-            if lines is None:
-                log.info("closing log websocket")
-                await ws.close()
-                break
-            data = json.dumps(lines)
-            try:
-                await ws.send(data)
-            except websockets.ConnectionClosed:
-                log.info("websocket log closed")
-                break
-    finally:
-        WS_HANDLER.unregister(queue)
-
-
 #-------------------------------------------------------------------------------
 
 # FIXME: Get host, port from config.
@@ -104,9 +71,6 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     :return:
       True if the service should be restarted on exit.
     """
-    # Install the websocket logging handler.
-    root_log = logging.getLogger()
-    root_log.handlers.append(WS_HANDLER)
     log.info(f"starting Apsis {__version__} service")
 
     db_path = cfg["database"]
@@ -156,14 +120,6 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
 
         async def stop():
             try:
-                # Stop enqueuing log messages.
-                log.info("removing logging websocket handler")
-                if WS_HANDLER in root_log.handlers:
-                    root_log.handlers.remove(WS_HANDLER)
-
-                log.info("shutting down run websockets")
-                WS_HANDLER.shut_down()
-
                 # Clean up the restore task.
                 await cancel_task(restore_task, "restore", log)
                 # Shut down the Sanic web service.
