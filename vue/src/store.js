@@ -33,7 +33,6 @@ class Errors {
 class Store {
   state = {
     errors: new Errors(),
-    logLines: [],
 
     // Map from run_id to (summary) runs.  Updated live.
     runs: new Map(),

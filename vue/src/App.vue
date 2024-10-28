@@ -10,7 +10,6 @@ import * as api from '@/api'
 import ErrorToast from '@/components/ErrorToast'
 import navbar from '@/components/navbar'
 import { Socket } from '@/websocket.js'
-import LiveLog from '@/LiveLog.js'
 import store from '@/store.js'
 import { processMsgs, clearRunState } from '@/runs.js'
 
@@ -23,14 +22,12 @@ export default {
 
   data() {
     return {
-      liveLog: null,
       summarySocket: null,
       store,
     }
   },
 
   created() {
-    this.liveLog = new LiveLog(this.store.state.logLines, 1000)
     const store = this.store
 
     this.summarySocket = new Socket(
@@ -47,7 +44,6 @@ export default {
   },
 
   destroyed() {
-    this.liveLog.close()
     this.summarySocket.close()
   },
 
