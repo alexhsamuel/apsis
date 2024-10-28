@@ -10,10 +10,12 @@ div.dependencies
   div.underline1(style="grid-column-end: span 7")
 
   template(v-if="dependencies !== null")
-    div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependencies.reduce((s, d) => s + Math.max(d.runs.length, 1), 1) }") Dependencies
+    div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependencies.reduce((s, d) => s + (d.runs.length || 1), 1) }") Dependencies
     template(v-for="dep, d of dependencies")
       div.l.col-job(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
-        div.v: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
+        div.v.stack
+          div: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
+          div.omit(v-if="dep.runs.length > MAX_RUNS") last {{ MAX_RUNS }} of {{ dep.runs.length }}
       template(v-for="r, i of dep.runs")
         div.c.col-run: Run(:run-id="r.run_id")
         div.c.col-state: State(:state="r.state")
@@ -83,6 +85,8 @@ export default {
 
   data() {
     return {
+      // Max number of runs matching job instance to show.
+      MAX_RUNS: 8,
     }
   },
 
@@ -105,7 +109,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(7, max-content);
   column-gap: 8px;
-  row-gap: 2px;
+  row-gap: 1px;
   padding: 16px 0;
 
   > div {
@@ -124,6 +128,18 @@ export default {
     height: 100%;
     display: flex;
     align-items: center;
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    row-gap: 8px;
+  }
+
+  .omit {
+    font-size: 85%;
+    color: #aaa;
   }
 
   .colhead {
