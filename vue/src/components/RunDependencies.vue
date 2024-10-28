@@ -12,11 +12,10 @@ div.dependencies
   template(v-if="dependencies !== null")
     div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependencies.reduce((s, d) => s + (d.runs.length || 1), 1) }") Dependencies
     template(v-for="dep, d of dependencies")
-      div.l.col-job(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
-        div.v.stack
-          div: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
-          div.omit(v-if="dep.runs.length > MAX_RUNS") last {{ MAX_RUNS }} of {{ dep.runs.length }}
-      template(v-for="r, i of dep.runs")
+      div.l.col-job.stack(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
+        div: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
+        div.omit(v-if="dep.runs.length > MAX_RUNS") last {{ MAX_RUNS }} of {{ dep.runs.length }}
+      template(v-for="r, i of dep.runs.slice(-MAX_RUNS)")
         div.c.col-run: Run(:run-id="r.run_id")
         div.c.col-state: State(:state="r.state")
         div.r.col-schedule-time: Timestamp(:time="r.times.schedule")
