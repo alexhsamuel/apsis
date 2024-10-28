@@ -1,9 +1,9 @@
 <template lang="pug">
 nav
   svg(
-    width="5em" 
-    height="4em" 
-    version="1.1" 
+    width="5em"
+    height="4em"
+    version="1.1"
     xmlns="http://www.w3.org/2000/svg"
   )
     circle(cx="1.5em" cy="2.05em" r="20%" stroke="black" fill="transparent" stroke-width="3.1")
@@ -14,7 +14,6 @@ nav
 
   router-link.link(to="/jobs") Jobs
   router-link.link(to="/runs") Runs
-  router-link.link(to="/control") Control
   router-link.link(to="/agents") Agents
 
   .spacer(style="flex-basis: 100%")

@@ -2,7 +2,6 @@ import Vue from 'vue'
 import Router from 'vue-router'
 
 import AgentsView   from '@/views/AgentsView'
-import ControlView  from '@/views/ControlView'
 import JobView      from '@/views/JobView'
 import JobsView     from '@/views/JobsView'
 import RunView      from '@/views/RunView'
@@ -16,12 +15,6 @@ export default new Router({
     {
       path: '/',
       redirect: '/jobs',
-    },
-    {
-      path: '/control',
-      props: false,
-      name: 'control',
-      component: ControlView,
     },
     {
       path: '/agents',
