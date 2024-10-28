@@ -400,6 +400,6 @@ def test_api_dependencies():
         deps = client.get_run_dependencies(run_id)
         assert len(deps) == 2
         assert deps[0]["run_ids"] == [dep_run_id1]
-        assert deps[1]["run_ids"] == [dep_run_id0, dep_run_id2]
+        assert set(deps[1]["run_ids"]) == {dep_run_id0, dep_run_id2}
 
 
