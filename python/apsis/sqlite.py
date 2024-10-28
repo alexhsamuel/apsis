@@ -237,14 +237,9 @@ class JobDB:
 
 #-------------------------------------------------------------------------------
 
-# FIXME: For now, we store times and meta as JSON.  To make these searchable,
-# we'll need to break them out into tables.
-
-# FIXME: Split out args into a separate table?
-# FIXME: Split out instances into a separate table?
-
-# FIXME: Store int enumerals for state?
-# FIMXE: Use a TIME column for 'time'?
+# FIXME: Add "conditions" column.
+# FIXME: Add "actions" column.
+# FIXME: Move "meta" to a separate table.
 
 TBL_RUNS = sa.Table(
     "runs", METADATA,
