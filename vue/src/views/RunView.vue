@@ -425,8 +425,8 @@ export default {
   margin-bottom: 0.75rem;
   th, td {
     line-height: 1.5rem;
-    padding-top: 0.0rem;
-    padding-bottom: 0.0rem;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
   }
 }
 </style>
