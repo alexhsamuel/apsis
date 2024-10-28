@@ -1,3 +1,9 @@
+# v0.25
+
+- The Control page in the web UI and the live log are removed.
+- The run view contains a pane showing direct dependencies and dependents of the run.
+
+
 # v0.24
 
 - Changes to jobs update live in the web UI.
