@@ -1,4 +1,4 @@
-import { sortBy, toPairs } from 'lodash'
+import { isEqual, sortBy, toPairs } from 'lodash'
 
 export function joinArgs(args) {
   return toPairs(args).map(([n, v]) => n + '=' + v).join(', ')
@@ -197,5 +197,47 @@ export function includesAll(arr0, arr1) {
     if (!arr1.includes(el))
       return false
   return true
+}
+
+/**
+ * Collects dependencies for `run`.
+ *
+ * @returns an array of dependency objects each including `job_id`, `args`, and
+ * array of `runs`
+ */
+export function getDependencies(run, store) {
+  return (run.dependencies || [])
+    .map(([j, a]) => ({
+      job_id: j,
+      args: a,
+      runs: store.getRunsForInstance(j, a),
+    }))
+}
+
+/**
+ * Collects dependents for `run`.
+ *
+ * @returns an array of runs for which `run` matches a dependency.
+ */
+export function getDependents(run, store) {
+  let deps = new Map()
+
+  let j, a
+  for (let dep of store.state.runs.values())
+    for (([j, a]) of (dep.dependencies || []))
+      if (j === run.job_id && isEqual(a, run.args)) {
+        const key = dep.job_id + '(' + joinArgs(dep.args) + ')'
+        const dep_runs = deps.get(key)
+        if (dep_runs)
+          dep_runs.push(dep)
+        else
+          deps.set(key, [dep])
+      }
+
+  return Array.from(deps.values().map(runs => ({
+    job_id: runs[0].job_id,
+    args: runs[0].args,
+    runs: runs,
+  })))
 }
 

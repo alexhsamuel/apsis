@@ -1,0 +1,5 @@
+params: [y]
+
+program:
+  type: no-op
+

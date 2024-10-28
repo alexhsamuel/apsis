@@ -285,6 +285,10 @@ class Client:
         return self.__get("/api/v1/runs", run_id)["runs"][run_id]
 
 
+    def get_run_dependencies(self, run_id):
+        return self.__get("/api/v1/runs", run_id, "dependencies")[run_id]
+
+
     @asynccontextmanager
     async def get_run_updates(self, run_id, *, init=False):
         """

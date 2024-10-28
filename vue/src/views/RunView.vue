@@ -5,7 +5,7 @@ div
       | Run {{ run_id }}
     div.subhead
       JobWithArgs(:job-id="run.job_id" :args="run.args")
-      span(v-if="run && run.meta.job && run.meta.job.labels")
+      span(v-if="run && run.meta && run.meta.job && run.meta.job.labels")
         JobLabel.label(v-for="label in run.meta.job.labels" :key="label" :label="label")
 
     div.buttons.row-centered
@@ -47,17 +47,11 @@ div
               th program
               td.no-padding: Program(:program="run.program")
 
-            //- FIXME: Do better here.
             tr
               th conditions
               td.no-padding: table.fields: tbody
                 tr(v-for="cond in run.conds" :key="cond.str")
-                  td(style="padding-left: 0")
-                    span(v-if="cond.type === 'dependency'")
-                      span dependency:
-                      JobWithArgs(:job-id="cond.job_id" :args="cond.args")
-                      span  is {{ join(cond.states, '|') }}
-                    span(v-else) {{ cond.str }}
+                  td(style="padding-left: 0") {{ cond.str }}
 
             tr
               th elapsed
@@ -72,19 +66,8 @@ div
               th: Timestamp(:time="rec.timestamp")
               td {{ rec.message }}
 
-    Frame(title="Metadata" closed)
-      table.fields
-        tbody
-          tr(v-for="(value, key) in (meta.program || {})" :key="key")
-            th {{ key }}
-            td
-              tt(v-if="typeof value === 'object'")
-                table.fields.subfields
-                  tbody
-                    tr(v-for="(sv, sk) in value" :key="sk")
-                      th {{ sk }}
-                      td {{ sv }}
-              tt(v-else) {{ value }}
+    Frame(title="Dependencies")
+      RunDependencies(:run="run")
 
     Frame(title="Output" v-if="hasOutput")
       div.output(v-if="outputMetadata")
@@ -120,8 +103,9 @@ import JobWithArgs from '@/components/JobWithArgs'
 import OperationButton from '@/components/OperationButton'
 import Program from '@/components/Program'
 import Run from '@/components/Run'
-import { OPERATIONS, isComplete } from '@/runs'
+import { isComplete, OPERATIONS } from '@/runs'
 import RunArgs from '@/components/RunArgs'
+import RunDependencies from '@/components/RunDependencies'
 import RunElapsed from '@/components/RunElapsed'
 import RunsList from '@/components/RunsList'
 import State from '@/components/State'
@@ -140,6 +124,7 @@ export default {
     Program,
     Run,
     RunArgs,
+    RunDependencies,
     RunElapsed,
     RunsList,
     State,
@@ -182,6 +167,10 @@ export default {
     hasOutput() {
       const state = this.runState
       return state === 'running' || isComplete(state)
+    },
+
+    metadata() {
+      return this.metadata ? this.metadata.program || {} : {}
     },
   },
 

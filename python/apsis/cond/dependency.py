@@ -19,7 +19,7 @@ class Dependency(RunStoreCondition):
     Waits for a run in a given state or states.
     """
 
-    DEFAULT_STATE = { State.success }
+    DEFAULT_STATE = State.success
 
     def __init__(
             self, job_id, args={},
@@ -61,21 +61,22 @@ class Dependency(RunStoreCondition):
 
 
     def to_jso(self):
-        return {
+        jso = {
             **super().to_jso(),
             "job_id": self.job_id,
             "args"  : self.args,
-            "states": [ s.name for s in self.states ],
-            "exist" :
-                None if self.exist is None
-                else [ s.name for s in self.exist ],
         }
+        if self.states != {self.DEFAULT_STATE}:
+            jso["states"] = [ s.name for s in self.states ]
+        if self.exist is not None:
+            jso["exist"] = [ s.name for s in self.exist ]
+        return jso
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            states = pop("states", default="success")
+            states = pop("states", default=cls.DEFAULT_STATE.name)
             states = { State[s] for s in iterize(states) }
             exist = pop("exist", default=None)
             if exist is True:

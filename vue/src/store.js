@@ -1,4 +1,4 @@
-import { filter, some } from 'lodash'
+import { filter, isEqual, some } from 'lodash'
 import { formatTime } from '@/time'
 
 class Errors {
@@ -62,6 +62,14 @@ class Store {
   setTimeZone(timeZone) {
     this.state.timeZone = timeZone
     this.state.timeStr = formatTime(this.state.time, this.state.timeZone)
+  }
+
+  getRunsForInstance(job_id, args) {
+    // FIXME: Optimize.
+    return Array.from(
+      this.state.runs.values()
+        .filter(r => r.job_id === job_id && isEqual(r.args, args))
+    )
   }
 
   _tick() {

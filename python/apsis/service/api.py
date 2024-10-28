@@ -402,6 +402,37 @@ async def run_mark(request, run_id, state):
     return response_json({})
 
 
+@API.route("/runs/<run_id>/dependencies")
+async def run_dependencies(request, run_id):
+    apsis = request.app.apsis
+    _, run = apsis.run_store.get(run_id)
+
+    from apsis.cond.dependency import Dependency
+
+    # Collect dependency job instances.
+    dep_instances = [
+        (c.job_id, c.args)
+        for c in (run.conds or [])
+        if isinstance(c, Dependency)
+    ]
+
+    def get_run_ids(job_id, args):
+        _, runs = apsis.run_store.query(job_id=job_id, args=args)
+        return [ r.run_id for r in runs ]
+
+    # Query matching runs and package up.
+    deps = [
+        {
+            "job_id": j,
+            "args": a,
+            "run_ids": get_run_ids(j, a),
+        }
+        for j, a in dep_instances
+    ]
+
+    return response_json({run_id: deps})
+
+
 @API.route("/runs")
 async def runs(request):
     apsis = request.app.apsis
