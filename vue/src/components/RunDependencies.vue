@@ -21,13 +21,13 @@ div.dependencies
         div.r.col-start-time: Timestamp(v-if="r.times.running" :time="r.times.running")
         div.r.col-elapsed: RunElapsed(:run="r")
       div(v-if="dep.runs.length == 0")
-        div.c.col-run(style="grid-column-end: span 6") (no runs)
+        div.c.col-run.colspan6 (no runs)
         div
         div
         div
         div
-      div(v-if="d < dependencies.length - 1" style="grid-column-end: span 6; border-bottom: 2px dotted #ccc;")
-    div(v-if="dependencies.length == 0" style="grid-column-end: span 6") (no dependencies)
+      div.colspan6(v-if="d < dependencies.length - 1" style="border-bottom: 2px dotted #ccc;")
+    div.colspan6(v-if="dependencies.length == 0") (no dependencies)
 
   div.underline1(style="grid-column-end: span 7")
 
@@ -53,13 +53,13 @@ div.dependencies
         div.r.col-start-time: Timestamp(v-if="r.times.running" :time="r.times.running")
         div.r.col-elapsed: RunElapsed(:run="r")
       div(v-if="dep.runs.length == 0")
-        div.c.col-run(style="grid-column-end: span 6") (no runs)
+        div.c.col-run.colspan6 (no runs)
         div
         div
         div
         div
-      div(v-if="d < dependents.length - 1" style="grid-column-end: span 6; border-bottom: 2px dotted #ccc;")
-    div(v-if="dependents.length == 0" style="grid-column-end: span 6") (no dependents)
+      div.colspan6(v-if="d < dependents.length - 1" style="border-bottom: 2px dotted #ccc;")
+    div.colspan6(v-if="dependents.length == 0") (no dependents)
 </template>
 
 <script>
@@ -110,6 +110,10 @@ export default {
 
   > div {
     margin: 4px 4px;
+  }
+
+  .colspan6 {
+    grid-column-end: span 6;
   }
 
   > .l { text-align: left; }
