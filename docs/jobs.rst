@@ -144,10 +144,10 @@ Binding
 -------
 
 Apsis creates specific runs for a job, according to the job's schedule.  When
-Apsis creates a run, it **binds** the run's arguments in the program and
-conditions.  Each string-valued config field is expanded as a `jinja2 template
-<https://jinja.palletsprojects.com/en/2.11.x/templates/>`_.  The run's args are
-available as substitution variables.
+Apsis creates a run, it **binds** the run's arguments in the program,
+conditions, and actions.  Each string-valued config field is expanded as a
+`jinja2 template <https://jinja.palletsprojects.com/en/2.11.x/templates/>`_.
+The run's args are available as substitution variables.
 
 For example, consider this job config:
 
@@ -201,4 +201,36 @@ job *load data*.  Each run of this job is labeled with a date, and depends on a
 
 Keep in mind that Apsis run arguments are always strings, so Apsis converts the
 result using `str`.
+
+
+Changes to jobs
+===============
+
+Once Apsis creates a run from a job and binds the run's args to the job's
+program, conditions, and actions, these items are fixed.  Any later changes to a
+job will not affect existing runs that were previously created from that job.
+
+However, whenever a job is changed, or when the Apsis server restarts, Apsis
+removes scheduled runs and recreates them from jobs' schedules.  (Any runs
+manually scheduled for the job through the UI are exempt from this; only runs
+that Apsis created from a job's schedule are recreated.)  This means that
+changes to a job's schedules immediately affect future scheduled runs.  When
+Apsis recreates a run, it uses the current definition of its job, and picks up
+any changes to programs, conditions, and actions.
+
+As a result, these rules generally describe a run's relationship to its job:
+
+1. Scheduled runs in the future always reflect a job's current schedules.  Runs
+   scheduled in the past are of course not affected by subsequent changes to the
+   job's schedules.
+
+2. A run's program, conditions, and actions effectively reflect the state of its
+   job at the time the run transitioned from *scheduled* to *waiting*, which
+   generally at the time the run's scheduled time occurred.
+
+3. If you rerun a run, the rerun always reflects the job's current program,
+   conditions, and actions.
+
+If a run is in the *waiting* state and you make changes to its program,
+conditions, or actions, skip the run and rerun it to pick up the changes.
 
