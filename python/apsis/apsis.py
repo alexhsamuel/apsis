@@ -93,6 +93,17 @@ class Apsis:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
+        # FIXME: Temporary hack until #366.
+        # The run db doesn't serialize conditions, so call __prepare_runs on
+        # every queried run, to regenerate conditions from the job.
+        bad_run_ids = []
+        for run in self.run_store.query()[1]:
+            if not self.__prepare_run(run):
+                bad_run_ids.append(run.run_id)
+                log.error(f"failed to restore run: {run}")
+        for run_id in bad_run_ids:
+            self.run_store.retire(run_id)
+
         self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
 
@@ -120,8 +131,6 @@ class Apsis:
             _, scheduled_runs = self.run_store.query(state=State.scheduled)
             for run in scheduled_runs:
                 assert not run.expected
-                if not self.__prepare_run(run):
-                    continue
                 time = run.times["schedule"]
                 self.run_log.record(run, "restored")
                 await self.scheduled.schedule(time, run)
@@ -131,8 +140,6 @@ class Apsis:
             _, waiting_runs = self.run_store.query(state=State.waiting)
             for run in waiting_runs:
                 assert not run.expected
-                if not self.__prepare_run(run):
-                    continue
                 self.run_log.record(run, "restored")
                 self._wait(run)
 
