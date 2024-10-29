@@ -220,7 +220,7 @@ any changes to programs, conditions, and actions.
 
 As a result, these rules generally describe a run's relationship to its job:
 
-1. Scheduled runs in the future always reflect a job's current schedules.  Runs
+1. Scheduled runs in the future reflect a job's current schedules.  Runs
    scheduled in the past are of course not affected by subsequent changes to the
    job's schedules.
 
@@ -228,9 +228,10 @@ As a result, these rules generally describe a run's relationship to its job:
    job at the time the run transitioned from *scheduled* to *waiting*, which
    generally at the time the run's scheduled time occurred.
 
-3. If you rerun a run, the rerun always reflects the job's current program,
+3. If you rerun a run, the rerun always reflects its job's current program,
    conditions, and actions.
 
-If a run is in the *waiting* state and you make changes to its program,
-conditions, or actions, skip the run and rerun it to pick up the changes.
+If a run is *waiting* (or in a subsequent state) and you make changes to its
+program, conditions, or actions, skip or kill the run if necessary, and rerun it
+to pick up the changes.
 
