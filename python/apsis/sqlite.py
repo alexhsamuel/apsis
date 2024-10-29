@@ -9,6 +9,8 @@ from   pathlib import Path
 import sqlalchemy as sa
 import ujson
 
+from   .actions.base import Action
+from   .cond.base import Condition
 from   .jobs import jso_to_job, job_to_jso
 from   .lib import itr
 from   .lib.timing import Timer
@@ -252,10 +254,11 @@ TBL_RUNS = sa.Table(
     sa.Column("program"     , sa.String()       , nullable=True),
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
-    sa.Column("message"     , sa.String()       , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),  # FIXME: Unused.
     sa.Column("expected"    , sa.Boolean()      , nullable=True),
+    sa.Column("conds"       , sa.String()       , nullable=True),
+    sa.Column("actions"     , sa.String()       , nullable=True),
 )
 
 
@@ -276,10 +279,20 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, message, run_state, _, _
+                meta, run_state, _, _, conds, actions,
         ) in cursor:
-            if program is not None:
-                program     = Program.from_jso(ujson.loads(program))
+            program = (
+                None if program is None
+                else Program.from_jso(ujson.loads(program))
+            )
+            conds = (
+                None if conds is None
+                else [ Condition.from_jso(c) for c in ujson.loads(conds) ]
+            )
+            actions = (
+                None if actions is None
+                else [ Action.from_jso(a) for a in ujson.loads(actions) ]
+            )
 
             times           = ujson.loads(times)
             times           = { n: ora.Time(t) for n, t in times.items() }
@@ -292,9 +305,10 @@ class RunDB:
             run.timestamp   = load_time(timestamp)
             run.state       = State[state]
             run.program     = program
+            run.conds       = conds
+            run.actions     = actions
             run.times       = times
             run.meta        = ujson.loads(meta)
-            run.message     = message
             run.run_state   = ujson.loads(run_state)
             run._rowid      = rowid
             yield run
@@ -309,7 +323,14 @@ class RunDB:
             None if run.program is None
             else ujson.dumps(run.program.to_jso())
         )
-        # FIXME: Precos, same as program.
+        conds = (
+            None if run.conds is None
+            else ujson.dumps([ c.to_jso() for c in run.conds ])
+        )
+        actions = (
+            None if run.actions is None
+            else ujson.dumps([ a.to_jso() for a in run.actions ])
+        )
 
         times = { n: str(t) for n, t in run.times.items() }
 
@@ -322,9 +343,10 @@ class RunDB:
             ujson.dumps(run.inst.args),
             run.state.name,
             program,
+            conds,
+            actions,
             ujson.dumps(times),
             ujson.dumps(run.meta),
-            run.message,
             ujson.dumps(run.run_state),
             rowid,
         )
@@ -343,14 +365,15 @@ class RunDB:
                     args,
                     state,
                     program,
+                    conds,
+                    actions,
                     times,
                     meta,
-                    message,
                     run_state,
                     rowid,
                     expected
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             """, values)
             con.commit()
             run._rowid = values[-1]
@@ -367,9 +390,10 @@ class RunDB:
                     args        = ?,
                     state       = ?,
                     program     = ?,
+                    conds       = ?,
+                    actions     = ?,
                     times       = ?,
                     meta        = ?,
-                    message     = ?,
                     run_state   = ?
                 WHERE rowid = ?
             """, values)

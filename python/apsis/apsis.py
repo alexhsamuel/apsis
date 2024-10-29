@@ -92,17 +92,13 @@ class Apsis:
         else:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
-
-        # FIXME: Temporary hack until #366.
-        # The run db doesn't serialize conditions, so call __prepare_runs on
-        # every queried run, to regenerate conditions from the job.
-        bad_run_ids = []
+        # Previously we didn't serialize conds or actions.  Bind them if
+        # missing on loaded runs.
         for run in self.run_store.query()[1]:
-            if not self.__prepare_run(run):
-                bad_run_ids.append(run.run_id)
-                log.error(f"failed to restore run: {run}")
-        for run_id in bad_run_ids:
-            self.run_store.retire(run_id)
+            try:
+                self.__bind(run)
+            except Exception:
+                log.error(f"failed to bind run from job: {run}")
 
         self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
@@ -149,10 +145,7 @@ class Apsis:
             _, starting_runs = self.run_store.query(state=State.starting)
             for run in starting_runs:
                 self.run_log.record(run, "restored starting: might have started")
-                self._transition(
-                    run, State.error,
-                    message="restored starting: might have started"
-                )
+                self._transition(run, State.error)
 
             # Reconnect to running runs.
             _, running_runs = self.run_store.query(state=State.running)
@@ -254,6 +247,41 @@ class Apsis:
         self.__run_tasks.add(run.run_id, run_task)
 
 
+    def __bind(self, run):
+        """
+        Binds program, actions, and conditions from the job to the run.
+        """
+        try:
+            job = self._validate_run(run)
+        except Exception as exc:
+            self._run_exc(run, message=str(exc))
+            raise
+
+        if run.program is None:
+            try:
+                run.program = job.program.bind(get_bind_args(run))
+            except Exception as exc:
+                self._run_exc(run, message=f"invalid program: {exc}")
+                raise
+
+        if run.conds is None:
+            try:
+                run.conds = [ c.bind(run, self.jobs) for c in job.conds ]
+            except Exception as exc:
+                self._run_exc(run, message=f"invalid condition: {exc}")
+                raise
+
+        if run.actions is None:
+            try:
+                # FIXME: Actions aren't bound, but may be in the future.
+                run.actions = list(job.actions)
+            except Exception as exc:
+                self._run_exc(run, message=f"invalid action: {exc}")
+                raise
+
+        return job
+
+
     def __prepare_run(self, run):
         """
         Prepares a run for schedule or restore, using its job.
@@ -263,24 +291,9 @@ class Apsis:
         On failure, transitions the run to error and returns false.
         """
         try:
-            job = self._validate_run(run)
-        except Exception as exc:
-            self._run_exc(run, message=str(exc))
+            job = self.__bind(run)
+        except Exception:
             return False
-
-        if run.program is None:
-            try:
-                run.program = job.program.bind(get_bind_args(run))
-            except Exception as exc:
-                self._run_exc(run, message=f"invalid program: {exc}")
-                return False
-
-        if run.conds is None:
-            try:
-                run.conds = [ c.bind(run, self.jobs) for c in job.conds ]
-            except Exception as exc:
-                self._run_exc(run, message=f"invalid condition: {exc}")
-                return False
 
         # Attach job labels to the run.
         run.meta["job"] = {
@@ -295,19 +308,7 @@ class Apsis:
         Starts configured actions on `run` as tasks.
         """
         # Find actions attached to the job.
-        # FIXME: Would be better to bind actions to the run and serialize them
-        # along with the run, as we do with programs.
-        job_id = run.inst.job_id
-        try:
-            job = self.jobs.get_job(job_id)
-        except LookupError:
-            # Job is gone; can't get the actions.
-            self.run_log.exc(run, "no job")
-            job = None
-            actions = []
-        else:
-            actions = list(job.actions)
-
+        actions = list(run.actions)
         # Include actions configured globally for all runs.
         actions += self.__actions
 
@@ -365,11 +366,7 @@ class Apsis:
             # the UIs render.  In the future, change to "traceback".
             self._update_output_data(run, {"output": output}, persist=True)
 
-        self._transition(
-            run, State.error,
-            times={"error": now()},
-            message=message,
-        )
+        self._transition(run, State.error, times={"error": now()})
 
 
     # FIXME: persist is a hack.
@@ -527,7 +524,7 @@ class Apsis:
             raise RunError(f"can't skip {run.run_id} in state {run.state.name}")
 
         self.run_log.info(run, "skipped")
-        self._transition(run, State.skipped, message="skipped")
+        self._transition(run, State.skipped)
 
 
     async def start(self, run):

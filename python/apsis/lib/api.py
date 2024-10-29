@@ -149,8 +149,8 @@ def run_to_jso(app, run, summary=False):
         jso = {
             **jso,
             "conds": _to_jsos(run.conds),
+            "actions": _to_jsos(run.actions),
             # FIXME: Rename to metadata.
-            # FIXME: Actions.
             "meta": run.meta,
             "program": _to_jso(run.program),
         }
