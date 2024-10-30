@@ -50,18 +50,6 @@ with closing(sqlite3.connect(args.path)) as conn:
                 """
             )
 
-    for table_name, col_name in (
-            ("runs", "message"),
-    ):
-        if has_column(table_name, col_name):
-            log.info(f"dropping column: {table_name}.{col_name}")
-            conn.execute(
-                f"""
-                ALTER TABLE {table_name}
-                DROP COLUMN {col_name}
-                """
-            )
-
     conn.commit()
 
 

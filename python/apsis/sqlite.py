@@ -20,8 +20,11 @@ from   .program import Program, Output, OutputMetadata
 
 log = logging.getLogger(__name__)
 
-# FIXME: For next version:
+# FIXME: For next schema migration:
 # - remove runs.rerun column
+# - remove runs.message column
+# - remove runs.expected column
+# - move runs.meta into its own table
 # - rename run_history to run_log
 
 #-------------------------------------------------------------------------------
@@ -239,10 +242,6 @@ class JobDB:
 
 #-------------------------------------------------------------------------------
 
-# FIXME: Add "conditions" column.
-# FIXME: Add "actions" column.
-# FIXME: Move "meta" to a separate table.
-
 TBL_RUNS = sa.Table(
     "runs", METADATA,
     sa.Column("rowid"       , sa.Integer()      , primary_key=True),
@@ -254,6 +253,7 @@ TBL_RUNS = sa.Table(
     sa.Column("program"     , sa.String()       , nullable=True),
     sa.Column("times"       , sa.String()       , nullable=False),
     sa.Column("meta"        , sa.String()       , nullable=False),
+    sa.Column("message"     , sa.String()       , nullable=True),
     sa.Column("run_state"   , sa.String()       , nullable=True),
     sa.Column("rerun"       , sa.String()       , nullable=True),  # FIXME: Unused.
     sa.Column("expected"    , sa.Boolean()      , nullable=True),
@@ -279,7 +279,7 @@ class RunDB:
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, run_state, _, _, conds, actions,
+                meta, _, run_state, _, _, conds, actions,
         ) in cursor:
             program = (
                 None if program is None
