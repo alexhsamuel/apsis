@@ -414,7 +414,6 @@ class RunDB:
         if min_timestamp is not None:
             where.append(TBL_RUNS.c.timestamp >= dump_time(min_timestamp))
 
-        # FIMXE: Return only the last record for each run_id?
         runs = list(self.__query_runs(self.__engine, sa.and_(*where)))
 
         log.debug(
