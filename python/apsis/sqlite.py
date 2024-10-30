@@ -261,6 +261,24 @@ TBL_RUNS = sa.Table(
     sa.Column("actions"     , sa.String()       , nullable=True),
 )
 
+TBL_RUNS_SELECT = sa.select([
+    TBL_RUNS.columns[n]
+    for n in (
+        "rowid",
+        "run_id",
+        "timestamp",
+        "job_id",
+        "args",
+        "state",
+        "program",
+        "conds",
+        "actions",
+        "times",
+        "meta",
+        "run_state",
+    )
+])
+
 
 class RunDB:
 
@@ -275,11 +293,11 @@ class RunDB:
 
     @staticmethod
     def __query_runs(conn, expr):
-        query = sa.select([TBL_RUNS]).where(expr)
+        query = TBL_RUNS_SELECT.where(expr)
         cursor = conn.execute(query)
         for (
-                rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, _, run_state, _, _, conds, actions,
+                rowid, run_id, timestamp, job_id, args, state, program, conds,
+                actions, times, meta, run_state,
         ) in cursor:
             program = (
                 None if program is None
@@ -370,10 +388,9 @@ class RunDB:
                     times,
                     meta,
                     run_state,
-                    rowid,
-                    expected
+                    rowid
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, values)
             con.commit()
             run._rowid = values[-1]
@@ -421,9 +438,7 @@ class RunDB:
         if min_timestamp is not None:
             where.append(TBL_RUNS.c.timestamp >= dump_time(min_timestamp))
 
-        with self.__engine.begin() as conn:
-            # FIMXE: Return only the last record for each run_id?
-            runs = list(self.__query_runs(conn, sa.and_(*where)))
+        runs = list(self.__query_runs(self.__engine, sa.and_(*where)))
 
         log.debug(
             f"query job_id={job_id} since={since} min_timestamp={min_timestamp}"
