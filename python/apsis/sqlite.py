@@ -364,10 +364,9 @@ class RunDB:
                     meta,
                     message,
                     run_state,
-                    rowid,
-                    expected
+                    rowid
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, values)
             con.commit()
             run._rowid = values[-1]
