@@ -258,6 +258,23 @@ TBL_RUNS = sa.Table(
     sa.Column("expected"    , sa.Boolean()      , nullable=True),
 )
 
+TBL_RUNS_SELECT = sa.select([
+    TBL_RUNS.columns[n]
+    for n in (
+        "rowid",
+        "run_id",
+        "timestamp",
+        "job_id",
+        "args",
+        "state",
+        "program",
+        "times",
+        "meta",
+        "message",
+        "run_state",
+    )
+])
+
 
 class RunDB:
 
@@ -272,11 +289,11 @@ class RunDB:
 
     @staticmethod
     def __query_runs(conn, expr):
-        query = sa.select([TBL_RUNS]).where(expr)
+        query = TBL_RUNS_SELECT.where(expr)
         cursor = conn.execute(query)
         for (
                 rowid, run_id, timestamp, job_id, args, state, program, times,
-                meta, message, run_state, _, _
+                meta, message, run_state,
         ) in cursor:
             if program is not None:
                 program     = Program.from_jso(ujson.loads(program))
