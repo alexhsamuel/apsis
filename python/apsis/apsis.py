@@ -93,17 +93,6 @@ class Apsis:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
-        # FIXME: Temporary hack until #366.
-        # The run db doesn't serialize conditions, so call __prepare_runs on
-        # every queried run, to regenerate conditions from the job.
-        bad_run_ids = []
-        for run in self.run_store.query()[1]:
-            if not self.__prepare_run(run):
-                bad_run_ids.append(run.run_id)
-                log.error(f"failed to restore run: {run}")
-        for run_id in bad_run_ids:
-            self.run_store.retire(run_id)
-
         self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
 
@@ -112,11 +101,22 @@ class Apsis:
         stop_time = db.clock_db.get_time()
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
-        # Stats from the async check loop.
-        self.__check_async_stats = {}
-
         # False while starting, set to true once up and running.
         self.running_flag = asyncio.Event()
+
+        # FIXME: Temporary hack until #366.
+        # The run db doesn't serialize conditions, so call __prepare_runs on
+        # every queried run, to regenerate conditions from the job.
+        bad_run_ids = []
+        for run in self.run_store.query()[1]:
+            if not self.__prepare_run(run) and run.state != State.error:
+                bad_run_ids.append(run.run_id)
+                log.error(f"failed to restore run: {run}")
+        for run_id in bad_run_ids:
+            self.run_store.retire(run_id)
+
+        # Stats from the async check loop.
+        self.__check_async_stats = {}
 
 
     async def restore(self):
