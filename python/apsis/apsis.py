@@ -109,7 +109,7 @@ class Apsis:
         # every queried run, to regenerate conditions from the job.
         bad_run_ids = []
         for run in self.run_store.query()[1]:
-            if not self.__prepare_run(run) and run.state != State.error:
+            if not self.__prepare_run(run):
                 bad_run_ids.append(run.run_id)
                 log.error(f"failed to restore run: {run}")
         for run_id in bad_run_ids:
@@ -349,6 +349,10 @@ class Apsis:
         Transitions `run` to error, with the current exception attached.
         """
         self.run_log.exc(run, message)
+
+        if run.state == State.error:
+            # Already hit another error...
+            return
 
         exc_type, exc, _ = sys.exc_info()
         if exc_type is not None:
