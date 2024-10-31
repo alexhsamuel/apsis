@@ -10,12 +10,11 @@ import yaml
 from   .actions import Action
 from   .actions.schedule import successor_from_jso
 from   .cond import Condition
-from   .exc import JobError, JobsDirErrors
+from   .exc import JobError, JobsDirErrors, SchemaError
 from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
 from   .schedule import Schedule
-from   apsis.lib.exc import SchemaError
 
 log = logging.getLogger(__name__)
 

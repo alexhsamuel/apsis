@@ -4,6 +4,15 @@ Common exception types.
 
 #-------------------------------------------------------------------------------
 
+class SchemaError(ValueError):
+    """
+    Incorrect, missing, or extraneous values in a JSON or other representation.
+    """
+
+    pass
+
+
+
 class JobError(Exception):
 
     def __init__(self, job_id, msg):
@@ -32,5 +41,6 @@ class ConditionError(RuntimeError):
     """
     An error in specification of a condition.
     """
+
 
 
