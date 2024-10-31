@@ -5,7 +5,7 @@ import signal
 import urllib.parse
 
 import apsis.apsis
-from   apsis.jobs import JobErrors
+from   apsis.exc import JobsDirErrors
 from   apsis.lib.api import to_bool, response_json, error
 
 log = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ async def on_reload_jobs(request):
     try:
         rem_ids, add_ids, chg_ids = await apsis.apsis.reload_jobs(
             request.app.apsis, dry_run=dry_run)
-    except JobErrors as exc:
+    except JobsDirErrors as exc:
         return error(
             exc,
             job_errors=[ [str(e.job_id), str(e)] for e in exc.errors ]
