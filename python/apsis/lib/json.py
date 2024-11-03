@@ -1,6 +1,6 @@
 import contextlib
 
-from   .exc import SchemaError
+from   apsis.exc import SchemaError
 from   .imp import import_fqname, get_type_fqname
 
 #------------------------------------------------------------------------------

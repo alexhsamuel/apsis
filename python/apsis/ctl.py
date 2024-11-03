@@ -9,6 +9,7 @@ import sys
 
 import apsis.cmdline
 import apsis.config
+from   apsis.exc import JobsDirErrors
 import apsis.lib.argparse
 import apsis.lib.json
 import apsis.lib.logging
@@ -60,11 +61,13 @@ def main():
     def cmd_check_jobs(args):
         status = 0
         try:
-            for err in apsis.jobs.check_job_dir(args.path):
-                con.print(err, style="error")
-                status = 1
+            _ = apsis.jobs.load_jobs_dir(args.path)
         except NotADirectoryError as exc:
             parser.error(exc)
+        except JobsDirErrors as exc:
+            for err in exc.errors:
+                con.print(f"{err.job_id}: {err}", style="error")
+                status = 1
         return status
 
 

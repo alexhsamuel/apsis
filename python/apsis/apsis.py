@@ -93,6 +93,17 @@ class Apsis:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
 
+        self.scheduled = ScheduledRuns(db.clock_db, self._wait)
+        self.outputs = OutputStore(db.output_db)
+
+        # Continue scheduling from the last time we handled scheduled jobs.
+        # FIXME: Rename: schedule horizon?
+        stop_time = db.clock_db.get_time()
+        self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
+
+        # False while starting, set to true once up and running.
+        self.running_flag = asyncio.Event()
+
         # FIXME: Temporary hack until #366.
         # The run db doesn't serialize conditions, so call __prepare_runs on
         # every queried run, to regenerate conditions from the job.
@@ -104,19 +115,8 @@ class Apsis:
         for run_id in bad_run_ids:
             self.run_store.retire(run_id)
 
-        self.scheduled = ScheduledRuns(db.clock_db, self._wait)
-        self.outputs = OutputStore(db.output_db)
-
-        # Continue scheduling from the last time we handled scheduled jobs.
-        # FIXME: Rename: schedule horizon?
-        stop_time = db.clock_db.get_time()
-        self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
-
         # Stats from the async check loop.
         self.__check_async_stats = {}
-
-        # False while starting, set to true once up and running.
-        self.running_flag = asyncio.Event()
 
 
     async def restore(self):
@@ -349,6 +349,10 @@ class Apsis:
         Transitions `run` to error, with the current exception attached.
         """
         self.run_log.exc(run, message)
+
+        if run.state == State.error:
+            # Already hit another error...
+            return
 
         exc_type, exc, _ = sys.exc_info()
         if exc_type is not None:

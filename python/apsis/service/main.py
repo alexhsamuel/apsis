@@ -7,12 +7,13 @@ import sanic.router
 import signal
 
 from   apsis import __version__
+from   apsis.apsis import Apsis
+from   apsis.exc import JobsDirErrors
+from   apsis.jobs import load_jobs_dir
+from   apsis.lib.asyn import cancel_task
+from   apsis.sqlite import SqliteDB
 from   . import api, control, procstar
 from   . import DEFAULT_PORT
-from   ..apsis import Apsis
-from   ..jobs import load_jobs_dir, JobErrors
-from   ..lib.asyn import cancel_task
-from   ..sqlite import SqliteDB
 
 log = logging.getLogger(__name__)
 
@@ -63,6 +64,24 @@ app.static("/static", str(vue_dir / "static"))
 
 #-------------------------------------------------------------------------------
 
+def build_apsis(cfg):
+    db_path = cfg["database"]
+
+    log.info(f"opening state file {db_path}")
+    db = SqliteDB.open(db_path)
+
+    job_dir = cfg["job_dir"]
+    log.info(f"opening jobs dir {job_dir}")
+    try:
+        jobs = load_jobs_dir(job_dir)
+    except JobsDirErrors as exc:
+        for err in exc.errors:
+            log.error(f"{err.job_id}: {err}")
+        raise
+
+    return Apsis(cfg, jobs, db)
+
+
 # FIXME: Get host, port from config.
 def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     """
@@ -73,20 +92,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     """
     log.info(f"starting Apsis {__version__} service")
 
-    db_path = cfg["database"]
-    log.info(f"opening state file {db_path}")
-    db      = SqliteDB.open(db_path)
-
-    job_dir = cfg["job_dir"]
-    log.info(f"opening jobs dir {job_dir}")
-    try:
-        jobs = load_jobs_dir(job_dir)
-    except JobErrors as exc:
-        for err in exc.errors:
-            log.error(f"{err.job_id}: {err}")
-        raise
-
-    apsis = Apsis(cfg, jobs, db)
+    apsis = build_apsis(cfg)
 
     app.apsis = apsis
     # Flag to indicate whether to restart after shutting down.

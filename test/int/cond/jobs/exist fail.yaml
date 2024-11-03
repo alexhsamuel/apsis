@@ -7,7 +7,5 @@ program:
 condition:
   - type: dependency
     job_id: fail
-    args:
-      flavor: vanilla
     exist: true
 
