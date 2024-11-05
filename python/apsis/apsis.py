@@ -57,6 +57,9 @@ class Apsis:
     def __init__(self, cfg, jobs, db):
         self.__start_time = now()
 
+        # False while starting, set to true once up and running.
+        self.running_flag = asyncio.Event()
+
         # Set up groups of tasks, starting with the general group.
         self.__tasks = TaskGroup(log)
         # One task for each waiting run.
@@ -100,13 +103,14 @@ class Apsis:
             except Exception:
                 log.error(f"failed to bind run from job: {run}")
 
-        self.scheduled = ScheduledRuns(db.clock_db, self._wait)
         self.outputs = OutputStore(db.output_db)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
+
+        self.scheduled = ScheduledRuns(db.clock_db, self.scheduler.get_scheduler_time, self._wait)
 
         # Stats from the async check loop.
         self.__check_async_stats = {}

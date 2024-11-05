@@ -71,22 +71,23 @@ class ScheduledRuns:
 
 
 
-    def __init__(self, clock_db, start_run):
+    def __init__(self, clock_db, get_scheduler_time, start_run):
         """
         :param clock_db:
           Persistence for most recent scheduled time.
         :param start_run:
           Async function that starts a run.
         """
-        self.__clock_db     = clock_db
-        self.__start_run    = start_run
+        self.__clock_db             = clock_db
+        self.__get_scheduler_time   = get_scheduler_time
+        self.__start_run            = start_run
 
         # Heap of Entry, ordered by schedule time.  The top entry is the next
         # scheduled run.
-        self.__heap         = []
+        self.__heap                 = []
 
         # Mapping from Run to Entry.  Values satisfy entry.scheduled==True.
-        self.__scheduled    = {}
+        self.__scheduled            = {}
 
 
     def __len__(self):
@@ -116,6 +117,16 @@ class ScheduledRuns:
         try:
             while True:
                 time = now()
+
+                # Make sure we don't get ahead of the scheduler.  This is may
+                # occur:
+                # - if the scheduling horizon is very short, or
+                # - on startup, when there are a lot of past runs to schedule
+                scheduler_time = self.__get_scheduler_time()
+                if time > scheduler_time:
+                    log.warning(f"scheduled time > scheduler {scheduler_time}")
+                    await asyncio.sleep(1)
+                    continue
 
                 ready = set()
                 while len(self.__heap) > 0 and self.__heap[0].time <= time:
