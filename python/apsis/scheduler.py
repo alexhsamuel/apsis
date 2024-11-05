@@ -3,19 +3,19 @@ import itertools
 import logging
 from   ora import Time, now
 
-from   .runs import Instance, Run
+from   .runs import Instance
 from   apsis.lib.parse import parse_duration
 
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-def get_runs_to_schedule(job, start, stop):
+def get_insts_to_schedule(job, start, stop):
     """
     Builds runs to schedule for `job` between `start` and `stop`.
 
     :return:
-      Iterable of (time, run).
+      Iterable of (time, inst).
     """
     for schedule in job.schedules:
         times = itertools.takewhile(lambda t: t[0] < stop, schedule(start))
@@ -27,14 +27,11 @@ def get_runs_to_schedule(job, start, stop):
                 for a, v in args.items()
                 if a in job.params
             }
-            # FIXME: Check that all params are satisfied by args.  If not...?
-            # FIXME: Store additional args for later expansion.
-            inst = Instance(job.job_id, args)
-
             if schedule.enabled:
                 # Runs instantiated by the scheduler are only expected; the job
                 # schedule may change before the run is started.
-                yield sched_time, Run(inst, expected=True)
+                # FIXME: Store additional args for later expansion.
+                yield sched_time, Instance(job.job_id, args)
 
 
 class Scheduler:
@@ -100,8 +97,8 @@ class Scheduler:
 
         log.debug(f"scheduling runs until {stop}")
         for job in self.__jobs.get_jobs():
-            for time, run in get_runs_to_schedule(job, self.__stop, stop):
-                await self.__schedule(time, run)
+            for time, inst in get_insts_to_schedule(job, self.__stop, stop):
+                await self.__schedule(time, inst)
 
         self.__stop = stop
 

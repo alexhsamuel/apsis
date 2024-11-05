@@ -270,7 +270,22 @@ class Run:
 
 
 
+def validate_args(run, params):
+    """
+    Checks that a run's args match job params.
+    """
+    args = frozenset(run.inst.args)
+    missing, extra = params - args, args - params
+    if missing:
+        raise MissingArgumentError(run, *missing)
+    if extra:
+        raise ExtraArgumentError(run, *extra)
+
+
 #-------------------------------------------------------------------------------
+# Binding
+
+# Matches run args to job params to fully instantiate the run's components.
 
 BIND_ARGS = {
     **{
@@ -298,6 +313,16 @@ def get_bind_args(run):
         "job_id": run.inst.job_id,
         **run.inst.args,
     }
+
+
+def bind(run, job, jobs):
+    if run.actions is None:
+        # FIXME: Actions aren't bound, but may be in the future.
+        run.actions = list(job.actions)
+    if run.conds is None:
+        run.conds = [ c.bind(run, jobs) for c in job.conds ]
+    if run.program is None:
+        run.program = job.program.bind(get_bind_args(run))
 
 
 #-------------------------------------------------------------------------------
