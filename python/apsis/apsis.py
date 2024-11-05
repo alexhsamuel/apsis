@@ -351,6 +351,10 @@ class Apsis:
         """
         self.run_log.exc(run, message)
 
+        if run.state == State.error:
+            # Already hit another error...
+            return
+
         exc_type, exc, _ = sys.exc_info()
         if exc_type is not None:
             # Attach the exception traceback as run output.

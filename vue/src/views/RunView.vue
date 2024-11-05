@@ -82,7 +82,7 @@ div
           pre.pad {{ outputData }}
           div#anchor  <!-- to pin bottom scrolling -->
 
-  div.error-message(v-else)
+  div.error-message(v-else-if="run === undefined")
     div.title
       | {{ run_id }}
 
@@ -186,7 +186,7 @@ export default {
             this.run = Object.freeze(run)
           }
           else if (response.status === 404)
-            this.run = null
+            this.run = undefined
           else
             store.state.errors.add('fetch ' + url + ' ' + response.status + ' ' + await response.text())
         })
@@ -277,7 +277,10 @@ export default {
     },
 
     initRun() {
-      this.run = store.state.runs.get(this.run_id)
+      // The run may not yet be in the store, if the site was just loaded.
+      // Don't treat this as a missing run (this.run === undefined) until the
+      // single run API can't find it.
+      this.run = store.state.runs.get(this.run_id) || null
 
       this.outputMetadata = null
       this.outputData = null
@@ -308,7 +311,6 @@ export default {
   watch: {
     // Reset state on nav from one run to another.
     '$route'(to, from) {
-      this.run = store.state.runs.get(this.run_id)
       this.initRun()
     },
 

@@ -10,11 +10,11 @@ import yaml
 from   .actions import Action
 from   .actions.schedule import successor_from_jso
 from   .cond import Condition
+from   .exc import JobError, JobsDirErrors, SchemaError
 from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
 from   .schedule import Schedule
-from   apsis.lib.exc import SchemaError
 
 log = logging.getLogger(__name__)
 
@@ -72,24 +72,6 @@ class Job:
 
 
 #-------------------------------------------------------------------------------
-
-class JobErrors(Exception):
-    """
-    One or more exceptions.
-    """
-
-    def __init__(self, msg, errors):
-        super().__init__(msg)
-        self.errors = tuple(errors)
-
-
-    def format(self):
-        for error in self.errors:
-            yield f"{error.job_id}: {error}"
-
-
-
-# FIXME: Do much better at handling errors when converting JSO.
 
 def jso_to_job(jso, job_id):
     with check_schema(jso) as pop:
@@ -234,33 +216,6 @@ class JobsDir:
 
 
 
-def load_jobs_dir(path):
-    """
-    Attempts to loads jobs from a jobs dir.
-
-    :return:
-      The successfully loaded `JobsDir`.
-    :raise JobErrors:
-      One or more errors while loading jobs.  The exception's `errors` attribute
-      contains the errors; each has a `job_id` attribute.
-    """
-    jobs_path = Path(path)
-    jobs = {}
-    errors = []
-    for path, job_id in list_yaml_files(jobs_path):
-        log.debug(f"loading: {path}")
-        try:
-            jobs[job_id] = load_yaml_file(path, job_id)
-        except SchemaError as exc:
-            log.debug(f"error: {path}: {exc}", exc_info=True)
-            exc.job_id = job_id
-            errors.append(exc)
-    if len(errors) > 0:
-        raise JobErrors(f"errors loading jobs in {jobs_path}", errors)
-    else:
-        return JobsDir(jobs_path, jobs)
-
-
 def check_job(jobs_dir, job):
     """
     Performs consistency checks on `job` in `jobs_dir`.
@@ -313,27 +268,39 @@ def check_job(jobs_dir, job):
             yield(f"job params missing in schedule args: {' '.join(missing_args)}")
 
 
-def check_job_dir(path):
+def load_jobs_dir(path):
     """
-    Loads jobs in dir at `path` and checks validity.
+    Attempts to loads jobs from a jobs dir.
 
     :return:
-      Generator of errors.
+      The successfully loaded `JobsDir1`.
+    :raise JobsDirErrors:
+      One or more errors while loading jobs.  The exception's `errors` attribute
+      contains the errors; each has a `job_id` attribute.
     """
-    if not Path(path).is_dir():
-        raise NotADirectoryError(f"not a directory: {path}")
+    jobs_path = Path(path)
+    jobs = {}
+    errors = []
+    for path, job_id in list_yaml_files(jobs_path):
+        log.debug(f"loading: {path}")
+        try:
+            jobs[job_id] = load_yaml_file(path, job_id)
+        except SchemaError as exc:
+            log.debug(f"error: {path}: {exc}", exc_info=True)
+            exc.job_id = job_id
+            errors.append(exc)
 
-    try:
-        jobs_dir = load_jobs_dir(path)
-    except JobErrors as exc:
-        for err in exc.errors:
-            yield f"{err.job_id}: {err}"
-        return
+    jobs_dir = JobsDir(jobs_path, jobs)
 
     for job in jobs_dir.get_jobs():
         log.info(f"checking: {job.job_id}")
         for err in check_job(jobs_dir, job):
-            yield f"{job.job_id}: {err}"
+            errors.append(JobError(job_id, f"{job.job_id}: {err}"))
+
+    if len(errors) > 0:
+        raise JobsDirErrors(f"errors loading jobs in {jobs_path}", errors)
+
+    return jobs_dir
 
 
 #-------------------------------------------------------------------------------
