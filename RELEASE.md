@@ -1,3 +1,9 @@
+# v0.27
+
+- Apsis checks all jobs in the job directory before starting, and does not start
+  if it encounters any errors.
+
+
 # v0.26
 
 - The Control page in the web UI and the live log are removed.
