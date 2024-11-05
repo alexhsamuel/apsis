@@ -102,10 +102,10 @@ class Apsis:
         # FIXME: Remove this after a while.
         for run in self.run_store.query()[1]:
             try:
-                job = self.job.get_job(run.inst.job_id)
+                job = self.jobs.get_job(run.inst.job_id)
                 bind(run, job, self.jobs)
             except Exception:
-                log.error(f"failed to bind run from job: {run}")
+                log.error(f"failed to bind run from job: {run}", exc_info=True)
 
         self.outputs = OutputStore(db.output_db)
 
