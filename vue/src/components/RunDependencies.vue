@@ -10,7 +10,7 @@ div.dependencies
   div.underline1(style="grid-column-end: span 7")
 
   template(v-if="dependencies !== null")
-    div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependencies.reduce((s, d) => s + (d.runs.length || 1), 1) }") Dependencies
+    div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependencies.reduce((s, d) => s + (d.runs.length || 1) + 1, -1) }") Dependencies
     template(v-for="dep, d of dependencies")
       div.l.col-job.stack(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
         div: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
@@ -43,7 +43,7 @@ div.dependencies
   div.underline1(style="grid-column-end: span 7")
 
   template(v-if="dependents !== null")
-    div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependents.reduce((s, d) => s + Math.max(d.runs.length, 1), 1) }") Dependents
+    div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependents.reduce((s, d) => s + Math.max(d.runs.length, 1) + 1, -1) }") Dependents
     template(v-for="dep, d of dependents")
       div.l.col-job(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
         div.v: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
