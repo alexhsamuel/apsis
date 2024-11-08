@@ -103,18 +103,24 @@ class Apsis:
         stop_time = db.clock_db.get_time()
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
-        self.scheduled = ScheduledRuns(db.clock_db, self.scheduler.get_scheduler_time, self._wait)
+        self.scheduled = ScheduledRuns(
+            db.clock_db, self.scheduler.get_scheduler_time, self._wait)
 
-        # FIXME: Temporary hack until #366.
-        # The run db doesn't serialize conditions, so call __prepare_runs on
-        # every queried run, to regenerate conditions from the job.
-        bad_run_ids = []
+        # FIXME: Temporary hack until #366.  The run db doesn't serialize
+        # conditions, so try to rebind conditions from the job (which might be
+        # gone, or might have changed).
         for run in self.run_store.query()[1]:
-            if not self.__prepare_run(run):
-                bad_run_ids.append(run.run_id)
-                log.error(f"failed to restore run: {run}")
-        for run_id in bad_run_ids:
-            self.run_store.retire(run_id)
+            if run.conds is None:
+                try:
+                    job = self.jobs.get_job(run.inst.job_id)
+                except LookupError:
+                    # This job is gone.
+                    continue
+                try:
+                    run.conds = [ c.bind(run, self.jobs) for c in job.conds ]
+                except Exception as exc:
+                    log.warning(f"can't bind {run}: invalid condition: {exc}")
+                    continue
 
         # Stats from the async check loop.
         self.__check_async_stats = {}
@@ -371,7 +377,7 @@ class Apsis:
             self._update_output_data(run, {"output": output}, persist=True)
 
         self._transition(
-            run, State.error,
+            run, State.error, force=True,
             times={"error": now()},
             message=message,
         )
