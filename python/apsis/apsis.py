@@ -372,7 +372,7 @@ class Apsis:
             self._update_output_data(run, {"output": output}, persist=True)
 
         self._transition(
-            run, State.error,
+            run, State.error, force=True,
             times={"error": now()},
             message=message,
         )
