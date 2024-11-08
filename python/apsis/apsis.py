@@ -103,7 +103,8 @@ class Apsis:
         stop_time = db.clock_db.get_time()
         self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
 
-        self.scheduled = ScheduledRuns(db.clock_db, self.scheduler.get_scheduler_time, self._wait)
+        self.scheduled = ScheduledRuns(
+            db.clock_db, self.scheduler.get_scheduler_time, self._wait)
 
         # FIXME: Temporary hack until #366.
         # The run db doesn't serialize conditions, so call __prepare_runs on
