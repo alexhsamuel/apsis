@@ -120,7 +120,8 @@ class Apsis:
             stop_time
         )
 
-        self.scheduled = ScheduledRuns(db.clock_db, self.scheduler.get_scheduler_time, self._wait)
+        self.scheduled = ScheduledRuns(
+            db.clock_db, self.scheduler.get_scheduler_time, self._wait)
 
         # Stats from the async check loop.
         self.__check_async_stats = {}
@@ -328,7 +329,7 @@ class Apsis:
             # the UIs render.  In the future, change to "traceback".
             self._update_output_data(run, {"output": output}, persist=True)
 
-        self._transition(run, State.error, times={"error": now()})
+        self._transition(run, State.error, force=True, times={"error": now()})
 
 
     # FIXME: persist is a hack.
