@@ -70,18 +70,14 @@ div
       RunDependencies(:run="run")
 
     Frame(title="Metadata" closed)
-      table.fields
-        tbody
-          tr(v-for="(value, key) in meta && meta.program || {}" :key="key")
-            th {{ key }}
-            td
-              tt(v-if="typeof value === 'object'")
-                table.fields.subfields
-                  tbody
-                    tr(v-for="(sv, sk) in value" :key="sk")
-                      th {{ sk }}
-                      td {{ sv }}
-              tt(v-else) {{ value }}
+      div.objects
+        template(v-for="(value, key) in meta && meta.program || {}")
+          div.key {{ key }}
+          div.objects(v-if="typeof value === 'object' && !Array.isArray(value)")
+            template(v-for="(v, k) in value")
+              div.key {{ k }}
+              div.value {{ v }}
+          div.value(v-else) {{ value }}
 
     Frame(title="Output" v-if="hasOutput")
       div.output(v-if="outputMetadata")
@@ -443,6 +439,27 @@ export default {
     line-height: 1.5rem;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
+  }
+}
+
+.objects {
+  display: grid;
+  grid-template-columns: minmax(12em, max-content) max-content;
+
+  .key, .value {
+    padding: 2px 0;
+  }
+
+  .key {
+    font-size: 0.875rem;
+    font-weight: normal;
+    text-transform: uppercase;
+    color: #999;
+  }
+
+  .value {
+    font-family: $base-code-font-family;
+    font-size: 90%;
   }
 }
 </style>
