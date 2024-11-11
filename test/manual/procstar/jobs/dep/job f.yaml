@@ -1,0 +1,15 @@
+params: [x, y]
+
+condition:
+- type: dependency
+  job_id: "dep/job a"
+- type: dependency
+  job_id: "dep/job b"
+- type: dependency
+  job_id: "dep/job c"
+- type: dependency
+  job_id: "dep/job e"
+
+program:
+  type: no-op
+
