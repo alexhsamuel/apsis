@@ -76,8 +76,8 @@ div
           div.objects(v-if="typeof value === 'object' && !Array.isArray(value)")
             template(v-for="(v, k) in value")
               div.key {{ k }}
-              div.value {{ v }}
-          div.value(v-else) {{ value }}
+              div.value {{ v === null ? 'null' : v }}
+          div.value(v-else) {{ value === null ? 'null' : value }}
 
     Frame(title="Output" v-if="hasOutput")
       div.output(v-if="outputMetadata")
