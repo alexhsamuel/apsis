@@ -69,6 +69,20 @@ div
     Frame(title="Dependencies")
       RunDependencies(:run="run")
 
+    Frame(title="Metadata" closed)
+      table.fields
+        tbody
+          tr(v-for="(value, key) in meta && meta.program || {}" :key="key")
+            th {{ key }}
+            td
+              tt(v-if="typeof value === 'object'")
+                table.fields.subfields
+                  tbody
+                    tr(v-for="(sv, sk) in value" :key="sk")
+                      th {{ sk }}
+                      td {{ sv }}
+              tt(v-else) {{ value }}
+
     Frame(title="Output" v-if="hasOutput")
       div.output(v-if="outputMetadata")
         div.head
