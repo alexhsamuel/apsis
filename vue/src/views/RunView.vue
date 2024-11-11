@@ -69,6 +69,16 @@ div
     Frame(title="Dependencies")
       RunDependencies(:run="run")
 
+    Frame(title="Metadata" closed)
+      div.objects
+        template(v-for="(value, key) in meta && meta.program || {}")
+          div.key {{ key }}
+          div.objects(v-if="typeof value === 'object' && !Array.isArray(value)")
+            template(v-for="(v, k) in value")
+              div.key {{ k }}
+              div.value {{ v === null ? 'null' : v }}
+          div.value(v-else) {{ value === null ? 'null' : value }}
+
     Frame(title="Output" v-if="hasOutput")
       div.output(v-if="outputMetadata")
         div.head
@@ -429,6 +439,27 @@ export default {
     line-height: 1.5rem;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
+  }
+}
+
+.objects {
+  display: grid;
+  grid-template-columns: minmax(12em, max-content) max-content;
+
+  .key, .value {
+    padding: 2px 0;
+  }
+
+  .key {
+    font-size: 0.875rem;
+    font-weight: normal;
+    text-transform: uppercase;
+    color: #999;
+  }
+
+  .value {
+    font-family: $base-code-font-family;
+    font-size: 90%;
   }
 }
 </style>
