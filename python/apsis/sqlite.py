@@ -391,7 +391,7 @@ class RunDB:
                     expected,
                     rowid
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
             """, values)
             con.commit()
             run._rowid = values[-1]
