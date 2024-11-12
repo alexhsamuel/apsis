@@ -1,0 +1,8 @@
+params: [username]
+
+program:
+  type: procstar-shell
+  group_id: default
+  command: echo "My name is $(/usr/bin/whoami).  Home is $HOME."
+  sudo_user: "{{ username }}"
+
