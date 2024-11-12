@@ -15,7 +15,6 @@ import apsis.jobs
 import apsis.lib.argparse
 import apsis.lib.itr
 import apsis.lib.logging
-from   apsis.runs import Run
 from   apsis.states import State
 import apsis.service.client
 

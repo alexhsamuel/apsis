@@ -176,6 +176,7 @@ class Run:
         "state",
         "expected",
         "conds",
+        "actions",
         "program",
         "times",
         "meta",
@@ -200,6 +201,7 @@ class Run:
         self.state      = State.new
         self.expected   = bool(expected)
         self.conds      = None
+        self.actions    = None
         self.program    = None
         # Timestamps for state transitions and other events.
         self.times      = {}
