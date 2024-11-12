@@ -19,6 +19,22 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
+SUDO_ARGV_DEFAULT = ["/usr/bin/sudo", "--preserve-env", "--set-home"]
+
+if_not_none = lambda k, v: {} if v is None else {k: v}
+
+def _sudo_wrap(cfg, argv, sudo_user):
+    if sudo_user is None:
+        return argv
+    else:
+        sudo_argv = get_cfg(cfg, "procstar.agent.sudo.argv", SUDO_ARGV_DEFAULT)
+        return [ str(a) for a in sudo_argv ] + [
+            "--non-interactive",
+            "--user", str(sudo_user),
+            "--"
+        ] + list(argv)
+
+
 def _make_metadata(proc_id, res: dict):
     """
     Extracts run metadata from a proc result message.
@@ -99,9 +115,10 @@ async def _make_outputs(fd_data):
 
 class BoundProcstarProgram(base.Program):
 
-    def __init__(self, argv, *, group_id):
+    def __init__(self, argv, *, group_id, sudo_user=None):
         self.__argv = [ str(a) for a in argv ]
         self.__group_id = str(group_id)
+        self.__sudo_user = None if sudo_user is None else str(sudo_user)
 
 
     def __str__(self):
@@ -112,7 +129,7 @@ class BoundProcstarProgram(base.Program):
         return super().to_jso() | {
             "argv"      : self.__argv,
             "group_id"  : self.__group_id,
-        }
+        } | if_not_none("sudo_user", self.__sudo_user)
 
 
     @classmethod
@@ -120,15 +137,16 @@ class BoundProcstarProgram(base.Program):
         with check_schema(jso) as pop:
             argv        = pop("argv")
             group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
-        return cls(argv, group_id=group_id)
+            sudo_user   = pop("sudo_user", default=None)
+        return cls(argv, group_id=group_id, sudo_user=sudo_user)
 
 
-    def get_spec(self, *, run_id):
+    def get_spec(self, cfg, *, run_id):
         """
         Returns the procstar proc spec for the program.
         """
         return procstar.spec.Proc(
-            self.__argv,
+            _sudo_wrap(cfg, self.__argv, self.__sudo_user),
             env=procstar.spec.Proc.Env(
                 vars={
                     "APSIS_RUN_ID": run_id,
@@ -180,7 +198,7 @@ class BoundProcstarProgram(base.Program):
             proc, res = await server.start(
                 proc_id     =proc_id,
                 group_id    =self.__group_id,
-                spec        =self.get_spec(run_id=run_id),
+                spec        =self.get_spec(cfg, run_id=run_id),
                 conn_timeout=conn_timeout,
             )
 
@@ -390,9 +408,14 @@ class BoundProcstarProgram(base.Program):
 
 class ProcstarProgram(base.Program):
 
-    def __init__(self, argv, *, group_id=procstar.proto.DEFAULT_GROUP):
-        self.__argv = [ str(a) for a in argv ]
-        self.__group_id = group_id
+    def __init__(
+            self, argv, *,
+            group_id    =procstar.proto.DEFAULT_GROUP,
+            sudo_user   =None
+    ):
+        self.__argv         = [ str(a) for a in argv ]
+        self.__group_id     = str(group_id)
+        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
 
 
     def __str__(self):
@@ -402,14 +425,16 @@ class ProcstarProgram(base.Program):
     def bind(self, args):
         argv        = tuple( template_expand(a, args) for a in self.__argv )
         group_id    = or_none(template_expand)(self.__group_id, args)
-        return BoundProcstarProgram(argv, group_id=group_id)
+        sudo_user   = or_none(template_expand)(self.__sudo_user, args)
+        return BoundProcstarProgram(
+            argv, group_id=group_id, sudo_user=sudo_user)
 
 
     def to_jso(self):
         return super().to_jso() | {
             "argv"      : self.__argv,
             "group_id"  : self.__group_id,
-        }
+        } | if_not_none("sudo_user", self.__sudo_user)
 
 
     @classmethod
@@ -417,7 +442,8 @@ class ProcstarProgram(base.Program):
         with check_schema(jso) as pop:
             argv        = pop("argv")
             group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
-        return cls(argv, group_id=group_id)
+            sudo_user   = pop("sudo_user", default=None)
+        return cls(argv, group_id=group_id, sudo_user=sudo_user)
 
 
 
@@ -427,22 +453,28 @@ class ProcstarShellProgram(base.Program):
 
     SHELL = "/usr/bin/bash"
 
-    def __init__(self, command, *, group_id=procstar.proto.DEFAULT_GROUP):
-        self.__command = str(command)
-        self.__group_id = str(group_id)
+    def __init__(
+            self, command, *,
+            group_id    =procstar.proto.DEFAULT_GROUP,
+            sudo_user   =None,
+    ):
+        self.__command      = str(command)
+        self.__group_id     = str(group_id)
+        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
 
 
     def bind(self, args):
         argv        = [self.SHELL, "-c", template_expand(self.__command, args)]
         group_id    = or_none(template_expand)(self.__group_id, args)
-        return BoundProcstarProgram(argv, group_id=group_id)
+        sudo_user   = or_none(template_expand)(self.__sudo_user, args)
+        return BoundProcstarProgram(argv, group_id=group_id, sudo_user=sudo_user)
 
 
     def to_jso(self):
         return super().to_jso() | {
             "command"   : self.__command,
             "group_id"  : self.__group_id,
-        }
+        } | if_not_none("sudo_user", self.__sudo_user)
 
 
     @classmethod
@@ -450,7 +482,8 @@ class ProcstarShellProgram(base.Program):
         with check_schema(jso) as pop:
             command     = pop("command")
             group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
-        return cls(command, group_id=group_id)
+            sudo_user   = pop("sudo_user", default=None)
+        return cls(command, group_id=group_id, sudo_user=sudo_user)
 
 
 
