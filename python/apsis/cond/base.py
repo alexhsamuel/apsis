@@ -171,9 +171,11 @@ def _bind(job, obj_args, inst_args, bind_args):
     """
     def get(name):
         try:
-            return template_expand(obj_args[name], bind_args)
+            template = obj_args[name]
         except KeyError:
             pass
+        else:
+            return template_expand(template, bind_args)
         try:
             return inst_args[name]
         except KeyError:
