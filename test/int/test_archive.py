@@ -10,8 +10,13 @@ from   instance import ApsisService
 
 def test_archive(tmp_path):
     path = tmp_path / "archive.db"
+    job_dir = tmp_path / "jobs"
+    job_dir.mkdir()
 
-    with closing(ApsisService(cfg={"schedule": {"horizon": 1}})) as inst:
+    with closing(ApsisService(
+            cfg={"schedule": {"horizon": 1}},
+            job_dir=job_dir,
+    )) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()
@@ -100,8 +105,13 @@ def test_archive(tmp_path):
 
 def test_clean_up_jobs(tmp_path):
     path = tmp_path / "archive.db"
+    job_dir = tmp_path / "jobs"
+    job_dir.mkdir()
 
-    with closing(ApsisService(cfg={"schedule": {"horizon": 1}})) as inst:
+    with closing(ApsisService(
+            cfg={"schedule": {"horizon": 1}},
+            job_dir=job_dir,
+    )) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()
