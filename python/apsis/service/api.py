@@ -19,7 +19,7 @@ import apsis.lib.itr
 from   apsis.lib.sys import to_signal
 from   apsis.states import to_state
 from   ..jobs import jso_to_job
-from   ..runs import Instance, Run, RunError
+from   ..runs import Instance, RunError
 
 log = logging.getLogger(__name__)
 
@@ -559,17 +559,14 @@ async def run_post(request):
     else:
         return error("missing job_id or job")
 
+    args = jso.get("args", {})
+    inst = Instance(job_id, args)
+
     time = jso.get("times", {}).get("schedule", "now")
     time = None if time == "now" else ora.Time(time)
 
-    runs = [
-        Run(Instance(job_id, jso.get("args", {})))
-        for _ in range(count)
-    ]
-    for run in runs:
-        request.app.apsis._validate_run(run)
-
-    await asyncio.gather(*( apsis.schedule(time, r) for r in runs ))
+    runs = ( apsis.schedule(time, inst) for _ in range(count) )
+    runs = await asyncio.gather(*runs)
     jso = runs_to_jso(request.app, ora.now(), runs)
     return response_json(jso)
 

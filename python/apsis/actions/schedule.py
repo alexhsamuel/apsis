@@ -35,7 +35,7 @@ class ScheduleAction(BaseAction):
         inst = apsis._propagate_args(run.inst.args, inst)
 
         log.info(f"action for {run.run_id}: scheduling {inst}")
-        new_run = await apsis.schedule(None, Run(inst))
+        new_run = await apsis.schedule(None, inst)
         log.info(f"action for {run.run_id}: scheduled {new_run.run_id}")
 
         apsis.run_log.info(

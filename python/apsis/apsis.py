@@ -1,4 +1,5 @@
 import asyncio
+from   functools import partial
 import logging
 import math
 from   mmap import PAGESIZE
@@ -24,9 +25,9 @@ from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
-from   .runs import get_bind_args
+from   .runs import validate_args, bind
 from   .scheduled import ScheduledRuns
-from   .scheduler import Scheduler, get_runs_to_schedule
+from   .scheduler import Scheduler, get_insts_to_schedule
 from   .service import messages
 from   .states import State
 
@@ -95,20 +96,29 @@ class Apsis:
         else:
             min_timestamp = now() - lookback
         self.run_store = RunStore(db, min_timestamp=min_timestamp)
+
         # Previously we didn't serialize conds or actions.  Bind them if
         # missing on loaded runs.
+        # FIXME: Remove this after a while.
         for run in self.run_store.query()[1]:
             try:
-                self.__bind(run)
+                job = self.jobs.get_job(run.inst.job_id)
+                bind(run, job, self.jobs)
             except Exception:
-                log.error(f"failed to bind run from job: {run}")
+                log.error(f"failed to bind run from job: {run}", exc_info=True)
 
         self.outputs = OutputStore(db.output_db)
 
         # Continue scheduling from the last time we handled scheduled jobs.
         # FIXME: Rename: schedule horizon?
         stop_time = db.clock_db.get_time()
-        self.scheduler = Scheduler(cfg, self.jobs, self.schedule, stop_time)
+        self.scheduler = Scheduler(
+            cfg,
+            self.jobs,
+            # All runs scheduled by the scheduler are expected.
+            partial(self.schedule, expected=True),
+            stop_time
+        )
 
         self.scheduled = ScheduledRuns(
             db.clock_db, self.scheduler.get_scheduler_time, self._wait)
@@ -252,68 +262,12 @@ class Apsis:
         self.__run_tasks.add(run.run_id, run_task)
 
 
-    def __bind(self, run):
-        """
-        Binds program, actions, and conditions from the job to the run.
-        """
-        try:
-            job = self._validate_run(run)
-        except Exception as exc:
-            self._run_exc(run, message=str(exc))
-            raise
-
-        if run.program is None:
-            try:
-                run.program = job.program.bind(get_bind_args(run))
-            except Exception as exc:
-                self._run_exc(run, message=f"invalid program: {exc}")
-                raise
-
-        if run.conds is None:
-            try:
-                run.conds = [ c.bind(run, self.jobs) for c in job.conds ]
-            except Exception as exc:
-                self._run_exc(run, message=f"invalid condition: {exc}")
-                raise
-
-        if run.actions is None:
-            try:
-                # FIXME: Actions aren't bound, but may be in the future.
-                run.actions = list(job.actions)
-            except Exception as exc:
-                self._run_exc(run, message=f"invalid action: {exc}")
-                raise
-
-        return job
-
-
-    def __prepare_run(self, run):
-        """
-        Prepares a run for schedule or restore, using its job.
-
-        The run must already be in the run DB.
-
-        On failure, transitions the run to error and returns false.
-        """
-        try:
-            job = self.__bind(run)
-        except Exception:
-            return False
-
-        # Attach job labels to the run.
-        run.meta["job"] = {
-            "labels": job.meta.get("labels", []),
-        }
-
-        return True
-
-
     def __start_actions(self, run):
         """
         Starts configured actions on `run` as tasks.
         """
         # Find actions attached to the job.
-        actions = list(run.actions)
+        actions = [] if run.actions is None else list(run.actions)
         # Include actions configured globally for all runs.
         actions += self.__actions
 
@@ -486,9 +440,9 @@ class Apsis:
 
     # FIXME: Move the API elsewhere.
 
-    async def schedule(self, time, run):
+    async def schedule(self, time, inst, *, expected=False):
         """
-        Adds and schedules a new run.
+        Creates and schedules a new run.
 
         This is the only way to add a new run to the scheduler instance.
 
@@ -500,20 +454,36 @@ class Apsis:
         """
         time = None if time is None else Time(time)
 
+        # Create the run and add it to the run store, which assigns it a run ID
+        # and persists it.
+        run = Run(inst, expected=expected)
         self.run_store.add(run)
-        if not self.__prepare_run(run):
+
+        # Check that the run is valid and get it ready.
+        try:
+            job = self.jobs.get_job(run.inst.job_id)
+            validate_args(run, job.params)
+            bind(run, job, self.jobs)
+            # Attach job labels to the run.
+            run.meta["job"] = {
+                "labels": job.meta.get("labels", []),
+            }
+        except Exception as exc:
+            self._run_exc(run, message=str(exc))
             return run
 
         if time is None:
+            # Transition to scheduled and immediately to wait.
             self.run_log.record(run, "scheduled: now")
             self._transition(run, State.scheduled, times={"schedule": now()})
             self._wait(run)
-            return run
         else:
+            # Schedule for the future.
             self.run_log.record(run, f"scheduled: {time}")
             self._transition(run, State.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
-            return run
+
+        return run
 
 
     async def skip(self, run):
@@ -595,11 +565,8 @@ class Apsis:
         """
         # Create the new run.
         log.info(f"rerun: {run.run_id} at {time or 'now'}")
-        timestamp = now()
-        new_run = Run(run.inst)
-        await self.schedule(time, new_run)
-        self.run_log.info(
-            new_run, f"scheduled as rerun of {run.run_id}", timestamp=timestamp)
+        new_run = await self.schedule(time, run.inst)
+        self.run_log.info(new_run, f"scheduled as rerun of {run.run_id}")
         return new_run
 
 
@@ -942,9 +909,9 @@ async def reschedule_runs(apsis, job_id):
     # Restore scheduled runs, by rebuilding them between the scheduled time
     # and the scheduler time.
     job = apsis.jobs.get_job(job_id)
-    schedule = list(get_runs_to_schedule(job, scheduled_time, scheduler_time))
-    for time, run in schedule:
-        await apsis.schedule(time, run)
+    schedule = list(get_insts_to_schedule(job, scheduled_time, scheduler_time))
+    for time, inst in schedule:
+        await apsis.schedule(time, inst, expected=True)
 
 
 async def reload_jobs(apsis, *, dry_run=False):
