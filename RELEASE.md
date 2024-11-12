@@ -1,3 +1,11 @@
+# v0.28
+
+- Apsis checks at startup that the job dir exists and all YAML files within it
+  are valid jobs.  It fails to start if there are any job errors.
+- Apsis, when checking jobs, instantiates runs from jobs according to schedules,
+  to test that expansions function correctly.
+
+
 # v0.27
 
 - Apsis checks all jobs in the job directory before starting, and does not start
