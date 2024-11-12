@@ -5,13 +5,13 @@ from   instance import ApsisService
 
 #-------------------------------------------------------------------------------
 
-def test_waiting_max_time():
+def test_waiting_max_time(tmp_path):
     CFG = {
         "waiting": {
             "max_time": 0.5,
         }
     }
-    with closing(ApsisService(cfg=CFG)) as inst:
+    with closing(ApsisService(cfg=CFG, job_dir=tmp_path)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()

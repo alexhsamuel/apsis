@@ -8,8 +8,10 @@ from   instance import ApsisService
 
 def test_stats(tmp_path):
     path = tmp_path / "stats.json"
+    job_dir = tmp_path / "jobs"
+    job_dir.mkdir()
 
-    with closing(ApsisService()) as inst:
+    with closing(ApsisService(job_dir=job_dir)) as inst:
         inst.create_db()
         inst.write_cfg()
         inst.start_serve()

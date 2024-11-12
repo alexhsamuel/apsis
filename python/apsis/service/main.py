@@ -76,7 +76,7 @@ def build_apsis(cfg):
         jobs = load_jobs_dir(job_dir)
     except JobsDirErrors as exc:
         for err in exc.errors:
-            log.error(f"{err.job_id}: {err}")
+            log.error(f"job {err.job_id}: {err}")
         raise
 
     return Apsis(cfg, jobs, db)

@@ -1,3 +1,19 @@
+# v0.28
+
+- Apsis checks at startup that the job dir exists and all YAML files within it
+  are valid jobs.  It fails to start if there are any job errors.
+- Apsis, when checking jobs, instantiates runs from jobs according to schedules,
+  to test that expansions function correctly.
+
+This release requires changes to the schema of Apsis database files.  To migrate
+an existing database,
+
+0. Stop Apsis.
+1. Create a backup of the database.
+2. `python scripts/migrate-db.py path/to/apsis.db`
+3. Start the new version.
+
+
 # v0.27
 
 - Apsis checks all jobs in the job directory before starting, and does not start

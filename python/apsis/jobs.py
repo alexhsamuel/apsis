@@ -223,6 +223,8 @@ def check_job(jobs_dir, job):
     :return:
       Generator of errors.
     """
+    from apsis.runs import Instance, Run, validate_args, bind
+
     def check_associated_run(obj, context):
         try:
             associated_job_id = obj.job_id
@@ -259,13 +261,29 @@ def check_job(jobs_dir, job):
     for cond in job.conds:
         yield from check_associated_run(cond, "condition")
 
-    # Try scheduling a run for each schedule of each job.
+    # FIXME: Use normal protocols for this, not random APIs that need mocks.
+    class MockJobDb:
+        def get(self, job_id):
+            raise LookupError(job_id)
+
+    # Try scheduling a run for each schedule of each job.  This tests that
+    # template expansions work and all names and params are bound.
     now = ora.now()
+    jobs = Jobs(jobs_dir, MockJobDb())
     for schedule in job.schedules:
-        _, args = next(schedule(now))
-        missing_args = set(job.params) - set(args)
-        if len(missing_args) > 0:
-            yield(f"job params missing in schedule args: {' '.join(missing_args)}")
+        try:
+            _, args = next(schedule(now))
+        except StopIteration:
+            continue
+        args = { a: str(v) for a, v in args.items() if a in job.params }
+        run = Run(Instance(job.job_id, args))
+        print(f"new run: {run.inst}")
+        try:
+            validate_args(run, job.params)
+            bind(run, job, jobs)
+        except Exception as exc:
+            yield(str(exc))
+            continue
 
 
 def load_jobs_dir(path):
@@ -273,12 +291,15 @@ def load_jobs_dir(path):
     Attempts to loads jobs from a jobs dir.
 
     :return:
-      The successfully loaded `JobsDir1`.
+      The successfully loaded `JobsDir`.
     :raise JobsDirErrors:
       One or more errors while loading jobs.  The exception's `errors` attribute
       contains the errors; each has a `job_id` attribute.
     """
     jobs_path = Path(path)
+    if not jobs_path.is_dir():
+        raise JobsDirErrors(f"not a directory: {jobs_path}", [])
+
     jobs = {}
     errors = []
     for path, job_id in list_yaml_files(jobs_path):

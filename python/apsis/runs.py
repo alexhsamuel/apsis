@@ -108,9 +108,8 @@ class _Undefined(jinja2.StrictUndefined):
     Custom Jinja2 undefined type that throws `NameError`.
     """
 
-    def __init__(self, *args, **kw_args):
-        super().__init__(*args, **kw_args)
-        self._undefined_exception = NameError
+    def __init__(self, *args, name, **kw_args):
+        raise NameError(f"name '{name}' is not defined")
 
 
 
