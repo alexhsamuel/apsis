@@ -1,4 +1,5 @@
 import contextlib
+from   typing import Mapping
 
 from   apsis.exc import SchemaError
 from   .imp import import_fqname, get_type_fqname
@@ -46,23 +47,42 @@ def set_dotted(mapping, key, value):
     Sets dotted `key` to `value` into a hierarchical `mapping`, creating
     nested mappings as needed.
 
-    For example, after
-
-        set_dotted(m, "foo.bar.baz", 42)
-
-    it is the case that
-
-        m["foo"]["bar"]["baz"] = 42
+      >>> m = {"foo": {"bif": 10}}
+      >>> set_dotted(m, "foo.bar.baz", 42)
+      >>> m
+      {'foo': {'bif': 10, 'bar': {'baz': 42}}}
 
     """
     m = mapping
-    parts = key.split(".")
-    for part in parts[: -1]:
+    *parts, last = key.split(".")
+    for part in parts:
         try:
             m = m[part]
         except KeyError:
-            m = m[part] = type(mapping)()
-    m[parts[-1]] = value
+            m[part] = m = type(mapping)()
+    m[last] = value
+
+
+def expand_dotted_keys(mapping):
+    """
+    Expands dotted keys recursively.
+
+      >>> expand_dotted_keys({
+      ...     "foo": [10, 11],
+      ...     "bar.baz": {
+      ...         "hip.hop": True,
+      ...     },
+      ...     "bar.bif.bof": "hello",
+      ... })
+      {'foo': [10, 11], 'bar': {'baz': {'hip': {'hop': True}}, 'bif': {'bof': 'hello'}}}
+
+    """
+    result = {}
+    for key, value in mapping.items():
+        if isinstance(value, Mapping):
+            value = expand_dotted_keys(value)
+        set_dotted(result, key, value)
+    return type(mapping)(result)
 
 
 #-------------------------------------------------------------------------------
