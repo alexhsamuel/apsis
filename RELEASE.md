@@ -4,6 +4,8 @@
   are valid jobs.  It fails to start if there are any job errors.
 - Apsis, when checking jobs, instantiates runs from jobs according to schedules,
   to test that expansions function correctly.
+- In a Procstar program with `sudo_user` set, Apsis runs the command under
+  `sudo` for the specified username.
 
 This release requires changes to the schema of Apsis database files.  To migrate
 an existing database,
