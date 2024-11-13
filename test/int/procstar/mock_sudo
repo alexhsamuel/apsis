@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+"""
+Mock sudo.  Accepts some sudo args and prints args in JSON.
+"""
+
+import argparse
+import json
+import sys
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--preserve-env", "-E", default=False, action="store_true")
+parser.add_argument("--set-home", "-H", default=False, action="store_true")
+parser.add_argument("--non-interactive", "-n", default=False, action="store_true")
+parser.add_argument("--user", "-u")
+parser.add_argument("argv", nargs="+")
+args = parser.parse_args()
+
+json.dump(args.__dict__, sys.stdout)
+

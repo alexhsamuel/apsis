@@ -33,10 +33,12 @@ class ApsisService:
         self.tmp_dir    = Path(tempfile.mkdtemp())
         logging.info(f"Apsis instance in {self.tmp_dir}")
         self.db_path    = self.tmp_dir / "apsis.db"
-        self.jobs_dir   = (
-            Path(job_dir) if job_dir is not None
-            else self.tmp_dir / "jobs"
-        )
+        if job_dir is None:
+            job_dir = self.tmp_dir / "jobs"
+            job_dir.mkdir()
+        else:
+            job_dir = Path(job_dir)
+        self.jobs_dir   = job_dir
         self.cfg_path   = self.tmp_dir / "config.yaml"
         self.log_path   = self.tmp_dir / "apsis.log"
         self.agent_dir  = self.tmp_dir / "agent"

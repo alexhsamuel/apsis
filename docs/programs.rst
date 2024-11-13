@@ -14,6 +14,8 @@ Apsis provides these program types, and you can extend Apsis with your own.
 - `no-op`: Does nothing.
 - `shell`: Executes a shell command, possibly on another host.
 - `program`: Invokes an executable directly, with command line arguments.
+- `procstar`: Invokes an executable directly via a Procstar agent.
+- `procstar-shell`: Executes a shell command via a Procstar agent.
 
 Additionally, Apsis includes several internal program types, which deal with its
 own internal housekeeping.
@@ -123,6 +125,42 @@ elapses before the program completes, Apsis sends the program a signal.
 
 In this example, Apsis sends SIGTERM to the program after five minutes, if it
 hasn't completed yet.  The `signal` key is optional and defaults to SIGTERM.
+
+
+Procstar Programs
+-----------------
+
+`Procstar <https://github.com/alexhsamuel/procstar>` is a system for managing
+running processes.  Apsis can run programs via Procstar agents, possibly on
+other hosts.  For Apsis to do this, at least one Procstar agent with the
+matching group ID must connect to the Apsis server.
+
+.. code:: yaml
+
+    program:
+        type: procstar
+        group_id: default
+        argv: ["/usr/bin/echo", "Hello, world!"]
+
+Apsis runs the program on one of the Procstar agents with group ID "default"
+that is connected.  If no such agent is connected, Apsis waits for such an agent
+to connect; the run is meanwhile in the *starting* state.
+
+To run a shell command,
+
+.. code:: yaml
+
+    program:
+        type: procstar-shell
+        group_id: default
+        command: "echo 'Hello, world!'"
+
+The program process runs as whichever user who runs the Procstar agent.  To run
+as another user, specify `sudo_user` in the program.  Procstar will attempt to
+run the program under `sudo` as that user.  The host on which the agent is
+running must be configured with an appropriate sudoers configuration that allows
+the user running the Procstar agent to run the command as the sudo user, without
+any explicit password.
 
 
 Internal Programs

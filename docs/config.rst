@@ -227,6 +227,18 @@ on this agent to _error_ and forgets the agent.
 
     procstar:
       agent:
+        sudo:
+          argv: ["/usr/bin/sudo", "--preserve-env", "--home"]
+
+This configures how Procstar invokes `sudo` in agents, to run programs as
+another user.  Apsis always adds `--user USERNAME` and `--non-interactive` to
+the argv list.
+
+
+.. code:: yaml
+
+    procstar:
+      agent:
         run:
           update_interval: "1 min"
           output_interval" "15 sec"
