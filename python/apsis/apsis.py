@@ -101,11 +101,16 @@ class Apsis:
         # missing on loaded runs.
         # FIXME: Remove this after a while.
         for run in self.run_store.query()[1]:
-            try:
-                job = self.jobs.get_job(run.inst.job_id)
-                bind(run, job, self.jobs)
-            except Exception:
-                log.error(f"failed to bind run from job: {run}", exc_info=True)
+            if run.actions is None or run.conds is None or run.program is None:
+                try:
+                    job = self.jobs.get_job(run.inst.job_id)
+                except LookupError:
+                    log.info(f"failed to bind {run}: job not found")
+                    continue
+                try:
+                    bind(run, job, self.jobs)
+                except Exception as exc:
+                    log.info(f"failed to bind {run}: {exc}")
 
         self.outputs = OutputStore(db.output_db)
 
