@@ -28,7 +28,7 @@ div.dependencies
         div
         div
       div.colspan6(v-if="d < dependencies.length - 1" style="border-bottom: 2px dotted #ccc;")
-    div.colspan6(v-if="dependencies.length == 0") (no dependencies)
+    div.colspan6.v(v-if="dependencies.length == 0") (no dependencies)
 
   div.underline1(style="grid-column-end: span 7")
 
@@ -45,9 +45,10 @@ div.dependencies
   template(v-if="dependents !== null")
     div.colhead.v(:style="{ 'grid-row-end': 'span ' + dependents.reduce((s, d) => s + Math.max(d.runs.length, 1) + 1, -1) }") Dependents
     template(v-for="dep, d of dependents")
-      div.l.col-job(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
-        div.v: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
-      template(v-for="r, i of dep.runs")
+      div.l.col-job.stack(:style="{ 'grid-row-end': 'span ' + dep.runs.length }")
+        div: JobWithArgs(:job-id="dep.job_id" :args="dep.args")
+        div.omit(v-if="dep.runs.length > MAX_RUNS") last {{ MAX_RUNS }} of {{ dep.runs.length }}
+      template(v-for="r, i of dep.runs.slice(-MAX_RUNS)")
         div.c.col-run: Run(:run-id="r.run_id")
         div.c.col-state: State(:state="r.state")
         div.r.col-schedule-time: Timestamp(:time="r.times.schedule")
@@ -60,7 +61,7 @@ div.dependencies
         div
         div
       div.colspan6(v-if="d < dependents.length - 1" style="border-bottom: 2px dotted #ccc;")
-    div.colspan6(v-if="dependents.length == 0") (no dependents)
+    div.colspan6.v(v-if="dependents.length == 0") (no dependents)
 </template>
 
 <script>
