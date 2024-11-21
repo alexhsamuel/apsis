@@ -338,9 +338,13 @@ class Jobs:
 
 
     def get_job(self, job_id) -> Job:
-        with suppress(LookupError):
+        try:
             return self.__jobs_dir.get_job(job_id)
-        return self.__job_db.get(job_id)
+        except LookupError:
+            try:
+                return self.__job_db.get(job_id)
+            except LookupError:
+                raise LookupError(f"unknown job ID: {job_id}") from None
 
 
     __getitem__ = get_job
