@@ -84,15 +84,43 @@ def _combine_fd_data(old, new):
 
     assert new.fd == old.fd
     assert new.encoding == old.encoding
+    assert new.interval.start <= new.interval.stop
     assert new.interval.stop - new.interval.start == len(new.data)
-    # FIXME: Be more lenient?
-    assert new.interval.start == old.interval.stop
-    return FdData(
-        fd      =old.fd,
-        encoding=old.encoding,
-        interval=Interval(old.interval.start, new.interval.stop),
-        data    =old.data + new.data,
-    )
+
+    # FIXME: Should be Interval.__str__().
+    fi = lambda i: f"[{i.start}, {i.stop})"
+
+    # Check for a gap in the data.
+    if old.interval.stop < new.interval.start:
+        raise RuntimeError(
+            f"fd data gap: {fi(old.interval)} + {fi(new.interval)}")
+
+    elif old.interval.stop == new.interval.start:
+        return FdData(
+            fd      =old.fd,
+            encoding=old.encoding,
+            interval=Interval(old.interval.start, new.interval.stop),
+            data    =old.data + new.data,
+        )
+
+    else:
+        # Partial overlap of data.
+        log.warning(f"fd data overlap: {fi(old.interval)} + {fi(new.interval)}")
+        length = new.interval.stop - old.interval.stop
+        if length > 0:
+            # Partial overlap.  Patch intervals together.
+            interval = Interval(old.interval.start, new.interval.stop)
+            data = old.data + new.data[-length :]
+            assert interval.stop - interval.start == len(data)
+            return FdData(
+                fd      =old.fd,
+                encoding=old.encoding,
+                interval=interval,
+                data    =data,
+            )
+        else:
+            # Complete overlap.
+            return old
 
 
 async def _make_outputs(fd_data):
