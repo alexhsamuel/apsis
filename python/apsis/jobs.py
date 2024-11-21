@@ -225,51 +225,17 @@ def check_job(jobs_dir, job):
     """
     from apsis.runs import Instance, Run, validate_args, bind
 
-    def check_associated_run(obj, context):
-        try:
-            associated_job_id = obj.job_id
-        except AttributeError:
-            # No associated job; that's OK.
-            return
-
-        # Find the associated job.
-        try:
-            associated_job = jobs_dir.get_job(associated_job_id)
-        except LookupError:
-            yield f"unknown job ID in {context}: {associated_job_id}"
-            return
-
-        # Look up additional args, if any.
-        try:
-            args = set(obj.args)
-        except AttributeError:
-            args = set()
-
-        params = set(associated_job.params)
-        # Check for missing args.  The params of the associated job can be bound
-        # either to the args of this job or to explicit args.
-        for missing in params - set(job.params) - args:
-            yield f"missing arg in {context}: param {missing} of job {associated_job_id}"
-        # Check for extraneous explicit args.
-        for extra in args - params:
-            yield f"extraneous arg in {context}: param {extra} of job {associated_job_id}"
-
-    # Check all job ids in actions and conditions, by checking each action
-    # and condition class for a job_id attribute.
-    for action in job.actions:
-        yield from check_associated_run(action, "action")
-    for cond in job.conds:
-        yield from check_associated_run(cond, "condition")
-
     # FIXME: Use normal protocols for this, not random APIs that need mocks.
     class MockJobDb:
         def get(self, job_id):
             raise LookupError(job_id)
 
     # Try scheduling a run for each schedule of each job.  This tests that
-    # template expansions work and all names and params are bound.
+    # template expansions work, that all names and params are bound, and that
+    # actions and conditions refer to valid jobs with correct args.
     now = ora.now()
     jobs = Jobs(jobs_dir, MockJobDb())
+    checked_run = False
     for schedule in job.schedules:
         try:
             _, args = next(schedule(now))
@@ -277,12 +243,50 @@ def check_job(jobs_dir, job):
             continue
         args = { a: str(v) for a, v in args.items() if a in job.params }
         run = Run(Instance(job.job_id, args))
+        checked_run = True
         try:
             validate_args(run, job.params)
             bind(run, job, jobs)
         except Exception as exc:
-            yield(str(exc))
+            yield str(exc)
             continue
+
+    if not checked_run:
+        def check_associated_run(obj, context):
+            try:
+                associated_job_id = obj.job_id
+            except AttributeError:
+                # No associated job; that's OK.
+                return
+
+            # Find the associated job.
+            try:
+                associated_job = jobs_dir.get_job(associated_job_id)
+            except LookupError:
+                yield f"unknown job ID in {context}: {associated_job_id}"
+                return
+
+            # Look up additional args, if any.
+            try:
+                args = set(obj.args)
+            except AttributeError:
+                args = set()
+
+            params = set(associated_job.params)
+            # Check for missing args.  The params of the associated job can be bound
+            # either to the args of this job or to explicit args.
+            for missing in params - set(job.params) - args:
+                yield f"missing arg in {context}: param {missing} of job {associated_job_id}"
+            # Check for extraneous explicit args.
+            for extra in args - params:
+                yield f"extraneous arg in {context}: param {extra} of job {associated_job_id}"
+
+        # We couldn't construct a run to check.  At least confirm that any
+        # action or condition that refers to another job is valid.
+        for action in job.actions:
+            yield from check_associated_run(action, "action")
+        for cond in job.conds:
+            yield from check_associated_run(cond, "condition")
 
 
 def load_jobs_dir(path):
