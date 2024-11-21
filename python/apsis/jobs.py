@@ -277,7 +277,6 @@ def check_job(jobs_dir, job):
             continue
         args = { a: str(v) for a, v in args.items() if a in job.params }
         run = Run(Instance(job.job_id, args))
-        print(f"new run: {run.inst}")
         try:
             validate_args(run, job.params)
             bind(run, job, jobs)
