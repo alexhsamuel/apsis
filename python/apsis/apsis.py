@@ -1,5 +1,6 @@
 import asyncio
 from   functools import partial
+import gc
 import logging
 import math
 from   mmap import PAGESIZE
@@ -16,6 +17,7 @@ from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.api import run_to_summary_jso
 from   .lib.asyn import TaskGroup, Publisher, KeyPublisher
 from   .lib.cmpr import compress_async
+from   .lib.py import more_gc_stats
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
@@ -621,6 +623,7 @@ class Apsis:
 
     def get_stats(self):
         res = resource.getrusage(resource.RUSAGE_SELF)
+        gc_stats = gc.get_stats()
         stats = {
             "start_time"            : str(self.__start_time),
             "time"                  : str(now()),
@@ -638,6 +641,10 @@ class Apsis:
             "run_store"             : self.run_store.get_stats(),
             "outputs"               : self.outputs.get_stats(),
             "summary_publisher"     : self.summary_publisher.get_stats(),
+            "gc"                    : [
+                s0 | s1
+                for s0, s1 in zip(gc_stats, more_gc_stats)
+            ]
         }
 
         try:
