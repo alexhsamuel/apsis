@@ -2,6 +2,11 @@
 Control CLI, for maintenance and running the service.
 """
 
+import gc
+gc.set_threshold(100_000, 100, 10)
+import apsis.lib.py
+apsis.lib.py.track_gc_stats(warn_time=0.5)
+
 import logging
 import os
 from   pathlib import Path
