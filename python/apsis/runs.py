@@ -326,55 +326,6 @@ def bind(run, job, jobs):
 
 #-------------------------------------------------------------------------------
 
-class _RunPredicate:
-    """
-    Filter predicate for a run.
-    """
-
-    def __init__(
-            self, *,
-            run_ids     =None,
-            job_id      =None,
-            state       =None,
-            since       =None,
-            args        =None,
-            with_args   =None,
-    ):
-        """
-        :param state:
-          Limits results to runs in the specified state(s).
-        :param args:
-          Limits results to runs with exactly the specified args.
-        :param with_args:
-          Limits results to runs with the specified args.  Runs may include
-          other args not explicitly given.
-        """
-        to_map = lambda x: { str(k): str(v) for k, v in x.items() }
-        self.run_ids    = None if run_ids   is None else set(iterize(run_ids))
-        self.job_id     = None if job_id    is None else job_id
-        self.state      = None if state     is None else set(iterize(state))
-        self.since      = None if state     is None else ora.Time(since)
-        self.args       = None if args      is None else to_map(args)
-        self.with_args  = None if with_args is None else to_map(with_args)
-
-
-    def __call__(self, run):
-        return (
-                (self.run_ids   is None or run.run_id in self.run_ids)
-            and (self.job_id    is None or run.inst.job_id == self.job_id)
-            and (self.state     is None or run.state in self.state)
-            and (self.since     is None or run.timestamp >= self.since)
-            and (self.args      is None or run.inst.args == self.args)
-            and (self.with_args is None or all(
-                run.inst.args.get(k) == v
-                for k, v in self.with_args.items()
-            ))
-        )
-
-
-
-#-------------------------------------------------------------------------------
-
 class RunStore:
     """
     Stores runs in memory.
@@ -504,35 +455,69 @@ class RunStore:
         return now(), run
 
 
-    # FIXME: Merge down.
-    def _query_filter(self, predicate):
+    # FIXME: Remove `when` from the result; I think we don't use it.
+    # FIXME: Remove `since`?
+    def query(
+            self,
+            run_ids     =None,
+            job_id      =None,
+            state       =None,
+            since       =None,
+            args        =None,
+            with_args   =None,
+    ):
         """
-        Queries using a `_RunPredicate`.
+        :param state:
+          Limits results to runs in the specified state(s).
+        :param args:
+          Limits results to runs with exactly the specified args.
+        :param with_args:
+          Limits results to runs with the specified args.  Runs may include
+          other args not explicitly given.
         """
-        if predicate.run_ids is not None:
-            # Fast path if the query is by run IDs.
+        if run_ids is not None:
+            # Fast path for query by run IDs.
+            run_ids = set(iterize(run_ids))
             runs = (
                 r
-                for i in predicate.run_ids
+                for i in run_ids
                 if (r := self.__runs.get(i)) is not None
             )
-        elif predicate.job_id is not None:
+            if job_id is not None:
+                runs = ( r for r in runs if r.inst.job_id == job_id )
+
+        elif job_id is not None:
             # Fast path if the query is by job ID.
-            runs = iter(self.__runs_by_job.get(predicate.job_id, ()))
+            runs = self.__runs_by_job.get(job_id, ())
+
         else:
             # Slow path: scan.
             runs = self.__runs.values()
 
-        return now(), [ r for r in runs if predicate(r) ]
+        if state is not None:
+            state = set(iterize(state))
+            runs = ( r for r in runs if r.state in state )
 
+        if since is not None:
+            since = ora.Time(since)
+            runs = ( r for r in runs if r.timestamp >= since )
 
-    # FIXME: Remove `when` from the result; I think we don't use it.
-    def query(self, **filter_args):
-        """
-        :keywords:
-          See `_RunPredicate.__init__.
-        """
-        return self._query_filter(_RunPredicate(**filter_args))
+        if args is not None:
+            args = { str(k): str(v) for k, v in args.items() }
+            runs = ( r for r in runs if r.inst.args == args )
+
+        if with_args is not None:
+            with_args = [ (str(k), str(v)) for k, v in with_args.items() ]
+            runs = (
+                r
+                for r in runs
+                if all(
+                        r.inst.args.get(k) == v
+                        for k, v in with_args
+                )
+            )
+
+        return now(), list(runs)
 
 
     def get_stats(self):
