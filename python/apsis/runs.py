@@ -495,7 +495,7 @@ class RunStore:
             runs = self.__runs.values()
 
         if state is not None:
-            state = set(iterize( to_state(s) for s in state ))
+            state = set( to_state(s) for s in iterize(state) )
             runs = ( r for r in runs if r.state in state )
 
         if since is not None:
