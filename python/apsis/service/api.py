@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import logging
 import ora
 import re
@@ -501,23 +502,23 @@ async def websocket_summary(request, ws):
         try:
             if init:
                 # Full initialization.
-                msgs = []
 
                 # Send all jobs.
                 jobs = apsis.jobs.get_jobs(ad_hoc=False)
-                msgs.extend( messages.make_job(j) for j in jobs )
+                job_msgs = ( messages.make_job(j) for j in jobs )
 
                 # Send all procstar agent conns.
                 agent_server = procstar.get_agent_server()
-                msgs.extend(
+                conn_msgs = (
                     messages.make_agent_conn(c)
                     for c in agent_server.connections.values()
                 )
 
                 # Send summaries of all runs.
                 _, runs = apsis.run_store.query()
-                msgs.extend( messages.make_run_summary(r) for r in runs )
+                run_msgs = ( messages.make_run_summary(r) for r in runs )
 
+                msgs = itertools.chain(job_msgs, conn_msgs, run_msgs)
                 await _send_chunked(msgs, ws, prefix)
 
             while not sub.closed:
