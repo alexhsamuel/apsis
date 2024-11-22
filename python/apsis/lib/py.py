@@ -1,11 +1,14 @@
 from   collections.abc import Mapping
-import inspect
 import functools
+import gc
+import inspect
+import logging
 import shutil
 import sys
+import time
 import types
 
-# FIXME: __all__
+log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
@@ -361,5 +364,30 @@ def dump_methods(obj):
             if len(line) > width:
                 line = line[: width - 1] + "\u2026"
             print(line)
+
+
+#-------------------------------------------------------------------------------
+
+more_gc_stats = [ {"elapsed": 0, "elapsed_max": 0} for _ in range(3) ]
+_gc_start_time = None
+
+def track_gc_stats(*, warn_time=None):
+    def on_gc(phase, info):
+        # Time GCs.
+        global _gc_start_time
+        if phase == "start":
+            _gc_start_time = time.monotonic()
+        else:
+            elapsed = time.monotonic() - _gc_start_time
+            # Aggregate by generation.
+            gen = info["generation"]
+            stats = more_gc_stats[gen]
+            stats["elapsed"] += elapsed
+            stats["elapsed_max"] = max(stats["elapsed_max"], elapsed)
+
+            if warn_time is not None and warn_time < elapsed:
+                log.warning(f"GC gen {gen} took {elapsed:.3f} s")
+
+    gc.callbacks.append(on_gc)
 
 
