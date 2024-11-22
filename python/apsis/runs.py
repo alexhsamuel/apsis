@@ -5,7 +5,7 @@ import ora
 from   ora import now, Time
 import shlex
 
-from   .states import State, TRANSITIONS
+from   .states import State, TRANSITIONS, to_state
 from   .lib.asyn import Publisher
 from   .lib.calendar import get_calendar
 from   .lib.memo import memoize
@@ -495,7 +495,7 @@ class RunStore:
             runs = self.__runs.values()
 
         if state is not None:
-            state = set(iterize(state))
+            state = set(iterize( to_state(s) for s in state ))
             runs = ( r for r in runs if r.state in state )
 
         if since is not None:
