@@ -4,6 +4,8 @@ import logging
 import sanic
 import zlib
 
+from   apsis.cond.dependency import Dependency
+
 log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
@@ -106,8 +108,6 @@ def job_to_jso(job):
 
 
 def run_to_summary_jso(run):
-    from apsis.cond.dependency import Dependency
-
     jso = run._summary_jso_cache
     if jso is not None:
         # Use the cached JSO.
