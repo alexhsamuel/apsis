@@ -597,6 +597,7 @@ class Apsis:
 
     async def shut_down(self):
         log.info("shutting down Apsis")
+        gc.disable()
         await self.__action_tasks.cancel_all()
         await self.__wait_tasks.cancel_all()
         await self.__run_tasks.cancel_all()
