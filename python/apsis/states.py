@@ -31,6 +31,19 @@ def to_state(state):
     raise ValueError(f"not a state: {state!r}")
 
 
+def to_states(states):
+    """
+    Convers `states` to an iterator of States instances.
+
+      >>> tuple(to_states("running"))
+      (<State.running: 5>,)
+      >>> tuple(to_states(["failure", State.error]))
+      (<State.failure: 7>, <State.error: 8>)
+
+    """
+    return ( to_state(s) for s in py.iterize(states) )
+
+
 # State model.  Allowed transitions _to_ each state.
 TRANSITIONS = {
     State.new       : set(),
