@@ -1,6 +1,9 @@
+from   apsis.cond import Condition
+from   apsis.cond.dependency import Dependency
+from   apsis.cond.skip_duplicate import SkipDuplicate
 from   apsis.jobs import Job
 from   apsis.runs import Run, Instance
-from   apsis.cond.dependency import Dependency
+from   apsis.states import State
 
 #-------------------------------------------------------------------------------
 
@@ -51,5 +54,28 @@ def test_bind3():
     assert bound.job_id == "testjob1"
     assert bound.args == {"foo": "apple", "bar": "apples"}
     assert bound.states == dep.states
+
+
+def test_skip_duplicate_jso():
+    cond = SkipDuplicate()
+    cond = Condition.from_jso(cond.to_jso())
+    assert cond.check_states == {State.waiting, State.starting, State.running}
+    assert cond.target_state == State.skipped
+
+    cond = SkipDuplicate(check_states="running", target_state="error")
+    cond = Condition.from_jso(cond.to_jso())
+    assert cond.check_states == {State.running}
+    assert cond.target_state == State.error
+
+    run = Run(Instance("my job", {"foo": "orange"}))
+    run.run_id = "r12345"
+    cond = cond.bind(run, jobs=None)  # jobs not used
+
+    cond = Condition.from_jso(cond.to_jso())
+    assert cond.check_states == {State.running}
+    assert cond.target_state == State.error
+    assert cond.inst.job_id == "my job"
+    assert cond.inst.args == {"foo": "orange"}
+    assert cond.run_id == "r12345"
 
 

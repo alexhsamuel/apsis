@@ -2,8 +2,8 @@ import logging
 
 from   apsis.lib import py
 from   apsis.lib.json import check_schema
-from   apsis.runs import Instance, Run
-from   apsis.states import to_state
+from   apsis.runs import Instance
+from   apsis.states import to_state, to_states
 from   .base import Condition, NonmonotonicRunStoreCondition
 
 log = logging.getLogger(__name__)
@@ -46,6 +46,16 @@ class SkipDuplicate(Condition):
         target = self.__target_state.name
         states = "|".join( s.name for s in self.__check_states )
         return f"transition to {target} if another run is {states}"
+
+
+    @property
+    def check_states(self):
+        return frozenset(self.__check_states)
+
+
+    @property
+    def target_state(self):
+        return self.__target_state
 
 
     def to_jso(self):
@@ -100,6 +110,26 @@ class BoundSkipDuplicate(NonmonotonicRunStoreCondition):
         return f"transition to {target} if another {self.__inst} is {states}"
 
 
+    @property
+    def check_states(self):
+        return frozenset(self.__check_states)
+
+
+    @property
+    def target_state(self):
+        return self.__target_state
+
+
+    @property
+    def inst(self):
+        return self.__inst
+
+
+    @property
+    def run_id(self):
+        return self.__run_id
+
+
     def to_jso(self):
         return {
             **super().to_jso(),
@@ -114,9 +144,10 @@ class BoundSkipDuplicate(NonmonotonicRunStoreCondition):
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             return cls(
-                check_states    =pop("check_states"),
-                target_state    =pop("target_state"),
+                check_states    =pop("check_states", to_states),
+                target_state    =pop("target_state", to_state),
                 inst            =pop("instance", Instance.from_jso),
+                run_id          =pop("run_id", str),
             )
 
 
