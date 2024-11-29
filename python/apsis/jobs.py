@@ -11,6 +11,7 @@ from   .actions import Action
 from   .actions.schedule import successor_from_jso
 from   .cond import Condition
 from   .exc import JobError, JobsDirErrors, SchemaError
+from   .lib import itr
 from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
@@ -216,6 +217,14 @@ class JobsDir:
 
 
 
+# FIXME: Use normal protocols for this, not random APIs that need mocks.
+class MockJobDb:
+
+    def get(self, job_id):
+        raise LookupError(job_id)
+
+
+
 def check_job(jobs_dir, job):
     """
     Performs consistency checks on `job` in `jobs_dir`.
@@ -224,11 +233,6 @@ def check_job(jobs_dir, job):
       Generator of errors.
     """
     from apsis.runs import Instance, Run, validate_args, bind
-
-    # FIXME: Use normal protocols for this, not random APIs that need mocks.
-    class MockJobDb:
-        def get(self, job_id):
-            raise LookupError(job_id)
 
     # Try scheduling a run for each schedule of each job.  This tests that
     # template expansions work, that all names and params are bound, and that
@@ -287,6 +291,73 @@ def check_job(jobs_dir, job):
             yield from check_associated_run(action, "action")
         for cond in job.conds:
             yield from check_associated_run(cond, "condition")
+
+
+def check_job_dependencies_scheduled(
+        jobs_dir,
+        job,
+        *,
+        sched_times=None,
+        dep_times=None,
+):
+    """
+    Attempts to check that dependencies are scheduled.
+
+    For each run of `job` scheduled within `sched_times`, looks for
+    dependencies.  For each dependency, checks that there is a matching run of
+    that job scheduled in `dep_times`.
+
+    :param sched_times:
+      (start, stop) time interval for scheduled runs of `job` to consider.  If
+      none, uses (now, now + 1 day).
+    :param dep_times:
+      (start, stop) time interval in which to look for scheduled runs of
+      dependencies.  If none, uses (now - 1 day, now + 1 day).
+    :return:
+      Generator of errors indicating apparently unscheduled dependencies.
+    """
+    from apsis.cond.dependency import Dependency
+    from apsis.runs import Instance, Run
+    from apsis.scheduler import get_insts_to_schedule
+
+    deps = [ c for c in job.conds if isinstance(c, Dependency) ]
+    if len(deps) == 0:
+        return
+
+    jobs = Jobs(jobs_dir, MockJobDb())
+    time = ora.now()
+
+    sched_start, sched_stop = time, time + 86400
+    dep_start, dep_stop = time - 86400, time + 86400
+    dep_ivl = f"[{dep_start}, {dep_stop})"
+
+    for schedule in job.schedules:
+        # Construct all instances that will be scheduled soon.
+        insts = get_insts_to_schedule(job, sched_start, sched_stop)
+        # Check each of scheduled instance.
+        for _, inst in insts:
+            run = Run(inst)
+            # Check each dependency.
+            for dep in deps:
+                # Bind the dependency to get the precise args that match.
+                dep = dep.bind(run, jobs)
+
+                # Look at cheduled runs of the dependency job in `dep_times.
+                # Check if any matches the dependency args.
+                dep_job = jobs_dir.get_job(dep.job_id)
+                if not any(
+                        i.args == dep.args
+                        for _, i in get_insts_to_schedule(
+                                dep_job,
+                                dep_start, dep_stop
+                        )
+                ):
+                    # No matches.
+                    dep_inst = Instance(dep.job_id, dep.args)
+                    yield (
+                        f"scheduled run {inst}: "
+                        f"dependency {dep_inst} not scheduled in {dep_ivl}"
+                    )
 
 
 def load_jobs_dir(path):

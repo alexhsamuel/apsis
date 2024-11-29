@@ -65,14 +65,23 @@ def main():
 
     def cmd_check_jobs(args):
         status = 0
+        jobs_dir = None
+
         try:
-            _ = apsis.jobs.load_jobs_dir(args.path)
+            jobs_dir = apsis.jobs.load_jobs_dir(args.path)
         except NotADirectoryError as exc:
             parser.error(exc)
         except JobsDirErrors as exc:
             for err in exc.errors:
                 con.print(f"{err.job_id}: {err}", style="error")
                 status = 1
+
+        if jobs_dir is not None and args.check_dependencies_scheduled:
+            for job in jobs_dir.get_jobs():
+                for err in apsis.jobs.check_job_dependencies_scheduled(jobs_dir, job):
+                    con.print(f"{job.job_id}: {err}", style="error")
+                    status = 1
+
         return status
 
 
@@ -85,6 +94,9 @@ def main():
     cmd.add_argument(
         "--config", metavar="CFGFILE", nargs="?", type=Path, default=None,
         help="read config from CFGFILE")
+    cmd.add_argument(
+        "--check-dependencies-scheduled", default=False, action="store_true",
+        help="check that dependencies are scheduled in the future")
 
     #-------------------------------------------------------------
     # command: create
