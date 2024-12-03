@@ -1,7 +1,6 @@
-from   pathlib import Path
-import pytest
 from   typing import List
 
+import apsis.check
 from   apsis.cond.dependency import Dependency
 import apsis.jobs
 from   apsis.jobs import InMemoryJobs, Job
@@ -10,7 +9,7 @@ from   apsis.jobs import InMemoryJobs, Job
 
 def check_job(jobs, job_id) -> List[str]:
     job = jobs.get_job(job_id)
-    return list(apsis.jobs.check_job(jobs, job))
+    return list(apsis.check.check_job(jobs, job))
 
 
 def test_dependency_no_job():
