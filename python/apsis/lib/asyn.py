@@ -13,6 +13,13 @@ def _install():
     Monkeypatches the event loop policy to augment new event loops with
     `on_close` behavior.
     """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        assert False, "event loop already running"
+
     policy = asyncio.get_event_loop_policy()
     old_new_event_loop = policy.new_event_loop
 

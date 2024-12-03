@@ -2,6 +2,7 @@
 Control CLI, for maintenance and running the service.
 """
 
+# Configure GC as early as possible.
 import gc
 gc.set_threshold(100_000, 100, 10)
 import apsis.lib.py
@@ -10,8 +11,10 @@ apsis.lib.py.track_gc_stats(warn_time=0.5)
 import logging
 import os
 from   pathlib import Path
+import sanic  # must be imported before apsis.lib.asyn
 import sys
 
+import apsis.check
 import apsis.cmdline
 import apsis.config
 from   apsis.exc import JobsDirErrors
@@ -78,7 +81,7 @@ def main():
 
         if jobs_dir is not None and args.check_dependencies_scheduled:
             for job in jobs_dir.get_jobs():
-                for err in apsis.jobs.check_job_dependencies_scheduled(jobs_dir, job):
+                for err in apsis.check.check_job_dependencies_scheduled(jobs_dir, job):
                     con.print(f"{job.job_id}: {err}", style="error")
                     status = 1
 
