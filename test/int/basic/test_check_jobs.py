@@ -1,9 +1,9 @@
-from   pathlib import Path
-import pytest
 import yaml
 
+from   apsis.check import check_job_dependencies_scheduled
 from   apsis.exc import JobsDirErrors
 import apsis.jobs
+from   apsis.lib import itr
 
 #-------------------------------------------------------------------------------
 
@@ -134,5 +134,89 @@ def test_misspelled_param(tmp_path):
     job["condition"]["args"]["date"] = "{{ get_calendar('Mon-Fri').before(date) }}"
     dump_yaml_file(job, job_path)
     apsis.jobs.load_jobs_dir(jobs_path)
+
+
+def test_check_job_dependencies_scheduled(tmp_path):
+    jobs_path = tmp_path
+
+    dependent = {
+        "params": ["label"],
+        "condition": {
+            "type": "dependency",
+            "job_id": "dependency",
+        },
+        "program": {"type": "no-op"},
+    }
+    dump_yaml_file(dependent, jobs_path / "dependent.yaml")
+
+    dependency = {
+        "params": ["label"],
+        "program": {"type": "no-op"},
+    }
+    dump_yaml_file(dependency, jobs_path / "dependency.yaml")
+
+    def check():
+        jobs_dir = apsis.jobs.load_jobs_dir(jobs_path)
+        return list(itr.chain(*(
+            check_job_dependencies_scheduled(jobs_dir, j)
+            for j in jobs_dir.get_jobs()
+        )))
+
+    # The dependent isn't scheduled, so no error.
+    errs = check()
+    assert len(errs) == 0
+
+    # Schedule the dependent.  Now there are errors, because the dependency is
+    # not scheduled.
+    dependent["schedule"] = [
+        {
+            "type": "interval",
+            "interval": "12h",
+            "args": {
+                "label": "foo",
+            },
+        },
+        {
+            "type": "interval",
+            "interval": "12h",
+            "args": {
+                "label": "bar",
+            },
+        },
+    ]
+    dump_yaml_file(dependent, jobs_path / "dependent.yaml")
+    errs = check()
+    assert any( "label=foo" in e for e in errs )
+    assert any( "label=bar" in e for e in errs )
+
+    # Schedule the dependency of one of the scheduled dependents.  There are
+    # still errors, because of the dependency of the other scheduled dependent.
+    dependency["schedule"] = [
+        {
+            "type": "interval",
+            "interval": "1h",
+            "args": {
+                "label": "bar",
+            },
+        },
+    ]
+    dump_yaml_file(dependency, jobs_path / "dependency.yaml")
+    errs = check()
+    assert any( "label=foo" in e for e in errs )
+    assert not any( "label=bar" in e for e in errs )
+
+    # Schedule the other dependency.  No more errors.
+    dependency["schedule"].append(
+        {
+            "type": "interval",
+            "interval": "4h",
+            "args": {
+                "label": "foo",
+            },
+        },
+    )
+    dump_yaml_file(dependency, jobs_path / "dependency.yaml")
+    errs = check()
+    assert len(errs) == 0
 
 

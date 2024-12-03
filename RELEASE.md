@@ -1,3 +1,9 @@
+# v0.29
+
+- `apsisctl check-jobs --check-dependencies-scheduled` attempts to check that
+  dependencies of scheduled runs are themselves scheduled.
+
+
 # v0.28
 
 - Apsis checks at startup that the job dir exists and all YAML files within it
