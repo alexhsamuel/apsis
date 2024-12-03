@@ -203,6 +203,19 @@ Keep in mind that Apsis run arguments are always strings, so Apsis converts the
 result using `str`.
 
 
+Checking jobs
+=============
+
+Invoke `apsisctl check-jobs JOBDIR` to load and check the jobs in a job
+directory.  This runs the same checks that Apsis uses when starting.
+
+With `--check-dependencies-scheduled`, this also attemps to check that the
+dependencies of each scheduled job are also scheduled.  This check is heuristic,
+as it checks dependencies only of runs scheduled in the next 24 hours, and
+considers only dependency runs scheduled in the last 24 hours and the next 24
+hours.
+
+
 Changes to jobs
 ===============
 
