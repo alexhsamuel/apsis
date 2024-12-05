@@ -56,7 +56,7 @@ def test_archive(tmp_path):
         res = inst.wait_run(res["run_id"])
         # The first run has been archived.
         assert res["meta"]["program"]["run count"] == 1
-        assert res["meta"]["program"]["run_ids"] == [run_id0]
+        assert res["meta"]["program"]["run_ids"] == [[run_id0]]
 
         # The first run is no longer be available; the other two are.
         with pytest.raises(APIError):
@@ -77,7 +77,7 @@ def test_archive(tmp_path):
         # The second run was archived, but the third isn't old enough yet.
         res = inst.wait_run(res["run_id"])
         assert res["meta"]["program"]["run count"] == 1
-        assert res["meta"]["program"]["run_ids"] == [run_id1]
+        assert res["meta"]["program"]["run_ids"] == [[run_id1]]
 
         # The second run is no longer available.
         with pytest.raises(APIError):
@@ -156,8 +156,10 @@ def test_clean_up_jobs(tmp_path):
         res = inst.wait_run(res["run_id"])
         archive_job_id = res["job_id"]
         # The first two runs have been archived.
-        assert res["meta"]["program"]["run count"] == 2
-        assert set(res["meta"]["program"]["run_ids"]) == {run_id0, run_id1}
+        meta = res["meta"]["program"]
+        assert meta["run count"] == 2
+        assert len(meta["run_ids"]) == 1  # one chunk
+        assert set(meta["run_ids"][0]) == {run_id0, run_id1}
 
     # Check the DB.  Only the third job ID should remain, plus the job ID from
     # the archive job.

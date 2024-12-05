@@ -119,7 +119,7 @@ class ArchiveProgram(_InternalProgram):
                 chunk_row_counts = db.archive(self.__path, run_ids)
                 # Accumulate metadata.
                 meta["run count"] += len(run_ids)
-                meta["run_ids"].extend(run_ids)
+                meta["run_ids"].append(run_ids)
                 for key, value in chunk_row_counts.items():
                     row_counts[key] = row_counts.get(key, 0) + value
                 # Also vacuum to free space.
