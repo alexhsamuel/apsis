@@ -125,6 +125,9 @@ class ArchiveProgram(_InternalProgram):
                 # Also vacuum to free space.
                 db.vacuum()
 
+            # Yield to the event loop.
+            await asyncio.sleep(0)
+
         return ProgramSuccess(meta=meta)
 
 
