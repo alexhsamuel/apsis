@@ -3,7 +3,7 @@ import logging
 import ora
 
 from   ..base import _InternalProgram, ProgramRunning, ProgramSuccess
-from   apsis.lib.json import check_schema
+from   apsis.lib.json import check_schema, nkey
 from   apsis.lib.parse import parse_duration
 from   apsis.runs import template_expand
 
@@ -23,7 +23,7 @@ class ArchiveProgram(_InternalProgram):
     skipped for archiving.
     """
 
-    def __init__(self, *, age, path, count, chunk_size=None):
+    def __init__(self, *, age, path, count, chunk_size=None, chunk_sleep=None):
         """
         If this archive file doesn't exist, it is created automatically on
         first use; the contianing directory must exist.
@@ -37,11 +37,14 @@ class ArchiveProgram(_InternalProgram):
           Maximum number of runs to archive per run of this program.
         :param chunk_size:
           Number of runs to archive in one chunk.  Each chunk is blocking.
+        :param chunk_sleep:
+          Time in seconds to wait between chunks.
         """
         self.__age          = age
         self.__path         = path
         self.__count        = count
         self.__chunk_size   = chunk_size
+        self.__chunk_sleep  = chunk_sleep
 
 
     def __str__(self):
@@ -55,6 +58,8 @@ class ArchiveProgram(_InternalProgram):
             count       = int(template_expand(self.__count, args)),
             chunk_size  = None if self.__chunk_size is None
                           else int(template_expand(self.__chunk_size, args)),
+            chunk_sleep = None if self.__chunk_sleep is None
+                          else float(template_expand(self.__chunk_sleep, args)),
         )
 
 
@@ -65,7 +70,14 @@ class ArchiveProgram(_InternalProgram):
             path        = pop("path", str)
             count       = pop("count", int)
             chunk_size  = pop("chunk_size", int, None)
-        return cls(age=age, path=path, count=count, chunk_size=chunk_size)
+            chunk_sleep = pop("chunk_sleep", float, None)
+        return cls(
+            age         =age,
+            path        =path,
+            count       =count,
+            chunk_size  =chunk_size,
+            chunk_sleep =chunk_sleep,
+        )
 
 
     def to_jso(self):
@@ -74,10 +86,8 @@ class ArchiveProgram(_InternalProgram):
             "age"   : self.__age,
             "path"  : self.__path,
             "count" : self.__count,
-            **(
-                {} if self.__chunk_size is None
-                else {"chunk_size": self.__chunk_size}
-            ),
+            **nkey("chunk_size", self.__chunk_size),
+            **nkey("chunk_sleep", self.__chunk_sleep),
         }
 
 
@@ -125,8 +135,9 @@ class ArchiveProgram(_InternalProgram):
                 # Also vacuum to free space.
                 db.vacuum()
 
-            # Yield to the event loop.
-            await asyncio.sleep(0)
+            if count > 0 and self.__chunk_sleep is not None:
+                # Yield to the event loop.
+                await asyncio.sleep(self.__chunk_sleep)
 
         return ProgramSuccess(meta=meta)
 

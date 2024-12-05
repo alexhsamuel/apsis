@@ -135,6 +135,7 @@ def test_archive_chunks(tmp_path):
                 "age": 1,
                 "count": 80,
                 "chunk_size": 10,
+                "chunk_sleep": 0.1,
                 "path": str(path),
             },
         })

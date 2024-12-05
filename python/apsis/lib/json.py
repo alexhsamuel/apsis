@@ -85,6 +85,10 @@ def expand_dotted_keys(mapping):
     return type(mapping)(result)
 
 
+def nkey(name, value):
+    return {} if value is None else {name: value}
+
+
 #-------------------------------------------------------------------------------
 
 class TypedJso:
