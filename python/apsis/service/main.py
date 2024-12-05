@@ -65,10 +65,11 @@ app.static("/static", str(vue_dir / "static"))
 #-------------------------------------------------------------------------------
 
 def build_apsis(cfg):
-    db_path = cfg["database"]
+    db_cfg = cfg["database"]
+    db_path = db_cfg["path"]
 
     log.info(f"opening state file {db_path}")
-    db = SqliteDB.open(db_path)
+    db = SqliteDB.open(db_path, timeout=db_cfg.get("timeout"))
 
     job_dir = cfg["job_dir"]
     log.info(f"opening jobs dir {job_dir}")

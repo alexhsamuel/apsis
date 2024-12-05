@@ -15,7 +15,9 @@ config file.
 .. code:: yaml
 
     jobs: ./jobs                # path
-    database: ./apsis.db        # path
+    database:
+      path: ./apsis.db          # path
+      timeout: 10s              # duration
 
     runs:
       lookback: null            # seconds
@@ -26,7 +28,7 @@ config file.
       horizon: 86400            # seconds
 
     waiting:
-      max_time: null            # seconds
+      max_time: null            # duration
 
     program_types:
       # ...
@@ -41,8 +43,8 @@ config file.
       # ...
 
 
-For durations in seconds, you may also use durations like `30s`, `10 min` (600
-seconds), `1.5h` (5400 seconds), and `1 day` (86400 seconds).
+A duration is in in seconds, or you may give durations like `30s`, `10 min`
+(600 seconds), `1.5h` (5400 seconds), and `1 day` (86400 seconds).
 
 
 Files
@@ -50,7 +52,9 @@ Files
 
 `jobdir` specifies the path to the directory containing job files.
 
-`database` specifies the path to the database file containing run state.
+`database.path` specifies the path to the database file containing run state.
+
+`database.timeout` specifies the lock timeout when accessing the database.
 
 
 Runs
