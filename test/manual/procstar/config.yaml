@@ -1,4 +1,6 @@
-database: apsis.db
+database:
+  path: apsis.db
+  timeout: 0.1m
 jobs: jobs
 
 procstar:
