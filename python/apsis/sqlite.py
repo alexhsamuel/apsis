@@ -761,7 +761,6 @@ class SqliteDB:
                     sa.select([TBL_RUNS.c.run_id])
                     .where(TBL_RUNS.c.timestamp < dump_time(before))
                     .where(TBL_RUNS.c.state.in_(FINISHED_STATES))
-                    .order_by(TBL_RUNS.c.timestamp)
                     .limit(count)
                 )
             ]
