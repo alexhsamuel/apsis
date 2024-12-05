@@ -5,7 +5,7 @@ import yaml
 
 from   .lib.json import to_array
 from   .lib.parse import nparse_duration
-from   .lib.py import get_cfg
+from   .lib.py import get_cfg, set_cfg
 
 log = logging.getLogger(__name__)
 
@@ -19,15 +19,27 @@ def normalize_path(path, base_path: Path):
 
 
 def check(cfg, base_path: Path):
+    def _check_duration(path):
+        duration = nparse_duration(get_cfg(cfg, path, None))
+        if duration is not None and duration <= 0:
+            log.error("negative duration: {path}")
+        else:
+            set_cfg(cfg, path, duration)
+
     job_dir = normalize_path(cfg.get("job_dir", "jobs"), base_path)
     if not job_dir.exists():
         log.error(f"missing job directory: {job_dir}")
     cfg["job_dir"] = job_dir
 
-    database = normalize_path(cfg.get("database", "apsis.db"), base_path)
-    if not database.exists():
-        log.error(f"missing database: {database}")
-    cfg["database"] = database
+    db_cfg = cfg.get("database")
+    # Backward compatibility: just the DB path.
+    if isinstance(db_cfg, str):
+        cfg["database"] = db_cfg = {"path": db_cfg}
+    db_path = normalize_path(db_cfg.get("path", "apsis.db"), base_path)
+    if not db_path.exists():
+        log.error(f"missing database: {db_path}")
+    db_cfg["path"] = db_path
+    _check_duration("database.timeout")
 
     cfg["actions"] = to_array(cfg.get("action", []))
 
@@ -35,11 +47,6 @@ def check(cfg, base_path: Path):
     max_time = waiting["max_time"] = nparse_duration(waiting.get("max_time", None))
     if max_time is not None and max_time <= 0:
         log.error("negative waiting.max_time: {max_time}")
-
-    def _check_duration(path):
-        duration = nparse_duration(get_cfg(cfg, path, None))
-        if duration is not None and duration <= 0:
-            log.error("negative duration: {path}")
 
     _check_duration("procstar.agent.connection.start_timeout")
     _check_duration("procstar.agent.connection.reconnect_timeout")

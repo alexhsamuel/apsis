@@ -54,7 +54,9 @@ class ApsisService:
 
     def write_cfg(self):
         cfg = self.cfg | {
-            "database": str(self.db_path),
+            "database": {
+                "path": str(self.db_path),
+            },
             "job_dir": str(self.jobs_dir),
         }
         with open(self.cfg_path, "w") as file:

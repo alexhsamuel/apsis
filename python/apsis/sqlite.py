@@ -651,12 +651,21 @@ class SqliteDB:
 
 
     @classmethod
-    def __get_engine(cls, path):
+    def __get_engine(cls, path, *, timeout=None):
         url = "sqlite://" if path is None else f"sqlite:///{path}"
+        connect_args = {}
+        if timeout is not None:
+            connect_args["timeout"] = timeout
+
         # Use a static pool-- exactly one persistent connection-- since we are a
         # single-threaded async application, and sqlite doesn't support
         # concurrent access.
-        return sa.create_engine(url, poolclass=sa.pool.StaticPool)
+        engine = sa.create_engine(
+            url,
+            poolclass=sa.pool.StaticPool,
+            connect_args=connect_args,
+        )
+        return engine
 
 
     def close(self):
@@ -688,13 +697,13 @@ class SqliteDB:
 
 
     @classmethod
-    def open(cls, path):
+    def open(cls, path, *, timeout=None):
         if path is not None:
             path = Path(path).absolute()
             if not path.exists():
                 raise FileNotFoundError(path)
 
-        engine  = cls.__get_engine(path)
+        engine  = cls.__get_engine(path, timeout=timeout)
         # FIXME: Check that tables exist.
         return cls(engine)
 

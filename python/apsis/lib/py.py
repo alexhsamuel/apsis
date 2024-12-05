@@ -228,7 +228,7 @@ def format_repr(obj):
 
 def get_cfg(cfg, path, default):
     """
-    Retrieves a config by `path` from nested dict `cfg`.
+    Gets a config at `path` in nested dict `cfg`.
 
     :param path:
       A dotted path.
@@ -237,6 +237,24 @@ def get_cfg(cfg, path, default):
     for sub in subs:
         cfg = cfg.get(sub, {})
     return cfg.get(last, default)
+
+
+def set_cfg(cfg, path, value):
+    """
+    Sets a config at `path` in nested dict `cfg`.
+
+      >>> cfg = {}
+      >>> set_cfg(cfg, "foo.bar.baz", 10)
+      >>> cfg
+      {'foo': {'bar': {'baz': 10}}}
+
+    :param path:
+      A dotted path.
+    """
+    *subs, last = path.split(".")
+    for sub in subs:
+        cfg = cfg.setdefault(sub, {})
+    cfg[last] = value
 
 
 def look_up(name, obj):

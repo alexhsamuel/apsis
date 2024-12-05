@@ -1,3 +1,8 @@
+# v0.30
+
+- Config `database.timeout` sets the sqlite lock timeout.
+
+
 # v0.29
 
 - `apsisctl check-jobs --check-dependencies-scheduled` attempts to check that
