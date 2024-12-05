@@ -1,6 +1,8 @@
 # v0.30
 
 - Config `database.timeout` sets the sqlite lock timeout.
+- The run archive program takes `chunk_size` and `chunk_sleep` parameters, to
+  divide the archive operation into chunks with pauses in between.
 
 
 # v0.29
