@@ -665,8 +665,6 @@ class SqliteDB:
             poolclass=sa.pool.StaticPool,
             connect_args=connect_args,
         )
-        (busy_timeout, ), = engine.execute("PRAGMA busy_timeout")
-        log.info(f"busy_timeout = {busy_timeout}")
         return engine
 
 
