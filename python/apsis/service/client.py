@@ -332,7 +332,7 @@ class Client:
         return next(iter(runs.values())) if count is None else runs.values()
 
 
-    def __schedule(self, time, job):
+    def __schedule(self, time, job, count):
         time = "now" if time == "now" else str(Time(time))
         data = {
             "job": job,
@@ -340,15 +340,16 @@ class Client:
                 "schedule": time,
             },
         }
-        runs = self.__post("/api/v1/runs", data=data)["runs"]
-        return next(iter(runs.values()))
+        runs = self.__post("/api/v1/runs", data=data, count=count)["runs"]
+        # FIXME: Hacky.
+        return next(iter(runs.values())) if count is None else runs.values()
 
 
-    def schedule_adhoc(self, time, job):
-        return self.__schedule(time, job)
+    def schedule_adhoc(self, time, job, *, count=None):
+        return self.__schedule(time, job, count)
 
 
-    def schedule_program(self, time, args):
+    def schedule_program(self, time, args, *, count=None):
         """
         :param time:
           The schedule time, or "now" for immediate.
@@ -357,17 +358,17 @@ class Client:
           to run.
         """
         args = [ str(a) for a in args ]
-        return self.__schedule(time, {"program": args})
+        return self.__schedule(time, {"program": args}, count)
 
 
-    def schedule_shell_program(self, time, command):
+    def schedule_shell_program(self, time, command, *, count=None):
         """
         :param time:
           The schedule time, or "now" for immediate.
         :param command:
           The shell command to run.
         """
-        return self.__schedule(time, {"program": str(command)})
+        return self.__schedule(time, {"program": str(command)}, count)
 
 
     def reload_jobs(self, *, dry_run=False):
