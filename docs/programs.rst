@@ -205,7 +205,8 @@ The archive program retires a run from Apsis's memory before archiving it.  The
 run is no longer visible through any UI.  A run that is not completed cannot be
 archived.
 
-This job archives up to 10,000 runs older than 14 days (1,209,600 seconds):
+This job archives up to 10,000 runs older than 14 days (1,209,600 seconds), in
+chunks of 1,000 runs at a time, with a 10 second pause between chunks:
 
 .. code:: yaml
 
@@ -218,11 +219,16 @@ This job archives up to 10,000 runs older than 14 days (1,209,600 seconds):
         type: apsis.program.internal.archive.ArchiveProgram
         age: 1209600
         count: 10000
+        chunk_size: 1000
+        chunk_sleep: 10
         path: '/path/to/apsis/archive.db'
 
-The archive program blocks Apsis from performing other tasks.  Adjust the
-`count` parameter so that the archiving process does not take more than a few
-seconds, to avoid long delays in startng scheduled runs.
+The archive program blocks Apsis from performing other tasks for each chunk of
+archive runs.  Adjust the `chunk_size`, `chunk_sleep`, and `count` parameters so
+that the archiving process pauses every few seconds, to avoid long delays in
+starting scheduled runs.  If the `chunk_size` parameter is omitted, all runs are
+archived in one chunk.  If the `chunk_sleep` parameter is omitted, Apsis does
+not pause between chunks.
 
 The archive file is also an SQLite3 database file, and contains the subset of
 columns from the main database file that contains run data.  The archive file
