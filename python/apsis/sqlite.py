@@ -665,6 +665,18 @@ class SqliteDB:
             poolclass=sa.pool.StaticPool,
             connect_args=connect_args,
         )
+
+        # Adjust defaults, for performance.
+        for pragma, value in (
+                ("journal_mode", "WAL"),
+                ("synchronous", "NORMAL"),
+                ("cache_size", "-32768"),  # 32 MB
+                ("optimize", "0x10002"),
+                ("mmap_size", "2147483648"),  # 2 GB
+                ("page_size", "8192"),
+        ):
+            engine.execute(f"PRAGMA {pragma} = {value}")
+
         return engine
 
 
