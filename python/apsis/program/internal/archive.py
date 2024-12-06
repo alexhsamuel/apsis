@@ -132,12 +132,13 @@ class ArchiveProgram(_InternalProgram):
                 meta["run_ids"].append(run_ids)
                 for key, value in chunk_row_counts.items():
                     row_counts[key] = row_counts.get(key, 0) + value
-                # Also vacuum to free space.
-                db.vacuum()
 
             if count > 0 and self.__chunk_sleep is not None:
                 # Yield to the event loop.
                 await asyncio.sleep(self.__chunk_sleep)
+
+        # Also vacuum to free space.
+        db.vacuum()
 
         return ProgramSuccess(meta=meta)
 
