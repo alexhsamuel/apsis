@@ -10,6 +10,7 @@ class State(enum.Enum):
     waiting     = enum.auto()
     starting    = enum.auto()
     running     = enum.auto()
+    stopping    = enum.auto()
     success     = enum.auto()
     failure     = enum.auto()
     error       = enum.auto()
@@ -51,9 +52,10 @@ TRANSITIONS = {
     State.waiting   : {State.new, State.scheduled},
     State.starting  : {State.scheduled, State.waiting},
     State.running   : {State.starting},
-    State.error     : {State.new, State.scheduled, State.waiting, State.starting, State.running, State.skipped},
-    State.success   : {State.running},
-    State.failure   : {State.running},
+    State.stopping  : {State.running},
+    State.error     : {State.new, State.scheduled, State.waiting, State.starting, State.running, State.stopping, State.skipped},
+    State.success   : {State.running, State.stopping},
+    State.failure   : {State.running, State.stopping},
     State.skipped   : {State.new, State.scheduled, State.waiting},
 }
 
