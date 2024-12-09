@@ -80,5 +80,5 @@ testpaths = "test"
 markers = ["local_ssh"]
 
 [tool.ruff]
-select = ["F", "E999"]
+lint.select = ["F"]
 
