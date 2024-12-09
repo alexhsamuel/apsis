@@ -6,5 +6,5 @@ program:
 
 schedule:
   type: interval
-  interval: 60s
+  interval: 1h
 
