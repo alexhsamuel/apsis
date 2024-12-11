@@ -13,6 +13,7 @@ from   .lib.json import to_array, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
 from   .schedule import Schedule
+from   .stop import Stop
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class Job:
 
     def __init__(
             self, job_id, params=[], schedules=[], program=NoOpProgram(),
-            conds=[], actions=[], *, meta={}, ad_hoc=False
+            conds=[], actions=[], *, stop=None, meta={}, ad_hoc=False
     ):
         """
         :param schedules:
@@ -39,6 +40,7 @@ class Job:
         self.program    = program
         self.conds      = tupleize(conds)
         self.actions    = actions
+        self.stop       = stop
         self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
 
@@ -50,6 +52,7 @@ class Job:
             program     =self.program,
             conds       =self.conds,
             actions     =self.actions,
+            stop        =self.stop,
             meta        =self.meta,
             ad_hoc      =self.ad_hoc,
         )
@@ -64,70 +67,92 @@ class Job:
             and other.program   == self.program
             and other.conds     == self.conds
             and other.actions   == self.actions
+            and other.stop      == self.stop
             and other.meta      == self.meta
+        )
+
+
+    def to_jso(self):
+        return {
+            "job_id"        : self.job_id,
+            "params"        : list(sorted(self.params)),
+            "schedule"      : [ s.to_jso() for s in self.schedules ],
+            "program"       : self.program.to_jso(),
+            "condition"     : [ c.to_jso() for c in self.conds ],
+            "action"        : [ a.to_jso() for a in self.actions ],
+            "stop"          : None if self.stop is None else self.stop.to_jso(),
+            "metadata"      : self.meta,
+            "ad_hoc"        : self.ad_hoc,
+        }
+
+
+    @classmethod
+    def from_jso(cls, jso, job_id):
+        with check_schema(jso) as pop:
+            assert pop("job_id", default=job_id) == job_id, \
+                f"JSON job_id mismatch {job_id}"
+
+            params      = pop("params", default=[])
+            params      = [params] if isinstance(params, str) else params
+
+            schedules   = pop("schedule", default=())
+            schedules   = (
+                [schedules] if isinstance(schedules, dict) 
+                else [] if schedules is None
+                else schedules
+            )
+            schedules   = [ Schedule.from_jso(s) for s in schedules ]
+
+            program     = pop("program", Program.from_jso)
+
+            conds       = pop("condition", to_array, default=[])
+            conds       = [ Condition.from_jso(c) for c in conds ]
+
+            acts        = pop("action", to_array, default=[])
+            acts        = [ Action.from_jso(a) for a in acts ]
+
+            # Successors are syntactic sugar for actions.
+            sucs        = pop("successors", to_array, default=[])
+            acts.extend([ successor_from_jso(s) for s in sucs ])
+
+            stop        = pop("stop", default=None)
+            stop        = None if stop is None else Stop.from_jso(stop)
+
+            metadata    = pop("metadata", default={})
+            metadata["labels"] = [
+                str(l)
+                for l in tupleize(metadata.get("labels", []))
+            ]
+
+            ad_hoc      = pop("ad_hoc", bool, default=False)
+
+        return cls(
+            job_id, params, schedules, program,
+            conds   =conds,
+            actions =acts,
+            stop    =stop,
+            meta    =metadata,
+            ad_hoc  =ad_hoc,
         )
 
 
 
 #-------------------------------------------------------------------------------
 
-def jso_to_job(jso, job_id):
-    with check_schema(jso) as pop:
-        # FIXME: job_id here at all?
-        assert pop("job_id", default=job_id) == job_id, f"JSON job_id mismatch {job_id}"
-
-        params      = pop("params", default=[])
-        params      = [params] if isinstance(params, str) else params
-
-        # FIXME: 'schedules' for backward compatibility; remove in a while.
-        schedules   = pop("schedule", default=())
-        schedules   = (
-            [schedules] if isinstance(schedules, dict) 
-            else [] if schedules is None
-            else schedules
-        )
-        schedules   = [ Schedule.from_jso(s) for s in schedules ]
-
-        program     = pop("program", Program.from_jso)
-
-        conds       = pop("condition", to_array, default=[])
-        conds       = [ Condition.from_jso(c) for c in conds ]
-
-        acts        = pop("action", to_array, default=[])
-        acts        = [ Action.from_jso(a) for a in acts ]
-
-        # Successors are syntactic sugar for actions.
-        sucs        = pop("successors", to_array, default=[])
-        acts.extend([ successor_from_jso(s) for s in sucs ])
-
-        metadata    = pop("metadata", default={})
-        metadata["labels"] = [
-            str(l)
-            for l in tupleize(metadata.get("labels", []))
-        ]
-
-        ad_hoc      = pop("ad_hoc", bool, default=False)
-
-    return Job(
-        job_id, params, schedules, program,
-        conds   =conds,
-        actions =acts,
-        meta    =metadata,
-        ad_hoc  =ad_hoc,
-    )
-
-
 def job_to_jso(job):
-    return {
-        "job_id"        : job.job_id,
-        "params"        : list(sorted(job.params)),
-        "schedule"      : [ s.to_jso() for s in job.schedules ],
-        "program"       : job.program.to_jso(),
-        "condition"     : [ c.to_jso() for c in job.conds ],
-        "action"        : [ a.to_jso() for a in job.actions ],
-        "metadata"      : job.meta,
-        "ad_hoc"        : job.ad_hoc,
-    }
+    """
+    :deprecated:
+      Use `Job.to_jso()`.
+    """
+    return job.to_jso()
+
+
+def jso_to_job(jso, job_id):
+    """
+    :deprecated:
+      Use `job.to_jso()`.
+    """
+    return Job.from_jso(jso, job_id)
 
 
 def load_yaml(file, job_id):
