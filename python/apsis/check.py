@@ -115,6 +115,17 @@ def check_job_dependencies_scheduled(
     dep_start, dep_stop = time - 86400, time + 86400
     dep_ivl = f"[{dep_start}, {dep_stop})"
 
+    # Cache schedule enumeration of dependents, as they are probably evaluated
+    # many times.
+    dep_insts = {}
+    def get_dep_insts(job):
+        try:
+            return dep_insts[job.job_id]
+        except KeyError:
+            insts = list(get_insts_to_schedule(job, dep_start, dep_stop))
+            dep_insts[job.job_id] = insts
+            return insts
+
     for schedule in job.schedules:
         # Construct all instances that will be scheduled soon.
         insts = get_insts_to_schedule(job, sched_start, sched_stop)
@@ -126,15 +137,12 @@ def check_job_dependencies_scheduled(
                 # Bind the dependency to get the precise args that match.
                 dep = dep.bind(run, jobs)
 
-                # Look at cheduled runs of the dependency job in `dep_times.
-                # Check if any matches the dependency args.
+                # Look at scheduled runs of the dependency job.  Check if any
+                # matches the dependency args.
                 dep_job = jobs_dir.get_job(dep.job_id)
                 if not any(
                         i.args == dep.args
-                        for _, i in get_insts_to_schedule(
-                                dep_job,
-                                dep_start, dep_stop
-                        )
+                        for _, i in get_dep_insts(dep_job)
                 ):
                     # No matches.
                     dep_inst = Instance(dep.job_id, dep.args)
