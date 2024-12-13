@@ -12,6 +12,10 @@ def to_array(obj):
     return obj if isinstance(obj, list) else [obj]
 
 
+def to_narray(obj):
+    return [] if obj is None else to_array(obj)
+
+
 @contextlib.contextmanager
 def check_schema(jso):
     """

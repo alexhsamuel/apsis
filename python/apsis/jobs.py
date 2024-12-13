@@ -9,7 +9,7 @@ from   .actions import Action
 from   .actions.schedule import successor_from_jso
 from   .cond import Condition
 from   .exc import JobError, JobsDirErrors, SchemaError
-from   .lib.json import to_array, check_schema
+from   .lib.json import to_array, to_narray, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
 from   .schedule import Schedule
@@ -40,7 +40,6 @@ class Job:
         self.program    = program
         self.conds      = tupleize(conds)
         self.actions    = actions
-        self.stop       = stop
         self.meta       = meta
         self.ad_hoc     = bool(ad_hoc)
 
@@ -52,7 +51,6 @@ class Job:
             program     =self.program,
             conds       =self.conds,
             actions     =self.actions,
-            stop        =self.stop,
             meta        =self.meta,
             ad_hoc      =self.ad_hoc,
         )
@@ -67,20 +65,28 @@ class Job:
             and other.program   == self.program
             and other.conds     == self.conds
             and other.actions   == self.actions
-            and other.stop      == self.stop
             and other.meta      == self.meta
         )
 
 
     def to_jso(self):
+        def schedule_to_jso(schedule):
+            jso = schedule.to_jso()
+            return (
+                jso if schedule.stop is None
+                else {
+                    "start" : jso,
+                    "stop"  : schedule.stop.to_jso(),
+                }
+            )
+
         return {
             "job_id"        : self.job_id,
             "params"        : list(sorted(self.params)),
-            "schedule"      : [ s.to_jso() for s in self.schedules ],
+            "schedule"      : [ schedule_to_jso(s) for s in self.schedules ],
             "program"       : self.program.to_jso(),
             "condition"     : [ c.to_jso() for c in self.conds ],
             "action"        : [ a.to_jso() for a in self.actions ],
-            "stop"          : None if self.stop is None else self.stop.to_jso(),
             "metadata"      : self.meta,
             "ad_hoc"        : self.ad_hoc,
         }
@@ -88,6 +94,18 @@ class Job:
 
     @classmethod
     def from_jso(cls, jso, job_id):
+        def schedule_from_jso(jso):
+            if set(jso) in ({"start"}, {"start", "stop"}):
+                # Explicit start schedule, and possibly a stop schedule.
+                schedule = Schedule.from_jso(jso["start"])
+                stop = jso.get("stop", False)
+                if stop is not None:
+                    schedule.stop = StopSchedule.from_jso(stop)
+                return schedule
+            else:
+                # Only a start schedule.
+                return Schedule.from_jso(jso)
+
         with check_schema(jso) as pop:
             assert pop("job_id", default=job_id) == job_id, \
                 f"JSON job_id mismatch {job_id}"
@@ -95,13 +113,8 @@ class Job:
             params      = pop("params", default=[])
             params      = [params] if isinstance(params, str) else params
 
-            schedules   = pop("schedule", default=())
-            schedules   = (
-                [schedules] if isinstance(schedules, dict) 
-                else [] if schedules is None
-                else schedules
-            )
-            schedules   = [ Schedule.from_jso(s) for s in schedules ]
+            schedules   = pop("schedule", to_narray, default=())
+            schedules   = [ schedule_from_jso(s) for s in schedules ]
 
             program     = pop("program", Program.from_jso)
 
@@ -115,9 +128,6 @@ class Job:
             sucs        = pop("successors", to_array, default=[])
             acts.extend([ successor_from_jso(s) for s in sucs ])
 
-            stop        = pop("stop", default=None)
-            stop        = None if stop is None else Stop.from_jso(stop)
-
             metadata    = pop("metadata", default={})
             metadata["labels"] = [
                 str(l)
@@ -130,7 +140,6 @@ class Job:
             job_id, params, schedules, program,
             conds   =conds,
             actions =acts,
-            stop    =stop,
             meta    =metadata,
             ad_hoc  =ad_hoc,
         )
