@@ -1,20 +1,5 @@
 # Scheduled stop
 
-NO:
-```yaml
-schedule:
-  start:
-    type: interval
-    interval: 1h
-
-  stop:
-    method:
-      type: signal
-    schedule:
-      type: duration
-      duration: 30m
-```
-
 THIS IS CORRECT:
 ```yaml
 program:
