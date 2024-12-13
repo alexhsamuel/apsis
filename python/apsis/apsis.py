@@ -819,6 +819,14 @@ async def _process_updates(apsis, run, updates):
 
         assert run.state == State.running
 
+        try:
+            stop_time = run.times["stop"]
+        except KeyError:
+            pass
+        else:
+            apsis.run_log.record(run, f"stop time: {stop_time}")
+            # FIXME: Handle stop time.
+
         while run.state == State.running:
             update = await anext(updates)
             match update:
