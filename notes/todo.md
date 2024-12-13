@@ -54,14 +54,22 @@ Transient connection (single run):
   - [x] move compression out of programs
 - [x] roll in Procstar agent changes to `/summary`
 - [ ] clean up API endpoints we don't need anymore
-- [ ] roll in, or get rid of, log socket
+- [x] roll in, or get rid of, log socket
 - [x] add live endpoints to `Client`
 - [x] live updates in CLUI
   - [x] output
   - [x] run log
 - [x] improve and clean up `State` enum
 
+- [ ] scheduled stop
+  - [ ] add stop time to run view
+  - [ ] add stop time to runs table
+  - [ ] add stop method to program
+  - [ ] refactor `apsis.stop`
+  - [ ] actually stop the program at the stop time
+  - [ ] update `_process_updates` to set the state for a stopping job
 - [ ] if `send_signal` raises, error the run
+
 - [ ] improve `apsis job` output style
 
 
