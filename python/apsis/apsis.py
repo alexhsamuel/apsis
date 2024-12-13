@@ -931,8 +931,8 @@ async def reschedule_runs(apsis, job_id):
     # and the scheduler time.
     job = apsis.jobs.get_job(job_id)
     schedule = list(get_insts_to_schedule(job, scheduled_time, scheduler_time))
-    for time, inst in schedule:
-        await apsis.schedule(time, inst, expected=True)
+    for time, stop_time, inst in schedule:
+        await apsis.schedule(time, inst, expected=True, stop_time=stop_time)
 
 
 async def reload_jobs(apsis, *, dry_run=False):
