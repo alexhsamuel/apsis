@@ -103,7 +103,7 @@ class Schedule(TypedJso):
 
 
     def __call__(self, start: ora.Time):
-        raise NotImplementedError
+        raise NotImplementedError("Schedule.__call__")
 
 
 
