@@ -5,6 +5,7 @@ import sanic
 import zlib
 
 from   apsis.cond.dependency import Dependency
+from   apsis.schedule import schedule_to_jso
 
 log = logging.getLogger(__name__)
 
@@ -95,10 +96,18 @@ def _to_jsos(objs):
 
 
 def job_to_jso(job):
+    def sched_to_jso(s):
+        jso = schedule_to_jso(s)
+        jso["str"] = (
+            str(s) if s.stop_schedule is None
+            else f"{s}, {s.stop_schedule}"
+        )
+        return jso
+
     return {
         "job_id"        : job.job_id,
         "params"        : list(sorted(job.params)),
-        "schedule"      : [ _to_jso(s) for s in job.schedules ],
+        "schedule"      : [ sched_to_jso(s) for s in job.schedules ],
         "program"       : _to_jso(job.program),
         "condition"     : [ _to_jso(c) for c in job.conds ],
         "action"        : [ _to_jso(a) for a in job.actions ],
@@ -123,6 +132,8 @@ def run_to_summary_jso(run):
     }
     if run.expected:
         jso["expected"] = run.expected
+    if run.stop_time:
+        jso["stop_time"] = str(run.stop_time)
 
     if run.conds is not None:
         deps = [

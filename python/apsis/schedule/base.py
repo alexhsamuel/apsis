@@ -2,6 +2,7 @@ from   dataclasses import dataclass
 import ora
 
 from   apsis.lib.json import TypedJso, check_schema, nkey
+from   apsis.stop import StopSchedule
 
 #-------------------------------------------------------------------------------
 
@@ -116,5 +117,29 @@ class Schedule(TypedJso):
     def __call__(self, start: ora.Time):
         raise NotImplementedError("Schedule.__call__")
 
+
+
+def schedule_to_jso(schedule):
+    jso = schedule.to_jso()
+    return (
+        jso if schedule.stop_schedule is None
+        else {
+            "start" : jso,
+            "stop"  : schedule.stop_schedule.to_jso(),
+        }
+    )
+
+
+def schedule_from_jso(jso):
+    if set(jso) in ({"start"}, {"start", "stop"}):
+        # Explicit start schedule, and possibly a stop schedule.
+        schedule = Schedule.from_jso(jso["start"])
+        stop_jso = jso.get("stop", None)
+        if stop_jso is not None:
+            schedule.stop_schedule = StopSchedule.from_jso(stop_jso)
+        return schedule
+    else:
+        # Only a start schedule.
+        return Schedule.from_jso(jso)
 
 

@@ -12,8 +12,7 @@ from   .exc import JobError, JobsDirErrors, SchemaError
 from   .lib.json import to_array, to_narray, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
-from   .schedule import Schedule
-from   .stop import StopSchedule
+from   .schedule import Schedule, schedule_to_jso, schedule_from_jso
 
 log = logging.getLogger(__name__)
 
@@ -70,16 +69,6 @@ class Job:
 
 
     def to_jso(self):
-        def schedule_to_jso(schedule):
-            jso = schedule.to_jso()
-            return (
-                jso if schedule.stop_schedule is None
-                else {
-                    "start" : jso,
-                    "stop"  : schedule.stop_schedule.to_jso(),
-                }
-            )
-
         return {
             "job_id"        : self.job_id,
             "params"        : list(sorted(self.params)),
@@ -94,18 +83,6 @@ class Job:
 
     @classmethod
     def from_jso(cls, jso, job_id):
-        def schedule_from_jso(jso):
-            if set(jso) in ({"start"}, {"start", "stop"}):
-                # Explicit start schedule, and possibly a stop schedule.
-                schedule = Schedule.from_jso(jso["start"])
-                stop_jso = jso.get("stop", None)
-                if stop_jso is not None:
-                    schedule.stop_schedule = StopSchedule.from_jso(stop_jso)
-                return schedule
-            else:
-                # Only a start schedule.
-                return Schedule.from_jso(jso)
-
         with check_schema(jso) as pop:
             assert pop("job_id", default=job_id) == job_id, \
                 f"JSON job_id mismatch {job_id}"
