@@ -13,7 +13,7 @@ from   .lib.json import to_array, to_narray, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
 from   .schedule import Schedule
-from   .stop import Stop
+from   .stop import StopSchedule
 
 log = logging.getLogger(__name__)
 
@@ -73,10 +73,10 @@ class Job:
         def schedule_to_jso(schedule):
             jso = schedule.to_jso()
             return (
-                jso if schedule.stop is None
+                jso if schedule.stop_schedule is None
                 else {
                     "start" : jso,
-                    "stop"  : schedule.stop.to_jso(),
+                    "stop"  : schedule.stop_schedule.to_jso(),
                 }
             )
 
@@ -98,9 +98,9 @@ class Job:
             if set(jso) in ({"start"}, {"start", "stop"}):
                 # Explicit start schedule, and possibly a stop schedule.
                 schedule = Schedule.from_jso(jso["start"])
-                stop = jso.get("stop", False)
-                if stop is not None:
-                    schedule.stop = StopSchedule.from_jso(stop)
+                stop_jso = jso.get("stop", None)
+                if stop_jso is not None:
+                    schedule.stop_schedule = StopSchedule.from_jso(stop_jso)
                 return schedule
             else:
                 # Only a start schedule.

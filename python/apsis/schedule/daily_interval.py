@@ -118,7 +118,7 @@ class DailyIntervalSchedule(Schedule):
             calendar    = get_calendar(pop("calendar", default="all"))
             start       = DaytimeSpec.from_jso(pop("start"))
             stop        = DaytimeSpec.from_jso(pop("stop"))
-            interval    = pop("interval", int)
+            interval    = pop("interval", parse_duration)
             args        = pop("args", default={})
         return cls(
             tz, calendar, start, stop, interval, args,

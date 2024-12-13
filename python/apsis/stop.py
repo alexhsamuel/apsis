@@ -103,7 +103,7 @@ class StopSchedule(TypedJso):
 
 
 
-class StopDurationSchedule(StopSchedule):
+class DurationStopSchedule(StopSchedule):
 
     def __init__(self, duration, *, after="schedule"):
         try:
@@ -156,7 +156,7 @@ class StopDurationSchedule(StopSchedule):
 
 
 
-class StopDaytimeSchedule(StopSchedule):
+class DaytimeStopSchedule(StopSchedule):
     """
     Schedules to stop a run on the next occurrence of a daytime.
     """
@@ -225,8 +225,8 @@ class StopDaytimeSchedule(StopSchedule):
 
 
 
-StopSchedule.TYPE_NAMES.set(StopDurationSchedule, "duration")
-StopSchedule.TYPE_NAMES.set(StopDaytimeSchedule, "daytime")
+StopSchedule.TYPE_NAMES.set(DurationStopSchedule, "duration")
+StopSchedule.TYPE_NAMES.set(DaytimeStopSchedule, "daytime")
 
 #-------------------------------------------------------------------------------
 

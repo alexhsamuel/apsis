@@ -95,13 +95,13 @@ class DaytimeSpec:
 #-------------------------------------------------------------------------------
 
 class Schedule(TypedJso):
-    # Note: `stop` is not included in the JSO representation.
+    # Note: `stop_schedule` is not included in the JSO representation.
 
     TYPE_NAMES = TypedJso.TypeNames()
 
     def __init__(self, *, enabled=True):
         self.enabled = bool(enabled)
-        self.stop = None
+        self.stop_schedule = None
 
 
     def to_jso(self):
