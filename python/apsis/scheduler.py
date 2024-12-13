@@ -15,7 +15,7 @@ def get_insts_to_schedule(job, start, stop):
     Builds runs to schedule for `job` between `start` and `stop`.
 
     :return:
-      Iterable of (time, inst).
+      Iterable of (sched_time, stop_time, inst).
     """
     for schedule in job.schedules:
         times = itertools.takewhile(lambda t: t[0] < stop, schedule(start))
@@ -31,7 +31,11 @@ def get_insts_to_schedule(job, start, stop):
                 # Runs instantiated by the scheduler are only expected; the job
                 # schedule may change before the run is started.
                 # FIXME: Store additional args for later expansion.
-                yield sched_time, Instance(job.job_id, args)
+                stop_time = (
+                    None if schedule.stop_schedule is None
+                    else schedule.stop_schedule(sched_time)
+                )
+                yield sched_time, stop_time, Instance(job.job_id, args)
 
 
 class Scheduler:
@@ -97,8 +101,9 @@ class Scheduler:
 
         log.debug(f"scheduling runs until {stop}")
         for job in self.__jobs.get_jobs():
-            for time, inst in get_insts_to_schedule(job, self.__stop, stop):
-                await self.__schedule(time, inst)
+            items = get_insts_to_schedule(job, self.__stop, stop)
+            for sched_time, stop_time, inst in items:
+                await self.__schedule(sched_time, inst, stop_time=stop_time)
 
         self.__stop = stop
 

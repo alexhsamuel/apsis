@@ -119,7 +119,7 @@ def check_job_dependencies_scheduled(
         # Construct all instances that will be scheduled soon.
         insts = get_insts_to_schedule(job, sched_start, sched_stop)
         # Check each of scheduled instance.
-        for _, inst in insts:
+        for _, _, inst in insts:
             run = Run(inst)
             # Check each dependency.
             for dep in deps:
@@ -131,7 +131,7 @@ def check_job_dependencies_scheduled(
                 dep_job = jobs_dir.get_job(dep.job_id)
                 if not any(
                         i.args == dep.args
-                        for _, i in get_insts_to_schedule(
+                        for _, _, i in get_insts_to_schedule(
                                 dep_job,
                                 dep_start, dep_stop
                         )

@@ -132,8 +132,6 @@ def run_to_summary_jso(run):
     }
     if run.expected:
         jso["expected"] = run.expected
-    if run.stop_time:
-        jso["stop_time"] = str(run.stop_time)
 
     if run.conds is not None:
         deps = [

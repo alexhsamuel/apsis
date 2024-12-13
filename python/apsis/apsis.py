@@ -447,7 +447,7 @@ class Apsis:
 
     # FIXME: Move the API elsewhere.
 
-    async def schedule(self, time, inst, *, expected=False):
+    async def schedule(self, time, inst, *, expected=False, stop_time=None):
         """
         Creates and schedules a new run.
 
@@ -459,7 +459,11 @@ class Apsis:
         :return:
           The run, either scheduled or error.
         """
-        time = None if time is None else Time(time)
+        if time is None:
+            times = {"schedule": now()}
+        else:
+            time = Time(time)
+            times = {"schedule": time}
 
         # Create the run and add it to the run store, which assigns it a run ID
         # and persists it.
@@ -471,6 +475,9 @@ class Apsis:
             job = self.jobs.get_job(run.inst.job_id)
             validate_args(run, job.params)
             bind(run, job, self.jobs)
+            # Add the stop time, if any.
+            if stop_time is not None:
+                times["stop"] = stop_time
             # Attach job labels to the run.
             run.meta["job"] = {
                 "labels": job.meta.get("labels", []),
@@ -479,15 +486,16 @@ class Apsis:
             self._run_exc(run, message=str(exc))
             return run
 
+        # Transition to scheduled.
+        msg = f"scheduled: {'now' if time is None else time}"
+        self.run_log.record(run, msg)
+        self._transition(run, State.scheduled, times=times)
+
         if time is None:
-            # Transition to scheduled and immediately to wait.
-            self.run_log.record(run, "scheduled: now")
-            self._transition(run, State.scheduled, times={"schedule": now()})
+            # Transition immediately to wait.
             self._wait(run)
         else:
             # Schedule for the future.
-            self.run_log.record(run, f"scheduled: {time}")
-            self._transition(run, State.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
 
         return run
@@ -572,7 +580,7 @@ class Apsis:
         """
         # Create the new run.
         log.info(f"rerun: {run.run_id} at {time or 'now'}")
-        new_run = await self.schedule(time, run.inst)
+        new_run = await self.schedule(time, run.inst, stop_time=run.stop_time)
         self.run_log.info(new_run, f"scheduled as rerun of {run.run_id}")
         return new_run
 
