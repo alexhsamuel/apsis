@@ -49,7 +49,7 @@ def to_states(states):
 TRANSITIONS = {
     State.new       : set(),
     State.scheduled : {State.new},
-    State.waiting   : {State.new, State.scheduled},
+    State.waiting   : {State.scheduled},
     State.starting  : {State.scheduled, State.waiting},
     State.running   : {State.starting},
     State.stopping  : {State.running},
