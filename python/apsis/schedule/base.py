@@ -1,7 +1,7 @@
 from   dataclasses import dataclass
 import ora
 
-from   apsis.lib.json import TypedJso, check_schema
+from   apsis.lib.json import TypedJso, check_schema, nkey
 
 #-------------------------------------------------------------------------------
 
@@ -100,6 +100,15 @@ class Schedule(TypedJso):
 
     def __init__(self, *, enabled=True):
         self.enabled = bool(enabled)
+
+
+    def to_jso(self):
+        return super().to_jso() | nkey("enabled", self.enabled)
+
+
+    @classmethod
+    def _from_jso(cls, pop):
+        return dict(enabled=pop("enabled", bool, default=True))
 
 
     def __call__(self, start: ora.Time):
