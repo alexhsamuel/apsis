@@ -2,8 +2,6 @@ import asyncio
 import ora
 from   signal import Signals
 
-from   apsis.actions import Action
-from   apsis.cond import Condition
 from   apsis.lib.json import TypedJso, to_array, check_schema
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.py import format_ctor
@@ -234,30 +232,26 @@ StopSchedule.TYPE_NAMES.set(StopDaytimeSchedule, "daytime")
 
 class Stop:
 
-    def __init__(self, method, schedules=[]):
+    def __init__(self, method, schedule):
         self.method     = method
-        self.schedules  = schedules
+        self.schedule   = schedule
 
 
     def __eq__(self, other):
         return (
                 other.method    == self.method
-            and other.schedules == self.schedules
+            and other.schedule  == self.shedule
         )
 
 
     def __repr__(self):
-        return format_ctor(
-            self,
-            method      =self.method,
-            schedules   =self.schedules,
-        )
+        return format_ctor(self, self.method, self.schedule)
 
 
     def to_jso(self):
         return {
-            "method"    : self.method,
-            "schedules" : [ s.to_jso() for s in self.schedules ],
+            "method"    : self.method.to_jso(),
+            "schedule"  : self.schedule.to_jso(),
         }
 
 
@@ -265,9 +259,8 @@ class Stop:
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             method      = pop("method", StopMethod.from_jso)
-            schedules   = pop("schedule", to_array, [])
-            schedules   = [ StopSchedule.from_jso(s) for s in schedules ]
-            return cls(method, schedules, conds, actions)
+            schedule    = pop("schedule", StopSchedule.from_jso)
+        return cls(method, schedule)
 
 
 
