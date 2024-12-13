@@ -228,39 +228,3 @@ class DaytimeStopSchedule(StopSchedule):
 StopSchedule.TYPE_NAMES.set(DurationStopSchedule, "duration")
 StopSchedule.TYPE_NAMES.set(DaytimeStopSchedule, "daytime")
 
-#-------------------------------------------------------------------------------
-
-class Stop:
-
-    def __init__(self, method, schedule):
-        self.method     = method
-        self.schedule   = schedule
-
-
-    def __eq__(self, other):
-        return (
-                other.method    == self.method
-            and other.schedule  == self.shedule
-        )
-
-
-    def __repr__(self):
-        return format_ctor(self, self.method, self.schedule)
-
-
-    def to_jso(self):
-        return {
-            "method"    : self.method.to_jso(),
-            "schedule"  : self.schedule.to_jso(),
-        }
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso) as pop:
-            method      = pop("method", StopMethod.from_jso)
-            schedule    = pop("schedule", StopSchedule.from_jso)
-        return cls(method, schedule)
-
-
-
