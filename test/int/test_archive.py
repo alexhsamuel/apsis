@@ -219,3 +219,23 @@ def test_clean_up_jobs(tmp_path):
     assert job_ids == {job_id2, archive_job_id}
 
 
+def test_vacuum():
+    with closing(ApsisService()) as inst:
+        inst.create_db()
+        inst.write_cfg()
+        inst.start_serve()
+        inst.wait_for_serve()
+
+        client = inst.client
+
+        res = client.schedule_adhoc("now", {
+            "program": {
+                "type": "apsis.program.internal.vacuum.VacuumProgram",
+            },
+        })
+        res = inst.wait_run(res["run_id"])
+        assert res["state"] == "success"
+        meta = res["meta"]["program"]
+        assert meta["time"] > 0
+
+
