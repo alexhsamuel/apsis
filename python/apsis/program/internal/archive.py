@@ -5,6 +5,7 @@ import ora
 from   ..base import _InternalProgram, ProgramRunning, ProgramSuccess
 from   apsis.lib.json import check_schema, nkey
 from   apsis.lib.parse import parse_duration
+from   apsis.lib.timing import Timer
 from   apsis.runs import template_expand
 
 log = logging.getLogger(__name__)
@@ -104,9 +105,13 @@ class ArchiveProgram(_InternalProgram):
 
         row_counts = {}
         meta = {
-            "run count" : 0,
-            "run_ids"   : [],
-            "row counts": row_counts
+            "run count"         : 0,
+            "run_ids"           : [],
+            "row counts"        : row_counts,
+            "time": {
+                "get runs"      : 0,
+                "archive runs"  : 0,
+            }
         }
 
         count = self.__count
@@ -115,10 +120,12 @@ class ArchiveProgram(_InternalProgram):
                 count if self.__chunk_size is None
                 else min(count, self.__chunk_size)
             )
-            run_ids = db.get_archive_run_ids(
-                before  =ora.now() - self.__age,
-                count   =chunk,
-            )
+            with Timer() as timer:
+                run_ids = db.get_archive_run_ids(
+                    before  =ora.now() - self.__age,
+                    count   =chunk,
+                )
+            meta["time"]["get runs"] += timer.elapsed
             count -= chunk
 
             # Make sure all runs are retired; else skip them.
@@ -126,19 +133,18 @@ class ArchiveProgram(_InternalProgram):
 
             if len(run_ids) > 0:
                 # Archive these runs.
-                chunk_row_counts = db.archive(self.__path, run_ids)
+                with Timer() as timer:
+                    chunk_row_counts = db.archive(self.__path, run_ids)
                 # Accumulate metadata.
                 meta["run count"] += len(run_ids)
                 meta["run_ids"].append(run_ids)
                 for key, value in chunk_row_counts.items():
                     row_counts[key] = row_counts.get(key, 0) + value
+                meta["time"]["archive runs"] += timer.elapsed
 
             if count > 0 and self.__chunk_sleep is not None:
                 # Yield to the event loop.
                 await asyncio.sleep(self.__chunk_sleep)
-
-        # Also vacuum to free space.
-        db.vacuum()
 
         return ProgramSuccess(meta=meta)
 

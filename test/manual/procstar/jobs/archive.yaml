@@ -1,0 +1,7 @@
+params: [label, age]
+
+program:
+  type: apsis.program.internal.archive.ArchiveProgram
+  age: "{{ age }}"
+  path: "/home/alex/dev/apsis/test/manual/procstar/archive/{{ label }}.db"
+  count: 1000000
