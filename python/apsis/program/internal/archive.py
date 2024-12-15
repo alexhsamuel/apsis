@@ -137,9 +137,6 @@ class ArchiveProgram(_InternalProgram):
                 # Yield to the event loop.
                 await asyncio.sleep(self.__chunk_sleep)
 
-        # Also vacuum to free space.
-        db.vacuum()
-
         return ProgramSuccess(meta=meta)
 
 
