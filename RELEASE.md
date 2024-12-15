@@ -1,3 +1,9 @@
+# v0.31
+
+- `ArchiveProgram` no longer vacuums the database file.  Use
+  `apsis.program.internal.vacuum.VacuumProgram` to schedule this separately.
+
+
 # v0.30
 
 - Config `database.timeout` sets the sqlite lock timeout.
