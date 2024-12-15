@@ -261,6 +261,11 @@ TBL_RUNS = sa.Table(
     sa.Column("actions"     , sa.String()       , nullable=True),
 )
 
+# This index is used to speed up removal of orphaned jobs during archiving, i.e.
+# (ad hoc) jobs in the `jobs` table that no longer have an associated run.  If
+# we ever remove the `jobs` table, we can remove this.
+sa.Index("index_runs_job_id", TBL_RUNS.c.job_id)
+
 TBL_RUNS_SELECT = sa.select([
     TBL_RUNS.columns[n]
     for n in (
