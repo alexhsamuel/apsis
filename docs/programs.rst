@@ -197,9 +197,9 @@ This job produces a run once a minute, which appends the stats to a dated file:
 Archive
 ^^^^^^^
 
-A `apsis.program.interal.archive` program moves data pertaining to older runs
-out of the Apsis database file, into a separate archive file.  Keeping the main
-Apsis database file from growing too large can avoid performance degredation.
+An `ArchiveProgram` program moves data pertaining to older runs out of the Apsis
+database file, into a separate archive file.  Keeping the main Apsis database
+file from growing too large can avoid performance degredation.
 
 The archive program retires a run from Apsis's memory before archiving it.  The
 run is no longer visible through any UI.  A run that is not completed cannot be
@@ -234,4 +234,13 @@ The archive file is also an SQLite3 database file, and contains the subset of
 columns from the main database file that contains run data.  The archive file
 cannot be used directly by Apsis, but may be useful for historical analysis and
 forensics.
+
+
+Vacuum
+^^^^^^
+
+A `VacuumProgram` run vacuums (defragments and frees unused pages from) the
+Apsis database file.  The program blocks Apsis while it is running; schedule it
+to run only during times the scheduler is otherwise quiet.
+
 
