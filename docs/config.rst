@@ -42,6 +42,14 @@ config file.
     host_groups:
       # ...
 
+    python:
+      gc:
+        enable: true
+        threshold: [100000, 100, 100]
+
+    procstar:
+      # ...
+
 
 A duration is in in seconds, or you may give durations like `30s`, `10 min`
 (600 seconds), `1.5h` (5400 seconds), and `1 day` (86400 seconds).
@@ -141,6 +149,27 @@ A single host name is effectively a host alias.
         - host3.example.com
 
       my_alias: host4.example.com
+
+
+Python
+------
+
+Apsis allocates large numbers of Python objects, but does not heavily use Python
+data structures.  Python's garbage collection (GC) will occasionally run for a
+substantial time, which blocks Apsis and can lead to timeouts.  To enable
+(default) or disable GC, or adjust its thresholds:
+
+.. code:: yaml
+
+    python:
+      gc:
+        enable: false
+        threshold: [100000, 100, 100]
+
+The thresholds apply only if GC is enabled.  See documentation for
+`gc.set_threshold()
+<https://docs.python.org/3/library/gc.html#gc.set_threshold>`_ for an
+explanation of these values.
 
 
 Procstar
