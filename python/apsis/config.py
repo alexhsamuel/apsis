@@ -76,7 +76,7 @@ def load(path):
     else:
         path = Path(path)
         with open(path) as file:
-            cfg = yaml.load(file, Loader=yaml.BaseLoader)
+            cfg = yaml.load(file, Loader=yaml.SafeLoader)
             if cfg is None:
                 # Empty config.
                 cfg = {}
