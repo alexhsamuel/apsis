@@ -2,6 +2,8 @@
 
 - `ArchiveProgram` no longer vacuums the database file.  Use
   `apsis.program.internal.vacuum.VacuumProgram` to schedule this separately.
+- Configs `python.gc.enable` and `python.gc.threshold` configure the Python
+  garbage collector.
 
 
 # v0.30
