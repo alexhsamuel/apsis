@@ -162,10 +162,25 @@ def main():
     # command: serve
 
     def cmd_serve(args):
+        # Assemble config.
         cfg = apsis.config.load(args.config)
         for ovr in args.override:
             name, val = ovr.split("=", 1)
             apsis.lib.json.set_dotted(cfg, name, val)
+
+        # Configure Python GC.
+        cfg_gc = cfg.get("python", {}).get("gc", {})
+        (gc.enable if bool(cfg_gc.get("enabled", True)) else gc.disable)()
+        try:
+            gc_threshold = cfg_gc["threshold"]
+        except KeyError:
+            pass
+        else:
+            gc.set_threshold(*gc_threshold)
+        log.info(
+            f"GC {'enabled' if gc.isenabled() else 'disabled'}; "
+            f"threshold: {gc.get_threshold()}"
+        )
 
         restart = apsis.service.main.serve(
             cfg, host=args.host, port=args.port, debug=args.debug)
