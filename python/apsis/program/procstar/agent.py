@@ -1,21 +1,53 @@
 import asyncio
+from   dataclasses import dataclass
 import logging
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError, NoOpenConnectionInGroup, ProcessUnknownError
 from   procstar.agent.proc import FdData, Interval, Result
+from   signal import Signals
 import traceback
 import uuid
 
 from   apsis.lib import asyn
-from   apsis.lib.json import check_schema
+from   apsis.lib.json import check_schema, ifkey
 from   apsis.lib.parse import nparse_duration
-from   apsis.lib.py import or_none, get_cfg
+from   apsis.lib.py import or_none, nstr, get_cfg
 from   apsis.lib.sys import to_signal
 from   apsis.procstar import get_agent_server
 from   apsis.program import base
 from   apsis.runs import join_args, template_expand
 
 log = logging.getLogger(__name__)
+
+ntemplate_expand = or_none(template_expand)
+
+#-------------------------------------------------------------------------------
+
+@dataclass
+class Stop:
+    """
+    Specification for how to stop a running agent program.
+    """
+
+    signal: Signals = Signals.SIGTERM
+    grace_period: int = 60
+
+    def to_jso(self):
+        cls = type(self)
+        return (
+              ifkey("signal", self.signal, cls.signal)
+            | ifkey("grace_period", self.grace_period, cls.grace_period)
+        )
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso or {}) as pop:
+            signal          = pop("signal", Signals.__getattr__, cls.signal)
+            grace_period    = pop("grace_period", int, cls.grace_period)
+        return cls(signal, grace_period)
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -143,10 +175,15 @@ async def _make_outputs(fd_data):
 
 class BoundProcstarProgram(base.Program):
 
-    def __init__(self, argv, *, group_id, sudo_user=None):
+    def __init__(
+            self, argv, *, group_id,
+            sudo_user   =None,
+            stop        =Stop(),
+    ):
         self.__argv = [ str(a) for a in argv ]
-        self.__group_id = str(group_id)
-        self.__sudo_user = None if sudo_user is None else str(sudo_user)
+        self.__group_id     = str(group_id)
+        self.__sudo_user    = nstr(sudo_user)
+        self.__stop         = stop
 
 
     def __str__(self):
@@ -154,10 +191,15 @@ class BoundProcstarProgram(base.Program):
 
 
     def to_jso(self):
-        return super().to_jso() | {
-            "argv"      : self.__argv,
-            "group_id"  : self.__group_id,
-        } | if_not_none("sudo_user", self.__sudo_user)
+        return (
+            super().to_jso()
+            | {
+                "argv"      : self.__argv,
+                "group_id"  : self.__group_id,
+            }
+            | if_not_none("sudo_user", self.__sudo_user)
+            | ifkey("stop", self.__stop.to_jso(), {})
+        )
 
 
     @classmethod
@@ -166,7 +208,8 @@ class BoundProcstarProgram(base.Program):
             argv        = pop("argv")
             group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
             sudo_user   = pop("sudo_user", default=None)
-        return cls(argv, group_id=group_id, sudo_user=sudo_user)
+            stop        = Stop.from_jso(pop("stop", default={}))
+        return cls(argv, group_id=group_id, sudo_user=sudo_user, stop=stop)
 
 
     def get_spec(self, cfg, *, run_id):
@@ -212,7 +255,7 @@ class BoundProcstarProgram(base.Program):
 
         Returns an async iterator of program updates.
         """
-        server = get_agent_server()
+        server          = get_agent_server()
         agent_cfg       = get_cfg(cfg, "procstar.agent", {})
         run_cfg         = get_cfg(agent_cfg, "run", {})
         conn_timeout    = get_cfg(agent_cfg, "connection.start_timeout", None)
@@ -417,13 +460,30 @@ class BoundProcstarProgram(base.Program):
                 await self.__delete(proc)
 
 
+    async def stop(self, run_state):
+        stop = self.__stop
+
+        # Send the stop signal.
+        await self.signal(None, run_state, stop.signal)
+
+        if stop.grace_period is not None:
+            # Wait for the grace period to expire.
+            await asyncio.sleep(stop.grace_period)
+            # Send a kill signal.
+            try:
+                await self.signal(None, run_state, Signals.SIGKILL)
+            except ValueError:
+                # Proc is gone; that's OK.
+                pass
+
+
     async def signal(self, run_id, run_state, signal):
         server = get_agent_server()
 
         signal = to_signal(signal)
-        log.info(f"sending signal: {run_id}: {signal}")
 
         proc_id = run_state["proc_id"]
+        log.info(f"sending signal: {proc_id}: {signal}")
         try:
             proc = server.processes[proc_id]
         except KeyError:
@@ -434,16 +494,72 @@ class BoundProcstarProgram(base.Program):
 
 #-------------------------------------------------------------------------------
 
-class ProcstarProgram(base.Program):
+class _ProcstarProgram(base.Program):
+    """
+    Base class for (unbound) Procstar program types.
+    """
 
     def __init__(
-            self, argv, *,
+            self, *,
             group_id    =procstar.proto.DEFAULT_GROUP,
-            sudo_user   =None
+            sudo_user   =None,
+            stop        =Stop(Stop.signal.name, Stop.grace_period),
     ):
-        self.__argv         = [ str(a) for a in argv ]
+        super().__init__()
         self.__group_id     = str(group_id)
         self.__sudo_user    = None if sudo_user is None else str(sudo_user)
+        self.__stop         = stop
+
+
+    def _bind(self, argv, args):
+        ntemplate_expand = or_none(template_expand)
+        stop = Stop(
+            to_signal(template_expand(self.__stop.signal, args)),
+            nparse_duration(ntemplate_expand(self.__stop.grace_period, args))
+        )
+        return BoundProcstarProgram(
+            argv,
+            group_id    =ntemplate_expand(self.__group_id, args),
+            sudo_user   =ntemplate_expand(self.__sudo_user, args),
+            stop        =stop,
+        )
+
+
+    def to_jso(self):
+        stop = (
+              ifkey("signal", self.__stop.signal, Stop.signal.name)
+            | ifkey("grace_period", self.__stop.grace_period, Stop.grace_period)
+        )
+        return (
+            super().to_jso()
+            | {
+                "group_id"  : self.__group_id,
+            }
+            | if_not_none("sudo_user", self.__sudo_user)
+            | ifkey("stop", stop, {})
+        )
+
+
+    @staticmethod
+    def _from_jso(pop):
+        with check_schema(pop("stop", default={})) as spop:
+            signal = spop("signal", str, default=Stop.signal.name)
+            grace_period = spop("grace_period", default=Stop.grace_period)
+        return dict(
+            group_id    =pop("group_id", default=procstar.proto.DEFAULT_GROUP),
+            sudo_user   =pop("sudo_user", default=None),
+            stop        =Stop(signal, grace_period),
+        )
+
+
+
+#-------------------------------------------------------------------------------
+
+class ProcstarProgram(_ProcstarProgram):
+
+    def __init__(self, argv, **kw_args):
+        super().__init__(**kw_args)
+        self.__argv = [ str(a) for a in argv ]
 
 
     def __str__(self):
@@ -451,67 +567,53 @@ class ProcstarProgram(base.Program):
 
 
     def bind(self, args):
-        argv        = tuple( template_expand(a, args) for a in self.__argv )
-        group_id    = or_none(template_expand)(self.__group_id, args)
-        sudo_user   = or_none(template_expand)(self.__sudo_user, args)
-        return BoundProcstarProgram(
-            argv, group_id=group_id, sudo_user=sudo_user)
+        argv = tuple( template_expand(a, args) for a in self.__argv )
+        return super()._bind(argv, args)
 
 
     def to_jso(self):
-        return super().to_jso() | {
-            "argv"      : self.__argv,
-            "group_id"  : self.__group_id,
-        } | if_not_none("sudo_user", self.__sudo_user)
+        return super().to_jso() | {"argv" : self.__argv}
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             argv        = pop("argv")
-            group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
-            sudo_user   = pop("sudo_user", default=None)
-        return cls(argv, group_id=group_id, sudo_user=sudo_user)
+            kw_args     = cls._from_jso(pop)
+        return cls(argv, **kw_args)
 
 
 
 #-------------------------------------------------------------------------------
 
-class ProcstarShellProgram(base.Program):
+class ProcstarShellProgram(_ProcstarProgram):
 
     SHELL = "/usr/bin/bash"
 
-    def __init__(
-            self, command, *,
-            group_id    =procstar.proto.DEFAULT_GROUP,
-            sudo_user   =None,
-    ):
-        self.__command      = str(command)
-        self.__group_id     = str(group_id)
-        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
+    def __init__(self, command, **kw_args):
+        super().__init__(**kw_args)
+        self.__command = str(command)
+
+
+    def __str__(self):
+        return self.__command
 
 
     def bind(self, args):
-        argv        = [self.SHELL, "-c", template_expand(self.__command, args)]
-        group_id    = or_none(template_expand)(self.__group_id, args)
-        sudo_user   = or_none(template_expand)(self.__sudo_user, args)
-        return BoundProcstarProgram(argv, group_id=group_id, sudo_user=sudo_user)
+        argv = [self.SHELL, "-c", template_expand(self.__command, args)]
+        return super()._bind(argv, args)
 
 
     def to_jso(self):
-        return super().to_jso() | {
-            "command"   : self.__command,
-            "group_id"  : self.__group_id,
-        } | if_not_none("sudo_user", self.__sudo_user)
+        return super().to_jso() | {"command" : self.__command}
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             command     = pop("command")
-            group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
-            sudo_user   = pop("sudo_user", default=None)
-        return cls(command, group_id=group_id, sudo_user=sudo_user)
+            kw_args     = cls._from_jso(pop)
+        return cls(command, **kw_args)
 
 
 
