@@ -81,7 +81,7 @@ class NoOpProgram(Program):
         return asyncio.ensure_future(self.wait(run_id, run_state))
 
 
-    async def signal(self, run_state, signum):
+    async def signal(self, run_id, run_state, signal):
         log.info("ignoring signal to no-op program")
 
 

@@ -210,13 +210,13 @@ class Program(TypedJso):
         """
 
 
-    async def signal(self, run_id, signum: str):
+    async def signal(self, run_id, run_state, signal):
         """
         Sends a signal to the running program.
 
         :param run_id:
           The run ID; used for logging only.
-        :param signum:
+        :param signal:
           Signal name or number.
         """
         raise NotImplementedError("program signal not implemented")
