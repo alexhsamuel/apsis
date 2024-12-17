@@ -245,7 +245,7 @@ class Apsis:
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
         # Start a task to process updates from the program.
-        run_task = _process_updates(self, run, updates)
+        run_task = _process_updates(self, run, updates, run.program)
         self.__run_tasks.add(run.run_id, run_task)
 
 
@@ -265,7 +265,7 @@ class Apsis:
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
         # Start a task to process updates from the program.
-        run_task = _process_updates(self, run, updates)
+        run_task = _process_updates(self, run, updates, run.program)
         self.__run_tasks.add(run.run_id, run_task)
 
 
@@ -791,7 +791,7 @@ async def _maybe_compress(outputs, *, compression="br", min_size=16384):
     return dict(zip(outputs.keys(), o))
 
 
-async def _process_updates(apsis, run, updates):
+async def _process_updates(apsis, run, updates, program):
     """
     Processes program `updates` for `run` until the program is finished.
     """
@@ -829,24 +829,16 @@ async def _process_updates(apsis, run, updates):
         # Does this run have a scheduled stop time?
         try:
             stop_time = run.times["stop"]
-
         except KeyError:
             stop_task = None
-
         else:
             # Start a task to stop the run at the scheduled time.
             async def stop():
-                sleep = stop_time - now()
-                log.debug(f"{run_id}: sleeping {sleep} s until stop")
-                await asyncio.sleep(sleep)
+                duration = stop_time - now()
+                log.debug(f"{run_id}: running for {duration} s until stop")
+                await asyncio.sleep(duration)
                 log.debug(f"{run_id}: stopping")
-
-                # FIXME: Generalize to program.stop.
-                if not run.state.finished:
-                    await apsis.send_signal(run, to_signal("SIGTERM"))
-                    await asyncio.sleep(30)
-                    if not run.state.finished:
-                        await apsis.send_signal(run, to_signal("SIGKILL"))
+                await program.stop()
 
             stop_task = asyncio.create_task(stop())
 
