@@ -266,6 +266,8 @@ class Program(TypedJso):
             yield success
 
 
+    # FIXME: Remove `run_id` from API.  The program should store this in
+    # `run_state`, if it needs it.
     async def connect(self, run_id, run_state, cfg):
         """
         Connects to the running program specified by `run_state`.
@@ -288,7 +290,7 @@ class Program(TypedJso):
             yield success
 
 
-    async def stop(self):
+    async def stop(self, run_state):
         """
         Instructs the running program to stop.
         """

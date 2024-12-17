@@ -322,7 +322,7 @@ class Client:
                     "schedule": time,
                 } | nkey("stop", stop_time)
             }
-        }
+        } | nkey("count", count)
         runs = self.__post("/api/v1/runs", **params)["runs"]
         # FIXME: Hacky.
         return next(iter(runs.values())) if count is None else runs.values()

@@ -87,10 +87,9 @@ async def _process_updates(apsis, run, updates, program):
                 await asyncio.sleep(duration)
                 # Transition to stopping.
                 apsis.run_log.record(run, "stopping")
-                apsis._transition(run, State.stopping)
+                apsis._transition(run, State.stopping, run_state=run.run_state)
                 # Ask the run to stop.
-                log.debug(f"{run_id}: stopping")
-                await program.stop()
+                await program.stop(run.run_state)
                 # The main update loop handles updates in response.
 
             stop_task = asyncio.create_task(stop())
@@ -151,6 +150,7 @@ async def _process_updates(apsis, run, updates, program):
             # Cancel the stop task.
             if stop_task is not None:
                 stop_task.cancel()
+                await stop_task
 
             # Exhaust the async iterator, so that cleanup can run.
             try:
@@ -172,6 +172,6 @@ async def _process_updates(apsis, run, updates, program):
         tb = traceback.format_exc().encode()
         output = Output(OutputMetadata("traceback", length=len(tb)), tb)
         apsis._update_output_data(run, {"outputs": output}, True)
-        apsis._transition(run, State.error)
+        apsis._transition(run, State.error, force=True)
 
 
