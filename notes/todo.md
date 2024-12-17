@@ -41,8 +41,12 @@
 - [x] improve and clean up `State` enum
 
 - [ ] scheduled stop
-  - [ ] add stop method to program
-  - [ ] actually stop the program at the stop time
+  - [x] add stop method to program
+  - [x] actually stop the program at the stop time
+  - [ ] Procstar stop method
+  - [ ] ProcessProgram stop method
+  - [ ] classig agent program stop method
+  - [ ] "stop" operation
   - [ ] add stop time to run view
   - [ ] add stop time to runs table (NO?)
   - [ ] refactor `apsis.stop`
