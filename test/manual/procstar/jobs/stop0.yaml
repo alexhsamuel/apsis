@@ -1,0 +1,15 @@
+params: [date]
+
+schedule:
+  start:
+    type: daily
+    tz: America/New_York
+    daytime: 23:38:00
+  stop:
+    type: duration
+    duration: 20m
+
+program:
+  type: procstar-shell
+  command: sleep 30
+

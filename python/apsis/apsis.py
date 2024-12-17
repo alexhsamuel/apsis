@@ -792,6 +792,7 @@ async def _process_updates(apsis, run, updates):
     """
     Processes program `updates` for `run` until the program is finished.
     """
+    run_id = run.run_id
     updates = aiter(updates)
 
     try:
@@ -822,13 +823,31 @@ async def _process_updates(apsis, run, updates):
 
         assert run.state == State.running
 
+        # Does this run have a scheduled stop time?
         try:
             stop_time = run.times["stop"]
+
         except KeyError:
-            pass
+            stop_task = None
+
         else:
             apsis.run_log.record(run, f"stop time: {stop_time}")
-            # FIXME: Handle stop time.
+
+            # Start a task to stop the run at the scheduled time.
+            async def stop():
+                sleep = stop_time - now()
+                log.debug(f"{run_id}: sleeping {sleep} s until stop")
+                await asyncio.sleep(sleep)
+                log.debug(f"{run_id}: stopping")
+
+                # FIXME: Generalize to program.stop.
+                if not run.state.finished:
+                    await apsis.send_signal(run, to_signal("SIGTERM"))
+                    await asyncio.sleep(30)
+                    if not run.state.finished:
+                        await apsis.send_signal(run, to_signal("SIGKILL"))
+
+            stop_task = asyncio.create_task(stop())
 
         while run.state == State.running:
             update = await anext(updates)
@@ -883,6 +902,10 @@ async def _process_updates(apsis, run, updates):
                     assert False, f"unexpected update: {update}"
 
         else:
+            # Cancel the stop task.
+            if stop_task is not None:
+                stop_task.cancel()
+
             # Exhaust the async iterator, so that cleanup can run.
             try:
                 update = await anext(updates)
