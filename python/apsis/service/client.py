@@ -13,6 +13,7 @@ from   urllib.parse import quote, urlunparse
 import websockets.client
 
 import apsis.service
+from   apsis.lib.json import nkey
 
 #-------------------------------------------------------------------------------
 
@@ -312,44 +313,40 @@ class Client:
         return run
 
 
-    def schedule(self, job_id, args, time="now", *, count=None):
+    def __schedule(self, time, job_spec, *, count=None, stop_time=None):
+        time = "now" if time == "now" else str(Time(time))
+        stop_time = None if stop_time is None else str(stop_time)
+        params = {
+            "data": job_spec | {
+                "times": {
+                    "schedule": time,
+                } | nkey("stop", stop_time)
+            }
+        }
+        runs = self.__post("/api/v1/runs", **params)["runs"]
+        # FIXME: Hacky.
+        return next(iter(runs.values())) if count is None else runs.values()
+
+
+    def schedule(self, job_id, args, time="now", **kw_args):
         """
         Creates and schedules a new run.
         """
-        job_id  = str(job_id)
-        args    = { str(k): str(v) for k, v in args.items() }
-        time    = "now" if time == "now" else str(Time(time))
-
-        data = {
-            "job_id": job_id,
-            "args": args,
-            "times": {
-                "schedule": time,
-            }
-        }
-        runs = self.__post("/api/v1/runs", data=data, count=count)["runs"]
-        # FIXME: Hacky.
-        return next(iter(runs.values())) if count is None else runs.values()
-
-
-    def __schedule(self, time, job, count):
-        time = "now" if time == "now" else str(Time(time))
-        data = {
-            "job": job,
-            "times": {
-                "schedule": time,
+        return self.__schedule(
+            time,
+            {
+                "job_id": str(job_id),
+                "args"  : { str(k): str(v) for k, v in args.items() },
             },
-        }
-        runs = self.__post("/api/v1/runs", data=data, count=count)["runs"]
-        # FIXME: Hacky.
-        return next(iter(runs.values())) if count is None else runs.values()
+            **kw_args
+        )
 
 
-    def schedule_adhoc(self, time, job, *, count=None):
-        return self.__schedule(time, job, count)
+    def schedule_adhoc(self, time, job, **kw_args):
+        return self.__schedule(time, {"job": job}, **kw_args)
 
 
-    def schedule_program(self, time, args, *, count=None):
+    def schedule_program(self, time, args, **kw_args):
         """
         :param time:
           The schedule time, or "now" for immediate.
@@ -357,18 +354,25 @@ class Client:
           The argument vector.  The first item is the path to the program
           to run.
         """
-        args = [ str(a) for a in args ]
-        return self.__schedule(time, {"program": args}, count)
+        return self.__schedule(
+            time,
+            {"job": {"program": [ str(a) for a in args ]}},
+            **kw_args
+        )
 
 
-    def schedule_shell_program(self, time, command, *, count=None):
+    def schedule_shell_program(self, time, command, **kw_args):
         """
         :param time:
           The schedule time, or "now" for immediate.
         :param command:
           The shell command to run.
         """
-        return self.__schedule(time, {"program": str(command)}, count)
+        return self.__schedule(
+            time,
+            {"job": {"program": str(command)}},
+            **kw_args
+        )
 
 
     def reload_jobs(self, *, dry_run=False):
