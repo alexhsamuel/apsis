@@ -597,7 +597,7 @@ class Apsis:
           `run` is not running.
         """
         signal = to_signal(signal)
-        if run.state != State.running:
+        if run.state not in (State.running, State.stopping):
             raise RuntimeError(f"invalid run state for signal: {run.state.name}")
         assert run.program is not None
 
