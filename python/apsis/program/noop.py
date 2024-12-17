@@ -23,6 +23,8 @@ class NoOpProgram(Program):
     def __init__(self, *, duration=0, success=True):
         self.__duration = nstr(duration)
         self.__success = None if success is None else bool(success)
+        # For signaling stop.
+        self.__stop_queue = asyncio.Event()
 
 
     def __str__(self):
@@ -60,7 +62,13 @@ class NoOpProgram(Program):
     async def wait(self, run_id, run_state):
         if self.__duration is not None:
             duration = parse_duration(self.__duration)
-            await asyncio.sleep(duration)
+            try:
+                await asyncio.wait_for(self.__stop_queue.wait(), duration)
+            except asyncio.TimeoutError:
+                # OK, duration expired.
+                pass
+            else:
+                raise ProgramError("program stopped")
         if self.__success is True:
             return ProgramSuccess()
         elif self.__success is False:
@@ -75,6 +83,10 @@ class NoOpProgram(Program):
 
     async def signal(self, run_state, signum):
         log.info("ignoring signal to no-op program")
+
+
+    async def stop(self):
+        self.__stop_queue.set()
 
 
 
