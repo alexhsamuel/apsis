@@ -81,15 +81,21 @@ async def _process_updates(apsis, run, updates, program):
         else:
             # Start a task to stop the run at the scheduled time.
             async def stop():
+                # Wait until the stop time.
                 duration = stop_time - now()
                 log.debug(f"{run_id}: running for {duration} s until stop")
                 await asyncio.sleep(duration)
+                # Transition to stopping.
+                apsis.run_log.record(run, "stopping")
+                apsis._transition(run, State.stopping)
+                # Ask the run to stop.
                 log.debug(f"{run_id}: stopping")
                 await program.stop()
+                # The main update loop handles updates in response.
 
             stop_task = asyncio.create_task(stop())
 
-        while run.state == State.running:
+        while run.state in (State.running, State.stopping):
             update = await anext(updates)
             match update:
                 case ProgramUpdate() as update:
