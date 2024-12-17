@@ -3,12 +3,11 @@
 THIS IS CORRECT:
 ```yaml
 program:
-  start:
-    type: agent
-    argv: ["/path/to/my/service", "--foreground"]
+  type: agent
+  argv: ["/path/to/my/service", "--foreground"]
   stop:
-    type: signal
     signal: SIGTERM
+    kill_after: 1m
 
 schedule:
   start:
