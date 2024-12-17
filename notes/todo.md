@@ -43,13 +43,15 @@
 - [ ] scheduled stop
   - [x] add stop method to program
   - [x] actually stop the program at the stop time
+  - [ ] go through _stopping_ state
   - [ ] Procstar stop method
   - [ ] ProcessProgram stop method
+    - distinguish between "service"-type programs
   - [ ] classig agent program stop method
   - [ ] "stop" operation
   - [ ] add stop time to run view
   - [ ] add stop time to runs table (NO?)
-  - [ ] refactor `apsis.stop`
+  - [ ] refactor `apsis.stop` module
   - [ ] update `_process_updates` to set the state for a stopping job
 - [ ] if `send_signal` raises, error the run
 
