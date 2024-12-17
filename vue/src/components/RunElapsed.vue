@@ -5,7 +5,7 @@
 <template lang="pug">
 span
   //- Treat running specially; otherwise we don't need to be watching the current time.
-  template(v-if="run.state === 'running'") {{ running }}
+  template(v-if="run.state === 'running' || run.state === 'stopping'") {{ running }}
   template(v-else) {{ notRunning }}
 </template>
 

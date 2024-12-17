@@ -176,7 +176,7 @@ export default {
 
     hasOutput() {
       const state = this.runState
-      return state === 'running' || isComplete(state)
+      return state === 'running' || state === 'stopping' || isComplete(state)
     },
 
     metadata() {
