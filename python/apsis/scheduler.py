@@ -18,23 +18,20 @@ def get_insts_to_schedule(job, start, stop):
       Iterable of (sched_time, stop_time, inst).
     """
     for schedule in job.schedules:
-        times = itertools.takewhile(lambda t: t[0] < stop, schedule(start))
-
-        for sched_time, args in times:
-            args = {**args, "schedule_time": sched_time}
-            args = {
-                a: str(v)
-                for a, v in args.items()
-                if a in job.params
-            }
-            if schedule.enabled:
-                # Runs instantiated by the scheduler are only expected; the job
-                # schedule may change before the run is started.
-                # FIXME: Store additional args for later expansion.
+        if schedule.enabled:
+            times = itertools.takewhile(lambda t: t[0] < stop, schedule(start))
+            for sched_time, args in times:
+                args = {**args, "schedule_time": sched_time}
+                args = {
+                    a: str(v)
+                    for a, v in args.items()
+                    if a in job.params
+                }
                 stop_time = (
                     None if schedule.stop_schedule is None
                     else schedule.stop_schedule(sched_time)
                 )
+                # FIXME: Store additional args for later expansion.
                 yield sched_time, stop_time, Instance(job.job_id, args)
 
 
