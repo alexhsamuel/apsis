@@ -7,7 +7,7 @@ program:
   argv: ["/path/to/my/service", "--foreground"]
   stop:
     signal: SIGTERM
-    kill_after: 1m
+    grace_period: 1m
 
 schedule:
   start:
