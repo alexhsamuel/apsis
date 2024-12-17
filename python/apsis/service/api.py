@@ -567,7 +567,7 @@ async def run_post(request):
 
     times = jso.get("times", {})
     time = times.get("schedule", "now")
-    time = ora.now() if time == "now" else ora.Time(time)
+    time = "now" if time == "now" else ora.Time(time)
 
     stop_time = times.get("stop", None)
     if stop_time is not None:
@@ -576,9 +576,11 @@ async def run_post(request):
             stop_time = ora.Time(stop_time)
         except ValueError:
             try:
-                stop_time = time + parse_duration(stop_time)
+                duration = parse_duration(stop_time)
             except ValueError:
                 raise ValueError(f"invalid stop time: {stop_time}")
+            else:
+                stop_time = (ora.now() if time == "now" else time) + duration
 
     runs = (
         apsis.schedule(time, inst, stop_time=stop_time)

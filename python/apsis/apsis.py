@@ -455,9 +455,13 @@ class Apsis:
         :param time:
           The schedule time at which to run the run.  If `None`, the run
           is run now, instead of scheduled.
+        :param stop_time:
+          If not none, time at which to stop the program.
         :return:
           The run, either scheduled or error.
         """
+        if time == "now":
+            time = None
         if time is None:
             times = {"schedule": now()}
         else:
