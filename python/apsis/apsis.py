@@ -489,6 +489,9 @@ class Apsis:
         # Transition to scheduled.
         msg = f"scheduled: {'now' if time is None else time}"
         self.run_log.record(run, msg)
+        if stop_time is not None:
+            self.run_log.record(run, f"stop time: {stop_time}")
+
         self._transition(run, State.scheduled, times=times)
 
         if time is None:
@@ -831,8 +834,6 @@ async def _process_updates(apsis, run, updates):
             stop_task = None
 
         else:
-            apsis.run_log.record(run, f"stop time: {stop_time}")
-
             # Start a task to stop the run at the scheduled time.
             async def stop():
                 sleep = stop_time - now()
