@@ -3,6 +3,10 @@ database:
   timeout: 0.1m
 jobs: jobs
 
+python:
+  gc:
+    enabled: False
+
 procstar:
   agent:
     enable: true

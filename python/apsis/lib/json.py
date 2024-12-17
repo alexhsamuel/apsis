@@ -46,6 +46,35 @@ def check_schema(jso):
         raise SchemaError(f"unexpected keys: {' '.join(copy)}")
 
 
+def get_dotted(mapping, key, default=NO_DEFAULT):
+    """
+    Returns the value for a dotted `key`.
+
+      >>> m = {"foo": {"bif": 10}}
+      >>> get_dotted(m, "foo.bif")
+      10
+      >>> get_dotted(m, "bar")
+      Traceback (most recent call last):
+      ...
+      KeyError: 'bar'
+      >>> get_dotted(m, "foo.bof")
+      Traceback (most recent call last):
+      ...
+      KeyError: 'bof'
+
+    """
+    m = mapping
+    try:
+        for part in key.split("."):
+            m = m[part]
+        return m
+    except KeyError:
+        if default is NO_DEFAULT:
+            raise
+        else:
+            return default
+
+
 def set_dotted(mapping, key, value):
     """
     Sets dotted `key` to `value` into a hierarchical `mapping`, creating

@@ -618,15 +618,18 @@ class Apsis:
         Monitors the async event loop.
         """
         while True:
+            num_tasks = len(asyncio.all_tasks())
+
             # Wake up on the next round 10 seconds.
             t = now()
             next_second = t.EPOCH + math.ceil((t - t.EPOCH + 0.01) / 10) * 10
             await asyncio.sleep(next_second - t)
-
             # See how late we are.
             latency = now() - next_second
+
             self.__check_async_stats = {
-                "latency": latency,
+                "latency"   : latency,
+                "num_tasks" : num_tasks,
             }
 
 

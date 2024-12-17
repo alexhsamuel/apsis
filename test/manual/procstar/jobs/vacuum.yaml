@@ -1,0 +1,3 @@
+program:
+  type: apsis.program.internal.vacuum.VacuumProgram
+

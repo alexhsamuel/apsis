@@ -1,3 +1,9 @@
+"""
+Makes schema changes to an existing Apsis database file.
+
+All changes are applied only if necessary, and thus this script is idempotent.
+"""
+
 from   argparse import ArgumentParser
 from   contextlib import closing
 import logging
@@ -49,6 +55,9 @@ with closing(sqlite3.connect(args.path)) as conn:
                 ADD COLUMN {col_name} {col_def}
                 """
             )
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS index_runs_job_id ON runs (job_id)")
 
     conn.commit()
 

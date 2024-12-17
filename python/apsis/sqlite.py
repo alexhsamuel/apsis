@@ -50,6 +50,19 @@ def disposing(engine):
         engine.dispose()
 
 
+def _make_run_id(rowid):
+    return f"r{rowid}"
+
+
+def _parse_run_id(run_id):
+    assert run_id[0] == "r"
+    return int(run_id[1 :])
+
+
+# SQLite implicitly includes a 'rowid' column in each table, which SA doesn't
+# automatically include in the schema.
+COL_ROWID = sa.literal_column("rowid")
+
 METADATA = sa.MetaData()
 
 #-------------------------------------------------------------------------------
@@ -172,7 +185,7 @@ class RunIDDB:
 
 
     def get_next_run_id(self):
-        run_id = f"r{self.__next}"
+        run_id = _make_run_id(self.__next)
         self.__next += 1
         if self.__db_next < self.__next:
             # Increment by more than one, to decrease database writes.  If we
@@ -261,6 +274,11 @@ TBL_RUNS = sa.Table(
     sa.Column("actions"     , sa.String()       , nullable=True),
 )
 
+# This index is used to speed up removal of orphaned jobs during archiving, i.e.
+# (ad hoc) jobs in the `jobs` table that no longer have an associated run.  If
+# we ever remove the `jobs` table, we can remove this.
+sa.Index("index_runs_job_id", TBL_RUNS.c.job_id)
+
 TBL_RUNS_SELECT = sa.select([
     TBL_RUNS.columns[n]
     for n in (
@@ -333,9 +351,8 @@ class RunDB:
 
 
     def upsert(self, run):
-        assert run.run_id.startswith("r")
         assert not run.expected
-        rowid = int(run.run_id[1 :])
+        rowid = _parse_run_id(run.run_id)
 
         program = (
             None if run.program is None
@@ -768,14 +785,16 @@ class SqliteDB:
                 Timer() as timer,
                 self.__engine.begin() as tx,
         ):
-            run_ids = [
-                r for r, in tx.execute(
-                    sa.select([TBL_RUNS.c.run_id])
-                    .where(TBL_RUNS.c.timestamp < dump_time(before))
-                    .where(TBL_RUNS.c.state.in_(FINISHED_STATES))
-                    .limit(count)
-                )
-            ]
+            res = list(tx.execute(
+                sa.select([TBL_RUNS.c.run_id, COL_ROWID])
+                .where(TBL_RUNS.c.timestamp < dump_time(before))
+                .where(TBL_RUNS.c.state.in_(FINISHED_STATES))
+                .limit(count)
+            ))
+
+        # Make sure rowids and run_ids correspond.
+        assert all( rowid == _parse_run_id(run_id) for run_id, rowid in res )
+        run_ids = [ r for r, _ in res ]
 
         log.info(
             f"obtained {len(run_ids)} runs to archive in {timer.elapsed:.3f} s")
@@ -793,6 +812,8 @@ class SqliteDB:
         :param run_ids:
           Sequence of run IDs to archive.
         """
+        rowids = [ _parse_run_id(i) for i in run_ids ]
+
         # Open the archive file, creating if necessary.
         archive_engine = self.__get_engine(path)
         # Create tables if necessary.
@@ -827,9 +848,15 @@ class SqliteDB:
                         )
 
                 for table in ARCHIVE_TABLES:
+                    # Predicate for rows to select.  In the runs table, query
+                    # by rowid instead of run_id, for performance.
+                    row_pred = (
+                        COL_ROWID.in_(rowids) if table is TBL_RUNS
+                        else table.c.run_id.in_(run_ids)
+                    )
+
                     # Extract the rows to archive.
-                    sel = sa.select(table).where(table.c.run_id.in_(run_ids))
-                    res = src_tx.execute(sel)
+                    res = src_tx.execute(sa.select(table).where(row_pred))
                     rows = tuple(res.mappings())
 
                     # Write the rows to the archive.
@@ -847,10 +874,7 @@ class SqliteDB:
                         f"archive {table} contains {count} rows"
 
                     # Remove the rows from the source table.
-                    res = src_tx.execute(
-                        sa.delete(table)
-                        .where(table.c.run_id.in_(run_ids))
-                    )
+                    res = src_tx.execute(sa.delete(table).where(row_pred))
                     assert res.rowcount == len(rows)
 
                     # Keep count of how many rows we archived from each table.
