@@ -13,18 +13,10 @@ log = logging.getLogger(__name__)
 #-------------------------------------------------------------------------------
 
 class NoOpProgram(Program):
-    """
-    A program that does nothing.
-
-    `duration` is the time it takes the program to run.  If `success` is true,
-    the program always succeeds; if false, it fails; if none, it errors.
-    """
 
     def __init__(self, *, duration=0, success=True):
         self.__duration = nstr(duration)
-        self.__success = None if success is None else bool(success)
-        # For signaling stop.
-        self.__stop_queue = asyncio.Event()
+        self.__success  = nbool(success)
 
 
     def __str__(self):
@@ -35,7 +27,7 @@ class NoOpProgram(Program):
 
     def bind(self, args):
         duration = or_none(template_expand)(self.__duration, args)
-        return type(self)(duration=duration, success=self.__success)
+        return BoundNoOpProgram(duration=duration, success=self.__success)
 
 
     @classmethod
@@ -54,39 +46,89 @@ class NoOpProgram(Program):
         }
 
 
-    async def start(self, run_id, cfg):
-        run_state = {}
-        return ProgramRunning(run_state), self.wait(run_id, run_state)
+
+#-------------------------------------------------------------------------------
+
+class BoundNoOpProgram(Program):
+    """
+    A program that does nothing.
+
+    `duration` is the time it takes the program to run.  If `success` is true,
+    the program always succeeds; if false, it fails; if none, it errors.
+    """
+
+    __stop_events = {}
+
+    def __init__(self, *, duration=0, success=True):
+        self.__duration = nstr(duration)
+        self.__success = None if success is None else bool(success)
 
 
-    async def wait(self, run_id, run_state):
+    def __str__(self):
+        return "no-op" + (
+            "" if self.__duration is None else f" for {self.__duration} s"
+        )
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            duration    = pop("duration", nstr, None)
+            success     = pop("success", nbool, True)
+        return cls(duration=duration, success=success)
+
+
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "duration"  : self.__duration,
+            "success"   : self.__success,
+        }
+
+
+    async def run(self, run_id, cfg):
+        run_state = {"run_id": run_id}
+        yield ProgramRunning(run_state)
+        async for update in self.wait(run_state):
+            yield update
+
+
+    async def wait(self, run_state):
         if self.__duration is not None:
+            run_id = run_state["run_id"]
             duration = parse_duration(self.__duration)
+            stop_event = self.__stop_events[run_id] = asyncio.Event()
             try:
-                await asyncio.wait_for(self.__stop_queue.wait(), duration)
+                await asyncio.wait_for(stop_event.wait(), duration)
             except asyncio.TimeoutError:
                 # OK, duration expired.
                 pass
             else:
-                raise ProgramError("program stopped")
+                yield ProgramError("program stopped")
+                return
+            finally:
+                assert self.__stop_events.pop(run_id) == stop_event
+
         if self.__success is True:
-            return ProgramSuccess()
+            yield ProgramSuccess()
         elif self.__success is False:
-            raise ProgramFailure("failed")
+            yield ProgramFailure("failed")
         else:
-            raise ProgramError("error")
+            yield ProgramError("error")
 
 
-    def reconnect(self, run_id, run_state):
-        return asyncio.ensure_future(self.wait(run_id, run_state))
+    def connect(self, run_id, run_state):
+        return self.wait(run_state)
 
 
     async def signal(self, run_id, run_state, signal):
         log.info("ignoring signal to no-op program")
 
 
-    async def stop(self):
-        self.__stop_queue.set()
+    async def stop(self, run_state):
+        run_id = run_state["run_id"]
+        stop_event = self.__stop_events[run_id]
+        stop_event.set()
 
 
 
