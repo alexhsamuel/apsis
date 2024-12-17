@@ -219,6 +219,7 @@ class Program(TypedJso):
         :param signum:
           Signal name or number.
         """
+        raise NotImplementedError("program signal not implemented")
 
 
     @classmethod
@@ -287,6 +288,13 @@ class Program(TypedJso):
             yield success
 
 
+    async def stop(self):
+        """
+        Instructs the running program to stop.
+        """
+        raise NotImplementedError("program stop not implemented")
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -310,6 +318,10 @@ class _InternalProgram(Program):
 
 
     async def signal(self, run_id, signum: str):
+        pass
+
+
+    async def stop(self):
         pass
 
 

@@ -96,11 +96,12 @@ class ProcessProgram(Program):
             raise ProgramFailure(message, meta=meta, outputs=outputs)
 
 
-    async def signal(self, run_id, signum: str):
-        # FIXME
-        raise NotImplementedError()
+    # FIXME: Implement signal().
+    # FIXME: Implement stop().
 
 
+
+#-------------------------------------------------------------------------------
 
 class ShellCommandProgram(ProcessProgram):
 
