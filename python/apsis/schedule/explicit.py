@@ -33,7 +33,6 @@ class ExplicitSchedule(Schedule):
     def to_jso(self):
         return {
             **super().to_jso(),
-            "enabled"   : self.enabled,
             "times"     : [ str(t) for t in self.times ],
             "args"      : self.args,
         }
@@ -42,12 +41,12 @@ class ExplicitSchedule(Schedule):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            enabled     = pop("enabled", bool, default=True)
+            kw_args     = Schedule._from_jso(pop)
             times       = pop("times")
             times       = times if isinstance(times, list) else [times]
             times       = [ ora.Time(t) for t in times ]
             args        = pop("args", default={})
-        return cls(times, args, enabled=enabled)
+        return cls(times, args, **kw_args)
 
 
 

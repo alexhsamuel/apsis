@@ -210,15 +210,16 @@ class Program(TypedJso):
         """
 
 
-    async def signal(self, run_id, signum: str):
+    async def signal(self, run_id, run_state, signal):
         """
         Sends a signal to the running program.
 
         :param run_id:
           The run ID; used for logging only.
-        :param signum:
+        :param signal:
           Signal name or number.
         """
+        raise NotImplementedError("program signal not implemented")
 
 
     @classmethod
@@ -265,6 +266,8 @@ class Program(TypedJso):
             yield success
 
 
+    # FIXME: Remove `run_id` from API.  The program should store this in
+    # `run_state`, if it needs it.
     async def connect(self, run_id, run_state, cfg):
         """
         Connects to the running program specified by `run_state`.
@@ -285,6 +288,13 @@ class Program(TypedJso):
         else:
             assert isinstance(success, ProgramSuccess)
             yield success
+
+
+    async def stop(self, run_state):
+        """
+        Instructs the running program to stop.
+        """
+        raise NotImplementedError("program stop not implemented")
 
 
 
@@ -310,6 +320,10 @@ class _InternalProgram(Program):
 
 
     async def signal(self, run_id, signum: str):
+        pass
+
+
+    async def stop(self):
         pass
 
 

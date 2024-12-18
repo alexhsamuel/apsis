@@ -12,6 +12,10 @@ def to_array(obj):
     return obj if isinstance(obj, list) else [obj]
 
 
+def to_narray(obj):
+    return [] if obj is None else to_array(obj)
+
+
 @contextlib.contextmanager
 def check_schema(jso):
     """
@@ -116,6 +120,10 @@ def expand_dotted_keys(mapping):
 
 def nkey(name, value):
     return {} if value is None else {name: value}
+
+
+def ifkey(name, value, default):
+    return {} if value == default else {name: value}
 
 
 #-------------------------------------------------------------------------------

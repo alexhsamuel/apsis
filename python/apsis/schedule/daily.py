@@ -102,9 +102,8 @@ class DailySchedule(Schedule):
     def to_jso(self):
         return {
             **super().to_jso(),
-            "enabled"   : self.enabled,
             "tz"        : str(self.tz),
-            "calendar"  : repr(self.calendar),  # FIXME
+            "calendar"  : self.calendar.name,  # FIXME: Not necessarily round-trip.
             "daytime"   : [ str(y) for y in self.daytimes ],
             "date_shift": self.date_shift,
             "cal_shift" : self.cal_shift,
@@ -115,7 +114,7 @@ class DailySchedule(Schedule):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            enabled     = pop("enabled", bool, default=True)
+            kw_args     = Schedule._from_jso(pop)
             args        = pop("args", default={})
             tz          = pop("tz", ora.TimeZone)
             calendar    = get_calendar(pop("calendar", default="all"))
@@ -125,7 +124,8 @@ class DailySchedule(Schedule):
             cal_shift   = pop("cal_shift", int, default=0)
         return cls(
             tz, calendar, daytimes, args,
-            enabled=enabled, date_shift=date_shift, cal_shift=cal_shift,
+            date_shift=date_shift, cal_shift=cal_shift,
+            **kw_args
         )
 
 
