@@ -292,7 +292,7 @@ class BoundProcstarProgram(base.Program):
             )
 
             # Hand off to __finish.
-            async for update in self.__finish(proc, res, run_cfg):
+            async for update in self.__finish(proc, res, run_cfg, run_state):
                 yield update
 
 
@@ -326,11 +326,11 @@ class BoundProcstarProgram(base.Program):
         else:
             log.info(f"reconnected: {proc_id} on conn {conn_id}")
             # Hand off to __finish.
-            async for update in self.__finish(proc, None, run_cfg):
+            async for update in self.__finish(proc, None, run_cfg, run_state):
                 yield update
 
 
-    async def __finish(self, proc, res, run_cfg):
+    async def __finish(self, proc, res, run_cfg, run_state):
         """
         Handles running `proc` until termination.
 
@@ -419,18 +419,32 @@ class BoundProcstarProgram(base.Program):
 
             outputs = await _make_outputs(fd_data)
 
-            if res.status.exit_code == 0:
+            log.debug(
+                f"terminated; stopping={run_state.get('stopping', False)} "
+                f"exit={res.status.exit_code!r} signal={res.status.signal!r}"
+            )
+            if (
+                    res.status.exit_code == 0
+                    or (
+                        # The program is stopping and the process exited from
+                        # the stop signal.
+                            run_state.get("stopping", False)
+                        and res.status.signal is not None
+                        and Signals[res.status.signal] == self.__stop.signal
+                    )
+            ):
                 # The process terminated successfully.
                 yield base.ProgramSuccess(meta=meta, outputs=outputs)
             else:
                 # The process terminated unsuccessfully.
                 exit_code = res.status.exit_code
                 signal = res.status.signal
-                cause = (
+                yield base.ProgramFailure(
                     f"exit code {exit_code}" if signal is None
-                    else f"killed by {signal}"
+                    else f"killed by {signal}",
+                    meta=meta,
+                    outputs=outputs
                 )
-                yield base.ProgramFailure(cause, meta=meta, outputs=outputs)
 
         except asyncio.CancelledError:
             # Don't clean up the proc; we can reconnect.
