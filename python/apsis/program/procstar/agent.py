@@ -240,15 +240,6 @@ class BoundProcstarProgram(base.Program):
         )
 
 
-    async def __delete(self, proc):
-        try:
-            # Request deletion.
-            await proc.delete()
-        except Exception as exc:
-            # Just log this; from Apsis's standpoint, the proc is long done.
-            log.error(f"delete {proc.proc_id}: {exc}")
-
-
     async def run(self, run_id, cfg):
         """
         Runs the program.
@@ -282,6 +273,7 @@ class BoundProcstarProgram(base.Program):
             yield base.ProgramError(f"procstar: {exc}")
 
         else:
+            # Up and running.
             run_state = {
                 "conn_id": proc.conn_id,
                 "proc_id": proc_id,
@@ -291,8 +283,7 @@ class BoundProcstarProgram(base.Program):
                 meta=_make_metadata(proc_id, res)
             )
 
-            # Hand off to __finish.
-            async for update in self.__finish(proc, res, run_cfg, run_state):
+            async for update in _run(Instance(proc, run_cfg, run_state), res):
                 yield update
 
 
@@ -324,154 +315,10 @@ class BoundProcstarProgram(base.Program):
             yield base.ProgramError(msg)
 
         else:
+            # Successfully connected.
             log.info(f"reconnected: {proc_id} on conn {conn_id}")
-            # Hand off to __finish.
-            async for update in self.__finish(proc, None, run_cfg, run_state):
+            async for update in _run(Instance(proc, run_cfg, run_state), None):
                 yield update
-
-
-    async def __finish(self, proc, res, run_cfg, run_state):
-        """
-        Handles running `proc` until termination.
-
-        :param res:
-          The most recent `Result`, if any.
-        """
-        proc_id = proc.proc_id
-        tasks = asyn.TaskGroup()
-
-        try:
-            # Output collected so far.
-            fd_data = None
-
-            # Start tasks to request periodic updates of results and output.
-            update_interval = nparse_duration(run_cfg.get("update_interval", None))
-            output_interval = nparse_duration(run_cfg.get("output_interval", None))
-
-            if update_interval is not None:
-                # Start a task that periodically requests the current result.
-                tasks.add(
-                    "poll update",
-                    asyn.poll(proc.request_result, update_interval)
-                )
-
-            if output_interval is not None:
-                # Start a task that periodically requests additional output.
-                def more_output():
-                    # From the current position to the end.
-                    start = 0 if fd_data is None else fd_data.interval.stop
-                    interval = Interval(start, None)
-                    return proc.request_fd_data("stdout", interval=interval)
-
-                tasks.add("poll output", asyn.poll(more_output, output_interval))
-
-            # Process further updates, until the process terminates.
-            async for update in proc.updates:
-                match update:
-                    case FdData():
-                        fd_data = _combine_fd_data(fd_data, update)
-                        yield base.ProgramUpdate(outputs=await _make_outputs(fd_data))
-
-                    case Result() as res:
-                        meta = _make_metadata(proc_id, res)
-
-                        if res.state == "running":
-                            # Intermediate result.
-                            yield base.ProgramUpdate(meta=meta)
-                        else:
-                            # Process terminated.
-                            break
-
-            else:
-                # Proc was deleted--but we didn't delete it.
-                assert False, "proc deleted"
-
-            # Stop update tasks.
-            await tasks.cancel_all()
-
-            # Do we have the complete output?
-            length = res.fds.stdout.length
-            if length > 0 and (
-                    fd_data is None
-                    or fd_data.interval.stop < length
-            ):
-                # Request any remaining output.
-                await proc.request_fd_data(
-                    "stdout",
-                    interval=Interval(
-                        0 if fd_data is None else fd_data.interval.stop,
-                        None
-                    )
-                )
-                # Wait for it.
-                async for update in proc.updates:
-                    match update:
-                        case FdData():
-                            fd_data = _combine_fd_data(fd_data, update)
-                            # Confirm that we've accumulated all the output as
-                            # specified in the result.
-                            assert fd_data.interval.start == 0
-                            assert fd_data.interval.stop == res.fds.stdout.length
-                            break
-
-                        case _:
-                            log.debug("expected final FdData")
-
-            outputs = await _make_outputs(fd_data)
-
-            log.debug(
-                f"terminated; stopping={run_state.get('stopping', False)} "
-                f"exit={res.status.exit_code!r} signal={res.status.signal!r}"
-            )
-            if (
-                    res.status.exit_code == 0
-                    or (
-                        # The program is stopping and the process exited from
-                        # the stop signal.
-                            run_state.get("stopping", False)
-                        and res.status.signal is not None
-                        and Signals[res.status.signal] == self.__stop.signal
-                    )
-            ):
-                # The process terminated successfully.
-                yield base.ProgramSuccess(meta=meta, outputs=outputs)
-            else:
-                # The process terminated unsuccessfully.
-                exit_code = res.status.exit_code
-                signal = res.status.signal
-                yield base.ProgramFailure(
-                    f"exit code {exit_code}" if signal is None
-                    else f"killed by {signal}",
-                    meta=meta,
-                    outputs=outputs
-                )
-
-        except asyncio.CancelledError:
-            # Don't clean up the proc; we can reconnect.
-            proc = None
-
-        except ProcessUnknownError:
-            # Don't ask to clean it up; it's already gone.
-            proc = None
-
-        except Exception as exc:
-            log.error(f"procstar: {traceback.format_exc()}")
-
-            yield base.ProgramError(
-                f"procstar: {exc}",
-                meta=(
-                    _make_metadata(proc_id, res)
-                    if proc is not None and res is not None
-                    else {}
-                )
-            )
-
-        finally:
-            # Cancel our helper tasks.
-            await tasks.cancel_all()
-            if proc is not None:
-                # Giving up on this proc; ask the agent to delete it.
-                await self.__delete(proc)
 
 
     async def stop(self, run_state):
@@ -504,6 +351,163 @@ class BoundProcstarProgram(base.Program):
             raise ValueError(f"no process: {proc_id}")
         await proc.send_signal(int(signal))
 
+
+
+#-------------------------------------------------------------------------------
+
+@dataclass
+class Instance:
+    proc: procstar.agent.proc.Process
+    run_cfg: dict
+    run_state: dict
+
+
+async def _run(inst, res):
+    """
+    Handles running `inst` until termination.
+
+    :param res:
+      The most recent `Result`, if any.
+    """
+    proc_id = inst.proc.proc_id
+    tasks = asyn.TaskGroup()
+
+    try:
+        # Output collected so far.
+        fd_data = None
+
+        # Start tasks to request periodic updates of results and output.
+        update_interval = inst.run_cfg.get("update_interval", None)
+        update_interval = nparse_duration(update_interval)
+        output_interval = inst.run_cfg.get("output_interval", None)
+        output_interval = nparse_duration(output_interval)
+
+        if update_interval is not None:
+            # Start a task that periodically requests the current result.
+            tasks.add(
+                "poll update",
+                asyn.poll(inst.proc.request_result, update_interval)
+            )
+
+        if output_interval is not None:
+            # Start a task that periodically requests additional output.
+            def more_output():
+                # From the current position to the end.
+                start = 0 if fd_data is None else fd_data.interval.stop
+                interval = Interval(start, None)
+                return inst.proc.request_fd_data("stdout", interval=interval)
+
+            tasks.add("poll output", asyn.poll(more_output, output_interval))
+
+        # Process further updates, until the process terminates.
+        async for update in inst.proc.updates:
+            match update:
+                case FdData():
+                    fd_data = _combine_fd_data(fd_data, update)
+                    yield base.ProgramUpdate(outputs=await _make_outputs(fd_data))
+
+                case Result() as res:
+                    meta = _make_metadata(proc_id, res)
+
+                    if res.state == "running":
+                        # Intermediate result.
+                        yield base.ProgramUpdate(meta=meta)
+                    else:
+                        # Process terminated.
+                        break
+
+        else:
+            # Proc was deleted--but we didn't delete it.
+            assert False, "proc deleted"
+
+        # Stop update tasks.
+        await tasks.cancel_all()
+
+        # Do we have the complete output?
+        length = res.fds.stdout.length
+        if length > 0 and (
+                fd_data is None
+                or fd_data.interval.stop < length
+        ):
+            # Request any remaining output.
+            await inst.proc.request_fd_data(
+                "stdout",
+                interval=Interval(
+                    0 if fd_data is None else fd_data.interval.stop,
+                    None
+                )
+            )
+            # Wait for it.
+            async for update in inst.proc.updates:
+                match update:
+                    case FdData():
+                        fd_data = _combine_fd_data(fd_data, update)
+                        # Confirm that we've accumulated all the output as
+                        # specified in the result.
+                        assert fd_data.interval.start == 0
+                        assert fd_data.interval.stop == res.fds.stdout.length
+                        break
+
+                    case _:
+                        log.debug("expected final FdData")
+
+        outputs = await _make_outputs(fd_data)
+
+        if (
+                res.status.exit_code == 0
+                # FIXME: Orderly stop condition.
+                # or (
+                #     # The program is stopping and the process exited from
+                #     # the stop signal.
+                #         inst.run_state.get("stopping", False)
+                #     and res.status.signal is not None
+                #     and Signals[res.status.signal] == self.__stop.signal
+                # )
+        ):
+            # The process terminated successfully.
+            yield base.ProgramSuccess(meta=meta, outputs=outputs)
+        else:
+            # The process terminated unsuccessfully.
+            exit_code = res.status.exit_code
+            signal = res.status.signal
+            yield base.ProgramFailure(
+                f"exit code {exit_code}" if signal is None
+                else f"killed by {signal}",
+                meta=meta,
+                outputs=outputs
+            )
+
+    except asyncio.CancelledError:
+        # Don't clean up the proc; we can reconnect.
+        inst.proc = None
+
+    except ProcessUnknownError:
+        # Don't ask to clean it up; it's already gone.
+        inst.proc = None
+
+    except Exception as exc:
+        log.error(f"procstar: {traceback.format_exc()}")
+
+        yield base.ProgramError(
+            f"procstar: {exc}",
+            meta=(
+                _make_metadata(proc_id, res)
+                if inst.proc is not None and res is not None
+                else {}
+            )
+        )
+
+    finally:
+        # Cancel our helper tasks.
+        await tasks.cancel_all()
+        if inst.proc is not None:
+            # Done with this proc; ask the agent to delete it.
+            try:
+                # Request deletion.
+                await inst.proc.delete()
+            except Exception as exc:
+                # Just log this; for Apsis, the proc is done.
+                log.error(f"delete {inst.proc.proc_id}: {exc}")
 
 
 #-------------------------------------------------------------------------------
