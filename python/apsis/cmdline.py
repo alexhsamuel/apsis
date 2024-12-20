@@ -184,8 +184,10 @@ def print_run(run, con, *, verbosity=0, run_log=None, similar_runs=None):
     elapsed = get_run_elapsed(now(), run)
     elapsed = "" if elapsed is None else format_duration(elapsed)
 
-    header("Program")
-    con.print(format_program(run["program"], verbosity=verbosity))
+    program = run.get("program", None)
+    if program:
+        header("Program")
+        con.print(format_program(program, verbosity=verbosity))
 
     # Format conds.
     header("Conditions")
