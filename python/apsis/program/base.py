@@ -177,6 +177,24 @@ class Timeout:
 
 #-------------------------------------------------------------------------------
 
+class RunningProgram:
+
+    # run_id: str
+    # updates: async iter
+
+    def __init__(self, run_id):
+        self.run_id = run_id
+
+
+    async def stop(self):
+        raise NotImplementedError("not implemented: stop()")
+
+
+    async def signal(self, signal):
+        raise NotImplementedError("not implemented: signal()")
+
+
+
 class Program(TypedJso):
     """
     Program base class.
@@ -235,7 +253,8 @@ class Program(TypedJso):
             return TypedJso.from_jso.__func__(cls, jso)
 
 
-    async def run(self, run_id, cfg):
+    # FIXME: Not async.
+    async def run(self, run_id, cfg) -> RunningProgram:
         """
         Runs the program.
 
@@ -266,9 +285,10 @@ class Program(TypedJso):
             yield success
 
 
+    # FIXME: Not async.
     # FIXME: Remove `run_id` from API.  The program should store this in
     # `run_state`, if it needs it.
-    async def connect(self, run_id, run_state, cfg):
+    async def connect(self, run_id, run_state, cfg) -> RunningProgram:
         """
         Connects to the running program specified by `run_state`.
 
@@ -311,7 +331,7 @@ class _InternalProgram(Program):
         pass
 
 
-    async def start(self, run_id, apsis):
+    def start(self, run_id, apsis):
         pass
 
 

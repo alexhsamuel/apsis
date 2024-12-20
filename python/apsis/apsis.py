@@ -235,16 +235,17 @@ class Apsis:
 
         Runs the run's program in a task added to `__run_tasks`.
         """
+        assert run._running_program is None
         # Start the run by running its program.
         self.run_log.record(run, "starting")
         self._transition(run, State.starting)
         # Call the program.  This produces an async iterator of updates.
-        updates = run.program.run(
+        run._running_program = run.program.run(
             run.run_id,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
         # Start a task to process updates from the program.
-        run_task = _process_updates(self, run, updates, run.program)
+        run_task = _process_updates(self, run)
         self.__run_tasks.add(run.run_id, run_task)
 
 
@@ -254,17 +255,19 @@ class Apsis:
 
         Finishes running the run's program in a task added to `__run_tasks`.
         """
+        # FIXME: Reconnect starting or stopping programs?
         assert run.state == State.running
         assert run.run_state is not None
+        assert run._running_program is None
         self.run_log.record(run, "reconnecting")
         # Connect to the program.  This produces an async iterator of updates.
-        updates = run.program.connect(
+        run._running_program = run.program.connect(
             run.run_id,
             run.run_state,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
         # Start a task to process updates from the program.
-        run_task = _process_updates(self, run, updates, run.program)
+        run_task = _process_updates(self, run)
         self.__run_tasks.add(run.run_id, run_task)
 
 

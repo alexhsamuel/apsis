@@ -38,12 +38,14 @@ async def _maybe_compress(outputs, *, compression="br", min_size=16384):
     return dict(zip(outputs.keys(), o))
 
 
-async def _process_updates(apsis, run, updates, program):
+async def _process_updates(apsis, run):
     """
     Processes program `updates` for `run` until the program is finished.
     """
+    assert run._running_program is not None
+
     run_id = run.run_id
-    updates = aiter(updates)
+    updates = aiter(run._running_program.updates)
 
     try:
         if run.state == State.starting:
@@ -87,7 +89,7 @@ async def _process_updates(apsis, run, updates, program):
                 await asyncio.sleep(duration)
                 # Ask the run to stop.
                 try:
-                    await program.stop(run.run_state)
+                    await run._running_program.stop(run)
                 except:
                     log.info("program.stop() exception", exc_info=True)
                 # Transition to stopping.
@@ -179,5 +181,8 @@ async def _process_updates(apsis, run, updates, program):
         output = Output(OutputMetadata("traceback", length=len(tb)), tb)
         apsis._update_output_data(run, {"outputs": output}, True)
         apsis._transition(run, State.error, force=True)
+
+    finally:
+        run._running_program = None
 
 
