@@ -23,34 +23,6 @@ ntemplate_expand = or_none(template_expand)
 
 #-------------------------------------------------------------------------------
 
-@dataclass
-class Stop:
-    """
-    Specification for how to stop a running agent program.
-    """
-
-    signal: Signals = Signals.SIGTERM
-    grace_period: int = 60
-
-    def to_jso(self):
-        cls = type(self)
-        return (
-              ifkey("signal", self.signal, cls.signal)
-            | ifkey("grace_period", self.grace_period, cls.grace_period)
-        )
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso or {}) as pop:
-            signal          = pop("signal", Signals.__getattr__, cls.signal)
-            grace_period    = pop("grace_period", int, cls.grace_period)
-        return cls(signal, grace_period)
-
-
-
-#-------------------------------------------------------------------------------
-
 SUDO_ARGV_DEFAULT = ["/usr/bin/sudo", "--preserve-env", "--set-home"]
 
 if_not_none = lambda k, v: {} if v is None else {k: v}
@@ -169,6 +141,159 @@ async def _make_outputs(fd_data):
     output = fd_data.data
     length = fd_data.interval.stop
     return base.program_outputs(output, length=length, compression=None)
+
+
+#-------------------------------------------------------------------------------
+
+@dataclass
+class Stop:
+    """
+    Specification for how to stop a running agent program.
+    """
+
+    signal: Signals = Signals.SIGTERM
+    grace_period: int = 60
+
+    def to_jso(self):
+        cls = type(self)
+        return (
+              ifkey("signal", self.signal, cls.signal)
+            | ifkey("grace_period", self.grace_period, cls.grace_period)
+        )
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso or {}) as pop:
+            signal          = pop("signal", Signals.__getattr__, cls.signal)
+            grace_period    = pop("grace_period", int, cls.grace_period)
+        return cls(signal, grace_period)
+
+
+
+#-------------------------------------------------------------------------------
+
+class _ProcstarProgram(base.Program):
+    """
+    Base class for (unbound) Procstar program types.
+    """
+
+    def __init__(
+            self, *,
+            group_id    =procstar.proto.DEFAULT_GROUP,
+            sudo_user   =None,
+            stop        =Stop(Stop.signal.name, Stop.grace_period),
+    ):
+        super().__init__()
+        self.__group_id     = str(group_id)
+        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
+        self.__stop         = stop
+
+
+    def _bind(self, argv, args):
+        ntemplate_expand = or_none(template_expand)
+        stop = Stop(
+            to_signal(template_expand(self.__stop.signal, args)),
+            nparse_duration(ntemplate_expand(self.__stop.grace_period, args))
+        )
+        return BoundProcstarProgram(
+            argv,
+            group_id    =ntemplate_expand(self.__group_id, args),
+            sudo_user   =ntemplate_expand(self.__sudo_user, args),
+            stop        =stop,
+        )
+
+
+    def to_jso(self):
+        stop = (
+              ifkey("signal", self.__stop.signal, Stop.signal.name)
+            | ifkey("grace_period", self.__stop.grace_period, Stop.grace_period)
+        )
+        return (
+            super().to_jso()
+            | {
+                "group_id"  : self.__group_id,
+            }
+            | if_not_none("sudo_user", self.__sudo_user)
+            | ifkey("stop", stop, {})
+        )
+
+
+    @staticmethod
+    def _from_jso(pop):
+        with check_schema(pop("stop", default={})) as spop:
+            signal = spop("signal", str, default=Stop.signal.name)
+            grace_period = spop("grace_period", default=Stop.grace_period)
+        return dict(
+            group_id    =pop("group_id", default=procstar.proto.DEFAULT_GROUP),
+            sudo_user   =pop("sudo_user", default=None),
+            stop        =Stop(signal, grace_period),
+        )
+
+
+
+#-------------------------------------------------------------------------------
+
+class ProcstarProgram(_ProcstarProgram):
+
+    def __init__(self, argv, **kw_args):
+        super().__init__(**kw_args)
+        self.__argv = [ str(a) for a in argv ]
+
+
+    def __str__(self):
+        return join_args(self.__argv)
+
+
+    def bind(self, args):
+        argv = tuple( template_expand(a, args) for a in self.__argv )
+        return super()._bind(argv, args)
+
+
+    def to_jso(self):
+        return super().to_jso() | {"argv" : self.__argv}
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            argv        = pop("argv")
+            kw_args     = cls._from_jso(pop)
+        return cls(argv, **kw_args)
+
+
+
+#-------------------------------------------------------------------------------
+
+class ProcstarShellProgram(_ProcstarProgram):
+
+    SHELL = "/usr/bin/bash"
+
+    def __init__(self, command, **kw_args):
+        super().__init__(**kw_args)
+        self.__command = str(command)
+
+
+    def __str__(self):
+        return self.__command
+
+
+    def bind(self, args):
+        argv = [self.SHELL, "-c", template_expand(self.__command, args)]
+        return super()._bind(argv, args)
+
+
+    def to_jso(self):
+        return super().to_jso() | {"command" : self.__command}
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            command     = pop("command")
+            kw_args     = cls._from_jso(pop)
+        return cls(command, **kw_args)
+
 
 
 #-------------------------------------------------------------------------------
@@ -508,130 +633,5 @@ async def _run(inst, res):
             except Exception as exc:
                 # Just log this; for Apsis, the proc is done.
                 log.error(f"delete {inst.proc.proc_id}: {exc}")
-
-
-#-------------------------------------------------------------------------------
-
-class _ProcstarProgram(base.Program):
-    """
-    Base class for (unbound) Procstar program types.
-    """
-
-    def __init__(
-            self, *,
-            group_id    =procstar.proto.DEFAULT_GROUP,
-            sudo_user   =None,
-            stop        =Stop(Stop.signal.name, Stop.grace_period),
-    ):
-        super().__init__()
-        self.__group_id     = str(group_id)
-        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
-        self.__stop         = stop
-
-
-    def _bind(self, argv, args):
-        ntemplate_expand = or_none(template_expand)
-        stop = Stop(
-            to_signal(template_expand(self.__stop.signal, args)),
-            nparse_duration(ntemplate_expand(self.__stop.grace_period, args))
-        )
-        return BoundProcstarProgram(
-            argv,
-            group_id    =ntemplate_expand(self.__group_id, args),
-            sudo_user   =ntemplate_expand(self.__sudo_user, args),
-            stop        =stop,
-        )
-
-
-    def to_jso(self):
-        stop = (
-              ifkey("signal", self.__stop.signal, Stop.signal.name)
-            | ifkey("grace_period", self.__stop.grace_period, Stop.grace_period)
-        )
-        return (
-            super().to_jso()
-            | {
-                "group_id"  : self.__group_id,
-            }
-            | if_not_none("sudo_user", self.__sudo_user)
-            | ifkey("stop", stop, {})
-        )
-
-
-    @staticmethod
-    def _from_jso(pop):
-        with check_schema(pop("stop", default={})) as spop:
-            signal = spop("signal", str, default=Stop.signal.name)
-            grace_period = spop("grace_period", default=Stop.grace_period)
-        return dict(
-            group_id    =pop("group_id", default=procstar.proto.DEFAULT_GROUP),
-            sudo_user   =pop("sudo_user", default=None),
-            stop        =Stop(signal, grace_period),
-        )
-
-
-
-#-------------------------------------------------------------------------------
-
-class ProcstarProgram(_ProcstarProgram):
-
-    def __init__(self, argv, **kw_args):
-        super().__init__(**kw_args)
-        self.__argv = [ str(a) for a in argv ]
-
-
-    def __str__(self):
-        return join_args(self.__argv)
-
-
-    def bind(self, args):
-        argv = tuple( template_expand(a, args) for a in self.__argv )
-        return super()._bind(argv, args)
-
-
-    def to_jso(self):
-        return super().to_jso() | {"argv" : self.__argv}
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso) as pop:
-            argv        = pop("argv")
-            kw_args     = cls._from_jso(pop)
-        return cls(argv, **kw_args)
-
-
-
-#-------------------------------------------------------------------------------
-
-class ProcstarShellProgram(_ProcstarProgram):
-
-    SHELL = "/usr/bin/bash"
-
-    def __init__(self, command, **kw_args):
-        super().__init__(**kw_args)
-        self.__command = str(command)
-
-
-    def __str__(self):
-        return self.__command
-
-
-    def bind(self, args):
-        argv = [self.SHELL, "-c", template_expand(self.__command, args)]
-        return super()._bind(argv, args)
-
-
-    def to_jso(self):
-        return super().to_jso() | {"command" : self.__command}
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso) as pop:
-            command     = pop("command")
-            kw_args     = cls._from_jso(pop)
-        return cls(command, **kw_args)
-
 
 
