@@ -178,12 +178,28 @@ class Timeout:
 #-------------------------------------------------------------------------------
 
 class RunningProgram:
+    """
+    A running instance of a program.
 
-    # run_id: str
-    # updates: async iter
+    An instance (of a subclass) represents a program while it is running, i.e.
+    for a run in the starting, running, and stopping states.
+
+    The async iterable `updates` drives the program through the event loop.
+    Apsis will await this iterator to completion.
+    """
 
     def __init__(self, run_id):
         self.run_id = run_id
+
+
+    @property
+    def updates(self):
+        """
+        A singleton async iterable of program updates.
+
+        Apsis async-iterates this to exhaustion, to drive the program through
+        the event loop.  Exhaustion indicates the program is done.
+        """
 
 
     async def stop(self):
@@ -194,6 +210,8 @@ class RunningProgram:
         raise NotImplementedError("not implemented: signal()")
 
 
+
+#-------------------------------------------------------------------------------
 
 class Program(TypedJso):
     """
