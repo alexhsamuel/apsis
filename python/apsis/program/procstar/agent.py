@@ -343,7 +343,7 @@ class BoundProcstarProgram(base.Program):
 
 
     def connect(self, run_id, run_state, cfg):
-        return RunningProcstarProgram(run_id, self, run_state)
+        return RunningProcstarProgram(run_id, self, cfg, run_state)
 
 
 
@@ -409,7 +409,7 @@ class RunningProcstarProgram(base.RunningProgram):
         if self.run_state is None:
             # Start the proc.
 
-            conn_timeout = get_cfg(self.cfg, "connection.start_timeout", None)
+            conn_timeout = get_cfg(self.cfg, "connection.start_timeout", 0)
             conn_timeout = nparse_duration(conn_timeout)
             proc_id = str(uuid.uuid4())
 
@@ -449,7 +449,7 @@ class RunningProcstarProgram(base.RunningProgram):
             log.info(f"reconnecting: {proc_id} on conn {conn_id}")
 
             try:
-                proc = await get_agent_server().reconnect(
+                self.proc = await get_agent_server().reconnect(
                     conn_id     =conn_id,
                     proc_id     =proc_id,
                     conn_timeout=conn_timeout,
@@ -461,7 +461,7 @@ class RunningProcstarProgram(base.RunningProgram):
                 return
 
             # Request a result immediately.
-            await proc.request_result()
+            await self.proc.request_result()
             res = None
 
             log.info(f"reconnected: {proc_id} on conn {conn_id}")

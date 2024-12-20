@@ -602,11 +602,12 @@ class Apsis:
         signal = to_signal(signal)
         if run.state not in (State.running, State.stopping):
             raise RuntimeError(f"invalid run state for signal: {run.state.name}")
-        assert run.program is not None
+        if run._running_program is None:
+            raise RuntimeError("no running program to send signal to")
 
         self.run_log.info(run, f"sending {signal.name}")
         try:
-            await run.program.signal(run.run_id, run.run_state, signal)
+            await run._running_program.signal(signal)
         except Exception:
             self.run_log.exc(run, f"sending {signal.name} failed")
             raise RuntimeError(f"sending {signal.name} failed")
