@@ -1,5 +1,6 @@
 from   dataclasses import dataclass
 
+from   apsis.lib import memo
 from   apsis.lib.api import decompress
 from   apsis.lib.json import TypedJso, check_schema
 from   apsis.lib.parse import parse_duration
@@ -177,6 +178,9 @@ class Timeout:
 
 #-------------------------------------------------------------------------------
 
+# FIXME: Apsis should take run_state from RunningProgram, and serialize it on
+# each transition. (??)
+
 class RunningProgram:
     """
     A running instance of a program.
@@ -208,6 +212,41 @@ class RunningProgram:
 
     async def signal(self, signal):
         raise NotImplementedError("not implemented: signal()")
+
+
+
+class LegacyRunningProgram(RunningProgram):
+
+    def __init__(self, run_id, program, cfg, run_state=None):
+        super().__init__(run_id)
+        self.program    = program
+        self.cfg        = cfg
+        self.run_state  = run_state
+
+
+    @memo.property
+    async def updates(self):
+        if self.run_state is None:
+            # Starting.
+            try:
+                running, done = await self.program.start(self.run_id, self.cfg)
+            except ProgramError as err:
+                yield err
+            else:
+                assert isinstance(running, ProgramRunning)
+                yield running
+
+        else:
+            done = self.program.reconnect(self.run_id, self.run_state)
+
+        # Running.
+        try:
+            success = await done
+        except (ProgramError, ProgramFailure) as err:
+            yield err
+        else:
+            assert isinstance(success, ProgramSuccess)
+            yield success
 
 
 
@@ -271,42 +310,23 @@ class Program(TypedJso):
             return TypedJso.from_jso.__func__(cls, jso)
 
 
-    # FIXME: Not async.
-    async def run(self, run_id, cfg) -> RunningProgram:
+    def run(self, run_id, cfg) -> RunningProgram:
         """
         Runs the program.
 
-        The default implementation is a facade for `start()`, for backward
+        The default implementation is a facade for `start()`, for legacy
         compatibility.  Subclasses should override this method.
 
         :param run_id:
           Used for logging only.
         :return:
-          Async iterator that yields `Program*` objects.
+          `RunningProgram` instance.
         """
-        # Starting.
-        try:
-            running, done = await self.start(run_id, cfg)
-        except ProgramError as err:
-            yield err
-        else:
-            assert isinstance(running, ProgramRunning)
-            yield running
-
-        # Running.
-        try:
-            success = await done
-        except (ProgramError, ProgramFailure) as err:
-            yield err
-        else:
-            assert isinstance(success, ProgramSuccess)
-            yield success
+        return LegacyRunningProgram(run_id, self, cfg)
 
 
-    # FIXME: Not async.
-    # FIXME: Remove `run_id` from API.  The program should store this in
-    # `run_state`, if it needs it.
-    async def connect(self, run_id, run_state, cfg) -> RunningProgram:
+    # FIXME: Remove `run_id` from API; the running program carries it.
+    def connect(self, run_id, run_state, cfg) -> RunningProgram:
         """
         Connects to the running program specified by `run_state`.
 
@@ -318,14 +338,7 @@ class Program(TypedJso):
         :return:
           Async iterator that yields `Program*` objects.
         """
-        done = self.reconnect(run_id, run_state)
-        try:
-            success = await done
-        except (ProgramError, ProgramFailure) as err:
-            yield err
-        else:
-            assert isinstance(success, ProgramSuccess)
-            yield success
+        return LegacyRunningProgram(run_id, self, cfg, run_state)
 
 
     async def stop(self, run_state):
