@@ -3,7 +3,7 @@ import ora
 from   ora import Date, Time, Daytime, UTC
 import pytest
 
-from   apsis.schedule import DailySchedule, IntervalSchedule
+from   apsis.schedule import Schedule, DailySchedule, IntervalSchedule
 
 #-------------------------------------------------------------------------------
 
@@ -210,5 +210,52 @@ def test_interval_schedule_eq():
 
     s5 = IntervalSchedule(3600, {"foo": 42}, phase=600)
     assert s0 != s5
+
+
+def test_jso_daily():
+    sched = Schedule.from_jso({
+        "type": "daily",
+        "tz": "America/New_York",
+        "calendar": "Mon-Thu",
+        "daytime": "12:00:00",
+        "args": {},
+    })
+    assert isinstance(sched, DailySchedule)
+    assert sched.enabled
+    assert list(sched.daytimes) == [Daytime(12, 0, 0)]
+
+    jso = sched.to_jso()
+    assert jso["tz"] == "America/New_York"
+    assert jso["calendar"] == "Mon-Thu"
+    assert jso["args"] == {}
+
+    rt = Schedule.from_jso(jso)
+    assert isinstance(rt, DailySchedule)
+    assert rt.enabled
+    assert list(rt.daytimes) == [Daytime(12, 0, 0)]
+
+
+def test_jso_interval():
+    sched = Schedule.from_jso({
+        "type": "interval",
+        "interval": "2h",
+        "args": {"color": "orange"},
+        "enabled": False,
+    })
+    assert isinstance(sched, IntervalSchedule)
+    assert not sched.enabled
+    assert sched.interval == 7200
+    assert sched.args == {"color": "orange"}
+
+    jso = sched.to_jso()
+    assert jso["interval"] == 7200
+    assert jso["args"] == {"color": "orange"}
+    assert jso["enabled"] is False
+
+    rt = Schedule.from_jso(jso)
+    assert isinstance(rt, IntervalSchedule)
+    assert not rt.enabled
+    assert rt.interval == 7200
+    assert rt.args == {"color": "orange"}
 
 

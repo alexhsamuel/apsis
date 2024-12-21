@@ -183,6 +183,7 @@ class Run:
         "run_state",
         "_summary_jso_cache",
         "_rowid",
+        "_running_program",
     )
 
     def __init__(self, inst, *, expected=False):
@@ -213,6 +214,8 @@ class Run:
 
         # Cached summary JSO object.
         self._summary_jso_cache = None
+        # Running program instance, in states starting, running, stopping.
+        self._running_program = None
 
 
     def __hash__(self):

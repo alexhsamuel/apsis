@@ -99,6 +99,7 @@ Each run, once created, is in one of these states:
 - **waiting**: The run is waiting for a condition to be met.
 - **starting**: The run is starting.
 - **running**: The run has started and is currently running.
+- **stopping**: Apsis is stopping the run.
 - **success**: The run has completed successfully.
 - **failure**: The run has completed unsuccesfully.
 - **error**: Some other problem has occured with the run.  This can include a

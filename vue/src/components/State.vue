@@ -19,6 +19,10 @@
       circle(cx="900" cy="900" r="800" fill="#a0b040")
       path(d="M 650 450 V 1350 L 1350 900 L 650 450" fill="#ffffff")
 
+    svg(v-else-if="state === 'stopping'" viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
+      circle(cx="900" cy="900" r="800" fill="#b07040")
+      path(d="M 450 650 H 1350 L 900 1350 L 450 650" fill="#ffffff")
+
     svg(v-else-if="state === 'error'" viewBox="0 0 1800 1800", xmlns="http://www.w3.org/2000/svg" width="18px")
       circle(cx="900" cy="900" r="800" fill="#ff0060")
       path(d="M 900 400 V 1050 M 900 1350 V 1400" stroke="#ffffff" stroke-width="200" stroke-linecap="round" fill="transparent")

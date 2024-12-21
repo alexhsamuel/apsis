@@ -107,23 +107,22 @@ class DailyIntervalSchedule(Schedule):
             "stop"      : self.stop.to_jso(),
             "interval"  : self.interval,
             "args"      : self.args,
-            "enabled"   : self.enabled,
         }
 
 
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
+            kw_args     = Schedule._from_jso(pop)
             tz          = pop("tz", ora.TimeZone)
             calendar    = get_calendar(pop("calendar", default="all"))
             start       = DaytimeSpec.from_jso(pop("start"))
             stop        = DaytimeSpec.from_jso(pop("stop"))
-            interval    = pop("interval", int)
+            interval    = pop("interval", parse_duration)
             args        = pop("args", default={})
-            enabled     = pop("enabled", bool, default=True)
         return cls(
             tz, calendar, start, stop, interval, args,
-            enabled=enabled,
+            **kw_args
         )
 
 
