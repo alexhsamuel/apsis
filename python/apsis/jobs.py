@@ -12,7 +12,7 @@ from   .exc import JobError, JobsDirErrors, SchemaError
 from   .lib.json import to_array, to_narray, check_schema
 from   .lib.py import tupleize, format_ctor
 from   .program import Program, NoOpProgram
-from   .schedule import Schedule, schedule_to_jso, schedule_from_jso
+from   .schedule import schedule_to_jso, schedule_from_jso
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class Job:
 
     def __init__(
             self, job_id, params=[], schedules=[], program=NoOpProgram(),
-            conds=[], actions=[], *, stop=None, meta={}, ad_hoc=False
+            conds=[], actions=[], *, meta={}, ad_hoc=False
     ):
         """
         :param schedules:
