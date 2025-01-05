@@ -91,7 +91,7 @@ class BoundNoOpProgram(Program):
         return RunningNoopProgram(self, run_id, None)
 
 
-    def connect(self, run_id, run_state) -> RunningProgram:
+    def connect(self, run_id, run_state, cfg) -> RunningProgram:
         return RunningNoopProgram(self, run_id, run_state)
 
 
