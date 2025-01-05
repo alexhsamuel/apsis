@@ -341,13 +341,6 @@ class Program(TypedJso):
         return LegacyRunningProgram(run_id, self, cfg, run_state)
 
 
-    async def stop(self, run_state):
-        """
-        Instructs the running program to stop.
-        """
-        raise NotImplementedError("program stop not implemented")
-
-
 
 #-------------------------------------------------------------------------------
 
