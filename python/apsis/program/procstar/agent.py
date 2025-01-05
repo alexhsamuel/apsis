@@ -357,12 +357,13 @@ class RunningProcstarProgram(base.RunningProgram):
           The most recent `Result`, if any.
         """
         super().__init__(run_id)
-        self.program    = program
-        self.cfg        = get_cfg(cfg, "procstar.agent", {})
-        self.run_state  = run_state
+        self.program        = program
+        self.cfg            = get_cfg(cfg, "procstar.agent", {})
+        self.run_state      = run_state
 
-        self.proc       = None
-        self.stopping   = False
+        self.proc           = None
+        self.stopping       = False
+        self.stop_signals   = []
 
 
     @property
@@ -546,18 +547,17 @@ class RunningProcstarProgram(base.RunningProgram):
                             log.debug("expected final FdData")
 
             outputs = await _make_outputs(fd_data)
+            meta["stop"] = {"signals": [ s.name for s in self.stop_signals ]}
 
-            if (
-                    res.status.exit_code == 0
-                    or (
-                        # The program is stopping and the process exited from
-                        # the stop signal.
-                            self.stopping
-                        and res.status.signal is not None
-                        and Signals[res.status.signal] == self.__stop.signal
-                    )
-            ):
+            if res.status.exit_code == 0:
                 # The process terminated successfully.
+                yield ProgramSuccess(meta=meta, outputs=outputs)
+            elif (
+                        self.stopping
+                    and res.status.signal is not None
+                    and Signals[res.status.signal] == self.program.stop.signal
+            ):
+                # The process stopped with the expected signal.
                 yield ProgramSuccess(meta=meta, outputs=outputs)
             else:
                 # The process terminated unsuccessfully.
@@ -608,17 +608,24 @@ class RunningProcstarProgram(base.RunningProgram):
         self.stopping = True
 
         # Send the stop signal.
+        self.stop_signals.append(stop.signal)
         await self.signal(stop.signal)
 
         if stop.grace_period is not None:
-            # Wait for the grace period to expire.
-            await asyncio.sleep(stop.grace_period)
-            # Send a kill signal.
             try:
-                await self.signal(Signals.SIGKILL)
-            except ValueError:
-                # Proc is gone; that's OK.
+                # Wait for the grace period to expire.
+                await asyncio.sleep(stop.grace_period)
+            except asyncio.CancelledError:
+                # That's what we were hoping for.
                 pass
+            else:
+                # Send a kill signal.
+                try:
+                    self.stop_signals.append(Signals.SIGKILL)
+                    await self.signal(Signals.SIGKILL)
+                except ValueError:
+                    # Proc is gone; that's OK.
+                    pass
 
 
     async def signal(self, signal):
