@@ -58,6 +58,10 @@ div
               td
                 RunElapsed(:run="run")
 
+            tr(v-if="run.times.stop")
+              th scheduled stop
+              td: Timestamp(:time="run.times.stop")
+
     Frame(title="Run Log")
       div
         table.fields.run-log
