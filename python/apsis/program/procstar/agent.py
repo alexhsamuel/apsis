@@ -435,8 +435,8 @@ class RunningProcstarProgram(base.RunningProgram):
                 "proc_id": proc_id,
             }
             yield base.ProgramRunning(
-                run_state=self.run_state,
-                meta=_make_metadata(proc_id, res)
+                run_state   =self.run_state,
+                meta        =_make_metadata(proc_id, res)
             )
 
         else:

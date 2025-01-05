@@ -346,7 +346,7 @@ class Apsis:
         """
         Updates run metadata, without transitioning.
         """
-        assert run.state in {State.starting, State.running}
+        assert run.state in {State.starting, State.running, State.stopping}
 
         if meta is None or len(meta) == 0:
             return
