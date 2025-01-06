@@ -151,6 +151,10 @@ def load_yaml_file(path, job_id):
         return load_yaml(file, job_id)
 
 
+def dump_yaml(file, job):
+    yaml.dump(job_to_jso(job), file)
+
+
 def list_yaml_files(dir_path):
     dir_path = Path(dir_path)
     for dir, _, names in os.walk(dir_path):
@@ -265,6 +269,12 @@ def load_jobs_dir(path):
         raise JobsDirErrors(f"errors loading jobs in {jobs_path}", errors)
 
     return jobs_dir
+
+
+def dump_job(jobs_dir_path, job):
+    path = (jobs_dir_path / job.job_id).with_suffix(".yaml")
+    with path.open("w") as file:
+        dump_yaml(file, job)
 
 
 #-------------------------------------------------------------------------------
