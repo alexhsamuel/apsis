@@ -45,14 +45,16 @@
   - [x] actually stop the program at the stop time
   - [x] go through _stopping_ state
   - [x] Procstar stop method
+  - [x] add stop time to runs table
   - [ ] classic agent program stop method
   - [ ] ProcessProgram: RunningProgram and stop method
   - [ ] "stop" operation
-  - [ ] distinguish between "service"-type programs in Procstar program
-  - [ ] add stop time to run view
-  - [ ] add stop time to runs table (NO?)
+  - [x] add stop time to run view
   - [ ] refactor `apsis.stop` module
   - [ ] update `_process_updates` to set the state for a stopping job
+    - clarify the rules for `run_state` updates
+  - [ ] (?) distinguish between "service"-type programs in Procstar program
+  - [ ] (?) "schedule stop" operation?
 - [ ] if `send_signal` raises, error the run
 
 - [ ] improve `apsis job` output style
