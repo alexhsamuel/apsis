@@ -1,0 +1,8 @@
+params: [time]
+
+program:
+  type: procstar
+  argv:
+    - /home/alex/dev/apsis/test/manual/procstar/ignore-term.py
+    - "{{ time }}"
+
