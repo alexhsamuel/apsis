@@ -12,10 +12,11 @@ async def test_duration():
         "duration": "0.75",
     }
 
-    prog = apsis.program.Program.from_jso(JSO)
+    prog = apsis.program.Program.from_jso(JSO).bind({})
     start = time.monotonic()
-    running, coro = await prog.start("testrun", cfg={})
-    _ = await coro
+    running = prog.run("testrun", cfg={})
+    async for _ in running.updates:
+        pass
     elapsed = time.monotonic() - start
     assert elapsed > 0.7
 

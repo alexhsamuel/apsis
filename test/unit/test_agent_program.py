@@ -7,11 +7,13 @@ import apsis.agent.client
 #-------------------------------------------------------------------------------
 
 async def _run():
-    prog = apsis.program.AgentProgram(["/bin/sleep", "1"])
+    prog = apsis.program.AgentProgram(["/bin/sleep", "1"]).bind({})
     # Start the program.
-    running, coro = await prog.start("testrun", cfg={})
+    running = prog.run("testrun", cfg={})
     # Wait for it to finish.
-    return await coro
+    async for update in running.updates:
+        pass
+    return update
 
 
 @pytest.mark.asyncio
