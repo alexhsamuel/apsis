@@ -9,6 +9,7 @@ from   .base import (
     Program, ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError,
     program_outputs
 )
+from   apsis.lib.json import check_schema
 from   apsis.lib.sys import get_username
 from   apsis.runs import template_expand, join_args
 
@@ -30,7 +31,7 @@ class ProcessProgram(Program):
 
     def bind(self, args):
         argv = tuple( template_expand(a, args) for a in self.__argv )
-        return type(self)(argv)
+        return BoundProcessProgram(argv)
 
 
     def to_jso(self):
@@ -42,7 +43,69 @@ class ProcessProgram(Program):
 
     @classmethod
     def from_jso(cls, jso):
-        return cls(jso["argv"])
+        with check_schema(jso) as pop:
+            argv = pop("argv")
+        return cls(argv)
+
+
+
+#-------------------------------------------------------------------------------
+
+class ShellCommandProgram(Program):
+
+    def __init__(self, command):
+        self.__command = str(command)
+
+
+    def bind(self, args):
+        command = template_expand(self.__command, args)
+        argv = ["/bin/bash", "-c", command]
+        return BoundProcessProgram(argv)
+
+
+    def __str__(self):
+        return self.__command
+
+
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "command": self.__command,
+        }
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            command = pop("command", str)
+        return cls(command)
+
+
+
+#-------------------------------------------------------------------------------
+
+class BoundProcessProgram(Program):
+
+    def __init__(self, argv):
+        self.__argv = tuple( str(a) for a in argv )
+
+
+    def __str__(self):
+        return join_args(self.__argv)
+
+
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "argv": self.argv,
+        }
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            argv = pop("argv")
+        return cls(argv)
 
 
     async def start(self, run_id, cfg):
@@ -98,39 +161,6 @@ class ProcessProgram(Program):
 
     # FIXME: Implement signal().
     # FIXME: Implement stop().
-
-
-
-#-------------------------------------------------------------------------------
-
-class ShellCommandProgram(ProcessProgram):
-
-    def __init__(self, command):
-        command = str(command)
-        argv = ["/bin/bash", "-c", command]
-        super().__init__(argv)
-        self.__command = command
-
-
-    def bind(self, args):
-        command = template_expand(self.__command, args)
-        return type(self)(command)
-
-
-    def __str__(self):
-        return self.__command
-
-
-    def to_jso(self):
-        return {
-            **Program.to_jso(self),
-            "command"   : self.__command,
-        }
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        return cls(jso["command"])
 
 
 
