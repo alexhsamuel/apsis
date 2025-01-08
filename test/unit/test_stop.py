@@ -1,6 +1,5 @@
 import ora
 
-from   apsis.states import State
 from   apsis.stop import StopSchedule
 
 #-------------------------------------------------------------------------------
