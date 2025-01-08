@@ -332,6 +332,19 @@ def main():
     cmd.add_argument(
         "run_id", metavar="RUN-ID ...", nargs="+")
 
+    #--- command: stop ---------------------------------------------------------
+
+    def cmd_stop(client, args):
+        for run_id in args.run_id:
+            client.stop_run(run_id)
+
+
+    cmd = parser.add_command(
+        "stop", cmd_stop,
+        description="Requests orderly stop of a running run.")
+    cmd.add_argument(
+        "run_id", metavar="RUN-ID ...", nargs="+")
+
     #--- command: watch ----------------------------------------------
 
     def cmd_watch(client, args):
