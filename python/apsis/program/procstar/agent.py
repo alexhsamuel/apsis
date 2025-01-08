@@ -1,5 +1,4 @@
 import asyncio
-from   dataclasses import dataclass
 import logging
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError, NoOpenConnectionInGroup, ProcessUnknownError
@@ -16,6 +15,7 @@ from   apsis.lib.sys import to_signal
 from   apsis.procstar import get_agent_server
 from   apsis.program import base
 from   apsis.program.base import (ProgramSuccess, ProgramFailure, ProgramError)
+from   apsis.program.process import Stop
 from   apsis.runs import join_args, template_expand
 
 log = logging.getLogger(__name__)
@@ -146,34 +146,6 @@ async def _make_outputs(fd_data):
 
 #-------------------------------------------------------------------------------
 
-@dataclass
-class Stop:
-    """
-    Specification for how to stop a running agent program.
-    """
-
-    signal: Signals = Signals.SIGTERM
-    grace_period: int = 60
-
-    def to_jso(self):
-        cls = type(self)
-        return (
-              ifkey("signal", self.signal, cls.signal)
-            | ifkey("grace_period", self.grace_period, cls.grace_period)
-        )
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso or {}) as pop:
-            signal          = pop("signal", Signals.__getattr__, cls.signal)
-            grace_period    = pop("grace_period", int, cls.grace_period)
-        return cls(signal, grace_period)
-
-
-
-#-------------------------------------------------------------------------------
-
 class _ProcstarProgram(base.Program):
     """
     Base class for (unbound) Procstar program types.
@@ -183,7 +155,7 @@ class _ProcstarProgram(base.Program):
             self, *,
             group_id    =procstar.proto.DEFAULT_GROUP,
             sudo_user   =None,
-            stop        =Stop(Stop.signal.name, Stop.grace_period),
+            stop        =Stop.DEFAULT,
     ):
         super().__init__()
         self.__group_id     = str(group_id)
@@ -192,43 +164,31 @@ class _ProcstarProgram(base.Program):
 
 
     def _bind(self, argv, args):
-        ntemplate_expand = or_none(template_expand)
-        stop = Stop(
-            to_signal(template_expand(self.__stop.signal, args)),
-            nparse_duration(ntemplate_expand(self.__stop.grace_period, args))
-        )
         return BoundProcstarProgram(
             argv,
             group_id    =ntemplate_expand(self.__group_id, args),
             sudo_user   =ntemplate_expand(self.__sudo_user, args),
-            stop        =stop,
+            stop        =self.__stop.bind(args),
         )
 
 
     def to_jso(self):
-        stop = (
-              ifkey("signal", self.__stop.signal, Stop.signal.name)
-            | ifkey("grace_period", self.__stop.grace_period, Stop.grace_period)
-        )
         return (
             super().to_jso()
             | {
                 "group_id"  : self.__group_id,
             }
             | if_not_none("sudo_user", self.__sudo_user)
-            | ifkey("stop", stop, {})
+            | ifkey("stop", self.__stop.to_jso(), {})
         )
 
 
     @staticmethod
     def _from_jso(pop):
-        with check_schema(pop("stop", default={})) as spop:
-            signal = spop("signal", str, default=Stop.signal.name)
-            grace_period = spop("grace_period", default=Stop.grace_period)
         return dict(
             group_id    =pop("group_id", default=procstar.proto.DEFAULT_GROUP),
             sudo_user   =pop("sudo_user", default=None),
-            stop        =Stop(signal, grace_period),
+            stop        =Stop.from_jso_str(pop("stop", default={})),
         )
 
 
