@@ -11,11 +11,10 @@ from   apsis.lib import memo
 from   apsis.lib.json import check_schema, ifkey
 from   apsis.lib.parse import nparse_duration
 from   apsis.lib.py import or_none, nstr, get_cfg
-from   apsis.lib.sys import to_signal
 from   apsis.procstar import get_agent_server
 from   apsis.program import base
 from   apsis.program.base import (ProgramSuccess, ProgramFailure, ProgramError)
-from   apsis.program.process import Stop
+from   apsis.program.process import Stop, BoundStop
 from   apsis.runs import join_args, template_expand
 
 log = logging.getLogger(__name__)
@@ -155,7 +154,7 @@ class _ProcstarProgram(base.Program):
             self, *,
             group_id    =procstar.proto.DEFAULT_GROUP,
             sudo_user   =None,
-            stop        =Stop.DEFAULT,
+            stop        =Stop(),
     ):
         super().__init__()
         self.group_id   = str(group_id)
@@ -188,7 +187,7 @@ class _ProcstarProgram(base.Program):
         return dict(
             group_id    =pop("group_id", default=procstar.proto.DEFAULT_GROUP),
             sudo_user   =pop("sudo_user", default=None),
-            stop        =Stop.from_jso_str(pop("stop", default={})),
+            stop        =pop("stop", Stop.from_jso, Stop()),
         )
 
 
@@ -264,7 +263,7 @@ class BoundProcstarProgram(base.Program):
     def __init__(
             self, argv, *, group_id,
             sudo_user   =None,
-            stop        =Stop(),
+            stop        =BoundStop(),
     ):
         self.argv = [ str(a) for a in argv ]
         self.group_id   = str(group_id)
@@ -294,7 +293,7 @@ class BoundProcstarProgram(base.Program):
             argv        = pop("argv")
             group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
             sudo_user   = pop("sudo_user", default=None)
-            stop        = Stop.from_jso(pop("stop", default={}))
+            stop        = pop("stop", BoundStop.from_jso, BoundStop())
         return cls(argv, group_id=group_id, sudo_user=sudo_user, stop=stop)
 
 

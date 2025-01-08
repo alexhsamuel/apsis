@@ -37,8 +37,38 @@ class Stop:
     3. If the process has not terminated, send SIGKILL.
     """
 
+    signal: str = "SIGTERM"
+    grace_period: str = "60"
+
+    def to_jso(self):
+        cls = type(self)
+        return (
+              ifkey("signal", self.signal, cls.signal)
+            | ifkey("grace_period", self.grace_period, cls.grace_period)
+        )
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso or {}) as pop:
+            signal          = pop("signal", str, default=cls.signal)
+            grace_period    = pop("grace_period", default=cls.grace_period)
+        return cls(signal, grace_period)
+
+
+    def bind(self, args):
+        return BoundStop(
+            to_signal(template_expand(self.signal, args)),
+            nparse_duration(ntemplate_expand(self.grace_period, args))
+        )
+
+
+
+@dataclass
+class BoundStop:
+
     signal: Signals = Signals.SIGTERM
-    grace_period: int = 60
+    grace_period: float = 60
 
     def to_jso(self):
         cls = type(self)
@@ -56,29 +86,12 @@ class Stop:
         return cls(signal, grace_period)
 
 
-    @classmethod
-    def from_jso_str(cls, jso):
-        with check_schema(jso or {}) as pop:
-            signal          = pop("signal", str, default=cls.signal.name)
-            grace_period    = pop("grace_period", default=cls.grace_period)
-        return cls(signal, grace_period)
-
-
-    def bind(self, args):
-        return type(self)(
-            to_signal(template_expand(self.signal, args)),
-            nparse_duration(ntemplate_expand(self.grace_period, args))
-        )
-
-
-
-Stop.DEFAULT = Stop()
 
 #-------------------------------------------------------------------------------
 
 class ProcessProgram(Program):
 
-    def __init__(self, argv, *, stop=Stop.DEFAULT):
+    def __init__(self, argv, *, stop=Stop()):
         self.argv = tuple( str(a) for a in argv )
         self.stop = stop
 
@@ -104,7 +117,7 @@ class ProcessProgram(Program):
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             argv = pop("argv")
-            stop = Stop.from_jso_str(pop("stop", default={}))
+            stop = pop("stop", Stop.from_jso, Stop())
         return cls(argv, stop=stop)
 
 
@@ -113,9 +126,9 @@ class ProcessProgram(Program):
 
 class ShellCommandProgram(Program):
 
-    def __init__(self, command, *, stop=Stop.DEFAULT):
-        self.command = str(command)
-        self.stop = stop
+    def __init__(self, command, *, stop=Stop()):
+        self.command    = str(command)
+        self.stop       = stop
 
 
     def bind(self, args):
@@ -140,7 +153,7 @@ class ShellCommandProgram(Program):
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             command = pop("command", str)
-            stop = Stop.from_jso_str(pop("stop", default={}))
+            stop    = pop("stop", Stop.from_jso, default=Stop())
         return cls(command, stop=stop)
 
 
@@ -149,7 +162,7 @@ class ShellCommandProgram(Program):
 
 class BoundProcessProgram(Program):
 
-    def __init__(self, argv, *, stop=Stop.DEFAULT):
+    def __init__(self, argv, *, stop=BoundStop()):
         self.argv = tuple( str(a) for a in argv )
         self.stop = stop
 
@@ -169,7 +182,7 @@ class BoundProcessProgram(Program):
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             argv = pop("argv")
-            stop = Stop.from_jso(pop("stop", default={}))
+            stop = pop("stop", BoundStop.from_jso, BoundStop.DEFAULT)
         return cls(argv, stop=stop)
 
 
@@ -188,8 +201,9 @@ class RunningProcessProgram(RunningProgram):
 
     def __init__(self, program, run_id):
         super().__init__(run_id)
-        self.program = program
-        self.process = None
+        self.program    = program
+        self.process    = None
+        self.stopping   = False
 
 
     @memo.property
@@ -236,6 +250,14 @@ class RunningProcessProgram(RunningProgram):
         if return_code == 0:
             yield ProgramSuccess(meta=meta, outputs=outputs)
 
+        elif (
+                    self.stopping
+                and self.returncode < 0
+                and Signals(self.returncode) == self.program.stop.signal
+        ):
+            # Program stopped as expected.
+            yield ProgramFailure(meta=meta, outputs=outputs)
+
         else:
             message = f"program failed: return code {return_code}"
             yield ProgramFailure(message, meta=meta, outputs=outputs)
@@ -252,9 +274,24 @@ class RunningProcessProgram(RunningProgram):
 
 
     async def stop(self):
-        assert self.process is not None
-        self.process.send_signal(self.program.stop.signal)
-        # FIXME
+        self.stopping = True
+
+        stop = self.program.stop
+        self.process.send_signal(stop.signal)
+        if stop.grace_period is not None:
+            try:
+                # Wait for the grace period to expire.
+                await asyncio.sleep(stop.grace_period)
+            except asyncio.CancelledError:
+                # That's what we were hoping for.
+                pass
+            else:
+                # Send a kill signal.
+                try:
+                    await self.signal(Signals.SIGKILL)
+                except ValueError:
+                    # Proc is gone; that's OK.
+                    pass
 
 
 
