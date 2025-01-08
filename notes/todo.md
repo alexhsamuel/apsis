@@ -49,7 +49,7 @@
   - [x] classic agent program stop method
   - [x] ProcessProgram: RunningProgram and stop method
   - [x] stop run API endpoint
-  - [ ] "stop" operation
+  - [x] "stop" operation
   - [x] add stop time to run view
   - [ ] refactor `apsis.stop` module
   - [ ] update `_process_updates` to set the state for a stopping job
