@@ -46,8 +46,9 @@
   - [x] go through _stopping_ state
   - [x] Procstar stop method
   - [x] add stop time to runs table
-  - [ ] classic agent program stop method
+  - [x] classic agent program stop method
   - [x] ProcessProgram: RunningProgram and stop method
+  - [x] stop run API endpoint
   - [ ] "stop" operation
   - [x] add stop time to run view
   - [ ] refactor `apsis.stop` module
