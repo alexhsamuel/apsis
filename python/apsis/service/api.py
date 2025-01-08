@@ -369,6 +369,21 @@ async def run_rerun(request, run_id):
 
 
 # PUT is probably right, but run actions currently are POST only.
+@API.route("/runs/<run_id>/stop", methods={"PUT", "POST"})
+async def run_stop(request, run_id):
+    apsis = request.app.apsis
+    _, run = apsis.run_store.get(run_id)
+
+    try:
+        await apsis.stop_run(run)
+    except RuntimeError as exc:
+        return error(str(exc), 400)
+    else:
+        jso = runs_to_jso(request.app, ora.now(), [run])
+        return response_json(jso)
+
+
+# PUT is probably right, but run actions currently are POST only.
 @API.route("/runs/<run_id>/signal/<signal>", methods={"PUT", "POST"})
 async def run_signal(request, run_id, signal):
     apsis = request.app.apsis

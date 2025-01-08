@@ -68,6 +68,8 @@ class Apsis:
         self.__wait_tasks = TaskGroup(log)
         # One task for each starting/running run.
         self.__run_tasks = TaskGroup(log)
+        # One task for each stopping run.
+        self.__stopping_tasks = TaskGroup(log)
         # One task for each running action.
         self.__action_tasks = TaskGroup(log)
 
@@ -594,6 +596,28 @@ class Apsis:
         return new_run
 
 
+    async def stop_run(self, run):
+        if run.state == "stopping":
+            log.info(f"run already stopping: {run.run_id}")
+            return
+
+        # Transition to stopping.
+        self.run_log.record(run, "stopping")
+        self._transition(
+            run, State.stopping,
+            run_state=run.run_state | {"stopping": True}
+        )
+
+        # Ask the run to stop.
+        async def stop():
+            try:
+                await run._running_program.stop()
+            except:
+                log.info("program.stop() exception", exc_info=True)
+
+        self.__stopping_tasks.add(run.run_id, stop())
+
+
     async def send_signal(self, run, signal):
         """
         :raise RuntimeError:
@@ -619,6 +643,7 @@ class Apsis:
         await self.__action_tasks.cancel_all()
         await self.__wait_tasks.cancel_all()
         await self.__run_tasks.cancel_all()
+        await self.__stopping_tasks.cancel_all()
         await self.__tasks.cancel_all()
         log.info("Apsis shut down")
 
@@ -656,6 +681,7 @@ class Apsis:
             "tasks": {
                 "num_waiting"       : len(self.__wait_tasks),
                 "num_running"       : len(self.__run_tasks),
+                "num_stopping"      : len(self.__stopping_tasks),
                 "num_action"        : len(self.__action_tasks),
             },
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),

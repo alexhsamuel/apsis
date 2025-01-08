@@ -45,6 +45,28 @@ def test_stop():
         assert meta["times"]["elapsed"] < 2
 
 
+def test_stop_api():
+    svc = ApsisService()
+    dump_job(svc.jobs_dir, SLEEP_JOB)
+    with svc, svc.agent():
+        # Schedule a 3 sec job but tell Apsis to stop it after 1 sec.
+        run_id = svc.client.schedule(SLEEP_JOB.job_id, {"time": "3"})["run_id"]
+        res = svc.wait_run(
+            run_id, wait_states=("new", "scheduled", "waiting", "starting"))
+
+        time.sleep(0.5)
+        res = svc.client.stop_run(run_id)
+        assert res["state"] == "stopping"
+
+        res = svc.wait_run(run_id)
+        # The run was successfully stopped by Apsis, by sending it SIGTERM.
+        assert res["state"] == "success"
+        meta = res["meta"]["program"]
+        assert meta["status"]["signal"] == "SIGTERM"
+        assert meta["stop"]["signals"] == ["SIGTERM"]
+        assert meta["times"]["elapsed"] < 2
+
+
 def test_dont_stop():
     svc = ApsisService()
     dump_job(svc.jobs_dir, IGNORE_TERM_JOB)

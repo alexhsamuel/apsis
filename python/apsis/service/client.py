@@ -375,6 +375,10 @@ class Client:
         )
 
 
+    def stop_run(self, run_id):
+        return self.__put("/api/v1/runs", run_id, "stop")["runs"][run_id]
+
+
     def reload_jobs(self, *, dry_run=False):
         return self.__post("/api/control/reload_jobs", data={}, dry_run=dry_run)
 
