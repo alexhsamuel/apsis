@@ -47,7 +47,7 @@
   - [x] Procstar stop method
   - [x] add stop time to runs table
   - [ ] classic agent program stop method
-  - [ ] ProcessProgram: RunningProgram and stop method
+  - [x] ProcessProgram: RunningProgram and stop method
   - [ ] "stop" operation
   - [x] add stop time to run view
   - [ ] refactor `apsis.stop` module
