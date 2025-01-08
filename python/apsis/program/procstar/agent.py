@@ -158,17 +158,17 @@ class _ProcstarProgram(base.Program):
             stop        =Stop.DEFAULT,
     ):
         super().__init__()
-        self.__group_id     = str(group_id)
-        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
-        self.__stop         = stop
+        self.group_id   = str(group_id)
+        self.sudo_user  = None if sudo_user is None else str(sudo_user)
+        self.stop       = stop
 
 
     def _bind(self, argv, args):
         return BoundProcstarProgram(
             argv,
-            group_id    =ntemplate_expand(self.__group_id, args),
-            sudo_user   =ntemplate_expand(self.__sudo_user, args),
-            stop        =self.__stop.bind(args),
+            group_id    =ntemplate_expand(self.group_id, args),
+            sudo_user   =ntemplate_expand(self.sudo_user, args),
+            stop        =self.stop.bind(args),
         )
 
 
@@ -176,10 +176,10 @@ class _ProcstarProgram(base.Program):
         return (
             super().to_jso()
             | {
-                "group_id"  : self.__group_id,
+                "group_id"  : self.group_id,
             }
-            | if_not_none("sudo_user", self.__sudo_user)
-            | ifkey("stop", self.__stop.to_jso(), {})
+            | if_not_none("sudo_user", self.sudo_user)
+            | ifkey("stop", self.stop.to_jso(), {})
         )
 
 
@@ -199,20 +199,20 @@ class ProcstarProgram(_ProcstarProgram):
 
     def __init__(self, argv, **kw_args):
         super().__init__(**kw_args)
-        self.__argv = [ str(a) for a in argv ]
+        self.argv = [ str(a) for a in argv ]
 
 
     def __str__(self):
-        return join_args(self.__argv)
+        return join_args(self.argv)
 
 
     def bind(self, args):
-        argv = tuple( template_expand(a, args) for a in self.__argv )
+        argv = tuple( template_expand(a, args) for a in self.argv )
         return super()._bind(argv, args)
 
 
     def to_jso(self):
-        return super().to_jso() | {"argv" : self.__argv}
+        return super().to_jso() | {"argv" : self.argv}
 
 
     @classmethod
@@ -232,20 +232,20 @@ class ProcstarShellProgram(_ProcstarProgram):
 
     def __init__(self, command, **kw_args):
         super().__init__(**kw_args)
-        self.__command = str(command)
+        self.command = str(command)
 
 
     def __str__(self):
-        return self.__command
+        return self.command
 
 
     def bind(self, args):
-        argv = [self.SHELL, "-c", template_expand(self.__command, args)]
+        argv = [self.SHELL, "-c", template_expand(self.command, args)]
         return super()._bind(argv, args)
 
 
     def to_jso(self):
-        return super().to_jso() | {"command" : self.__command}
+        return super().to_jso() | {"command" : self.command}
 
 
     @classmethod

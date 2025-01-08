@@ -30,7 +30,11 @@ ntemplate_expand = or_none(template_expand)
 @dataclass
 class Stop:
     """
-    Specification for how to stop a running agent program.
+    Specification for how to stop a running process.
+
+    1. Send `signal` to the process.
+    2. Wait up to `grace_period` sec.
+    3. If the process has not terminated, send SIGKILL.
     """
 
     signal: Signals = Signals.SIGTERM
@@ -47,7 +51,7 @@ class Stop:
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso or {}) as pop:
-            signal          = pop("signal", Signals.__getattr__, cls.signal)
+            signal          = pop("signal", to_signal, cls.signal)
             grace_period    = pop("grace_period", int, cls.grace_period)
         return cls(signal, grace_period)
 
@@ -75,25 +79,25 @@ Stop.DEFAULT = Stop()
 class ProcessProgram(Program):
 
     def __init__(self, argv, *, stop=Stop.DEFAULT):
-        self.__argv = tuple( str(a) for a in argv )
-        self.__stop = stop
+        self.argv = tuple( str(a) for a in argv )
+        self.stop = stop
 
 
     def __str__(self):
-        return join_args(self.__argv)
+        return join_args(self.argv)
 
 
     def bind(self, args):
-        argv = tuple( template_expand(a, args) for a in self.__argv )
-        stop = self.__stop.bind(args)
+        argv = tuple( template_expand(a, args) for a in self.argv )
+        stop = self.stop.bind(args)
         return BoundProcessProgram(argv, stop=stop)
 
 
     def to_jso(self):
         return {
             **super().to_jso(),
-            "argv"      : list(self.__argv),
-        } | ifkey("stop", self.__stop.to_jso(), {})
+            "argv"      : list(self.argv),
+        } | ifkey("stop", self.stop.to_jso(), {})
 
 
     @classmethod
@@ -110,26 +114,26 @@ class ProcessProgram(Program):
 class ShellCommandProgram(Program):
 
     def __init__(self, command, *, stop=Stop.DEFAULT):
-        self.__command = str(command)
-        self.__stop = stop
+        self.command = str(command)
+        self.stop = stop
 
 
     def bind(self, args):
-        command = template_expand(self.__command, args)
+        command = template_expand(self.command, args)
         argv    = ["/bin/bash", "-c", command]
-        stop    = self.__stop.bind(args)
+        stop    = self.stop.bind(args)
         return BoundProcessProgram(argv, stop=stop)
 
 
     def __str__(self):
-        return self.__command
+        return self.command
 
 
     def to_jso(self):
         return {
             **super().to_jso(),
-            "command": self.__command,
-        } | ifkey("stop", self.__stop.to_jso(), {})
+            "command": self.command,
+        } | ifkey("stop", self.stop.to_jso(), {})
 
 
     @classmethod
