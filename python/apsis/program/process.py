@@ -182,7 +182,7 @@ class BoundProcessProgram(Program):
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
             argv = pop("argv")
-            stop = pop("stop", BoundStop.from_jso, BoundStop.DEFAULT)
+            stop = pop("stop", BoundStop.from_jso, BoundStop())
         return cls(argv, stop=stop)
 
 
