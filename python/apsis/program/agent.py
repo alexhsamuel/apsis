@@ -1,17 +1,15 @@
 import asyncio
-import contextlib
 import functools
 import httpx
 import logging
 import ora
 import socket
-import traceback
 
 from   .base import (
     Program, ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError,
     program_outputs, Timeout, RunningProgram,
 )
-from   apsis.agent.client import Agent, NoSuchProcessError, HTTP_IMPL
+from   apsis.agent.client import Agent, NoSuchProcessError
 from   apsis.host_group import expand_host
 from   apsis.lib import memo
 from   apsis.lib.cmpr import compress_async
