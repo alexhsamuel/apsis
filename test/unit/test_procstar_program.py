@@ -18,7 +18,7 @@ def test_process_program_jso():
     assert program.group_id == "prod"
     assert program.sudo_user is None
     assert program.stop.signal == "SIGUSR1"
-    assert program.stop.grace_period == 60
+    assert program.stop.grace_period == "60"
 
     # Bind and do it again.
     program = program.bind({"name": "Bob"})
@@ -43,7 +43,7 @@ def test_shell_command_program_jso():
     assert program.group_id == "default"
     assert program.sudo_user == "produser"
     assert program.stop.signal == "SIGTERM"
-    assert program.stop.grace_period == 60
+    assert program.stop.grace_period == "60"
 
     # Bind and do it again.
     program = program.bind({"name": "Bob"})
