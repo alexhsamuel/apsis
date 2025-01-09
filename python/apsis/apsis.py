@@ -597,9 +597,13 @@ class Apsis:
 
 
     async def stop_run(self, run):
-        if run.state == "stopping":
+        if run.state == State.stopping:
             log.info(f"run already stopping: {run.run_id}")
             return
+
+        if run.state != State.running:
+            raise RuntimeError(
+                f"can't stop run {run.run_id}: run is {run.state.name}")
 
         # Transition to stopping.
         self.run_log.record(run, "stopping")
