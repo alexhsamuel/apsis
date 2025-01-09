@@ -51,11 +51,10 @@
   - [x] stop run API endpoint
   - [x] "stop" operation
   - [x] add stop time to run view
+  - [x] docs
   - [ ] refactor `apsis.stop` module
   - [ ] update `_process_updates` to set the state for a stopping job
     - clarify the rules for `run_state` updates
-  - [ ] (?) distinguish between "service"-type programs in Procstar program
-  - [ ] (?) "schedule stop" operation?
 - [ ] if `send_signal` raises, error the run
 
 - [ ] improve `apsis job` output style
