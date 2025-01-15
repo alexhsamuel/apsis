@@ -40,7 +40,7 @@
   - [x] run log
 - [x] improve and clean up `State` enum
 
-- [ ] scheduled stop
+- [x] scheduled stop
   - [x] add stop method to program
   - [x] actually stop the program at the stop time
   - [x] go through _stopping_ state
@@ -53,8 +53,6 @@
   - [x] add stop time to run view
   - [x] docs
   - [x] refactor `apsis.stop` module
-  - [ ] update `_process_updates` to set the state for a stopping job
-    - clarify the rules for `run_state` updates
 - [ ] if `send_signal` raises, error the run
 
 - [ ] improve `apsis job` output style

@@ -597,6 +597,16 @@ class Apsis:
 
 
     async def stop_run(self, run):
+        """
+        Transitions `run` to stopping, and requests its program to stop in a
+        new task.
+
+        The `run` must be either running, or else stopping in which case
+        this is a no-op.
+
+        Adds `{"stopping": True}` to the run's run state when it transitions to
+        stopping.
+        """
         if run.state == State.stopping:
             log.info(f"run already stopping: {run.run_id}")
             return
