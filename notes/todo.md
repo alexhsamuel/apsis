@@ -52,7 +52,7 @@
   - [x] "stop" operation
   - [x] add stop time to run view
   - [x] docs
-  - [ ] refactor `apsis.stop` module
+  - [x] refactor `apsis.stop` module
   - [ ] update `_process_updates` to set the state for a stopping job
     - clarify the rules for `run_state` updates
 - [ ] if `send_signal` raises, error the run

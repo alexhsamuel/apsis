@@ -2,7 +2,7 @@ from   dataclasses import dataclass
 import ora
 
 from   apsis.lib.json import TypedJso, check_schema, nkey
-from   apsis.stop import StopSchedule
+from   .stop import StopSchedule
 
 #-------------------------------------------------------------------------------
 
