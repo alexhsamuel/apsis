@@ -3,19 +3,23 @@ import logging
 import procstar.spec
 from   procstar.agent.exc import NoConnectionError, NoOpenConnectionInGroup, ProcessUnknownError
 from   procstar.agent.proc import FdData, Interval, Result
-import traceback
+from   signal import Signals
 import uuid
 
 from   apsis.lib import asyn
-from   apsis.lib.json import check_schema
+from   apsis.lib import memo
+from   apsis.lib.json import check_schema, ifkey
 from   apsis.lib.parse import nparse_duration
-from   apsis.lib.py import or_none, get_cfg
-from   apsis.lib.sys import to_signal
+from   apsis.lib.py import or_none, nstr, get_cfg
 from   apsis.procstar import get_agent_server
 from   apsis.program import base
+from   apsis.program.base import (ProgramSuccess, ProgramFailure, ProgramError)
+from   apsis.program.process import Stop, BoundStop
 from   apsis.runs import join_args, template_expand
 
 log = logging.getLogger(__name__)
+
+ntemplate_expand = or_none(template_expand)
 
 #-------------------------------------------------------------------------------
 
@@ -27,7 +31,7 @@ def _sudo_wrap(cfg, argv, sudo_user):
     if sudo_user is None:
         return argv
     else:
-        sudo_argv = get_cfg(cfg, "procstar.agent.sudo.argv", SUDO_ARGV_DEFAULT)
+        sudo_argv = get_cfg(cfg, "sudo.argv", SUDO_ARGV_DEFAULT)
         return [ str(a) for a in sudo_argv ] + [
             "--non-interactive",
             "--user", str(sudo_user),
@@ -141,23 +145,146 @@ async def _make_outputs(fd_data):
 
 #-------------------------------------------------------------------------------
 
-class BoundProcstarProgram(base.Program):
+class _ProcstarProgram(base.Program):
+    """
+    Base class for (unbound) Procstar program types.
+    """
 
-    def __init__(self, argv, *, group_id, sudo_user=None):
-        self.__argv = [ str(a) for a in argv ]
-        self.__group_id = str(group_id)
-        self.__sudo_user = None if sudo_user is None else str(sudo_user)
+    def __init__(
+            self, *,
+            group_id    =procstar.proto.DEFAULT_GROUP,
+            sudo_user   =None,
+            stop        =Stop(),
+    ):
+        super().__init__()
+        self.group_id   = str(group_id)
+        self.sudo_user  = None if sudo_user is None else str(sudo_user)
+        self.stop       = stop
 
 
-    def __str__(self):
-        return join_args(self.__argv)
+    def _bind(self, argv, args):
+        return BoundProcstarProgram(
+            argv,
+            group_id    =ntemplate_expand(self.group_id, args),
+            sudo_user   =ntemplate_expand(self.sudo_user, args),
+            stop        =self.stop.bind(args),
+        )
 
 
     def to_jso(self):
-        return super().to_jso() | {
-            "argv"      : self.__argv,
-            "group_id"  : self.__group_id,
-        } | if_not_none("sudo_user", self.__sudo_user)
+        return (
+            super().to_jso()
+            | {
+                "group_id"  : self.group_id,
+            }
+            | if_not_none("sudo_user", self.sudo_user)
+            | ifkey("stop", self.stop.to_jso(), {})
+        )
+
+
+    @staticmethod
+    def _from_jso(pop):
+        return dict(
+            group_id    =pop("group_id", default=procstar.proto.DEFAULT_GROUP),
+            sudo_user   =pop("sudo_user", default=None),
+            stop        =pop("stop", Stop.from_jso, Stop()),
+        )
+
+
+
+#-------------------------------------------------------------------------------
+
+class ProcstarProgram(_ProcstarProgram):
+
+    def __init__(self, argv, **kw_args):
+        super().__init__(**kw_args)
+        self.argv = [ str(a) for a in argv ]
+
+
+    def __str__(self):
+        return join_args(self.argv)
+
+
+    def bind(self, args):
+        argv = tuple( template_expand(a, args) for a in self.argv )
+        return super()._bind(argv, args)
+
+
+    def to_jso(self):
+        return super().to_jso() | {"argv" : self.argv}
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            argv        = pop("argv")
+            kw_args     = cls._from_jso(pop)
+        return cls(argv, **kw_args)
+
+
+
+#-------------------------------------------------------------------------------
+
+class ProcstarShellProgram(_ProcstarProgram):
+
+    SHELL = "/usr/bin/bash"
+
+    def __init__(self, command, **kw_args):
+        super().__init__(**kw_args)
+        self.command = str(command)
+
+
+    def __str__(self):
+        return self.command
+
+
+    def bind(self, args):
+        argv = [self.SHELL, "-c", template_expand(self.command, args)]
+        return super()._bind(argv, args)
+
+
+    def to_jso(self):
+        return super().to_jso() | {"command" : self.command}
+
+
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            command     = pop("command")
+            kw_args     = cls._from_jso(pop)
+        return cls(command, **kw_args)
+
+
+
+#-------------------------------------------------------------------------------
+
+class BoundProcstarProgram(base.Program):
+
+    def __init__(
+            self, argv, *, group_id,
+            sudo_user   =None,
+            stop        =BoundStop(),
+    ):
+        self.argv = [ str(a) for a in argv ]
+        self.group_id   = str(group_id)
+        self.sudo_user  = nstr(sudo_user)
+        self.stop       = stop
+
+
+    def __str__(self):
+        return join_args(self.argv)
+
+
+    def to_jso(self):
+        return (
+            super().to_jso()
+            | {
+                "argv"      : self.argv,
+                "group_id"  : self.group_id,
+            }
+            | if_not_none("sudo_user", self.sudo_user)
+            | ifkey("stop", self.stop.to_jso(), {})
+        )
 
 
     @classmethod
@@ -166,18 +293,49 @@ class BoundProcstarProgram(base.Program):
             argv        = pop("argv")
             group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
             sudo_user   = pop("sudo_user", default=None)
-        return cls(argv, group_id=group_id, sudo_user=sudo_user)
+            stop        = pop("stop", BoundStop.from_jso, BoundStop())
+        return cls(argv, group_id=group_id, sudo_user=sudo_user, stop=stop)
 
 
-    def get_spec(self, cfg, *, run_id):
+    def run(self, run_id, cfg):
+        return RunningProcstarProgram(run_id, self, cfg)
+
+
+    def connect(self, run_id, run_state, cfg):
+        return RunningProcstarProgram(run_id, self, cfg, run_state)
+
+
+
+#-------------------------------------------------------------------------------
+
+class RunningProcstarProgram(base.RunningProgram):
+
+    def __init__(self, run_id, program, cfg, run_state=None):
+        """
+        :param res:
+          The most recent `Result`, if any.
+        """
+        super().__init__(run_id)
+        self.program        = program
+        self.cfg            = get_cfg(cfg, "procstar.agent", {})
+        self.run_state      = run_state
+
+        self.proc           = None
+        self.stopping       = False
+        self.stop_signals   = []
+
+
+    @property
+    def _spec(self):
         """
         Returns the procstar proc spec for the program.
         """
+        argv = _sudo_wrap(self.cfg, self.program.argv, self.program.sudo_user)
         return procstar.spec.Proc(
-            _sudo_wrap(cfg, self.__argv, self.__sudo_user),
+            argv,
             env=procstar.spec.Proc.Env(
                 vars={
-                    "APSIS_RUN_ID": run_id,
+                    "APSIS_RUN_ID": self.run_id,
                 },
                 # Inherit the entire environment from procstar, since it probably
                 # includes important configuration.
@@ -197,119 +355,92 @@ class BoundProcstarProgram(base.Program):
         )
 
 
-    async def __delete(self, proc):
-        try:
-            # Request deletion.
-            await proc.delete()
-        except Exception as exc:
-            # Just log this; from Apsis's standpoint, the proc is long done.
-            log.error(f"delete {proc.proc_id}: {exc}")
-
-
-    async def run(self, run_id, cfg):
+    @memo.property
+    async def updates(self):
         """
-        Runs the program.
-
-        Returns an async iterator of program updates.
+        Handles running `inst` until termination.
         """
-        server = get_agent_server()
-        agent_cfg       = get_cfg(cfg, "procstar.agent", {})
-        run_cfg         = get_cfg(agent_cfg, "run", {})
-        conn_timeout    = get_cfg(agent_cfg, "connection.start_timeout", None)
-        conn_timeout    = nparse_duration(conn_timeout)
+        run_cfg         = get_cfg(self.cfg, "run", {})
+        update_interval = run_cfg.get("update_interval", None)
+        update_interval = nparse_duration(update_interval)
+        output_interval = run_cfg.get("output_interval", None)
+        output_interval = nparse_duration(output_interval)
 
-        # Generate a proc ID.
-        proc_id = str(uuid.uuid4())
-
-        try:
+        if self.run_state is None:
             # Start the proc.
-            proc, res = await server.start(
-                proc_id     =proc_id,
-                group_id    =self.__group_id,
-                spec        =self.get_spec(cfg, run_id=run_id),
-                conn_timeout=conn_timeout,
-            )
 
-        except NoOpenConnectionInGroup as exc:
-            log.warning(str(exc))
-            yield base.ProgramError(f"procstar: {exc}")
+            conn_timeout = get_cfg(self.cfg, "connection.start_timeout", 0)
+            conn_timeout = nparse_duration(conn_timeout)
+            proc_id = str(uuid.uuid4())
 
-        except Exception as exc:
-            log.error(f"procstar: {traceback.format_exc()}")
-            yield base.ProgramError(f"procstar: {exc}")
+            try:
+                # Start the proc.
+                self.proc, res = await get_agent_server().start(
+                    proc_id     =proc_id,
+                    group_id    =self.program.group_id,
+                    spec        =self._spec,
+                    conn_timeout=conn_timeout,
+                )
+            except NoOpenConnectionInGroup as exc:
+                msg = f"start failed: {proc_id}: {exc}"
+                log.warning(msg)
+                yield ProgramError(msg)
+                return
 
-        else:
-            run_state = {
-                "conn_id": proc.conn_id,
+            conn_id = self.proc.conn_id
+            log.info(f"started: {proc_id} on conn {conn_id}")
+
+            self.run_state = {
+                "conn_id": conn_id,
                 "proc_id": proc_id,
             }
             yield base.ProgramRunning(
-                run_state,
-                meta=_make_metadata(proc_id, res)
+                run_state   =self.run_state,
+                meta        =_make_metadata(proc_id, res)
             )
-
-            # Hand off to __finish.
-            async for update in self.__finish(proc, res, run_cfg):
-                yield update
-
-
-    async def connect(self, run_id, run_state, cfg):
-        server = get_agent_server()
-        agent_cfg = get_cfg(cfg, "procstar.agent", {})
-        run_cfg = get_cfg(agent_cfg, "run", {})
-
-        conn_id = run_state["conn_id"]
-        proc_id = run_state["proc_id"]
-
-        try:
-            conn_timeout = nparse_duration(
-                get_cfg(agent_cfg, "connection.reconnect_timeout", None))
-
-            log.info(f"reconnecting: {proc_id} on conn {conn_id}")
-            proc = await server.reconnect(
-                conn_id     =conn_id,
-                proc_id     =proc_id,
-                conn_timeout=conn_timeout,
-            )
-
-            # Request a result immediately.
-            await proc.request_result()
-
-        except NoConnectionError as exc:
-            msg = f"reconnect failed: {proc_id}: {exc}"
-            log.error(msg)
-            yield base.ProgramError(msg)
 
         else:
+            # Reconnect to the proc.
+            conn_timeout = get_cfg(self.cfg, "connection.reconnect_timeout", None)
+            conn_timeout = nparse_duration(conn_timeout)
+
+            conn_id = self.run_state["conn_id"]
+            proc_id = self.run_state["proc_id"]
+            log.info(f"reconnecting: {proc_id} on conn {conn_id}")
+
+            try:
+                self.proc = await get_agent_server().reconnect(
+                    conn_id     =conn_id,
+                    proc_id     =proc_id,
+                    conn_timeout=conn_timeout,
+                )
+            except NoConnectionError as exc:
+                msg = f"reconnect failed: {proc_id}: {exc}"
+                log.error(msg)
+                yield ProgramError(msg)
+                return
+
+            # Request a result immediately.
+            await self.proc.request_result()
+            res = None
+
             log.info(f"reconnected: {proc_id} on conn {conn_id}")
-            # Hand off to __finish.
-            async for update in self.__finish(proc, None, run_cfg):
-                yield update
 
-
-    async def __finish(self, proc, res, run_cfg):
-        """
-        Handles running `proc` until termination.
-
-        :param res:
-          The most recent `Result`, if any.
-        """
-        proc_id = proc.proc_id
-        tasks = asyn.TaskGroup()
+        # We now have a proc running on the agent.
 
         try:
+            tasks = asyn.TaskGroup()
+
             # Output collected so far.
             fd_data = None
 
             # Start tasks to request periodic updates of results and output.
-            update_interval = nparse_duration(run_cfg.get("update_interval", None))
-            output_interval = nparse_duration(run_cfg.get("output_interval", None))
 
             if update_interval is not None:
                 # Start a task that periodically requests the current result.
                 tasks.add(
                     "poll update",
-                    asyn.poll(proc.request_result, update_interval)
+                    asyn.poll(self.proc.request_result, update_interval)
                 )
 
             if output_interval is not None:
@@ -318,12 +449,12 @@ class BoundProcstarProgram(base.Program):
                     # From the current position to the end.
                     start = 0 if fd_data is None else fd_data.interval.stop
                     interval = Interval(start, None)
-                    return proc.request_fd_data("stdout", interval=interval)
+                    return self.proc.request_fd_data("stdout", interval=interval)
 
                 tasks.add("poll output", asyn.poll(more_output, output_interval))
 
             # Process further updates, until the process terminates.
-            async for update in proc.updates:
+            async for update in self.proc.updates:
                 match update:
                     case FdData():
                         fd_data = _combine_fd_data(fd_data, update)
@@ -353,7 +484,7 @@ class BoundProcstarProgram(base.Program):
                     or fd_data.interval.stop < length
             ):
                 # Request any remaining output.
-                await proc.request_fd_data(
+                await self.proc.request_fd_data(
                     "stdout",
                     interval=Interval(
                         0 if fd_data is None else fd_data.interval.stop,
@@ -361,7 +492,7 @@ class BoundProcstarProgram(base.Program):
                     )
                 )
                 # Wait for it.
-                async for update in proc.updates:
+                async for update in self.proc.updates:
                     match update:
                         case FdData():
                             fd_data = _combine_fd_data(fd_data, update)
@@ -375,143 +506,93 @@ class BoundProcstarProgram(base.Program):
                             log.debug("expected final FdData")
 
             outputs = await _make_outputs(fd_data)
+            meta["stop"] = {"signals": [ s.name for s in self.stop_signals ]}
 
             if res.status.exit_code == 0:
                 # The process terminated successfully.
-                yield base.ProgramSuccess(meta=meta, outputs=outputs)
+                yield ProgramSuccess(meta=meta, outputs=outputs)
+            elif (
+                        self.stopping
+                    and res.status.signal is not None
+                    and Signals[res.status.signal] == self.program.stop.signal
+            ):
+                # The process stopped with the expected signal.
+                yield ProgramSuccess(meta=meta, outputs=outputs)
             else:
                 # The process terminated unsuccessfully.
                 exit_code = res.status.exit_code
                 signal = res.status.signal
-                cause = (
+                yield ProgramFailure(
                     f"exit code {exit_code}" if signal is None
-                    else f"killed by {signal}"
+                    else f"killed by {signal}",
+                    meta=meta,
+                    outputs=outputs
                 )
-                yield base.ProgramFailure(cause, meta=meta, outputs=outputs)
 
         except asyncio.CancelledError:
             # Don't clean up the proc; we can reconnect.
-            proc = None
+            self.proc = None
 
         except ProcessUnknownError:
             # Don't ask to clean it up; it's already gone.
-            proc = None
+            self.proc = None
 
         except Exception as exc:
-            log.error(f"procstar: {traceback.format_exc()}")
-
-            yield base.ProgramError(
+            log.error("procstar", exc_info=True)
+            yield ProgramError(
                 f"procstar: {exc}",
-                meta=(
-                    _make_metadata(proc_id, res)
-                    if proc is not None and res is not None
-                    else {}
-                )
+                meta={} if res is None else _make_metadata(proc_id, res),
             )
 
         finally:
             # Cancel our helper tasks.
             await tasks.cancel_all()
-            if proc is not None:
-                # Giving up on this proc; ask the agent to delete it.
-                await self.__delete(proc)
+            if self.proc is not None:
+                # Done with this proc; ask the agent to delete it.
+                try:
+                    # Request deletion.
+                    await self.proc.delete()
+                except Exception as exc:
+                    # Just log this; for Apsis, the proc is done.
+                    log.error(f"delete {self.proc.proc_id}: {exc}")
+                self.proc = None
 
 
-    async def signal(self, run_id, run_state, signal):
-        server = get_agent_server()
+    async def stop(self):
+        if self.proc is None:
+            log.warning("no more proc to stop")
+            return
 
-        signal = to_signal(signal)
-        log.info(f"sending signal: {run_id}: {signal}")
+        stop = self.program.stop
+        self.stopping = True
 
-        proc_id = run_state["proc_id"]
-        try:
-            proc = server.processes[proc_id]
-        except KeyError:
-            raise ValueError(f"no process: {proc_id}")
-        await proc.send_signal(int(signal))
+        # Send the stop signal.
+        self.stop_signals.append(stop.signal)
+        await self.signal(stop.signal)
 
-
-
-#-------------------------------------------------------------------------------
-
-class ProcstarProgram(base.Program):
-
-    def __init__(
-            self, argv, *,
-            group_id    =procstar.proto.DEFAULT_GROUP,
-            sudo_user   =None
-    ):
-        self.__argv         = [ str(a) for a in argv ]
-        self.__group_id     = str(group_id)
-        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
-
-
-    def __str__(self):
-        return join_args(self.__argv)
+        if stop.grace_period is not None:
+            try:
+                # Wait for the grace period to expire.
+                await asyncio.sleep(stop.grace_period)
+            except asyncio.CancelledError:
+                # That's what we were hoping for.
+                pass
+            else:
+                # Send a kill signal.
+                try:
+                    self.stop_signals.append(Signals.SIGKILL)
+                    await self.signal(Signals.SIGKILL)
+                except ValueError:
+                    # Proc is gone; that's OK.
+                    pass
 
 
-    def bind(self, args):
-        argv        = tuple( template_expand(a, args) for a in self.__argv )
-        group_id    = or_none(template_expand)(self.__group_id, args)
-        sudo_user   = or_none(template_expand)(self.__sudo_user, args)
-        return BoundProcstarProgram(
-            argv, group_id=group_id, sudo_user=sudo_user)
+    async def signal(self, signal):
+        if self.proc is None:
+            log.warning("no more proc to signal")
+            return
 
-
-    def to_jso(self):
-        return super().to_jso() | {
-            "argv"      : self.__argv,
-            "group_id"  : self.__group_id,
-        } | if_not_none("sudo_user", self.__sudo_user)
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso) as pop:
-            argv        = pop("argv")
-            group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
-            sudo_user   = pop("sudo_user", default=None)
-        return cls(argv, group_id=group_id, sudo_user=sudo_user)
-
-
-
-#-------------------------------------------------------------------------------
-
-class ProcstarShellProgram(base.Program):
-
-    SHELL = "/usr/bin/bash"
-
-    def __init__(
-            self, command, *,
-            group_id    =procstar.proto.DEFAULT_GROUP,
-            sudo_user   =None,
-    ):
-        self.__command      = str(command)
-        self.__group_id     = str(group_id)
-        self.__sudo_user    = None if sudo_user is None else str(sudo_user)
-
-
-    def bind(self, args):
-        argv        = [self.SHELL, "-c", template_expand(self.__command, args)]
-        group_id    = or_none(template_expand)(self.__group_id, args)
-        sudo_user   = or_none(template_expand)(self.__sudo_user, args)
-        return BoundProcstarProgram(argv, group_id=group_id, sudo_user=sudo_user)
-
-
-    def to_jso(self):
-        return super().to_jso() | {
-            "command"   : self.__command,
-            "group_id"  : self.__group_id,
-        } | if_not_none("sudo_user", self.__sudo_user)
-
-
-    @classmethod
-    def from_jso(cls, jso):
-        with check_schema(jso) as pop:
-            command     = pop("command")
-            group_id    = pop("group_id", default=procstar.proto.DEFAULT_GROUP)
-            sudo_user   = pop("sudo_user", default=None)
-        return cls(command, group_id=group_id, sudo_user=sudo_user)
+        await self.proc.send_signal(int(signal))
 
 
 

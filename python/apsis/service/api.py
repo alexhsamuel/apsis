@@ -17,6 +17,7 @@ from   apsis.lib.api import (
     output_metadata_to_jso, run_log_to_jso, output_to_http_message
 )
 import apsis.lib.itr
+from   apsis.lib.parse import parse_duration
 from   apsis.lib.sys import to_signal
 from   apsis.states import to_state
 from   ..jobs import jso_to_job
@@ -368,6 +369,21 @@ async def run_rerun(request, run_id):
 
 
 # PUT is probably right, but run actions currently are POST only.
+@API.route("/runs/<run_id>/stop", methods={"PUT", "POST"})
+async def run_stop(request, run_id):
+    apsis = request.app.apsis
+    _, run = apsis.run_store.get(run_id)
+
+    try:
+        await apsis.stop_run(run)
+    except RuntimeError as exc:
+        return error(str(exc), 400)
+    else:
+        jso = runs_to_jso(request.app, ora.now(), [run])
+        return response_json(jso)
+
+
+# PUT is probably right, but run actions currently are POST only.
 @API.route("/runs/<run_id>/signal/<signal>", methods={"PUT", "POST"})
 async def run_signal(request, run_id, signal):
     apsis = request.app.apsis
@@ -537,6 +553,7 @@ async def websocket_summary(request, ws):
 
 @API.route("/runs", methods={"POST"})
 async def run_post(request):
+    # FIXME: Add a way to specify the stop time.
     query = parse_query(request.query_string)
     try:
         count = int(query["count"])
@@ -563,10 +580,27 @@ async def run_post(request):
     args = jso.get("args", {})
     inst = Instance(job_id, args)
 
-    time = jso.get("times", {}).get("schedule", "now")
-    time = None if time == "now" else ora.Time(time)
+    times = jso.get("times", {})
+    time = times.get("schedule", "now")
+    time = "now" if time == "now" else ora.Time(time)
 
-    runs = ( apsis.schedule(time, inst) for _ in range(count) )
+    stop_time = times.get("stop", None)
+    if stop_time is not None:
+        # Either an absolute time or a duration ahead of schedule time.
+        try:
+            stop_time = ora.Time(stop_time)
+        except ValueError:
+            try:
+                duration = parse_duration(stop_time)
+            except ValueError:
+                raise ValueError(f"invalid stop time: {stop_time}")
+            else:
+                stop_time = (ora.now() if time == "now" else time) + duration
+
+    runs = (
+        apsis.schedule(time, inst, stop_time=stop_time)
+        for _ in range(count)
+    )
     runs = await asyncio.gather(*runs)
     jso = runs_to_jso(request.app, ora.now(), runs)
     return response_json(jso)

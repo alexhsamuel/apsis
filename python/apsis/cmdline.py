@@ -45,6 +45,7 @@ STATE_STYLE = {
     "starting"  : Style(color="#767676"),
     "waiting"   : Style(color="#626262"),
     "running"   : Style(color="#af8700"),
+    "stopping"  : Style(color="#767676"),
     "success"   : Style(color="#00875f"),
     "failure"   : Style(color="#af0000"),
     "error"     : Style(color="#af00af"),
@@ -57,6 +58,7 @@ _STATE_SYM = {
     "starting"  : "›",
     "waiting"   : "|",
     "running"   : "»",
+    "stopping"  : "≯",
     "success"   : "+",
     "failure"   : "X",
     "error"     : "!",
@@ -182,8 +184,10 @@ def print_run(run, con, *, verbosity=0, run_log=None, similar_runs=None):
     elapsed = get_run_elapsed(now(), run)
     elapsed = "" if elapsed is None else format_duration(elapsed)
 
-    header("Program")
-    con.print(format_program(run["program"], verbosity=verbosity))
+    program = run.get("program", None)
+    if program:
+        header("Program")
+        con.print(format_program(program, verbosity=verbosity))
 
     # Format conds.
     header("Conditions")

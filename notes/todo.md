@@ -1,24 +1,3 @@
-# Live updates
-
-WebSocket API for web UI:
-- run updates for all runs (as current)
-- run log updates for a single run
-- run data updates for a single run
-- agent changes: connect, disconnect, timeout
-- job changes
-
-Persistent connection:
-- run changes (run summaries only)
-- job changes
-- Procstar connection changes
-- Apsis log (if we keep this)
-
-Transient connection (single run):
-- run log updates
-- run output data updates
-- run metadata updates
-
-
 ### The Plan
 
 - [x] design internal run publisher protocol
@@ -54,26 +33,29 @@ Transient connection (single run):
   - [x] move compression out of programs
 - [x] roll in Procstar agent changes to `/summary`
 - [ ] clean up API endpoints we don't need anymore
-- [ ] roll in, or get rid of, log socket
+- [x] roll in, or get rid of, log socket
 - [x] add live endpoints to `Client`
 - [x] live updates in CLUI
   - [x] output
   - [x] run log
 - [x] improve and clean up `State` enum
 
+- [x] scheduled stop
+  - [x] add stop method to program
+  - [x] actually stop the program at the stop time
+  - [x] go through _stopping_ state
+  - [x] Procstar stop method
+  - [x] add stop time to runs table
+  - [x] classic agent program stop method
+  - [x] ProcessProgram: RunningProgram and stop method
+  - [x] stop run API endpoint
+  - [x] "stop" operation
+  - [x] add stop time to run view
+  - [x] docs
+  - [x] refactor `apsis.stop` module
 - [ ] if `send_signal` raises, error the run
+
 - [ ] improve `apsis job` output style
-
-
-# Exantium tasks?
-
-- internals presentation
-- reliable integration tests
-- update Python deps, especially Sanic
-- update JS deps, especially Vue3
-- database schema cleanup
-  - move metadata into its own table; remove `meta` from `Apsis._transition()`
-- code cleanup, reorg, documentation
 
 
 # Cleanup

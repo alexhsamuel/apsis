@@ -210,3 +210,54 @@ transition, the schedule will include no times on this date at all.  For
 example, a daily schedule with a start time between 2:00:00 and 3:00:00 and a
 U.S. time zone will contain no times on the dates in the spring when DST begins.
 
+
+.. _stop-schedules:
+
+Stop schedules
+--------------
+
+You can also configure a job so that a run will stop at a certain time.  When
+this time elapsis, Apsis stops the run, assuming it is running.  The ways you
+schedule a run to stop are different from the schedule types above, since the
+stop time is generally related to the schedule time.
+
+To configure a stop schedule in addition to the normal start schedule, place the
+latter into `start:` subkey, and use `stop:` to specify the stop schedule.  The
+available stop schedule types are `duration` and `daytime`.  For example,
+
+.. code:: yaml
+
+    schedule:
+        start:
+            type: daily
+            daytime: 10:30:00
+            tz: Europe/Berlin
+        stop:
+            type: duration
+            duration: 30m
+
+This instructs Apsis to run the program for 30 minutes after the schedule time,
+namely 11:00 Europe/Berlin.
+
+The `daytime` stop schedule type instructs Apsis to stop the run at the next
+occurence of a specific daytime after the schedule time.  The following example
+has the same effect as the previous:
+
+.. code:: yaml
+
+    schedule:
+        start:
+            type: daily
+            daytime: 10:30:00
+            tz: Europe/Berlin
+        stop:
+            type: daytime
+            daytime: 11:00:00
+            tz: Europe/Berlin
+
+You can use any of the schedule types in the previous section for the `start`
+schedule.
+
+When the stop time elapses, Apsis stops the run in accordance with the program's
+stop method.  This is discussed in :ref:`program-stop`.
+

@@ -16,16 +16,15 @@ from   .host_group import config_host_groups
 from   .jobs import Jobs, load_jobs_dir, diff_jobs_dirs
 from   .lib.api import run_to_summary_jso
 from   .lib.asyn import TaskGroup, Publisher, KeyPublisher
-from   .lib.cmpr import compress_async
 from   .lib.py import more_gc_stats
 from   .lib.sys import to_signal
 from   .output import OutputStore
 from   .program.base import _InternalProgram
 from   .program.base import Output, OutputMetadata
-from   .program.base import ProgramRunning, ProgramError, ProgramFailure, ProgramSuccess, ProgramUpdate
 from   . import runs
 from   .run_log import RunLog
 from   .run_snapshot import snapshot_run
+from   .running import _process_updates
 from   .runs import Run, RunStore, RunError, MissingArgumentError, ExtraArgumentError
 from   .runs import validate_args, bind
 from   .scheduled import ScheduledRuns
@@ -69,6 +68,8 @@ class Apsis:
         self.__wait_tasks = TaskGroup(log)
         # One task for each starting/running run.
         self.__run_tasks = TaskGroup(log)
+        # One task for each stopping run.
+        self.__stopping_tasks = TaskGroup(log)
         # One task for each running action.
         self.__action_tasks = TaskGroup(log)
 
@@ -236,16 +237,17 @@ class Apsis:
 
         Runs the run's program in a task added to `__run_tasks`.
         """
+        assert run._running_program is None
         # Start the run by running its program.
         self.run_log.record(run, "starting")
         self._transition(run, State.starting)
         # Call the program.  This produces an async iterator of updates.
-        updates = run.program.run(
+        run._running_program = run.program.run(
             run.run_id,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
         # Start a task to process updates from the program.
-        run_task = _process_updates(self, run, updates)
+        run_task = _process_updates(self, run)
         self.__run_tasks.add(run.run_id, run_task)
 
 
@@ -255,17 +257,19 @@ class Apsis:
 
         Finishes running the run's program in a task added to `__run_tasks`.
         """
+        # FIXME: Reconnect starting or stopping programs?
         assert run.state == State.running
         assert run.run_state is not None
+        assert run._running_program is None
         self.run_log.record(run, "reconnecting")
         # Connect to the program.  This produces an async iterator of updates.
-        updates = run.program.connect(
+        run._running_program = run.program.connect(
             run.run_id,
             run.run_state,
             self if isinstance(run.program, _InternalProgram) else self.cfg,
         )
         # Start a task to process updates from the program.
-        run_task = _process_updates(self, run, updates)
+        run_task = _process_updates(self, run)
         self.__run_tasks.add(run.run_id, run_task)
 
 
@@ -344,7 +348,7 @@ class Apsis:
         """
         Updates run metadata, without transitioning.
         """
-        assert run.state in {State.starting, State.running}
+        assert run.state in {State.starting, State.running, State.stopping}
 
         if meta is None or len(meta) == 0:
             return
@@ -447,7 +451,7 @@ class Apsis:
 
     # FIXME: Move the API elsewhere.
 
-    async def schedule(self, time, inst, *, expected=False):
+    async def schedule(self, time, inst, *, expected=False, stop_time=None):
         """
         Creates and schedules a new run.
 
@@ -456,10 +460,18 @@ class Apsis:
         :param time:
           The schedule time at which to run the run.  If `None`, the run
           is run now, instead of scheduled.
+        :param stop_time:
+          If not none, time at which to stop the program.
         :return:
           The run, either scheduled or error.
         """
-        time = None if time is None else Time(time)
+        if time == "now":
+            time = None
+        if time is None:
+            times = {"schedule": now()}
+        else:
+            time = Time(time)
+            times = {"schedule": time}
 
         # Create the run and add it to the run store, which assigns it a run ID
         # and persists it.
@@ -471,6 +483,9 @@ class Apsis:
             job = self.jobs.get_job(run.inst.job_id)
             validate_args(run, job.params)
             bind(run, job, self.jobs)
+            # Add the stop time, if any.
+            if stop_time is not None:
+                times["stop"] = stop_time
             # Attach job labels to the run.
             run.meta["job"] = {
                 "labels": job.meta.get("labels", []),
@@ -479,15 +494,19 @@ class Apsis:
             self._run_exc(run, message=str(exc))
             return run
 
+        # Transition to scheduled.
+        msg = f"scheduled: {'now' if time is None else time}"
+        self.run_log.record(run, msg)
+        if stop_time is not None:
+            self.run_log.record(run, f"stop time: {stop_time}")
+
+        self._transition(run, State.scheduled, times=times)
+
         if time is None:
-            # Transition to scheduled and immediately to wait.
-            self.run_log.record(run, "scheduled: now")
-            self._transition(run, State.scheduled, times={"schedule": now()})
+            # Transition immediately to wait.
             self._wait(run)
         else:
             # Schedule for the future.
-            self.run_log.record(run, f"scheduled: {time}")
-            self._transition(run, State.scheduled, times={"schedule": time})
             await self.scheduled.schedule(time, run)
 
         return run
@@ -572,9 +591,45 @@ class Apsis:
         """
         # Create the new run.
         log.info(f"rerun: {run.run_id} at {time or 'now'}")
-        new_run = await self.schedule(time, run.inst)
+        new_run = await self.schedule(time, run.inst, stop_time=run.stop_time)
         self.run_log.info(new_run, f"scheduled as rerun of {run.run_id}")
         return new_run
+
+
+    async def stop_run(self, run):
+        """
+        Transitions `run` to stopping, and requests its program to stop in a
+        new task.
+
+        The `run` must be either running, or else stopping in which case
+        this is a no-op.
+
+        Adds `{"stopping": True}` to the run's run state when it transitions to
+        stopping.
+        """
+        if run.state == State.stopping:
+            log.info(f"run already stopping: {run.run_id}")
+            return
+
+        if run.state != State.running:
+            raise RuntimeError(
+                f"can't stop run {run.run_id}: run is {run.state.name}")
+
+        # Transition to stopping.
+        self.run_log.record(run, "stopping")
+        self._transition(
+            run, State.stopping,
+            run_state=run.run_state | {"stopping": True}
+        )
+
+        # Ask the run to stop.
+        async def stop():
+            try:
+                await run._running_program.stop()
+            except:
+                log.info("program.stop() exception", exc_info=True)
+
+        self.__stopping_tasks.add(run.run_id, stop())
 
 
     async def send_signal(self, run, signal):
@@ -583,13 +638,14 @@ class Apsis:
           `run` is not running.
         """
         signal = to_signal(signal)
-        if run.state != State.running:
+        if run.state not in (State.running, State.stopping):
             raise RuntimeError(f"invalid run state for signal: {run.state.name}")
-        assert run.program is not None
+        if run._running_program is None:
+            raise RuntimeError("no running program to send signal to")
 
         self.run_log.info(run, f"sending {signal.name}")
         try:
-            await run.program.signal(run.run_id, run.run_state, signal)
+            await run._running_program.signal(signal)
         except Exception:
             self.run_log.exc(run, f"sending {signal.name} failed")
             raise RuntimeError(f"sending {signal.name} failed")
@@ -601,6 +657,7 @@ class Apsis:
         await self.__action_tasks.cancel_all()
         await self.__wait_tasks.cancel_all()
         await self.__run_tasks.cancel_all()
+        await self.__stopping_tasks.cancel_all()
         await self.__tasks.cancel_all()
         log.info("Apsis shut down")
 
@@ -638,6 +695,7 @@ class Apsis:
             "tasks": {
                 "num_waiting"       : len(self.__wait_tasks),
                 "num_running"       : len(self.__run_tasks),
+                "num_stopping"      : len(self.__stopping_tasks),
                 "num_action"        : len(self.__action_tasks),
             },
             "len_runlogdb_cache"    : len(self.__db.run_log_db._RunLogDB__cache),
@@ -759,137 +817,6 @@ async def _wait_loop(apsis, run, timeout):
         apsis._start(run)
 
 
-async def _maybe_compress(outputs, *, compression="br", min_size=16384):
-    """
-    Compresses final outputs, if needed.
-    """
-    async def _cmpr(output):
-        if output.compression is None and output.metadata.length >= min_size:
-            # Compress the output.
-            try:
-                compressed = await compress_async(output.data, compression)
-            except RuntimeError as exc:
-                log.error(f"{exc}; not compressiong")
-                return output
-            else:
-                return Output(output.metadata, compressed, compression)
-        else:
-            return output
-
-    o = await asyncio.gather(*( _cmpr(o) for o in outputs.values() ))
-    return dict(zip(outputs.keys(), o))
-
-
-async def _process_updates(apsis, run, updates):
-    """
-    Processes program `updates` for `run` until the program is finished.
-    """
-    updates = aiter(updates)
-
-    try:
-        if run.state == State.starting:
-            update = await anext(updates)
-            match update:
-                case ProgramRunning() as running:
-                    apsis.run_log.record(run, "running")
-                    apsis._transition(
-                        run, State.running,
-                        run_state   =running.run_state,
-                        meta        ={"program": running.meta},
-                        times       =running.times,
-                    )
-
-                case ProgramError() as error:
-                    apsis.run_log.info(run, f"error: {error.message}")
-                    apsis._update_output_data(run, error.outputs, persist=True)
-                    apsis._transition(
-                        run, State.error,
-                        meta        ={"program": error.meta},
-                        times       =error.times,
-                    )
-                    return
-
-                case _ as update:
-                    assert False, f"unexpected update: {update}"
-
-        assert run.state == State.running
-
-        while run.state == State.running:
-            update = await anext(updates)
-            match update:
-                case ProgramUpdate() as update:
-                    if update.outputs is not None:
-                        apsis._update_output_data(run, update.outputs, False)
-                    if update.meta is not None:
-                        apsis._update_metadata(run, {"program": update.meta})
-
-                case ProgramSuccess() as success:
-                    apsis.run_log.record(run, "success")
-                    apsis._update_output_data(
-                        run,
-                        await _maybe_compress(success.outputs),
-                        True
-                    )
-                    apsis._transition(
-                        run, State.success,
-                        meta        ={"program": success.meta},
-                        times       =success.times,
-                    )
-
-                case ProgramFailure() as failure:
-                    # Program ran and failed.
-                    apsis.run_log.record(run, f"failure: {failure.message}")
-                    apsis._update_output_data(
-                        run,
-                        await _maybe_compress(failure.outputs),
-                        True
-                    )
-                    apsis._transition(
-                        run, State.failure,
-                        meta        ={"program": failure.meta},
-                        times       =failure.times,
-                    )
-
-                case ProgramError() as error:
-                    apsis.run_log.info(run, f"error: {error.message}")
-                    apsis._update_output_data(
-                        run,
-                        await _maybe_compress(error.outputs),
-                        True
-                    )
-                    apsis._transition(
-                        run, State.error,
-                        meta        ={"program": error.meta},
-                        times       =error.times,
-                    )
-
-                case _ as update:
-                    assert False, f"unexpected update: {update}"
-
-        else:
-            # Exhaust the async iterator, so that cleanup can run.
-            try:
-                update = await anext(updates)
-            except StopAsyncIteration:
-                # Expected.
-                pass
-            else:
-                assert False, f"unexpected update: {update}"
-
-    except (asyncio.CancelledError, StopAsyncIteration):
-        # We do not transition the run here.  The run can survive an Apsis
-        # restart and we can connect to it later.
-        pass
-
-    except Exception:
-        # Program raised some other exception.
-        apsis.run_log.exc(run, "error: internal")
-        tb = traceback.format_exc().encode()
-        output = Output(OutputMetadata("traceback", length=len(tb)), tb)
-        apsis._update_output_data(run, {"outputs": output}, True)
-        apsis._transition(run, State.error)
-
-
 def _unschedule_runs(apsis, job_id):
     """
     Deletes all scheduled expected runs of `job_id`.
@@ -926,8 +853,8 @@ async def reschedule_runs(apsis, job_id):
     # and the scheduler time.
     job = apsis.jobs.get_job(job_id)
     schedule = list(get_insts_to_schedule(job, scheduled_time, scheduler_time))
-    for time, inst in schedule:
-        await apsis.schedule(time, inst, expected=True)
+    for time, stop_time, inst in schedule:
+        await apsis.schedule(time, inst, expected=True, stop_time=stop_time)
 
 
 async def reload_jobs(apsis, *, dry_run=False):

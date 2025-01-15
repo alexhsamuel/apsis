@@ -99,6 +99,7 @@ Each run, once created, is in one of these states:
 - **waiting**: The run is waiting for a condition to be met.
 - **starting**: The run is starting.
 - **running**: The run has started and is currently running.
+- **stopping**: Apsis is stopping the run.
 - **success**: The run has completed successfully.
 - **failure**: The run has completed unsuccesfully.
 - **error**: Some other problem has occured with the run.  This can include a
@@ -148,6 +149,16 @@ You can apply the following operations, to induce transitions explicitly:
 
 - You can *skip* a **scheduled** or **waiting** run.  Apsis no longer waits for
   its schedule time or conditions, and transitions it to **skipped**.
+
+- You can *stop* a **running** run.  Apsis requests that the run shut down in an
+  orderly manner.  How this works depends on the run's program.  For a program
+  that runs a (local or remote) UNIX process, this entails sending a termination
+  signal (usuall SIGTERM), then waiting for a grace period and then sending
+  SIGKILL if the process has not terminated.  While Apsis is waiting for the run
+  to terminate, it is in the **stopping** state.
+
+  You can also schedule Apsis to stop a run automatically; see
+  :ref:`stop-schedules`.
 
 - You can *mark* a finished run (**success**, **failure**, **skipped**, or
   **error**) to a different finished state.

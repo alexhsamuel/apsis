@@ -272,7 +272,8 @@ def main():
             args.job_id,
             dict(args.args),
             args.time,
-            count=args.count,
+            count       =args.count,
+            stop_time   =args.stop_time,
         )
         for run in runs:
             apsis.cmdline.print_run(run, con)
@@ -289,6 +290,9 @@ def main():
     cmd.add_argument(
         "--count", metavar="NUM", type=int, default=1,
         help="schedule NUM runs [def: 1]")
+    cmd.add_argument(
+        "--stop-time", metavar="TIME", default=None,
+        help="schedule program stop at TIME [time or duration]")
     cmd.add_argument(
         "time", metavar="TIME", type=apsis.cmdline.parse_at_time,
         help="time to run [time, daytime, 'now']")
@@ -325,6 +329,19 @@ def main():
     cmd = parser.add_command(
         "start", cmd_start,
         description="Forces a scheduled or waiting run to start.")
+    cmd.add_argument(
+        "run_id", metavar="RUN-ID ...", nargs="+")
+
+    #--- command: stop ---------------------------------------------------------
+
+    def cmd_stop(client, args):
+        for run_id in args.run_id:
+            client.stop_run(run_id)
+
+
+    cmd = parser.add_command(
+        "stop", cmd_stop,
+        description="Requests orderly stop of a running run.")
     cmd.add_argument(
         "run_id", metavar="RUN-ID ...", nargs="+")
 

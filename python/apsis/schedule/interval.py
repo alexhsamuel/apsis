@@ -67,7 +67,6 @@ class IntervalSchedule(Schedule):
     def to_jso(self):
         return {
             **super().to_jso(),
-            "enabled"   : self.enabled,
             "interval"  : self.interval,
             "phase"     : self.phase,
             "args"      : self.args,
@@ -77,12 +76,12 @@ class IntervalSchedule(Schedule):
     @classmethod
     def from_jso(cls, jso):
         with check_schema(jso) as pop:
-            enabled     = pop("enabled", bool, default=True)
+            kw_args     = Schedule._from_jso(pop)
             interval    = pop("interval", parse_duration)
             phase       = pop("phase", parse_duration, 0)
             assert 0 <= phase < interval, "phase not between 0 and interval"
             args        = pop("args", default={})
-        return cls(interval, args, enabled=enabled, phase=phase)
+        return cls(interval, args, phase=phase, **kw_args)
 
 
 

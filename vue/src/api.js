@@ -56,6 +56,10 @@ export function getSummaryUrl(init) {
   return url
 }
 
+export function getStopUrl(run_id) {
+  return getUrl('runs', run_id, 'stop')
+}
+
 export function getSignalUrl(run_id, signame) {
   return getUrl('runs', run_id, 'signal', signame)
 }
@@ -87,6 +91,7 @@ export function getUrlForOperation(operation, run_id) {
     case 'skip': return getSkipUrl(run_id)
     case 'start': return getStartUrl(run_id)
     case 'rerun': return getRerunUrl(run_id)
+    case 'stop': return getStopUrl(run_id)
     case 'terminate': return getSignalUrl(run_id, 'SIGTERM')
     case 'kill': return getSignalUrl(run_id, 'SIGKILL')
     default:

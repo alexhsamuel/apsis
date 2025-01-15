@@ -139,6 +139,7 @@ div
         col(style="width: 10rem")
         col(style="width: 10rem")
         col(style="width: 6rem")
+        col(style="width: 10rem")
         col(style="width: 4rem")
 
       thead
@@ -153,6 +154,7 @@ div
           th.col-schedule-time Schedule
           th.col-start-time Start
           th.col-elapsed Elapsed
+          th.col-stop-time Scheduled Stop
           th.col-operations Operations
 
       tbody
@@ -209,6 +211,8 @@ div
               Timestamp(v-if="run.times.running" :time="run.times.running")
             td.col-elapsed
               RunElapsed(:run="run")
+            td.col-stop-time
+              Timestamp(v-if="run.times.stop" :time="run.times.stop" :class="{ overdue: isOverdue(run) }")
             td.col-operations
               HamburgerMenu(v-if="OPERATIONS[run.state].length > 0")
                 OperationButton(
@@ -257,11 +261,11 @@ const COUNTS = [20, 50, 100, 200, 500, 1000]
 
 /**
  * Constructs a predicate fn for matching runs with `args`.
- * 
+ *
  * `args` is an array of "param=value" or "param" strings.  The former requires
  * the given param have the cooresponding arg value.  The latter requires that
  * it have any arg value at all.  The result is the conjunction of these.
- * 
+ *
  * For example, the `args` array ["fruit=mango", "color"] produced a predicate
  * that matches all runs that both have a "fruit" param with arg value "mango",
  * and also have any value at all ofr the "color" param.
@@ -439,7 +443,7 @@ export default {
       let runs = groups.groups   // FIXME
 
       let now = (new Date()).toISOString()
-    
+
       // Determine the time to center around.
       const time = this.time === 'now' ? now : this.time
       // Find the index corresponding to the center time.
@@ -527,7 +531,7 @@ export default {
       }
     },
   },
-  
+
   watch: {
     // If parent updates the query prop, update our state correspondingly.
     query: {
@@ -597,6 +601,14 @@ export default {
       else
         return ''
     },
+
+    isOverdue(run) {
+      return run.times.stop
+        && (   run.state === 'starting'
+            || run.state === 'running'
+            || run.state === 'stopping')
+        && new Date(run.times.stop) < new Date()
+    },
   },
 
 }
@@ -626,7 +638,7 @@ export default {
 
   white-space: nowrap;
   line-height: 28px;
-  
+
   > div {
     display: grid;
     height: 30px;
@@ -721,10 +733,14 @@ table.runlist {
     vertical-align: bottom;
   }
 
-  .col-schedule-time, .col-start-time {
+  .col-schedule-time, .col-start-time, .col-stop-time {
     font-size: 90%;
     color: $global-light-color;
     text-align: right;
+  }
+
+  .col-stop-time .overdue {
+    color: #b07040;
   }
 
   .col-group {

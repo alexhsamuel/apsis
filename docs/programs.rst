@@ -163,6 +163,53 @@ the user running the Procstar agent to run the command as the sudo user, without
 any explicit password.
 
 
+.. _program-stop:
+
+Program Stop
+------------
+
+Many program types provide a stop method, by which Apsis can request an orderly
+shutdown of the program before it terminates on its own.  Keep in mind,
+
+- Not all program types provide a program stop.
+- The program may not stop immediately.
+- The program stop may fail.
+
+Apsis requests a program to stop if the program's run is configured with a stop
+schedule, or in response to an explicit stop operation invoked by the user.
+
+Before Apsis requests a program to stop, it transitions the run to the
+*stopping* state.  If the program terminates correctly in response to the stop
+request, Apsis transitions the run to *success*; if the program terminates in an
+unexpected way, *failure*.
+
+The program types above that create a UNIX process (`program`, `shell`,
+`procstar`, `procstar-shell`) all implement program stop similarly.  In response
+to a program stop request,
+
+1. Apsis immediately sends the process a signal, by default `SIGTERM`.
+2. Apsis waits for the process to terminate, up to a configured grace period, by
+   default 60 seconds.
+3. If the process has not terminated, Apsis sends it `SIGKILL`.
+
+To configure the program stop, use the `stop` key.  For example, Apsis will
+request this program to stop by sending `SIGUSR2` instead of `SIGTERM`, and will
+only wait 15 seconds before sending `SIGKILL`.
+
+.. code:: yaml
+
+    program:
+        type: procstar
+        group_id: default
+        argv: ["/usr/bin/echo", "Hello, world!"]
+        stop:
+            signal: SIGUSR2
+            grace_period: 15s
+
+If the program terminates with an exit status that indicates the process ended
+from `SIGUSR2`, Apsis considers the run to have succeeded.
+
+
 Internal Programs
 -----------------
 

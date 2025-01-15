@@ -1,3 +1,34 @@
+# Scheduled stop
+
+THIS IS CORRECT:
+```yaml
+program:
+  type: agent
+  argv: ["/path/to/my/service", "--foreground"]
+  stop:
+    signal: SIGTERM
+    grace_period: 1m
+    self_stop: false
+
+schedule:
+  start:
+    type: interval
+    interval: 1h
+  stop:
+    type: duration
+    duration: 30m
+```
+
+
+|           | running | stopping |
+|-----------|---------|----------|
+| exit ==0  | success | success  |
+| exit !=0  | failure | failure  |
+| stop sig  | failure | success  |
+| other sig | failure | failure  |
+
+
+
 # SQLite
 
 Performance test of appending to string fields, in `work/sqlite-concat.py`.

@@ -196,7 +196,10 @@ class ApsisService:
             run_id,
             *,
             timeout=60,
-            wait_states=("new", "scheduled", "waiting", "starting", "running"),
+            wait_states=(
+                "new", "scheduled", "waiting",
+                "starting", "running", "stopping"
+            ),
     ):
         """
         Polls for a run to no longer be running.
