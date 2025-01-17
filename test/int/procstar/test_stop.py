@@ -135,7 +135,9 @@ def test_rerun_with_stop():
         # The rerun should use the old stop time.
         assert reres["times"]["stop"] == res["times"]["stop"]
         # Because of the old stop time, the rerun should have been stopped immediately.
-        meta = reres["meta"]["program"]
-        assert meta["times"]["elapsed"] < 0.1
+        remeta = reres["meta"]["program"]
+        assert remeta["times"]["elapsed"] < 0.1
+        assert remeta["status"]["signal"] == "SIGTERM"
+        assert remeta["proc_stat"]["pid"] != meta["proc_stat"]["pid"]
 
 
