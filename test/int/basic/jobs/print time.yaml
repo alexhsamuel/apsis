@@ -1,0 +1,8 @@
+params: [color, exit]
+
+program:
+  type: apsis.program.process.ShellCommandProgram
+  command: |
+    echo "color={{ color }} at $(date -u -Isec)"
+    exit {{ exit }}
+
