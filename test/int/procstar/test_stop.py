@@ -1,3 +1,4 @@
+from   ora import Time
 from   pathlib import Path
 import time
 
@@ -113,5 +114,30 @@ def test_kill():
         output = svc.client.get_output(run_id, "output").decode()
         assert "ignoring SIGTERM" in output
         assert "done" not in output
+
+
+def test_rerun_with_stop():
+    near = lambda x, y: abs(x - y) < 0.001
+
+    job_dir = Path(__file__).parent / "jobs"
+    with ApsisService(job_dir=job_dir) as svc, svc.agent():
+        run_id = svc.client.schedule(
+            "sleep", {"time": "10"}, stop_time="+0.5s")["run_id"]
+        res = svc.wait_run(run_id)
+        assert res["state"] == "success"
+        assert near(Time(res["times"]["stop"]), Time(res["times"]["schedule"]) + 0.5)
+        meta = res["meta"]["program"]
+        assert meta["status"]["signal"] == "SIGTERM"
+
+        rerun_id = svc.client.rerun(run_id)["run_id"]
+        reres = svc.wait_run(rerun_id)
+        assert reres["state"] == "success"
+        # The rerun should use the old stop time.
+        assert reres["times"]["stop"] == res["times"]["stop"]
+        # Because of the old stop time, the rerun should have been stopped immediately.
+        remeta = reres["meta"]["program"]
+        assert remeta["times"]["elapsed"] < 0.1
+        assert remeta["status"]["signal"] == "SIGTERM"
+        assert remeta["proc_stat"]["pid"] != meta["proc_stat"]["pid"]
 
 
