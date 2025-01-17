@@ -18,12 +18,11 @@ def test_rerun():
 
         run_id = inst.client.rerun(run_id)["run_id"]
         res = inst.wait_run(run_id)
-        # print(res)
-        # assert False
-        # assert res["state"] == "failure"
-        # assert res["meta"]["program"]["return_code"] == 4
-        # new_output = inst.client.get_output(run_id, "output")
-        # assert new_output.startswith("color=green")
-        # assert new_output != output
+        assert res["args"] == {"color": "green", "exit": "4"}
+        assert res["state"] == "failure"
+        assert res["meta"]["program"]["return_code"] == 4
+        new_output = inst.client.get_output(run_id, "output")
+        assert new_output.startswith(b"color=green")
+        assert new_output != output
 
 
