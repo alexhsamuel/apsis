@@ -245,7 +245,8 @@ class LegacyRunningProgram(RunningProgram):
         except (ProgramError, ProgramFailure) as err:
             yield err
         else:
-            assert isinstance(success, ProgramSuccess)
+            assert isinstance(success, ProgramSuccess), \
+                f"wrong result msg: {success!r}"
             yield success
 
 
