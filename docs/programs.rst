@@ -130,10 +130,10 @@ hasn't completed yet.  The `signal` key is optional and defaults to SIGTERM.
 Procstar Programs
 -----------------
 
-`Procstar <https://github.com/alexhsamuel/procstar>` is a system for managing
-running processes.  Apsis can run programs via Procstar agents, possibly on
-other hosts.  For Apsis to do this, at least one Procstar agent with the
-matching group ID must connect to the Apsis server.
+`Procstar <https://github.com/apsis-scheduler/procstar>` is a system for
+managing running processes.  Apsis can run programs via Procstar agents,
+possibly on other hosts.  For Apsis to do this, at least one Procstar agent with
+the matching group ID must connect to the Apsis server.
 
 .. code:: yaml
 

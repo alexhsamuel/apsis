@@ -37,7 +37,7 @@ dependencies = [
 optional-dependencies = {dev = ["build", "pytest", "pytest-asyncio", "bump-my-version"], doc = ["sphinx", "readthedocs-sphinx-ext", "sphinx-rtd-theme"]}
 
 [project.urls]
-Repository = "https://github.com/alexhsamuel/apsis"
+Repository = "https://github.com/apsis-scheduler/apsis"
 Documentation = "https://apsis-scheduler.readthedocs.io/en/latest/"
 
 [project.scripts]
