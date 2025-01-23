@@ -28,3 +28,5 @@ Apsis is built on,
 - the [Ora](https://github.com/alexhsamuel/ora) time library
 - [Vue.js](https://vuejs.org/) for the web UI
 
+Apsis can use [Procstar](https://github.com/apsis-scheduler/procstar) for
+long-running agents to run scheduled programs.
