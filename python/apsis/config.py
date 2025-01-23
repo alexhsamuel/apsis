@@ -31,7 +31,7 @@ def check(cfg, base_path: Path):
         log.error(f"missing job directory: {job_dir}")
     cfg["job_dir"] = job_dir
 
-    db_cfg = cfg.get("database")
+    db_cfg = cfg.setdefault("database", {})
     # Backward compatibility: just the DB path.
     if isinstance(db_cfg, str):
         cfg["database"] = db_cfg = {"path": db_cfg}
