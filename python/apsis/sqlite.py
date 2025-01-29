@@ -211,6 +211,11 @@ TBL_JOBS = sa.Table(
 )
 
 class JobDB:
+    """
+    Deprecated.
+
+    Ad hoc runs serialize the entire job in the run; this table isn't needed.
+    """
 
     def __init__(self, engine):
         self.__engine = engine
@@ -469,6 +474,8 @@ class RunDB:
 #-------------------------------------------------------------------------------
 
 class RunLogDB:
+
+    # FIXME: Rename table to run_log.
 
     TABLE = sa.Table(
         "run_history", METADATA,

@@ -66,8 +66,6 @@ class PolledCondition(Condition):
         """
         Waits for the condition to complete.
 
-        :param timeout:
-           Max time to wait, or none for no timeout.
         :return:
           `True` if the run is ready or `Transition` to cause the run to
           transition to a new state.
