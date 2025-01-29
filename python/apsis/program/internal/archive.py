@@ -2,7 +2,8 @@ import asyncio
 import logging
 import ora
 
-from   ..base import _InternalProgram, ProgramRunning, ProgramSuccess
+from   ..base import (
+    Program, _InternalBoundProgram, ProgramRunning, ProgramSuccess)
 from   apsis.lib.json import check_schema, nkey
 from   apsis.lib.parse import parse_duration
 from   apsis.lib.timing import Timer
@@ -12,7 +13,7 @@ log = logging.getLogger(__name__)
 
 #-------------------------------------------------------------------------------
 
-class ArchiveProgram(_InternalProgram):
+class ArchiveProgram(Program):
     """
     A program that archives old runs from the Apsis database to an archive
     database.
@@ -52,8 +53,36 @@ class ArchiveProgram(_InternalProgram):
         return f"archive age {self.__age} → {self.__path}"
 
 
+    @classmethod
+    def from_jso(cls, jso):
+        with check_schema(jso) as pop:
+            age         = pop("age")
+            path        = pop("path", str)
+            count       = pop("count", int)
+            chunk_size  = pop("chunk_size", int, None)
+            chunk_sleep = pop("chunk_sleep", float, None)
+        return cls(
+            age         =age,
+            path        =path,
+            count       =count,
+            chunk_size  =chunk_size,
+            chunk_sleep =chunk_sleep,
+        )
+
+
+    def to_jso(self):
+        return {
+            **super().to_jso(),
+            "age"   : self.__age,
+            "path"  : self.__path,
+            "count" : self.__count,
+            **nkey("chunk_size", self.__chunk_size),
+            **nkey("chunk_sleep", self.__chunk_sleep),
+        }
+
+
     def bind(self, args):
-        return type(self)(
+        return BoundArchiveProgram(
             age         = parse_duration(template_expand(self.__age, args)),
             path        = template_expand(self.__path, args),
             count       = int(template_expand(self.__count, args)),
@@ -62,6 +91,49 @@ class ArchiveProgram(_InternalProgram):
             chunk_sleep = None if self.__chunk_sleep is None
                           else float(template_expand(self.__chunk_sleep, args)),
         )
+
+
+
+#-------------------------------------------------------------------------------
+
+class BoundArchiveProgram(_InternalBoundProgram):
+    """
+    A program that archives old runs from the Apsis database to an archive
+    database.
+
+    This program runs within the Apsis process, and blocks all other activities
+    while it runs.  Avoid archiving too many runs in a single invocation.
+
+    A run must be retired before it is archived.  If it cannot be retired, it is
+    skipped for archiving.
+    """
+
+    def __init__(self, *, age, path, count, chunk_size=None, chunk_sleep=None):
+        """
+        If this archive file doesn't exist, it is created automatically on
+        first use; the contianing directory must exist.
+
+        :param age:
+          Minimum age in sec for a run to be archived.
+        :param path:
+          Path to the archive file, a SQLite database in a format similar to the
+          Apsis database file.
+        :param count:
+          Maximum number of runs to archive per run of this program.
+        :param chunk_size:
+          Number of runs to archive in one chunk.  Each chunk is blocking.
+        :param chunk_sleep:
+          Time in seconds to wait between chunks.
+        """
+        self.__age          = age
+        self.__path         = path
+        self.__count        = count
+        self.__chunk_size   = chunk_size
+        self.__chunk_sleep  = chunk_sleep
+
+
+    def __str__(self):
+        return f"archive age {self.__age} → {self.__path}"
 
 
     @classmethod

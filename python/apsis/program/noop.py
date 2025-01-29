@@ -3,7 +3,7 @@ import logging
 import ora
 
 from   .base import (
-    Program, RunningProgram,
+    Program, BoundProgram, RunningProgram,
     ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError)
 from   apsis.lib import memo
 from   apsis.lib.json import check_schema
@@ -52,7 +52,7 @@ class NoOpProgram(Program):
 
 #-------------------------------------------------------------------------------
 
-class BoundNoOpProgram(Program):
+class BoundNoOpProgram(BoundProgram):
     """
     A program that does nothing.
 

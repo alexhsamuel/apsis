@@ -8,7 +8,8 @@ from   signal import Signals
 import socket
 
 from   .base import (
-    Program, ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError,
+    Program, BoundProgram,
+    ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError,
     program_outputs, Timeout, RunningProgram,
 )
 from   .process import Stop, BoundStop
@@ -159,7 +160,7 @@ class AgentShellProgram(Program):
 
 #-------------------------------------------------------------------------------
 
-class BoundAgentProgram(Program):
+class BoundAgentProgram(BoundProgram):
 
     def __init__(
             self,

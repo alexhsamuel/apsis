@@ -8,7 +8,7 @@ from   signal import Signals
 import socket
 
 from   .base import (
-    Program, RunningProgram,
+    Program, BoundProgram, RunningProgram,
     ProgramRunning, ProgramSuccess, ProgramFailure, ProgramError,
     program_outputs
 )
@@ -160,7 +160,7 @@ class ShellCommandProgram(Program):
 
 #-------------------------------------------------------------------------------
 
-class BoundProcessProgram(Program):
+class BoundProcessProgram(BoundProgram):
 
     def __init__(self, argv, *, stop=BoundStop()):
         self.argv = tuple( str(a) for a in argv )

@@ -253,63 +253,44 @@ class LegacyRunningProgram(RunningProgram):
 
 #-------------------------------------------------------------------------------
 
-class Program(TypedJso):
+class BoundProgram(TypedJso):
     """
-    Program base class.
+    Base class for program types associated with runs.
     """
 
     TYPE_NAMES = TypedJso.TypeNames()
 
-    def bind(self, args):
+    def run(self, run_id, cfg) -> RunningProgram:
         """
-        Returns a new program with parameters bound to `args`.
-        """
-
-
-    # FIXME: Find a better way to get run_id into logging without passing it in.
-
-    async def start(self, run_id, cfg):
-        """
-        Starts the run.
-
-        :deprecated:
-          Implement `run()` instead.
-        """
-
-
-    def reconnect(self, run_id, run_state):
-        """
-        Reconnects to an already running run.
-
-        :deprecated:
-          Implement `connect()` instead.
-        """
-
-
-    async def signal(self, run_id, run_state, signal):
-        """
-        Sends a signal to the running program.
+        Runs the program.
 
         :param run_id:
-          The run ID; used for logging only.
-        :param signal:
-          Signal name or number.
+          Used for logging only.
+        :return:
+          `RunningProgram` instance.
         """
-        raise NotImplementedError("program signal not implemented")
+        raise NotImplementedError("not implemented: BoundProgram.run")
 
 
-    @classmethod
-    def from_jso(cls, jso):
-        # Extend the default JSO typed resolution to accept a str or list.
-        if isinstance(jso, str):
-            from .agent import AgentShellProgram
-            return AgentShellProgram(jso)
-        elif isinstance(jso, list):
-            from .agent import AgentProgram
-            return AgentProgram(jso)
-        else:
-            return TypedJso.from_jso.__func__(cls, jso)
+    # FIXME: Remove `run_id` from API; the running program carries it.
+    def connect(self, run_id, run_state, cfg) -> RunningProgram:
+        """
+        Connects to the running program specified by `run_state`.
 
+        :param run_id:
+          Used for logging only.
+        :return:
+          Async iterator that yields `Program*` objects.
+        """
+        raise NotImplementedError("not implemented: BoundProgram.connect")
+
+
+
+class LegacyBoundProgram(BoundProgram):
+    """
+    Facade for older implementations that implement `start()` and
+    `reconnect()` instead of `run()` and `connect()`.
+    """
 
     def run(self, run_id, cfg) -> RunningProgram:
         """
@@ -342,34 +323,65 @@ class Program(TypedJso):
         return LegacyRunningProgram(run_id, self, cfg, run_state)
 
 
+    async def start(self, run_id, cfg):
+        """
+        :deprecated:
+          Implement `run()` instead.
+        """
+        raise NotImplementedError("not implemented: LegacyBoundProgram.start")
 
-#-------------------------------------------------------------------------------
 
-class _InternalProgram(Program):
+    def reconnect(self, run_id, run_state):
+        """
+        :deprecated:
+          Implement `connect()` instead.
+        """
+        raise NotImplementedError("not implemented: LegacyBoundProgram.reconnect")
+
+
+
+class _InternalBoundProgram(BoundProgram):
     """
     Program type for internal use.
 
     Not API.  Do not use in extension code.
     """
 
-    def bind(self, args):
-        pass
-
-
     def start(self, run_id, apsis):
-        pass
+        raise NotImplementedError("not implemented: _InternalBoundProgram.start")
 
 
     def reconnect(self, run_id, run_state):
-        pass
+        raise NotImplementedError("not implemented: _InternalBoundProgram.reconnect")
 
 
-    async def signal(self, run_id, signum: str):
-        pass
+
+#-------------------------------------------------------------------------------
+
+class Program(TypedJso):
+    """
+    Base class for program types associated with jobs.
+    """
+
+    TYPE_NAMES = TypedJso.TypeNames()
+
+    def bind(self, args) -> BoundProgram:
+        """
+        Returns a new program with parameters bound to `args`.
+        """
 
 
-    async def stop(self):
-        pass
+    @classmethod
+    def from_jso(cls, jso):
+        # Extend the default JSO typed resolution to accept a str or list.
+        if isinstance(jso, str):
+            from .agent import AgentShellProgram
+            return AgentShellProgram(jso)
+        elif isinstance(jso, list):
+            from .agent import AgentProgram
+            return AgentProgram(jso)
+        else:
+            return TypedJso.from_jso.__func__(cls, jso)
 
 
 

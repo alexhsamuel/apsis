@@ -1,12 +1,12 @@
 import asyncio
 
-from   .base import Program, ProgramRunning, ProgramSuccess
+from   .base import LegacyBoundProgram, ProgramRunning, ProgramSuccess
 from   apsis.lib.json import check_schema
 from   apsis.runs import template_expand
 
 #-------------------------------------------------------------------------------
 
-class SimpleLegacyProgram(Program):
+class SimpleLegacyProgram(LegacyBoundProgram):
     """
     Test program that uses the *deprecated* legacy program API, namely the
     `start()` and `reconnect()` methods.
