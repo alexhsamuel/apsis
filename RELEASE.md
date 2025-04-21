@@ -1,6 +1,7 @@
 # v1.0
 
 - Change license to Apache-2.0.
+- The main branch is now "main".
 
 
 # v0.31
