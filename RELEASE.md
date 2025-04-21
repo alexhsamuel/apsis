@@ -1,4 +1,4 @@
-# v0.32
+# v1.0
 
 - Change license to Apache-2.0.
 
