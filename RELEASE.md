@@ -1,3 +1,8 @@
+# v0.32
+
+- Change license to Apache-2.0.
+
+
 # v0.31
 
 - `ArchiveProgram` no longer vacuums the database file.  Use
