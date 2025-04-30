@@ -9,7 +9,7 @@ function getUrl(...path) {
 }
 
 function setWs(url) {
-  url.protocol = url.protocol.startsWith("https") ? "wss" : "ws"
+  url.protocol = url.protocol.startsWith('https') ? 'wss' : 'ws'
 }
 
 export function getDependenciesUrl(run_id) {
