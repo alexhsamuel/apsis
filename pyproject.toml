@@ -17,7 +17,7 @@ classifiers = [
 ]
 
 # NOTE:
-# set ULTIDICT_NO_EXTENSIONS=1 in the environment to build multidict 5.2.0, required by Sanic below, on modern Python versions.
+# set MULTIDICT_NO_EXTENSIONS=1 in the environment to build multidict 5.2.0, required by Sanic below, on modern Python versions.
 
 requires-python = ">=3.13"
 dependencies = [
