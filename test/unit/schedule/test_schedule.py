@@ -74,8 +74,9 @@ def test_daily_schedule_shift():
 
 @pytest.mark.parametrize("date_shift", [-5, -2, -1, 0, 1, 2, 5])
 @pytest.mark.parametrize("cal_shift", [-5, -2, -1, 0, 1, 2, 5])
+@pytest.mark.parametrize("time_shift", [-14400, -7200, 0, 7200, 14400])
 @pytest.mark.parametrize("start_y", ["00:00:00", "02:00:00", "10:00:00", "15:00:00", "22:15:00"])
-def test_daily_schedule_cal_shift(date_shift, cal_shift, start_y):
+def test_daily_schedule_cal_shift(date_shift, cal_shift, time_shift, start_y):
     z = ora.TimeZone("America/New_York")
     c = ora.get_calendar("Mon,Wed-Fri")
     start = ("2019-03-11", start_y) @ z
@@ -101,13 +102,13 @@ def test_daily_schedule_cal_shift(date_shift, cal_shift, start_y):
 
     sched1 = DailySchedule(
         z, c, sched_y, args,
-        date_shift=date_shift, cal_shift=cal_shift,
+        date_shift=date_shift, cal_shift=cal_shift, time_shift=time_shift,
     )
     times1 = [ t for t, _ in itertools.islice(sched1(start), n) ]
 
     def shift(t):
         try:
-            return shift_date(shift_cal(t, cal_shift), date_shift)
+            return shift_date(shift_cal(t, cal_shift), date_shift) + time_shift
         except ora.NonexistentDateDaytime:
             return None
 

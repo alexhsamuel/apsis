@@ -3,6 +3,7 @@ import ora
 
 from   apsis.lib.calendar import get_calendar
 from   apsis.lib.json import check_schema, to_array
+from   apsis.lib.parse import parse_duration
 from   .base import Schedule
 
 log = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ class DailySchedule(Schedule):
 
     def __init__(
             self, tz, calendar, daytimes, args, *,
-            enabled=True, date_shift=0, cal_shift=0,
+            enabled=True, date_shift=0, cal_shift=0, time_shift=0,
     ):
         super().__init__(enabled=enabled)
         self.tz         = ora.TimeZone(tz)
@@ -24,6 +25,7 @@ class DailySchedule(Schedule):
         self.args       = { str(k): str(v) for k, v in args.items() }
         self.date_shift = int(date_shift)
         self.cal_shift  = int(cal_shift)
+        self.time_shift = float(time_shift)
 
 
     def __str__(self):
@@ -33,6 +35,8 @@ class DailySchedule(Schedule):
             res += f" {self.cal_shift:+d} cal days"
         if self.date_shift != 0:
             res += f" {self.date_shift:+d} days"
+        if self.time_shift != 0:
+            res += f" {self.time_shift:+f} s"
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
             res = "(" + args + ") " + res
@@ -45,7 +49,7 @@ class DailySchedule(Schedule):
         """
         start = ora.Time(start)
 
-        start_date, start_daytime = start @ self.tz
+        start_date, start_daytime = (start - self.time_shift) @ self.tz
         start_date -= self.date_shift
 
         if start_date in self.calendar:
@@ -75,7 +79,7 @@ class DailySchedule(Schedule):
             sched_date = sched_date + self.date_shift
             daytime = self.daytimes[i]
             try:
-                time = (sched_date, daytime) @ self.tz
+                time = (sched_date, daytime) @ self.tz + self.time_shift
             except ora.NonexistentDateDaytime:
                 # Landed in a DST transition.
                 log.warning(
@@ -86,7 +90,7 @@ class DailySchedule(Schedule):
             assert time >= start
             args = {
                 "date": str(date),
-                "time": time,
+                "time": str((date, daytime) @ self.tz),
                 "daytime": str(daytime),
                 **common_args,
             }
@@ -107,6 +111,7 @@ class DailySchedule(Schedule):
             "daytime"   : [ str(y) for y in self.daytimes ],
             "date_shift": self.date_shift,
             "cal_shift" : self.cal_shift,
+            "time_shift": self.time_shift,
             "args"      : self.args,
         }
 
@@ -122,9 +127,10 @@ class DailySchedule(Schedule):
             daytimes    = [ ora.Daytime(d) for d in daytimes ]
             date_shift  = pop("date_shift", int, default=0)
             cal_shift   = pop("cal_shift", int, default=0)
+            time_shift  = parse_duration(pop("time_shift", str, default="0"))
         return cls(
             tz, calendar, daytimes, args,
-            date_shift=date_shift, cal_shift=cal_shift,
+            date_shift=date_shift, cal_shift=cal_shift, time_shift=time_shift,
             **kw_args
         )
 
