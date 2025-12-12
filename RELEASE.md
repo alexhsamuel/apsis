@@ -1,3 +1,8 @@
+# v1.1
+
+- Add `time_shift` to daiy schedule.
+
+
 # v1.0
 
 - Change license to Apache-2.0.
