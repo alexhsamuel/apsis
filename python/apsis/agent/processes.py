@@ -84,11 +84,13 @@ def start(argv, cwd, env, stdin_fd, out_fd):
                 err_write,
                 True,                   # restore_signals
                 True,                   # start_new_session
+                -1,                     # process_group
                 None,                   # gid
                 None,                   # gids
                 None,                   # uid
                 -1,                     # umask
                 None,                   # preexec_fn
+                True,                   # allow_vfork
             )
 
         finally:
