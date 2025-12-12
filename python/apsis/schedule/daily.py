@@ -36,7 +36,7 @@ class DailySchedule(Schedule):
         if self.date_shift != 0:
             res += f" {self.date_shift:+d} days"
         if self.time_shift != 0:
-            res += f" {self.time_shift:+f} s"
+            res += f" {self.time_shift:+.1f} s"
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
             res = "(" + args + ") " + res
