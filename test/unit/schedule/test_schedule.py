@@ -72,17 +72,9 @@ def test_daily_schedule_shift():
     assert a["date"] == "2019-01-21"
 
 
-@pytest.mark.parametrize("date_shift", [-5, -2, -1, 0, 1, 2, 5])
-@pytest.mark.parametrize("cal_shift", [-5, -2, -1, 0, 1, 2, 5])
-@pytest.mark.parametrize("time_shift", [-14400, -7200, 0, 7200, 14400])
-@pytest.mark.parametrize("start_y", ["00:00:00", "02:00:00", "10:00:00", "15:00:00", "22:15:00"])
-def test_daily_schedule_cal_shift(date_shift, cal_shift, time_shift, start_y):
+def test_daily_schedule_cal_shift():
     z = ora.TimeZone("America/New_York")
     c = ora.get_calendar("Mon,Wed-Fri")
-    start = ("2019-03-11", start_y) @ z
-    sched_y = ["2:30:00", "12:00:00", "22:00:00"]
-    args = {"foo": "bar"}
-    n = 20
 
     def shift_date(t, shift):
         d, y = t @ z
@@ -92,29 +84,41 @@ def test_daily_schedule_cal_shift(date_shift, cal_shift, time_shift, start_y):
         d, y = t @ z
         return (c.shift(d, shift), y) @ z
 
-    sched0 = DailySchedule(z, c, sched_y, args)
-    # Generate a long piece of schedule.
-    times0 = sched0(shift_date(start, -20))
-    times0 = [
-        t
-        for t, _ in itertools.islice(times0, n + 300)
-    ]
+    def test(date_shift, cal_shift, time_shift, start_y):
+        start = ("2019-03-11", start_y) @ z
+        sched_y = ["2:30:00", "12:00:00", "22:00:00"]
+        args = {"foo": "bar"}
+        n = 20
 
-    sched1 = DailySchedule(
-        z, c, sched_y, args,
-        date_shift=date_shift, cal_shift=cal_shift, time_shift=time_shift,
-    )
-    times1 = [ t for t, _ in itertools.islice(sched1(start), n) ]
+        sched0 = DailySchedule(z, c, sched_y, args)
+        # Generate a long piece of schedule.
+        times0 = sched0(shift_date(start, -20))
+        times0 = [
+            t
+            for t, _ in itertools.islice(times0, n + 300)
+        ]
 
-    def shift(t):
-        try:
-            return shift_date(shift_cal(t, cal_shift), date_shift) + time_shift
-        except ora.NonexistentDateDaytime:
-            return None
+        sched1 = DailySchedule(
+            z, c, sched_y, args,
+            date_shift=date_shift, cal_shift=cal_shift, time_shift=time_shift,
+        )
+        times1 = [ t for t, _ in itertools.islice(sched1(start), n) ]
 
-    expected = [ shift(t) for t in times0 ]
-    expected = [ t for t in expected if t is not None and t >= start ][: n]
-    assert times1 == expected
+        def shift(t):
+            try:
+                return shift_date(shift_cal(t, cal_shift), date_shift) + time_shift
+            except ora.NonexistentDateDaytime:
+                return None
+
+        expected = [ shift(t) for t in times0 ]
+        expected = [ t for t in expected if t is not None and t >= start ][: n]
+        assert times1 == expected
+
+    for date_shift in [-5, -2, -1, 0, 1, 2, 5]:
+        for cal_shift in [-5, -2, -1, 0, 1, 2, 5]:
+            for time_shift in [-14400, -7200, 0, 7200, 14400]:
+                for start_y in ["00:00:00", "02:00:00", "10:00:00", "15:00:00", "22:15:00"]:
+                    test(date_shift, cal_shift, time_shift, start_y)
 
 
 def test_interval_schedule_phase():
