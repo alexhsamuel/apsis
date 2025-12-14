@@ -100,7 +100,7 @@ def serve(cfg, host="127.0.0.1", port=DEFAULT_PORT, debug=False):
     app.restart = False
     app.running = True  # FIXME: ??  Remove?
 
-    loop = asyncio.get_event_loop()
+    asyncio.set_event_loop(loop := asyncio.new_event_loop())
     loop.set_debug(True)
 
     # Set up the HTTP server.
