@@ -10,7 +10,6 @@ Uses async HTTPX for communication, including connection reuse.  Therefore,
 
 """
 
-import aiohttp
 import asyncio
 import contextlib
 import errno
@@ -25,7 +24,6 @@ import sys
 import tempfile
 import ujson
 from   urllib.parse import quote_plus
-import warnings
 
 import apsis.lib.asyn
 from   apsis.lib.py import if_none
@@ -39,11 +37,6 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
 
 DEFAULT = object()
-
-HTTP_IMPL = os.environ.get("APSIS_ASYNC_HTTP", "httpx")
-if HTTP_IMPL not in {"httpx", "aiohttp"}:
-    warnings.warn(f"unknown APSIS_ASYNC_HTTP={HTTP_IMPL}; using httpx")
-    HTTP_IMPL = "httpx"
 
 #-------------------------------------------------------------------------------
 
@@ -129,19 +122,11 @@ class RequestJsonError(RuntimeError):
 
 
 async def _load_data(rsp):
-    match HTTP_IMPL:
-        case "httpx":
-            return await rsp.aread()
-        case "aiohttp":
-            return await rsp.read()
+    return await rsp.aread()
 
 
 async def _get_jso(rsp):
-    match HTTP_IMPL:
-        case "httpx":
-            data = await rsp.aread()
-        case "aiohttp":
-            data = await rsp.read()
+    data = await rsp.aread()
     try:
         return ujson.loads(data)
     except ujson.JSONDecodeError as exc:
@@ -156,35 +141,24 @@ def _get_http_client(loop):
     """
     Returns an HTTP client for use with `loop`.
     """
-    match HTTP_IMPL:
-        case "httpx":
-            client = httpx.AsyncClient(
-                timeout=httpx.Timeout(30.0),
-                # FIXME: For now, we use no server verification when
-                # establishing the TLS connection to the agent.  The agent uses
-                # a generic SSL cert with no real host name, so host
-                # verification cannot work; we'd have to generate a certificate
-                # for each agent host.  For now at least we have connection
-                # encryption.
-                verify=False,
-                # FIXME: Don't use keepalive in general, until we understand the
-                # disconnect issues.
-                limits=httpx.Limits(
-                    max_keepalive_connections=0,
-                ),
-            )
-            # When the loop closes, close the client first.  Otherwise, we leak
-            # tasks and fds, and asyncio complains about them at shutdown.
-            loop.on_close(client.aclose())
-
-        case "aiohttp":
-            client = aiohttp.ClientSession(
-                loop=loop,
-                timeout=aiohttp.ClientTimeout(total=30),
-            )
-            # When the loop closes, close the client first.  Otherwise, we leak
-            # tasks and pooled fds, and asyncio complains at shutdown.
-            loop.on_close(client.close())
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(30.0),
+        # FIXME: For now, we use no server verification when
+        # establishing the TLS connection to the agent.  The agent uses
+        # a generic SSL cert with no real host name, so host
+        # verification cannot work; we'd have to generate a certificate
+        # for each agent host.  For now at least we have connection
+        # encryption.
+        verify=False,
+        # FIXME: Don't use keepalive in general, until we understand the
+        # disconnect issues.
+        limits=httpx.Limits(
+            max_keepalive_connections=0,
+        ),
+    )
+    # When the loop closes, close the client first.  Otherwise, we leak
+    # tasks and fds, and asyncio complains about them at shutdown.
+    loop.on_close(client.aclose())
 
     return client
 
@@ -425,31 +399,16 @@ class Agent:
                 )
 
             try:
-                match HTTP_IMPL:
-                    case "httpx":
-                        rsp = await client.request(
-                            method, url,
-                            headers={
-                                # The auth header, so the agent accepts us.
-                                "X-Auth-Token": token,
-                                "Content-Type": "application/json",
-                            },
-                            content=ujson.dumps(data),
-                        )
-                        status = rsp.status_code
-
-                    case "aiohttp":
-                        rsp = await client.request(
-                            method, url,
-                            verify_ssl=False,
-                            headers={
-                                # The auth header, so the agent accepts us.
-                                "X-Auth-Token": token,
-                                "Content-Type": "application/json",
-                            },
-                            data=ujson.dumps(data),
-                        )
-                        status = rsp.status
+                rsp = await client.request(
+                    method, url,
+                    headers={
+                        # The auth header, so the agent accepts us.
+                        "X-Auth-Token": token,
+                        "Content-Type": "application/json",
+                    },
+                    content=ujson.dumps(data),
+                )
+                status = rsp.status_code
 
                 try:
                     log.debug(f"{self}: {method} {url} → {status}")
@@ -482,12 +441,7 @@ class Agent:
                         raise RuntimeError(f"unexpected status code: {status}")
 
                 finally:
-                    match HTTP_IMPL:
-                        case "httpx":
-                            await rsp.aclose()
-                        case "aiohttp":
-                            pass
-                            # await rsp.release()
+                    await rsp.aclose()
 
             except httpx.RequestError as exc:
                 # We want to show the entire exception stack, unless the
@@ -501,12 +455,6 @@ class Agent:
                     f"{self}: {method} {url} → connection {err}",
                     exc_info=not is_ecr,
                 )
-                # Try again with a new connection.
-                await self.disconnect(port, token)
-                continue
-
-            except aiohttp.ClientError as exc:
-                log.info(f"{self}: {method} {url} → {exc}", exc_info=True)
                 # Try again with a new connection.
                 await self.disconnect(port, token)
                 continue
