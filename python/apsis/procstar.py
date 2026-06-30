@@ -59,13 +59,18 @@ def start_agent_server(cfg):
     reconnect_timeout = nparse_duration(conn_cfg.get("reconnect_timeout", None))
 
     _SERVER = procstar.agent.server.Server()
-    return _SERVER.run_forever(
-        host                =host,
-        port                =port,
-        tls_cert            =tls_cert,
-        access_token        =access_token,
-        reconnect_timeout   =reconnect_timeout,
-    )
+
+    async def run_forever():
+        ws_server = await _SERVER.run(
+            host                =host,
+            port                =port,
+            tls_cert            =tls_cert,
+            access_token        =access_token,
+            reconnect_timeout   =reconnect_timeout,
+        )
+        await ws_server.serve_forever()
+
+    return run_forever()
 
 
 #-------------------------------------------------------------------------------

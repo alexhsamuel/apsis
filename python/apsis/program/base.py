@@ -4,7 +4,7 @@ from   apsis.lib import memo
 from   apsis.lib.api import decompress
 from   apsis.lib.json import TypedJso, check_schema
 from   apsis.lib.parse import parse_duration
-from   apsis.lib.py import format_repr
+from   apsis.lib.py import format_repr, format_ctor
 from   apsis.lib.sys import to_signal
 from   apsis.runs import template_expand
 
@@ -53,6 +53,11 @@ class Output:
         self.metadata       = metadata
         self.data           = data
         self.compression    = compression
+
+
+    def __repr__(self):
+        data = repr(self.data[: 64]) + ("" if len(self.data) < 64 else "…")
+        return format_ctor(self, self.metadata, data, self.compression)
 
 
     def get_uncompressed_data(self) -> bytes:

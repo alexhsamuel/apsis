@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apsis"
-version = "0.33.2"
+version = "1.1.1"
 description = "Easy-to-use task scheduler"
 readme = "README.md"
 license = {text = "MIT License"}
@@ -16,7 +16,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 
-requires-python = ">=3.10"
+# NOTE:
+# set MULTIDICT_NO_EXTENSIONS=1 in the environment to build multidict 5.2.0, required by Sanic below, on modern Python versions.
+
+requires-python = ">=3.13"
 dependencies = [
     "brotli",
     "httpx",
@@ -30,7 +33,7 @@ dependencies = [
     "sanic-routing ==0.7.0",
     "sqlalchemy <2",
     "ujson",
-    "websockets ==10.*",
+    "websockets >=15",
 ]
 
 optional-dependencies = {dev = ["build", "pytest", "pytest-asyncio", "bump-my-version"], doc = ["sphinx", "readthedocs-sphinx-ext", "sphinx-rtd-theme"]}

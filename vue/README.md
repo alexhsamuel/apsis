@@ -27,4 +27,9 @@ npm run e2e
 npm test
 ```
 
+To reverse-proxy HTTPS for testing:
+```
+sudo caddy reverse-proxy --from https://localhost:8081 --to localhost:8080
+```
+
 For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).

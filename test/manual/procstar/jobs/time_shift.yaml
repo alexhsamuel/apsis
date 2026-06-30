@@ -1,0 +1,17 @@
+params: ["date", "daytime"]
+
+program:
+  type: procstar
+  argv:
+    - /usr/bin/echo
+    - "Hello, world!"
+    - "on {{ date }}"
+    - "at {{ daytime }}"
+
+schedule:
+  type: daily
+  tz: America/New_York
+  daytime:
+    - 13:26:00
+  time_shift: 15s
+
