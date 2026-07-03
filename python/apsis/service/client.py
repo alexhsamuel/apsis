@@ -84,7 +84,14 @@ class Client:
         self.__addr = get_address() if address is None else Address(*address)
 
 
+    @property
+    def is_tls(self):
+        return self.__addr.port == 443
+
+
     def __url(self, *path, scheme="http", **query):
+        if self.is_tls:
+            scheme = {"http": "https", "ws": "wss"}.get(scheme, scheme)
         query = "&".join(
             str(k) if v is NO_ARG else f"{k}={quote(str(v))}"
             for k, v in query.items()

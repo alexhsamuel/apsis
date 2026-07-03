@@ -1,3 +1,8 @@
+# v1.1.2
+
+- API client uses TLS if on port 443.
+
+
 # v1.1
 
 - Add `time_shift` to daiy schedule.
