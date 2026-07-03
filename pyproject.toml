@@ -21,7 +21,6 @@ classifiers = [
 
 requires-python = ">=3.13"
 dependencies = [
-    "aiohttp",
     "brotli",
     "httpx",
     "jinja2",
