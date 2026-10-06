@@ -14,7 +14,7 @@ class DailyIntervalSchedule(Schedule):
 
     def __init__(
             self, tz, calendar, start, stop, interval, args, *,
-            enabled=True
+            enabled=True, time_shift=0,
     ):
         super().__init__(enabled=enabled)
         self.tz         = ora.TimeZone(tz)
@@ -25,6 +25,7 @@ class DailyIntervalSchedule(Schedule):
         if not (0 < self.interval < 86400):
             raise ValueError(f"invalid interval: {self.interval}")
         self.args       = { str(k): str(v) for k, v in args.items() }
+        self.time_shift = float(time_shift)
 
 
     def __str__(self):
@@ -33,6 +34,8 @@ class DailyIntervalSchedule(Schedule):
             f"every {self.interval} sec "
             f"from {self.start} to {self.stop} {self.tz}"
         )
+        if self.time_shift != 0:
+            res += f" {self.time_shift:+.1f} s"
         if len(self.args) > 0:
             args = ", ".join( f"{k}={v}" for k, v in self.args.items() )
             res = "(" + args + ") " + res
@@ -47,14 +50,15 @@ class DailyIntervalSchedule(Schedule):
         # Figure out which date to schedule from.  Make sure we account
         # for date and cal shifts in either the start or stop.
         date = min(
-            self.start.get_start_date(start, self.tz, self.calendar),
-            self.stop .get_start_date(start, self.tz, self.calendar),
+            self.start.get_start_date(start - self.time_shift, self.tz, self.calendar),
+            self.stop .get_start_date(start - self.time_shift, self.tz, self.calendar),
         )
 
         # Loop over dates.
         while True:
             # Compute the start time for this date.
             try:
+                print(self.start, date, self.tz, self.calendar)
                 date_start = self.start.to_local(date, self.tz, self.calendar)
             except ora.NonexistentDateDaytime:
                 # Landed on a DST transition.
@@ -82,9 +86,9 @@ class DailyIntervalSchedule(Schedule):
             # Generate times between them with the interval.
             time = date_start
             while time < date_stop:
-                if start <= time:
+                if start - self.time_shift <= time:
                     sched_date, daytime = time @ self.tz
-                    yield time, {
+                    yield time + self.time_shift, {
                         "date"      : str(date),
                         "sched_date": str(sched_date),
                         "time"      : str(time),
