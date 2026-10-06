@@ -20,6 +20,12 @@ class DaytimeSpec:
     date_shift  : int = 0
     daytime     : ora.Daytime
 
+    def __init__(self, *, cal_shift=0, date_shift=0, daytime):
+        self.cal_shift  = int(cal_shift)
+        self.date_shift = int(date_shift)
+        self.daytime    = ora.Daytime(daytime)
+
+
     def __str__(self):
         return (
             format(self.daytime, "%C")
