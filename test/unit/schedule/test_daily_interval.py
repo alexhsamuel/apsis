@@ -169,7 +169,6 @@ def test_nonexistent():
         {},
     )
 
-    date = ora.Date("2023-03-11")
     start = ("2023-03-11", "00:00:00") @ tz
     print(f"start: {start}")
     times = sched(start)
@@ -208,7 +207,6 @@ def test_nonexistent_start():
         {},
     )
 
-    date = ora.Date("2023-03-11")
     start = ("2023-03-11", "00:00:00") @ tz
     print(f"start: {start}")
     times = sched(start)
@@ -234,5 +232,58 @@ def test_nonexistent_start():
     check("2023-03-13T03:45:00-04:00")
     check("2023-03-13T04:15:00-04:00")
     check("2023-03-13T04:45:00-04:00") 
+
+
+def test_time_shift():
+    tz = ora.TimeZone("America/New_York")
+    sched = DailyIntervalSchedule(
+        tz,
+        ora.get_calendar("all"),
+        DaytimeSpec(daytime=ora.Daytime("09:30:00")),
+        DaytimeSpec(daytime=ora.Daytime("16:00:00")),
+        1800,
+        {},
+        time_shift=-60,
+    )
+    st, a = next(sched(ora.Time(2026, 10, 6, 9, 0, 0, tz)))
+    assert st == ora.Time(2026, 10, 6, 9, 29, 0, tz)
+    assert ora.Time(a["time"]) == ora.Time(2026, 10, 6, 9, 30, 0, tz)
+
+    st, a = next(sched(ora.Time(2026, 10, 6, 9, 30, 0, tz)))
+    assert st == ora.Time(2026, 10, 6, 9, 59, 0, tz)
+    assert ora.Time(a["time"]) == ora.Time(2026, 10, 6, 10, 0, 0, tz)
+
+    sched = DailyIntervalSchedule(
+        tz,
+        ora.get_calendar("all"),
+        DaytimeSpec(daytime=ora.Daytime("09:30:00")),
+        DaytimeSpec(daytime=ora.Daytime("16:00:00")),
+        1800,
+        {},
+        time_shift=65,
+    )
+    st, a = next(sched(ora.Time(2026, 10, 6, 9, 30, 0, tz)))
+    assert st == ora.Time(2026, 10, 6, 9, 31, 5, tz)
+    assert ora.Time(a["time"]) == ora.Time(2026, 10, 6, 9, 30, 0, tz)
+
+
+def test_time_shift_jso():
+    sched = DailyIntervalSchedule.from_jso({
+        "tz"        : "America/New_York",
+        "start"     : "9:00:00",
+        "stop"      : "17:00:00",
+        "interval"  : "1h",
+        "time_shift": "-1m",
+    })
+    assert sched.start.daytime == ora.Daytime(9, 0, 0)
+    assert sched.stop.daytime  == ora.Daytime(17, 0, 0)
+    assert sched.interval == 3600
+    assert sched.time_shift == -60
+
+    jso = sched.to_jso()
+    assert jso["start"] == "09:00:00"
+    assert jso["stop"] == "17:00:00"
+    assert jso["interval"] == 3600
+    assert jso["time_shift"] == -60
 
 
