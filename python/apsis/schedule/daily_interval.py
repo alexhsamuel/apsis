@@ -58,7 +58,6 @@ class DailyIntervalSchedule(Schedule):
         while True:
             # Compute the start time for this date.
             try:
-                print(self.start, date, self.tz, self.calendar)
                 date_start = self.start.to_local(date, self.tz, self.calendar)
             except ora.NonexistentDateDaytime:
                 # Landed on a DST transition.
