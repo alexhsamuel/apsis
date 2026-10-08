@@ -111,6 +111,7 @@ class DailyIntervalSchedule(Schedule):
             "stop"      : self.stop.to_jso(),
             "interval"  : self.interval,
             "args"      : self.args,
+            "time_shift": self.time_shift,
         }
 
 
@@ -124,8 +125,9 @@ class DailyIntervalSchedule(Schedule):
             stop        = DaytimeSpec.from_jso(pop("stop"))
             interval    = pop("interval", parse_duration)
             args        = pop("args", default={})
+            time_shift  = parse_duration(pop("time_shift", default=0))
         return cls(
-            tz, calendar, start, stop, interval, args,
+            tz, calendar, start, stop, interval, args, time_shift=time_shift,
             **kw_args
         )
 

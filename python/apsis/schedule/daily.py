@@ -127,7 +127,7 @@ class DailySchedule(Schedule):
             daytimes    = [ ora.Daytime(d) for d in daytimes ]
             date_shift  = pop("date_shift", int, default=0)
             cal_shift   = pop("cal_shift", int, default=0)
-            time_shift  = parse_duration(pop("time_shift", str, default="0"))
+            time_shift  = parse_duration(pop("time_shift", default=0))
         return cls(
             tz, calendar, daytimes, args,
             date_shift=date_shift, cal_shift=cal_shift, time_shift=time_shift,

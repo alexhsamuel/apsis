@@ -267,3 +267,23 @@ def test_time_shift():
     assert ora.Time(a["time"]) == ora.Time(2026, 10, 6, 9, 30, 0, tz)
 
 
+def test_time_shift_jso():
+    sched = DailyIntervalSchedule.from_jso({
+        "tz"        : "America/New_York",
+        "start"     : "9:00:00",
+        "stop"      : "17:00:00",
+        "interval"  : "1h",
+        "time_shift": "-1m",
+    })
+    assert sched.start.daytime == ora.Daytime(9, 0, 0)
+    assert sched.stop.daytime  == ora.Daytime(17, 0, 0)
+    assert sched.interval == 3600
+    assert sched.time_shift == -60
+
+    jso = sched.to_jso()
+    assert jso["start"] == "09:00:00"
+    assert jso["stop"] == "17:00:00"
+    assert jso["interval"] == 3600
+    assert jso["time_shift"] == -60
+
+
